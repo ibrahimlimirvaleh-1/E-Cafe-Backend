@@ -16,6 +16,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\ECafe.Application\ECafe.Application.csproj" />
+    <ProjectReference Include="..\ECafe.Infrastructure\ECafe.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

@@ -15,3 +15,6 @@ C:\Users\MyComp\Desktop\E-Cafe-Backend\src\ECafe.Infrastructure\obj\Debug\net9.0
 C:\Users\MyComp\Desktop\E-Cafe-Backend\src\ECafe.Infrastructure\obj\Debug\net9.0\refint\ECafe.Infrastructure.dll
 C:\Users\MyComp\Desktop\E-Cafe-Backend\src\ECafe.Infrastructure\obj\Debug\net9.0\ECafe.Infrastructure.pdb
 C:\Users\MyComp\Desktop\E-Cafe-Backend\src\ECafe.Infrastructure\obj\Debug\net9.0\ref\ECafe.Infrastructure.dll
+C:\Users\MyComp\Desktop\E-Cafe-Backend\src\ECafe.Infrastructure\bin\Debug\net9.0\ECafe.Infrastructure.runtimeconfig.json
+C:\Users\MyComp\Desktop\E-Cafe-Backend\src\ECafe.Infrastructure\obj\Debug\net9.0\ECafe.Infrastructure.sourcelink.json
+C:\Users\MyComp\Desktop\E-Cafe-Backend\src\ECafe.Infrastructure\obj\Debug\net9.0\ECafe.Infrastructure.genruntimeconfig.cache

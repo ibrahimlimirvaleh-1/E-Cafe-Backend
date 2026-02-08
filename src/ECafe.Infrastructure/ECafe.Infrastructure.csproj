@@ -13,6 +13,11 @@
     <ProjectReference Include="..\ECafe.Domain\ECafe.Domain.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Db\Models\" />
+    <Folder Include="Db\Context\" />
+  </ItemGroup>
+
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>

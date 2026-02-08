@@ -13,3 +13,4 @@ C:\Users\MyComp\Desktop\E-Cafe-Backend\src\ECafe.Application\obj\Debug\net9.0\EC
 C:\Users\MyComp\Desktop\E-Cafe-Backend\src\ECafe.Application\obj\Debug\net9.0\refint\ECafe.Application.dll
 C:\Users\MyComp\Desktop\E-Cafe-Backend\src\ECafe.Application\obj\Debug\net9.0\ECafe.Application.pdb
 C:\Users\MyComp\Desktop\E-Cafe-Backend\src\ECafe.Application\obj\Debug\net9.0\ref\ECafe.Application.dll
+C:\Users\MyComp\Desktop\E-Cafe-Backend\src\ECafe.Application\obj\Debug\net9.0\ECafe.Application.sourcelink.json
