@@ -1,0 +1,17 @@
+C:\Users\MyComp\Desktop\E-Cafe-Backend\src\ECafe.Infrastructure\bin\Debug\net9.0\ECafe.Infrastructure.deps.json
+C:\Users\MyComp\Desktop\E-Cafe-Backend\src\ECafe.Infrastructure\bin\Debug\net9.0\ECafe.Infrastructure.dll
+C:\Users\MyComp\Desktop\E-Cafe-Backend\src\ECafe.Infrastructure\bin\Debug\net9.0\ECafe.Infrastructure.pdb
+C:\Users\MyComp\Desktop\E-Cafe-Backend\src\ECafe.Infrastructure\bin\Debug\net9.0\ECafe.Application.dll
+C:\Users\MyComp\Desktop\E-Cafe-Backend\src\ECafe.Infrastructure\bin\Debug\net9.0\ECafe.Domain.dll
+C:\Users\MyComp\Desktop\E-Cafe-Backend\src\ECafe.Infrastructure\bin\Debug\net9.0\ECafe.Application.pdb
+C:\Users\MyComp\Desktop\E-Cafe-Backend\src\ECafe.Infrastructure\bin\Debug\net9.0\ECafe.Domain.pdb
+C:\Users\MyComp\Desktop\E-Cafe-Backend\src\ECafe.Infrastructure\obj\Debug\net9.0\ECafe.Infrastructure.csproj.AssemblyReference.cache
+C:\Users\MyComp\Desktop\E-Cafe-Backend\src\ECafe.Infrastructure\obj\Debug\net9.0\ECafe.Infrastructure.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\MyComp\Desktop\E-Cafe-Backend\src\ECafe.Infrastructure\obj\Debug\net9.0\ECafe.Infrastructure.AssemblyInfoInputs.cache
+C:\Users\MyComp\Desktop\E-Cafe-Backend\src\ECafe.Infrastructure\obj\Debug\net9.0\ECafe.Infrastructure.AssemblyInfo.cs
+C:\Users\MyComp\Desktop\E-Cafe-Backend\src\ECafe.Infrastructure\obj\Debug\net9.0\ECafe.Infrastructure.csproj.CoreCompileInputs.cache
+C:\Users\MyComp\Desktop\E-Cafe-Backend\src\ECafe.Infrastructure\obj\Debug\net9.0\ECafe.In.44BFB6BA.Up2Date
+C:\Users\MyComp\Desktop\E-Cafe-Backend\src\ECafe.Infrastructure\obj\Debug\net9.0\ECafe.Infrastructure.dll
+C:\Users\MyComp\Desktop\E-Cafe-Backend\src\ECafe.Infrastructure\obj\Debug\net9.0\refint\ECafe.Infrastructure.dll
+C:\Users\MyComp\Desktop\E-Cafe-Backend\src\ECafe.Infrastructure\obj\Debug\net9.0\ECafe.Infrastructure.pdb
+C:\Users\MyComp\Desktop\E-Cafe-Backend\src\ECafe.Infrastructure\obj\Debug\net9.0\ref\ECafe.Infrastructure.dll

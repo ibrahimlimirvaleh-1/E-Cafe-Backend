@@ -1,0 +1,56 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v9.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v9.0": {
+      "ECafe.Infrastructure/1.0.0": {
+        "dependencies": {
+          "ECafe.Application": "1.0.0",
+          "ECafe.Domain": "1.0.0"
+        },
+        "runtime": {
+          "ECafe.Infrastructure.dll": {}
+        }
+      },
+      "ECafe.Application/1.0.0": {
+        "dependencies": {
+          "ECafe.Domain": "1.0.0"
+        },
+        "runtime": {
+          "ECafe.Application.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      },
+      "ECafe.Domain/1.0.0": {
+        "runtime": {
+          "ECafe.Domain.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      }
+    }
+  },
+  "libraries": {
+    "ECafe.Infrastructure/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "ECafe.Application/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "ECafe.Domain/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}

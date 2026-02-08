@@ -1,0 +1,11 @@
+C:\Users\MyComp\Desktop\E-Cafe-Backend\src\ECafe.Domain\bin\Debug\net9.0\ECafe.Domain.deps.json
+C:\Users\MyComp\Desktop\E-Cafe-Backend\src\ECafe.Domain\bin\Debug\net9.0\ECafe.Domain.dll
+C:\Users\MyComp\Desktop\E-Cafe-Backend\src\ECafe.Domain\bin\Debug\net9.0\ECafe.Domain.pdb
+C:\Users\MyComp\Desktop\E-Cafe-Backend\src\ECafe.Domain\obj\Debug\net9.0\ECafe.Domain.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\MyComp\Desktop\E-Cafe-Backend\src\ECafe.Domain\obj\Debug\net9.0\ECafe.Domain.AssemblyInfoInputs.cache
+C:\Users\MyComp\Desktop\E-Cafe-Backend\src\ECafe.Domain\obj\Debug\net9.0\ECafe.Domain.AssemblyInfo.cs
+C:\Users\MyComp\Desktop\E-Cafe-Backend\src\ECafe.Domain\obj\Debug\net9.0\ECafe.Domain.csproj.CoreCompileInputs.cache
+C:\Users\MyComp\Desktop\E-Cafe-Backend\src\ECafe.Domain\obj\Debug\net9.0\ECafe.Domain.dll
+C:\Users\MyComp\Desktop\E-Cafe-Backend\src\ECafe.Domain\obj\Debug\net9.0\refint\ECafe.Domain.dll
+C:\Users\MyComp\Desktop\E-Cafe-Backend\src\ECafe.Domain\obj\Debug\net9.0\ECafe.Domain.pdb
+C:\Users\MyComp\Desktop\E-Cafe-Backend\src\ECafe.Domain\obj\Debug\net9.0\ref\ECafe.Domain.dll

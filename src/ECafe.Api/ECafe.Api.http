@@ -1,0 +1,6 @@
+@ECafe.Api_HostAddress = http://localhost:5058
+
+GET {{ECafe.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
