@@ -14,8 +14,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Db\Models\" />
     <Folder Include="Db\Context\" />
+    <Folder Include="Db\Entities\" />
   </ItemGroup>
 
   <PropertyGroup>

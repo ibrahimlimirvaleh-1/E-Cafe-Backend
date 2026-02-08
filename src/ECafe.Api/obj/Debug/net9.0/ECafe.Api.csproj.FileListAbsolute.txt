@@ -134,3 +134,4 @@ C:\Users\MyComp\Desktop\E-Cafe-Backend\src\ECafe.Api\bin\Debug\net9.0\Npgsql.dll
 C:\Users\MyComp\Desktop\E-Cafe-Backend\src\ECafe.Api\bin\Debug\net9.0\Npgsql.EntityFrameworkCore.PostgreSQL.dll
 C:\Users\MyComp\Desktop\E-Cafe-Backend\src\ECafe.Api\bin\Debug\net9.0\ECafe.Infrastructure.dll
 C:\Users\MyComp\Desktop\E-Cafe-Backend\src\ECafe.Api\bin\Debug\net9.0\ECafe.Infrastructure.pdb
+C:\Users\MyComp\Desktop\E-Cafe-Backend\src\ECafe.Api\obj\Debug\net9.0\staticwebassets.upToDateCheck.txt
