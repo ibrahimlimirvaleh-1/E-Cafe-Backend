@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("ECafe.Infrastructure")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+e8830c40c1041971d0b2d52f001451f4e2d9f2b4")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+ac29122151254ffb6d6c3998e1f3d8db9cec5af6")]
 [assembly: System.Reflection.AssemblyProductAttribute("ECafe.Infrastructure")]
 [assembly: System.Reflection.AssemblyTitleAttribute("ECafe.Infrastructure")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
