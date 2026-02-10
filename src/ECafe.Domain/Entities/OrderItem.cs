@@ -1,6 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-namespace ECafe.Infrastructure.Db.Entities;
+﻿
+
+namespace ECafe.Domain.Entities;
 
 
 public partial class OrderItem

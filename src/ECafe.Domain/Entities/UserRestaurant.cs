@@ -1,4 +1,4 @@
-﻿namespace ECafe.Infrastructure.Db.Entities;
+﻿namespace ECafe.Domain.Entities;
 
 public partial class UserRestaurant
 {
