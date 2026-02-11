@@ -1,4 +1,6 @@
-﻿using ECafe.Infrastructure.Context;
+﻿using ECafe.Application.Repository;
+using ECafe.Infrastructure.Context;
+using ECafe.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -17,6 +19,9 @@ namespace ECafe.Infrastructure
 
             services.AddDbContext<ECafeDbContext>(options =>
                 options.UseNpgsql(connStr));
+
+            services.AddScoped(typeof(IBaseRepository<>), typeof(BaseRepository<>));
+
 
             return services;
         }
