@@ -1,7 +1,7 @@
-﻿using ECafe.Domain.Exceptions;
+﻿using System.Net;
+using ECafe.Application.Common.Exceptions;
+using ECafe.Domain.Exceptions;
 using FluentValidation;
-using System.Net;
-using System.Text.Json;
 
 namespace ECafe.Api.Middlewares;
 
@@ -24,29 +24,53 @@ public sealed class ExceptionHandlingMiddleware
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unhandled Exception Occurred");
+            // TraceId ilə log daha faydalı olur
+            _logger.LogError(ex, "Unhandled exception. TraceId: {TraceId}", context.TraceIdentifier);
             await HandleExceptionAsync(context, ex);
         }
     }
 
-    private static Task HandleExceptionAsync(HttpContext context, Exception exception)
+    private static async Task HandleExceptionAsync(HttpContext context, Exception ex)
     {
-        var statusCode = exception switch
+        context.Response.ContentType = "application/json";
+
+        // Validation üçün xüsusi payload
+        if (ex is ValidationException vex)
         {
-            BaseException baseException => baseException.StatusCode,
+            context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
+
+            await context.Response.WriteAsJsonAsync(new
+            {
+                statusCode = context.Response.StatusCode,
+                message = "Validation failed",
+                traceId = context.TraceIdentifier,
+                errors = vex.Errors.Select(e => new { field = e.PropertyName, message = e.ErrorMessage }),
+                timestamp = DateTime.UtcNow
+            });
+
+            return;
+        }
+
+        var statusCode = ex switch
+        {
+            NotFoundException => (int)HttpStatusCode.NotFound,
+            ForbiddenException => (int)HttpStatusCode.Forbidden,
+            BusinessRuleException => (int)HttpStatusCode.Conflict,
             _ => (int)HttpStatusCode.InternalServerError
         };
 
-        var response = new
-        {
-            StatusCode = statusCode,
-            exception.Message,
-            Timestamp = DateTime.UtcNow
-        };
-
-        context.Response.ContentType = "application/json";
         context.Response.StatusCode = statusCode;
-        return context.Response.WriteAsync(JsonSerializer.Serialize(response));
+
+        var message = statusCode == (int)HttpStatusCode.InternalServerError
+            ? "Internal server error"
+            : ex.Message;
+
+        await context.Response.WriteAsJsonAsync(new
+        {
+            statusCode,
+            message,
+            traceId = context.TraceIdentifier,
+            timestamp = DateTime.UtcNow
+        });
     }
-}
 }

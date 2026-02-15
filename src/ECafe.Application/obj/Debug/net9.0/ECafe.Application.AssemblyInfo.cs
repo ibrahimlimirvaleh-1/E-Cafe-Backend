@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("ECafe.Application")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+41345f703b92439680744d6cf8139e4cdde817cf")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+581fdc18b916200178e3c93380be8040160ac3e3")]
 [assembly: System.Reflection.AssemblyProductAttribute("ECafe.Application")]
 [assembly: System.Reflection.AssemblyTitleAttribute("ECafe.Application")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
