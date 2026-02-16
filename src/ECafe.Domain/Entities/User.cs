@@ -1,12 +1,9 @@
-﻿
-
+﻿using ECafe.Domain.Entities.Base;
 
 namespace ECafe.Domain.Entities;
 
-public partial class User
+public partial class User : BaseEntity<int>, IAuditable, ISoftDelete
 {
-    public int Id { get; set; }
-
     public string Name { get; set; } = null!;
 
     public string Surname { get; set; } = null!;
@@ -32,4 +29,11 @@ public partial class User
     public virtual UserRestaurant? UserRestaurant { get; set; }
 
     public virtual ICollection<Role> Roles { get; set; } = new List<Role>();
+    public DateTime CreatedAt { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+    public string CreatedBy { get; set; }
+    public string? UpdatedBy { get; set; }
+    public bool IsDeleted { get; set; }
+    public DateTime? DeletedAt { get; set; }
+    public string? DeletedBy { get; set; }
 }

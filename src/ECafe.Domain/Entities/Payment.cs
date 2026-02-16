@@ -1,12 +1,9 @@
-﻿
-
+﻿using ECafe.Domain.Entities.Base;
 
 namespace ECafe.Domain.Entities;
 
-public partial class Payment
+public partial class Payment : BaseEntity<int>, IAuditable, ISoftDelete
 {
-    public int Id { get; set; }
-
     public int RestaurantId { get; set; }
 
     public int? ReservationId { get; set; }
@@ -25,8 +22,6 @@ public partial class Payment
 
     public int? CreatedByUserId { get; set; }
 
-    public DateTime CreatedAt { get; set; }
-
     public virtual User? CreatedByUser { get; set; }
 
     public virtual Order? Order { get; set; }
@@ -38,4 +33,11 @@ public partial class Payment
     public virtual Reservation? Reservation { get; set; }
 
     public virtual Restaurant Restaurant { get; set; } = null!;
+    public DateTime CreatedAt { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+    public string CreatedBy { get; set; }
+    public string? UpdatedBy { get; set; }
+    public bool IsDeleted { get; set; }
+    public DateTime? DeletedAt { get; set; }
+    public string? DeletedBy { get; set; }
 }

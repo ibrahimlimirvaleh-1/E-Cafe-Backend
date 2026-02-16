@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\ECafe.Domain\ECafe.Domain.csproj" />
+    <ProjectReference Include="..\ECafe.Shared\ECafe.Shared.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

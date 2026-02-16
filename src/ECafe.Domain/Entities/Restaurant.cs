@@ -1,12 +1,9 @@
-﻿
-
+﻿using ECafe.Domain.Entities.Base;
 
 namespace ECafe.Domain.Entities;
 
-public partial class Restaurant
+public partial class Restaurant : BaseEntity<int>, IAuditable, ISoftDelete
 {
-    public int Id { get; set; }
-
     public string Name { get; set; } = null!;
 
     public string Location { get; set; } = null!;
@@ -32,4 +29,12 @@ public partial class Restaurant
     public virtual ICollection<Table> Tables { get; set; } = new List<Table>();
 
     public virtual ICollection<UserRestaurant> UserRestaurants { get; set; } = new List<UserRestaurant>();
+
+    public DateTime CreatedAt { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+    public string CreatedBy { get; set; }
+    public string? UpdatedBy { get; set; }
+    public bool IsDeleted { get; set; }
+    public DateTime? DeletedAt { get; set; }
+    public string? DeletedBy { get; set; }
 }

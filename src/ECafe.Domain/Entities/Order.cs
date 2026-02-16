@@ -1,13 +1,9 @@
-﻿
-
+﻿using ECafe.Domain.Entities.Base;
 
 namespace ECafe.Domain.Entities;
 
-
-public partial class Order
+public partial class Order : BaseEntity<int>, IAuditable, ISoftDelete
 {
-    public int Id { get; set; }
-
     public int RestaurantId { get; set; }
 
     public int TableId { get; set; }
@@ -37,4 +33,12 @@ public partial class Order
     public virtual Table Table { get; set; } = null!;
 
     public virtual User? WaiterUser { get; set; }
+
+    public DateTime CreatedAt { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+    public string CreatedBy { get; set; }
+    public string? UpdatedBy { get; set; }
+    public bool IsDeleted { get; set; }
+    public DateTime? DeletedAt { get; set; }
+    public string? DeletedBy { get; set; }
 }
