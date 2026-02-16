@@ -19,9 +19,6 @@ namespace ECafe.Infrastructure.Configurations.Concrete
             builder.Property(e => e.IsActive)
                 .HasDefaultValue(true)
                 .HasColumnName("is_active");
-            builder.Property(e => e.JoinedAt)
-                .HasDefaultValueSql("now()")
-                .HasColumnName("joined_at");
 
             builder.HasOne(d => d.Restaurant).WithMany(p => p.UserRestaurants)
                 .HasForeignKey(d => d.RestaurantId)
