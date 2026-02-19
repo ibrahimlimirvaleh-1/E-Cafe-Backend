@@ -1,7 +1,7 @@
 ﻿using ECafe.Domain.Entities.Base;
 
 namespace ECafe.Domain.Entities;
-public partial class Reservation : BaseEntity<int>, IAuditable, ISoftDelete
+public partial class Reservation : AuditableSoftDeletableEntity<int>
 {
 
     public int RestaurantId { get; set; }
@@ -37,12 +37,4 @@ public partial class Reservation : BaseEntity<int>, IAuditable, ISoftDelete
     public virtual Status Status { get; set; } = null!;
 
     public virtual Table Table { get; set; } = null!;
-
-    public DateTime CreatedAt { get; set; }
-    public DateTime? UpdatedAt { get; set; }
-    public string CreatedBy { get; set; }
-    public string? UpdatedBy { get; set; }
-    public bool IsDeleted { get; set; }
-    public DateTime? DeletedAt { get; set; }
-    public string? DeletedBy { get; set; }
 }

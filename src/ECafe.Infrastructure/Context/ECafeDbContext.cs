@@ -1,6 +1,7 @@
 ﻿using System.Linq.Expressions;
 using ECafe.Domain.Entities;
 using ECafe.Domain.Entities.Base;
+using ECafe.Infrastructure.Seeders;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Metadata;
@@ -32,6 +33,8 @@ public partial class ECafeDbContext : DbContext
 
         // Bütün IEntityTypeConfiguration<T> config-ləri avtomatik tapır
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(ECafeDbContext).Assembly);
+
+        StatusTypeSeeder.Seed(modelBuilder);
 
         ApplySoftDeleteQueryFilters(modelBuilder);
 

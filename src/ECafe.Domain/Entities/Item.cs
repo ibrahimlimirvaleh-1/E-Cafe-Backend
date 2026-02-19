@@ -4,7 +4,7 @@ namespace ECafe.Domain.Entities;
 
 
 
-public partial class Item : BaseEntity<int>, IAuditable, ISoftDelete
+public partial class Item : AuditableSoftDeletableEntity<int>
 {
     public int RestaurantId { get; set; }
 
@@ -31,11 +31,4 @@ public partial class Item : BaseEntity<int>, IAuditable, ISoftDelete
     public virtual ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
 
     public virtual Restaurant Restaurant { get; set; } = null!;
-    public DateTime CreatedAt { get; set; }
-    public DateTime? UpdatedAt { get; set; }
-    public string CreatedBy { get; set; }
-    public string? UpdatedBy { get; set; }
-    public bool IsDeleted { get; set; }
-    public DateTime? DeletedAt { get; set; }
-    public string? DeletedBy { get; set; }
 }

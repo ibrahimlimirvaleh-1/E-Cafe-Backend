@@ -16,19 +16,34 @@ public static class EnumExtensions
             return name;
 
         var attribute = field.GetCustomAttribute<DescriptionAttribute>();
+
         return attribute?.Description ?? name;
     }
     public static string GetName(this Enum value)
     {
         var field = value.GetType().GetField(value.ToString());
+
         var attribute = field?.GetCustomAttribute<DisplayAttribute>();
-        return attribute?.Name ?? value.ToString();
+
+        if (!string.IsNullOrWhiteSpace(attribute?.Name))
+            return attribute!.Name!;
+        
+        var description = field?.GetCustomAttribute<DescriptionAttribute>();
+
+        return description?.Description ?? value.ToString();
     }
 
     public static string GetValueDescription(this Enum value)
     {
         var field = value.GetType().GetField(value.ToString());
+
         var attribute = field?.GetCustomAttribute<DisplayAttribute>();
-        return attribute?.Description ?? string.Empty;
+
+        if (!string.IsNullOrWhiteSpace(attribute?.Description))
+            return attribute!.Description!;
+
+        var description = field?.GetCustomAttribute<DescriptionAttribute>();
+
+        return description?.Description ?? string.Empty;
     }
 }

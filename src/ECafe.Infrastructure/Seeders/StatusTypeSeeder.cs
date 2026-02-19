@@ -17,6 +17,7 @@ namespace ECafe.Infrastructure.Seeders
                     Name = statusType.GetName(),
                 });
             }
+            modelBuilder.Entity<Domain.Entities.StatusType>().HasData(statusTypes);
 
         }
 

@@ -2,7 +2,7 @@
 
 namespace ECafe.Domain.Entities;
 
-public partial class User : BaseEntity<int>, IAuditable, ISoftDelete
+public partial class User : AuditableSoftDeletableEntity<int>
 {
     public string Name { get; set; } = null!;
 
@@ -29,11 +29,4 @@ public partial class User : BaseEntity<int>, IAuditable, ISoftDelete
     public virtual UserRestaurant? UserRestaurant { get; set; }
 
     public virtual ICollection<Role> Roles { get; set; } = new List<Role>();
-    public DateTime CreatedAt { get; set; }
-    public DateTime? UpdatedAt { get; set; }
-    public string CreatedBy { get; set; }
-    public string? UpdatedBy { get; set; }
-    public bool IsDeleted { get; set; }
-    public DateTime? DeletedAt { get; set; }
-    public string? DeletedBy { get; set; }
 }

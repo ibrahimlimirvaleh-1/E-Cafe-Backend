@@ -2,7 +2,7 @@
 
 namespace ECafe.Domain.Entities;
 
-public partial class Order : BaseEntity<int>, IAuditable, ISoftDelete
+public partial class Order : AuditableSoftDeletableEntity<int>
 {
     public int RestaurantId { get; set; }
 
@@ -34,11 +34,4 @@ public partial class Order : BaseEntity<int>, IAuditable, ISoftDelete
 
     public virtual User? WaiterUser { get; set; }
 
-    public DateTime CreatedAt { get; set; }
-    public DateTime? UpdatedAt { get; set; }
-    public string CreatedBy { get; set; }
-    public string? UpdatedBy { get; set; }
-    public bool IsDeleted { get; set; }
-    public DateTime? DeletedAt { get; set; }
-    public string? DeletedBy { get; set; }
 }

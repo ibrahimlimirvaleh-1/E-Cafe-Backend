@@ -1,7 +1,7 @@
 ﻿using ECafe.Domain.Entities.Base;
 
 namespace ECafe.Domain.Entities;
-public partial class OrderItem : BaseEntity<int>, IAuditable, ISoftDelete
+public partial class OrderItem : AuditableSoftDeletableEntity<int>
 {
     public int OrderId { get; set; }
 
@@ -18,11 +18,5 @@ public partial class OrderItem : BaseEntity<int>, IAuditable, ISoftDelete
     public virtual Item Item { get; set; } = null!;
 
     public virtual Order Order { get; set; } = null!;
-    public DateTime CreatedAt { get; set; }
-    public DateTime? UpdatedAt { get; set; }
-    public string CreatedBy { get; set; }
-    public string? UpdatedBy { get; set; }
-    public bool IsDeleted { get; set; }
-    public DateTime? DeletedAt { get; set; }
-    public string? DeletedBy { get; set; }
+
 }
