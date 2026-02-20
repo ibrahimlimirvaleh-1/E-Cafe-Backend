@@ -35,6 +35,9 @@ public partial class ECafeDbContext : DbContext
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(ECafeDbContext).Assembly);
 
         StatusTypeSeeder.Seed(modelBuilder);
+        StatusSeeder.Seed(modelBuilder);
+        PermissionSeeder.Seed(modelBuilder);
+        RoleSeeder.Seed(modelBuilder);
 
         ApplySoftDeleteQueryFilters(modelBuilder);
 
