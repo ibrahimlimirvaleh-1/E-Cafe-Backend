@@ -2,6 +2,7 @@
 using ECafe.Application.Common.Exceptions;
 using ECafe.Domain.Exceptions;
 using FluentValidation;
+using Sentry;
 
 namespace ECafe.Api.Middlewares;
 
