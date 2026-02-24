@@ -13,7 +13,7 @@ public partial class ECafeDbContext : DbContext
     public ECafeDbContext(DbContextOptions<ECafeDbContext> options) : base(options) { }
 
     public virtual DbSet<Category> Categories { get; set; } = null!;
-    public virtual DbSet<Item> Items { get; set; } = null!;
+    public virtual DbSet<Domain.Entities.File> Files { get; set; } = null!;
     public virtual DbSet<Order> Orders { get; set; } = null!;
     public virtual DbSet<OrderItem> OrderItems { get; set; } = null!;
     public virtual DbSet<Payment> Payments { get; set; } = null!;

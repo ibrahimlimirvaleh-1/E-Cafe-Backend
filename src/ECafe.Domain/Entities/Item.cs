@@ -15,8 +15,7 @@ public partial class Item : AuditableSoftDeletableEntity<int>
     public string? Description { get; set; }
 
     public decimal BasePrice { get; set; }
-
-    public string? ImageUrl { get; set; }
+    public int? FileId { get; set; }
 
     public bool IsAvailable { get; set; }
 
@@ -27,6 +26,7 @@ public partial class Item : AuditableSoftDeletableEntity<int>
     public bool IsActive { get; set; }
 
     public virtual Category Category { get; set; } = null!;
+    public virtual File? File { get; set; }
 
     public virtual ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
 

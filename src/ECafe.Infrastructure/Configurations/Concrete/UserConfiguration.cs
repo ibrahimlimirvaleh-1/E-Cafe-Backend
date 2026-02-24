@@ -20,9 +20,7 @@ namespace ECafe.Infrastructure.Configurations.Concrete
             builder.Property(e => e.Email)
                 .HasMaxLength(100)
                 .HasColumnName("email");
-            builder.Property(e => e.ImageUrl)
-                .HasMaxLength(255)
-                .HasColumnName("image_url");
+            builder.Property(e => e.FileId).HasColumnName("file_id");
             builder.Property(e => e.IsActive)
                 .HasDefaultValue(true)
                 .HasColumnName("is_active");
@@ -41,6 +39,11 @@ namespace ECafe.Infrastructure.Configurations.Concrete
             builder.Property(e => e.Surname)
                 .HasMaxLength(50)
                 .HasColumnName("surname");
+
+            builder.HasOne(d => d.File).WithMany(p => p.Users)
+                .HasForeignKey(d => d.FileId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("users_file_id_fkey");
 
             builder.HasMany(d => d.Roles).WithMany(p => p.Users)
                 .UsingEntity<Dictionary<string, object>>(

@@ -15,10 +15,10 @@ public partial class User : AuditableSoftDeletableEntity<int>
     public string PasswordHash { get; set; } = null!;
 
     public bool IsActive { get; set; }
-
-    public string? ImageUrl { get; set; }
+    public int? FileId { get; set; }
 
     public decimal? Rating { get; set; }
+    public virtual File? File { get; set; }
 
     public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
 

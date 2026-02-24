@@ -22,9 +22,7 @@ namespace ECafe.Infrastructure.Configurations.Concrete
             builder.Property(e => e.Description)
                 .HasMaxLength(500)
                 .HasColumnName("description");
-            builder.Property(e => e.ImageUrl)
-                .HasMaxLength(255)
-                .HasColumnName("image_url");
+            builder.Property(e => e.FileId).HasColumnName("file_id");
             builder.Property(e => e.IsActive)
                 .HasDefaultValue(true)
                 .HasColumnName("is_active");
@@ -48,6 +46,11 @@ namespace ECafe.Infrastructure.Configurations.Concrete
             builder.HasOne(d => d.Restaurant).WithMany(p => p.Items)
                 .HasForeignKey(d => d.RestaurantId)
                 .HasConstraintName("items_restaurant_id_fkey");
+
+            builder.HasOne(d => d.File).WithMany(p => p.Items)
+                .HasForeignKey(d => d.FileId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("items_file_id_fkey");
 
         }
     }
