@@ -15,7 +15,7 @@ namespace ECafe.Api.Controllers
         }
 
         [HttpGet("api/file/getFile")]
-        public async Task<IActionResult> GetFile([FromBody] GetFileQuery query)
+        public async Task<IActionResult> GetFile([FromQuery] GetFileQuery query)
         {
             var fileName = await Mediator.Send(query);
             return Ok(fileName);
