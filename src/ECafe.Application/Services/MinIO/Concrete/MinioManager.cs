@@ -18,9 +18,9 @@ namespace ECafe.Infrastructure.Services.MinIO
         private readonly string? _accessKey;
         private readonly string? _secretKey;
 
-        public MinioManager(IHttpContextAccessor httpContextAccessor, 
-                            IMapper mapper, 
-                            IConfiguration configuration) 
+        public MinioManager(IHttpContextAccessor httpContextAccessor,
+                            IMapper mapper,
+                            IConfiguration configuration)
                             : base(httpContextAccessor, mapper, configuration)
         {
             _bucket = configuration["Minio:BucketName"];
@@ -33,6 +33,28 @@ namespace ECafe.Infrastructure.Services.MinIO
             .WithCredentials(_accessKey, _secretKey)
             .WithSSL(false)
             .Build();
+        }
+
+
+
+        public async Task<GetFileResponse> GetFileAync(string token)
+        {
+            if (!await IsBucketExists(_bucket))
+                throw new Exception("NotFound");
+
+            var contentType = await IsFileExists(token);
+
+            var destination = new MemoryStream();
+
+            var getObjectArgs = new GetObjectArgs()
+                .WithBucket(_bucket)
+                .WithObject(token)
+                .WithCallbackStream((stream) => { stream.CopyTo(destination); });
+
+            await _minioClient.GetObjectAsync(getObjectArgs);
+
+            return new GetFileResponse(destination.ToArray(), contentType);
+
         }
 
         public async Task<string> UploadFileAsync(UploadFileDto request)
@@ -55,11 +77,39 @@ namespace ECafe.Infrastructure.Services.MinIO
             return filename;
         }
 
+        public async Task<string> GenerateFileUrl(string token)
+        {
+            string environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")?.ToLowerInvariant();
+
+            var host = HttpContextAccessor.HttpContext.Request.Host.Value;
+
+            string protocol = environment switch
+            {
+                "development" or "staging" or "production" or "testing" => "https",
+                _ => "http"
+            };
+
+            return $"{protocol}://{host}/api/file/getFile/{token}";
+        }
+
         private async Task<bool> IsBucketExists(string bucketName)
         {
             var bucketExistsArgs = new BucketExistsArgs().WithBucket(bucketName);
             bool doesBucketExist = await _minioClient.BucketExistsAsync(bucketExistsArgs);
             return doesBucketExist;
+        }
+
+        private async Task<string> IsFileExists(string token)
+        {
+            var statObjectArgs = new StatObjectArgs()
+                .WithBucket(_bucket)
+                .WithObject(token);
+
+            var status = await _minioClient.StatObjectAsync(statObjectArgs);
+            if (status == null)
+                throw new Exception("File not found or deleted");
+
+            return status.ContentType;
         }
     }
 }

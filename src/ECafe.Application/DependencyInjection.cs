@@ -1,21 +1,30 @@
-﻿namespace ECafe.Application;
-
+﻿using ECafe.Application.Services.MinIO.Abstracts;
 using ECafe.Application.Validation;
+using ECafe.Infrastructure.Services.MinIO;
 using FluentValidation;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 
-public static class DependencyInjection
+namespace ECafe.Application
 {
-    public static IServiceCollection AddApplication(this IServiceCollection services)
+    public static class DependencyInjection
     {
-        services.AddMediatR(cfg =>
-            cfg.RegisterServicesFromAssembly(typeof(DependencyInjection).Assembly));
+        public static IServiceCollection AddApplication(this IServiceCollection services)
+        {
 
-        services.AddValidatorsFromAssembly(typeof(DependencyInjection).Assembly);
+            services.AddMediatR(cfg =>
+                cfg.RegisterServicesFromAssembly(typeof(DependencyInjection).Assembly));
 
-        services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
+            services.AddAutoMapper(typeof(DependencyInjection).Assembly);
 
-        return services;
+
+            services.AddValidatorsFromAssembly(typeof(DependencyInjection).Assembly);
+
+            services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
+
+            services.AddScoped<IMinioService, MinioManager>();
+
+            return services;
+        }
     }
 }

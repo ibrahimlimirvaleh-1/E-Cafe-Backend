@@ -4,7 +4,6 @@ using ECafe.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-
 namespace ECafe.Infrastructure
 {
     public static class DependencyInjection
@@ -21,7 +20,6 @@ namespace ECafe.Infrastructure
                 options.UseNpgsql(connStr));
 
             services.AddScoped(typeof(IBaseRepository<>), typeof(BaseRepository<>));
-
 
             return services;
         }
