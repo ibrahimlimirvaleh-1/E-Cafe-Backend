@@ -145,6 +145,11 @@ services:
       ConnectionStrings__EcafeDb: Host=ecafe-db;Port=5432;Database=${ECAFE_DB_NAME:-ECafe};Username=${ECAFE_DB_USER:-ecafe_user};Password=${ECAFE_DB_PASSWORD:-StrongPass123}
       Sentry__Dsn: ${ECAFE_SENTRY_DSN:-}
       Sentry__TracesSampleRate: ${ECAFE_SENTRY_TRACES_SAMPLE_RATE:-0.1}
+      MinIO__Endpoint: ecafe-minio:9000
+      MinIO__AccessKey: ${MINIO_ROOT_USER:-minioadmin}
+      MinIO__SecretKey: ${MINIO_ROOT_PASSWORD:-minioStrongPass123}
+      MinIO__BucketName: ${MINIO_BUCKET_NAME:-ecafefiles}
+      MinIO__UseSSL: "false"
     ports:
       - "${ECAFE_API_PORT:-8080}:8080"
 
