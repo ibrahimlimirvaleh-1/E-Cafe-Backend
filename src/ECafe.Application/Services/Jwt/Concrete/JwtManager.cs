@@ -42,6 +42,7 @@ namespace ECafe.Application.Services.Jwt.Concrete
             foreach (var userRole in user.UserRoles)
             {
                 claims.Add(new Claim(ClaimTypes.Role, userRole.Role.Name));
+                claims.Add(new Claim(ClaimTypes.Role, userRole.RoleId.ToString()));
             }
 
             var token = new JwtSecurityToken(

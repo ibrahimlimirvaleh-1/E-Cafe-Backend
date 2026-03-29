@@ -3,8 +3,10 @@ using ECafe.Api.Middlewares;
 using ECafe.Application;
 using ECafe.Application.Services.Jwt.Concrete;
 using ECafe.Infrastructure;
+using ECafe.Infrastructure.Authorization;
 using ECafe.Shared.Services.Jwt.Abstract;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -44,11 +46,15 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
+builder.Services.AddAuthorization();
+
 builder.Services.AddScoped<IJwtService, JwtManager>();
+
+builder.Services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
+builder.Services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
 
 var app = builder.Build();
 
-// Global error handling (ən yuxarıda)
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 if (app.Environment.IsDevelopment())
@@ -59,8 +65,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-// Auth əlavə edəndə bunlar lazım olacaq:
-// app.UseAuthentication();
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
