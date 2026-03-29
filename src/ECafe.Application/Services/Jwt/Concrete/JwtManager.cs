@@ -27,10 +27,10 @@ namespace ECafe.Application.Services.Jwt.Concrete
 
             var claims = new List<Claim>
         {
-            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new Claim("userId", user.Id.ToString()),
             new Claim("name", user.Name),
             new Claim("surname", user.Surname),
-            new Claim(ClaimTypes.Email, user.Email),
+            new Claim("email", user.Email),
             new Claim("isActive", user.IsActive.ToString())
         };
 
@@ -41,8 +41,8 @@ namespace ECafe.Application.Services.Jwt.Concrete
 
             foreach (var userRole in user.UserRoles)
             {
-                claims.Add(new Claim(ClaimTypes.Role, userRole.Role.Name));
-                claims.Add(new Claim(ClaimTypes.Role, userRole.RoleId.ToString()));
+                claims.Add(new Claim("roleId", userRole.RoleId.ToString()));
+                claims.Add(new Claim("roleName", userRole.Role.Name));
             }
 
             var token = new JwtSecurityToken(

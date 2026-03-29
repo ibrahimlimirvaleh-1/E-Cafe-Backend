@@ -1,6 +1,8 @@
-﻿using ECafe.Application.Repository;
+﻿using ECafe.Application.Repositories.User;
+using ECafe.Application.Repository;
 using ECafe.Infrastructure.Context;
 using ECafe.Infrastructure.Repositories;
+using ECafe.Infrastructure.Repositories.User;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -20,7 +22,7 @@ namespace ECafe.Infrastructure
                 options.UseNpgsql(connStr));
 
             services.AddScoped(typeof(IBaseRepository<>), typeof(BaseRepository<>));
-
+            services.AddScoped<IUserRepository, UserRepository>();
             return services;
         }
     }

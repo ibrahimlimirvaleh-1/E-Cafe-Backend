@@ -1,4 +1,6 @@
-﻿using ECafe.Application.Services.MinIO.Abstracts;
+﻿using ECafe.Application.Services.Auth.Abstract;
+using ECafe.Application.Services.Auth.Concrete;
+using ECafe.Application.Services.MinIO.Abstracts;
 using ECafe.Application.Validation;
 using ECafe.Infrastructure.Services.MinIO;
 using FluentValidation;
@@ -23,6 +25,7 @@ namespace ECafe.Application
             services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
 
             services.AddScoped<IMinioService, MinioManager>();
+            services.AddScoped<IAuthService, AuthManager>();
 
             return services;
         }

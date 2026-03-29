@@ -12,7 +12,7 @@ public partial class User : AuditableSoftDeletableEntity<int>
 
     public string Phone { get; set; } = null!;
 
-    public string PasswordHash { get; set; } = null!;
+    public string Password { get; set; } = null!;
 
     public bool IsActive { get; set; }
     public int? FileId { get; set; }

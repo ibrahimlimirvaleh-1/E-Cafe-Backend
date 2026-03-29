@@ -27,9 +27,9 @@ namespace ECafe.Infrastructure.Configurations.Concrete
             builder.Property(e => e.Name)
                 .HasMaxLength(50)
                 .HasColumnName("name");
-            builder.Property(e => e.PasswordHash)
+            builder.Property(e => e.Password)
                 .HasMaxLength(200)
-                .HasColumnName("password_hash");
+                .HasColumnName("password");
             builder.Property(e => e.Phone)
                 .HasMaxLength(50)
                 .HasColumnName("phone");
