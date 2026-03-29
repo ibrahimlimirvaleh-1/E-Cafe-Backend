@@ -18,6 +18,9 @@ namespace ECafe.Infrastructure.Migrations
                 name: "catalog");
 
             migrationBuilder.EnsureSchema(
+                name: "common");
+
+            migrationBuilder.EnsureSchema(
                 name: "ops");
 
             migrationBuilder.EnsureSchema(
@@ -28,6 +31,31 @@ namespace ECafe.Infrastructure.Migrations
 
             migrationBuilder.EnsureSchema(
                 name: "core");
+
+            migrationBuilder.CreateTable(
+                name: "files",
+                schema: "common",
+                columns: table => new
+                {
+                    id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    token = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    name = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    extension = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    size = table.Column<long>(type: "bigint", nullable: false),
+                    url = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    CreatedBy = table.Column<string>(type: "text", nullable: false),
+                    UpdatedBy = table.Column<string>(type: "text", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedBy = table.Column<string>(type: "text", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("files_pkey", x => x.id);
+                });
 
             migrationBuilder.CreateTable(
                 name: "permissions",
@@ -131,7 +159,7 @@ namespace ECafe.Infrastructure.Migrations
                     phone = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
                     password_hash = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
                     is_active = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true),
-                    image_url = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
+                    file_id = table.Column<int>(type: "integer", nullable: true),
                     rating = table.Column<decimal>(type: "numeric(3,2)", precision: 3, scale: 2, nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
@@ -144,6 +172,13 @@ namespace ECafe.Infrastructure.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("users_pkey", x => x.id);
+                    table.ForeignKey(
+                        name: "users_file_id_fkey",
+                        column: x => x.file_id,
+                        principalSchema: "common",
+                        principalTable: "files",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.SetNull);
                 });
 
             migrationBuilder.CreateTable(
@@ -211,25 +246,33 @@ namespace ECafe.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "role_permissions",
+                name: "role_permisions",
                 schema: "auth",
                 columns: table => new
                 {
                     role_id = table.Column<int>(type: "integer", nullable: false),
-                    permission_id = table.Column<int>(type: "integer", nullable: false)
+                    permission_id = table.Column<int>(type: "integer", nullable: false),
+                    Id = table.Column<int>(type: "integer", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    CreatedBy = table.Column<string>(type: "text", nullable: false),
+                    UpdatedBy = table.Column<string>(type: "text", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedBy = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("role_permissions_pkey", x => new { x.role_id, x.permission_id });
                     table.ForeignKey(
-                        name: "role_permissions_permission_id_fkey",
+                        name: "role_permisions_permission_id_fkey",
                         column: x => x.permission_id,
                         principalSchema: "auth",
                         principalTable: "permissions",
                         principalColumn: "id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "role_permissions_role_id_fkey",
+                        name: "role_permisions_role_id_fkey",
                         column: x => x.role_id,
                         principalSchema: "auth",
                         principalTable: "roles",
@@ -341,7 +384,7 @@ namespace ECafe.Infrastructure.Migrations
                     name = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: false),
                     description = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
                     base_price = table.Column<decimal>(type: "numeric(10,2)", precision: 10, scale: 2, nullable: false),
-                    image_url = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
+                    file_id = table.Column<int>(type: "integer", nullable: true),
                     is_available = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true),
                     unavailable_reason = table.Column<string>(type: "text", nullable: true),
                     sales_count = table.Column<int>(type: "integer", nullable: false, defaultValue: 0),
@@ -364,6 +407,13 @@ namespace ECafe.Infrastructure.Migrations
                         principalTable: "categories",
                         principalColumn: "id",
                         onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "items_file_id_fkey",
+                        column: x => x.file_id,
+                        principalSchema: "common",
+                        principalTable: "files",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.SetNull);
                     table.ForeignKey(
                         name: "items_restaurant_id_fkey",
                         column: x => x.restaurant_id,
@@ -608,6 +658,44 @@ namespace ECafe.Infrastructure.Migrations
 
             migrationBuilder.InsertData(
                 schema: "auth",
+                table: "permissions",
+                columns: new[] { "id", "CreatedAt", "CreatedBy", "DeletedAt", "DeletedBy", "IsDeleted", "name", "UpdatedAt", "UpdatedBy" },
+                values: new object[,]
+                {
+                    { 1, new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "", null, null, false, "İstifadəçiləri idarə etmək", null, null },
+                    { 2, new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "", null, null, false, "İşçiləri idarə etmək", null, null },
+                    { 3, new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "", null, null, false, "Rolları təyin etmək", null, null },
+                    { 4, new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "", null, null, false, "Restoranları idarə etmək", null, null },
+                    { 5, new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "", null, null, false, "Kateqoriyaları və məhsulları idarə etmək", null, null },
+                    { 6, new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "", null, null, false, "Stolları idarə etmək", null, null },
+                    { 7, new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "", null, null, false, "Rezervasiyaları idarə etmək", null, null },
+                    { 8, new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "", null, null, false, "Təyin olunmuş rezervasiyalara baxmaq", null, null },
+                    { 9, new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "", null, null, false, "Sifarişləri idarə etmək", null, null },
+                    { 10, new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "", null, null, false, "Ödənişləri idarə etmək", null, null },
+                    { 11, new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "", null, null, false, "Rəyləri idarə etmək", null, null },
+                    { 12, new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "", null, null, false, "Balansa nəzarət etmək", null, null },
+                    { 13, new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "", null, null, false, "Öz balansına baxmaq", null, null },
+                    { 14, new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "", null, null, false, "Çıxarış sorğularını idarə etmək", null, null },
+                    { 15, new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "", null, null, false, "Hesabatlara baxmaq", null, null },
+                    { 16, new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "", null, null, false, "Dashboard-a baxmaq", null, null },
+                    { 17, new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "", null, null, false, "Audit qeydlərinə baxmaq", null, null }
+                });
+
+            migrationBuilder.InsertData(
+                schema: "auth",
+                table: "roles",
+                columns: new[] { "id", "CreatedAt", "CreatedBy", "DeletedAt", "DeletedBy", "IsDeleted", "name", "UpdatedAt", "UpdatedBy" },
+                values: new object[,]
+                {
+                    { 1, new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "", null, null, false, "Platforma super administratoru", null, null },
+                    { 2, new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "", null, null, false, "Sahibkar", null, null },
+                    { 3, new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "", null, null, false, "Restoran meneceri", null, null },
+                    { 4, new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "", null, null, false, "Ofisiant", null, null },
+                    { 5, new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "", null, null, false, "Müştəri", null, null }
+                });
+
+            migrationBuilder.InsertData(
+                schema: "auth",
                 table: "status_types",
                 columns: new[] { "id", "CreatedAt", "CreatedBy", "DeletedAt", "DeletedBy", "IsDeleted", "name", "UpdatedAt", "UpdatedBy" },
                 values: new object[,]
@@ -616,6 +704,56 @@ namespace ECafe.Infrastructure.Migrations
                     { 2, new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "", null, null, false, "Sifariş statusları", null, null },
                     { 3, new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "", null, null, false, "Ödəniş statusları", null, null },
                     { 4, new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "", null, null, false, "Ödəniş üsulları", null, null }
+                });
+
+            migrationBuilder.InsertData(
+                schema: "auth",
+                table: "role_permisions",
+                columns: new[] { "permission_id", "role_id", "CreatedAt", "CreatedBy", "DeletedAt", "DeletedBy", "Id", "IsDeleted", "UpdatedAt", "UpdatedBy" },
+                values: new object[,]
+                {
+                    { 1, 1, new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "", null, null, 0, false, null, null },
+                    { 4, 1, new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "", null, null, 0, false, null, null },
+                    { 5, 1, new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "", null, null, 0, false, null, null },
+                    { 6, 1, new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "", null, null, 0, false, null, null },
+                    { 7, 1, new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "", null, null, 0, false, null, null },
+                    { 9, 1, new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "", null, null, 0, false, null, null },
+                    { 10, 1, new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "", null, null, 0, false, null, null },
+                    { 15, 1, new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "", null, null, 0, false, null, null },
+                    { 5, 3, new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "", null, null, 0, false, null, null },
+                    { 6, 3, new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "", null, null, 0, false, null, null },
+                    { 7, 3, new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "", null, null, 0, false, null, null },
+                    { 9, 3, new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "", null, null, 0, false, null, null },
+                    { 10, 3, new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "", null, null, 0, false, null, null },
+                    { 15, 3, new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "", null, null, 0, false, null, null }
+                });
+
+            migrationBuilder.InsertData(
+                schema: "auth",
+                table: "statuses",
+                columns: new[] { "id", "CreatedAt", "CreatedBy", "DeletedAt", "DeletedBy", "IsDeleted", "name", "status_type_id", "UpdatedAt", "UpdatedBy" },
+                values: new object[,]
+                {
+                    { 1001, new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "", null, null, false, "Depozit ödənişi gözlənilir", 1, null, null },
+                    { 1002, new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "", null, null, false, "Depozit ödənilib, stol rezerv olunub", 1, null, null },
+                    { 1003, new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "", null, null, false, "Müştəri gəlib və stol arxasında əyləşib", 1, null, null },
+                    { 1004, new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "", null, null, false, "Rezervasiya tamamlanıb", 1, null, null },
+                    { 1005, new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "", null, null, false, "Rezervasiya ləğv edilib", 1, null, null },
+                    { 1006, new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "", null, null, false, "Müştəri gəlməyib", 1, null, null },
+                    { 1007, new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "", null, null, false, "Rezervasiyanın vaxtı bitib", 1, null, null },
+                    { 2001, new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "", null, null, false, "Sifariş açılıb", 2, null, null },
+                    { 2002, new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "", null, null, false, "Sifariş hazırlanır", 2, null, null },
+                    { 2003, new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "", null, null, false, "Sifariş təqdim olunub", 2, null, null },
+                    { 2004, new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "", null, null, false, "Sifariş bağlanıb", 2, null, null },
+                    { 2005, new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "", null, null, false, "Sifariş ləğv edilib", 2, null, null },
+                    { 3001, new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "", null, null, false, "Ödəniş gözlənilir", 3, null, null },
+                    { 3002, new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "", null, null, false, "Ödəniş uğurla tamamlanıb", 3, null, null },
+                    { 3003, new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "", null, null, false, "Ödəniş uğursuz olub", 3, null, null },
+                    { 3004, new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "", null, null, false, "Ödəniş ləğv edilib", 3, null, null },
+                    { 3005, new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "", null, null, false, "Ödəniş geri qaytarılıb", 3, null, null },
+                    { 4001, new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "", null, null, false, "Nağd ödəniş", 4, null, null },
+                    { 4002, new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "", null, null, false, "Kartla ödəniş", 4, null, null },
+                    { 4003, new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "", null, null, false, "Onlayn ödəniş", 4, null, null }
                 });
 
             migrationBuilder.CreateIndex(
@@ -633,11 +771,24 @@ namespace ECafe.Infrastructure.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "files_token_key",
+                schema: "common",
+                table: "files",
+                column: "token",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "items_category_id_name_key",
                 schema: "catalog",
                 table: "items",
                 columns: new[] { "category_id", "name" },
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_items_file_id",
+                schema: "catalog",
+                table: "items",
+                column: "file_id");
 
             migrationBuilder.CreateIndex(
                 name: "IX_items_restaurant_id",
@@ -755,9 +906,9 @@ namespace ECafe.Infrastructure.Migrations
                 column: "table_id");
 
             migrationBuilder.CreateIndex(
-                name: "IX_role_permissions_permission_id",
+                name: "IX_role_permisions_permission_id",
                 schema: "auth",
-                table: "role_permissions",
+                table: "role_permisions",
                 column: "permission_id");
 
             migrationBuilder.CreateIndex(
@@ -808,6 +959,12 @@ namespace ECafe.Infrastructure.Migrations
                 column: "role_id");
 
             migrationBuilder.CreateIndex(
+                name: "IX_users_file_id",
+                schema: "auth",
+                table: "users",
+                column: "file_id");
+
+            migrationBuilder.CreateIndex(
                 name: "users_email_key",
                 schema: "auth",
                 table: "users",
@@ -834,7 +991,7 @@ namespace ECafe.Infrastructure.Migrations
                 schema: "billing");
 
             migrationBuilder.DropTable(
-                name: "role_permissions",
+                name: "role_permisions",
                 schema: "auth");
 
             migrationBuilder.DropTable(
@@ -880,6 +1037,10 @@ namespace ECafe.Infrastructure.Migrations
             migrationBuilder.DropTable(
                 name: "tables",
                 schema: "ops");
+
+            migrationBuilder.DropTable(
+                name: "files",
+                schema: "common");
 
             migrationBuilder.DropTable(
                 name: "status_types",

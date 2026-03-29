@@ -39,9 +39,9 @@ namespace ECafe.Application.Services.Jwt.Concrete
                 claims.Add(new Claim("fileUrl", user.File.Url));
             }
 
-            foreach (var role in user.Roles)
+            foreach (var userRole in user.UserRoles)
             {
-                claims.Add(new Claim(ClaimTypes.Role, role.Name));
+                claims.Add(new Claim(ClaimTypes.Role, userRole.Role.Name));
             }
 
             var token = new JwtSecurityToken(

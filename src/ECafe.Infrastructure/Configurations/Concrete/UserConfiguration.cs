@@ -45,22 +45,6 @@ namespace ECafe.Infrastructure.Configurations.Concrete
                 .OnDelete(DeleteBehavior.SetNull)
                 .HasConstraintName("users_file_id_fkey");
 
-            builder.HasMany(d => d.Roles).WithMany(p => p.Users)
-                .UsingEntity<Dictionary<string, object>>(
-                    "UserRole",
-                    r => r.HasOne<Role>().WithMany()
-                        .HasForeignKey("RoleId")
-                        .HasConstraintName("user_roles_role_id_fkey"),
-                    l => l.HasOne<User>().WithMany()
-                        .HasForeignKey("UserId")
-                        .HasConstraintName("user_roles_user_id_fkey"),
-                    j =>
-                    {
-                        j.HasKey("UserId", "RoleId").HasName("user_roles_pkey");
-                        j.ToTable("user_roles", "auth");
-                        j.IndexerProperty<int>("UserId").HasColumnName("user_id");
-                        j.IndexerProperty<int>("RoleId").HasColumnName("role_id");
-                    });
         }
     }
 }

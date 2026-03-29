@@ -28,5 +28,6 @@ public partial class User : AuditableSoftDeletableEntity<int>
 
     public virtual UserRestaurant? UserRestaurant { get; set; }
 
-    public virtual ICollection<Role> Roles { get; set; } = new List<Role>();
+    public virtual ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
+
 }

@@ -965,9 +965,6 @@ namespace ECafe.Infrastructure.Migrations
 
                     b.HasIndex("PermissionId");
 
-                    b.HasIndex(new[] { "RoleId" }, "role_permisions_role_id_key")
-                        .IsUnique();
-
                     b.ToTable("role_permisions", "auth");
 
                     b.HasData(
@@ -1616,7 +1613,7 @@ namespace ECafe.Infrastructure.Migrations
                     b.ToTable("user_restaurants", "auth");
                 });
 
-            modelBuilder.Entity("UserRole", b =>
+            modelBuilder.Entity("ECafe.Domain.Entities.UserRole", b =>
                 {
                     b.Property<int>("UserId")
                         .HasColumnType("integer")
@@ -1626,10 +1623,38 @@ namespace ECafe.Infrastructure.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("role_id");
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("text");
+
+                    b.Property<int>("Id")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
                     b.HasKey("UserId", "RoleId")
                         .HasName("user_roles_pkey");
 
                     b.HasIndex("RoleId");
+
+                    b.HasIndex(new[] { "UserId" }, "user_roles_user_id_key")
+                        .IsUnique();
 
                     b.ToTable("user_roles", "auth");
                 });
@@ -1912,21 +1937,25 @@ namespace ECafe.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("UserRole", b =>
+            modelBuilder.Entity("ECafe.Domain.Entities.UserRole", b =>
                 {
-                    b.HasOne("ECafe.Domain.Entities.Role", null)
-                        .WithMany()
+                    b.HasOne("ECafe.Domain.Entities.Role", "Role")
+                        .WithMany("UserRoles")
                         .HasForeignKey("RoleId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("user_roles_role_id_fkey");
 
-                    b.HasOne("ECafe.Domain.Entities.User", null)
-                        .WithMany()
+                    b.HasOne("ECafe.Domain.Entities.User", "User")
+                        .WithMany("UserRoles")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("user_roles_user_id_fkey");
+
+                    b.Navigation("Role");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("ECafe.Domain.Entities.Category", b =>
@@ -1985,6 +2014,8 @@ namespace ECafe.Infrastructure.Migrations
             modelBuilder.Entity("ECafe.Domain.Entities.Role", b =>
                 {
                     b.Navigation("RolePermissions");
+
+                    b.Navigation("UserRoles");
                 });
 
             modelBuilder.Entity("ECafe.Domain.Entities.Status", b =>
@@ -2019,6 +2050,8 @@ namespace ECafe.Infrastructure.Migrations
                     b.Navigation("Reservations");
 
                     b.Navigation("UserRestaurant");
+
+                    b.Navigation("UserRoles");
                 });
 #pragma warning restore 612, 618
         }
