@@ -26,6 +26,7 @@ public partial class ECafeDbContext : DbContext
     public virtual DbSet<Table> Tables { get; set; } = null!;
     public virtual DbSet<User> Users { get; set; } = null!;
     public virtual DbSet<UserRestaurant> UserRestaurants { get; set; } = null!;
+    public virtual DbSet<RolePermission> RolePermissions { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -38,6 +39,7 @@ public partial class ECafeDbContext : DbContext
         StatusSeeder.Seed(modelBuilder);
         PermissionSeeder.Seed(modelBuilder);
         RoleSeeder.Seed(modelBuilder);
+        RolePermissionSeeder.Seed(modelBuilder);
 
         ApplySoftDeleteQueryFilters(modelBuilder);
 

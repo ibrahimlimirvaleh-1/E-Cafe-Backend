@@ -8,13 +8,21 @@
     <PackageReference Include="MediatR.Extensions.Microsoft.DependencyInjection" Version="11.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.3.9" />
     <PackageReference Include="Microsoft.AspNetCore.Http.Features" Version="5.0.17" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Abstractions" Version="2.3.9" />
+    <PackageReference Include="Microsoft.Azure.ServiceBus" Version="5.2.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.2" />
+    <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="8.17.0" />
     <PackageReference Include="Minio" Version="6.0.5" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.17.0" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\ECafe.Domain\ECafe.Domain.csproj" />
     <ProjectReference Include="..\ECafe.Shared\ECafe.Shared.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Filters\" />
   </ItemGroup>
 
   <PropertyGroup>

@@ -10,13 +10,13 @@ public abstract class BaseManager
 {
     protected readonly IHttpContextAccessor HttpContextAccessor;
     protected readonly IMapper Mapper;
-    protected readonly IConfiguration Configuration;
+    protected readonly IConfiguration _configuration;
 
     protected BaseManager(IHttpContextAccessor httpContextAccessor, IMapper mapper, IConfiguration configuration)
     {
         HttpContextAccessor = httpContextAccessor;
         Mapper = mapper;
-        Configuration = configuration;
+        _configuration = configuration;
     }
 
 }

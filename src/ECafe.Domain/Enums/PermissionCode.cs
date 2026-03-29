@@ -7,10 +7,16 @@ namespace ECafe.Domain.Enums
         [Description("İstifadəçiləri idarə etmək")]
         ManageUsers = 1,
 
+        [Description("İşçiləri idarə etmək")]
+        ManageStaff,
+
+        [Description("Rolları təyin etmək")]
+        AssignRoles,
+
         [Description("Restoranları idarə etmək")]
         ManageRestaurants,
 
-        [Description("Kateqoriya və məhsulları idarə etmək")]
+        [Description("Kateqoriyaları və məhsulları idarə etmək")]
         ManageCatalog,
 
         [Description("Stolları idarə etmək")]
@@ -19,14 +25,34 @@ namespace ECafe.Domain.Enums
         [Description("Rezervasiyaları idarə etmək")]
         ManageReservations,
 
+        [Description("Təyin olunmuş rezervasiyalara baxmaq")]
+        ViewAssignedReservations,
+
         [Description("Sifarişləri idarə etmək")]
         ManageOrders,
 
         [Description("Ödənişləri idarə etmək")]
         ManagePayments,
 
-        [Description("Hesabatlara baxmaq")]
-        ViewReports
-    }
+        [Description("Rəyləri idarə etmək")]
+        ManageReviews,
 
+        [Description("Balansa nəzarət etmək")]
+        ManageWallet,
+
+        [Description("Öz balansına baxmaq")]
+        ViewOwnWallet,
+
+        [Description("Çıxarış sorğularını idarə etmək")]
+        ManageWithdrawRequests,
+
+        [Description("Hesabatlara baxmaq")]
+        ViewReports,
+
+        [Description("Dashboard-a baxmaq")]
+        ViewDashboard,
+
+        [Description("Audit qeydlərinə baxmaq")]
+        ViewAuditLogs
+    }
 }

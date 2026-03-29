@@ -3,6 +3,7 @@ using System;
 using ECafe.Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace ECafe.Infrastructure.Migrations
 {
     [DbContext(typeof(ECafeDbContext))]
-    partial class ECafeDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260328173236_addRolePermissionEntity")]
+    partial class addRolePermissionEntity
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -552,7 +555,7 @@ namespace ECafe.Infrastructure.Migrations
                             CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CreatedBy = "",
                             IsDeleted = false,
-                            Name = "İşçiləri idarə etmək"
+                            Name = "Restoranları idarə etmək"
                         },
                         new
                         {
@@ -560,7 +563,7 @@ namespace ECafe.Infrastructure.Migrations
                             CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CreatedBy = "",
                             IsDeleted = false,
-                            Name = "Rolları təyin etmək"
+                            Name = "Kateqoriya və məhsulları idarə etmək"
                         },
                         new
                         {
@@ -568,7 +571,7 @@ namespace ECafe.Infrastructure.Migrations
                             CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CreatedBy = "",
                             IsDeleted = false,
-                            Name = "Restoranları idarə etmək"
+                            Name = "Stolları idarə etmək"
                         },
                         new
                         {
@@ -576,7 +579,7 @@ namespace ECafe.Infrastructure.Migrations
                             CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CreatedBy = "",
                             IsDeleted = false,
-                            Name = "Kateqoriyaları və məhsulları idarə etmək"
+                            Name = "Rezervasiyaları idarə etmək"
                         },
                         new
                         {
@@ -584,7 +587,7 @@ namespace ECafe.Infrastructure.Migrations
                             CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CreatedBy = "",
                             IsDeleted = false,
-                            Name = "Stolları idarə etmək"
+                            Name = "Sifarişləri idarə etmək"
                         },
                         new
                         {
@@ -592,7 +595,7 @@ namespace ECafe.Infrastructure.Migrations
                             CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CreatedBy = "",
                             IsDeleted = false,
-                            Name = "Rezervasiyaları idarə etmək"
+                            Name = "Ödənişləri idarə etmək"
                         },
                         new
                         {
@@ -600,79 +603,7 @@ namespace ECafe.Infrastructure.Migrations
                             CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CreatedBy = "",
                             IsDeleted = false,
-                            Name = "Təyin olunmuş rezervasiyalara baxmaq"
-                        },
-                        new
-                        {
-                            Id = 9,
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "",
-                            IsDeleted = false,
-                            Name = "Sifarişləri idarə etmək"
-                        },
-                        new
-                        {
-                            Id = 10,
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "",
-                            IsDeleted = false,
-                            Name = "Ödənişləri idarə etmək"
-                        },
-                        new
-                        {
-                            Id = 11,
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "",
-                            IsDeleted = false,
-                            Name = "Rəyləri idarə etmək"
-                        },
-                        new
-                        {
-                            Id = 12,
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "",
-                            IsDeleted = false,
-                            Name = "Balansa nəzarət etmək"
-                        },
-                        new
-                        {
-                            Id = 13,
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "",
-                            IsDeleted = false,
-                            Name = "Öz balansına baxmaq"
-                        },
-                        new
-                        {
-                            Id = 14,
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "",
-                            IsDeleted = false,
-                            Name = "Çıxarış sorğularını idarə etmək"
-                        },
-                        new
-                        {
-                            Id = 15,
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "",
-                            IsDeleted = false,
                             Name = "Hesabatlara baxmaq"
-                        },
-                        new
-                        {
-                            Id = 16,
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "",
-                            IsDeleted = false,
-                            Name = "Dashboard-a baxmaq"
-                        },
-                        new
-                        {
-                            Id = 17,
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "",
-                            IsDeleted = false,
-                            Name = "Audit qeydlərinə baxmaq"
                         });
                 });
 
@@ -889,7 +820,7 @@ namespace ECafe.Infrastructure.Migrations
                             CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CreatedBy = "",
                             IsDeleted = false,
-                            Name = "Platforma super administratoru"
+                            Name = "Sistem administratoru"
                         },
                         new
                         {
@@ -897,7 +828,7 @@ namespace ECafe.Infrastructure.Migrations
                             CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CreatedBy = "",
                             IsDeleted = false,
-                            Name = "Sahibkar"
+                            Name = "Restoran meneceri"
                         },
                         new
                         {
@@ -905,19 +836,11 @@ namespace ECafe.Infrastructure.Migrations
                             CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CreatedBy = "",
                             IsDeleted = false,
-                            Name = "Restoran meneceri"
-                        },
-                        new
-                        {
-                            Id = 4,
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "",
-                            IsDeleted = false,
                             Name = "Ofisiant"
                         },
                         new
                         {
-                            Id = 5,
+                            Id = 4,
                             CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CreatedBy = "",
                             IsDeleted = false,
@@ -969,134 +892,6 @@ namespace ECafe.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("role_permisions", "auth");
-
-                    b.HasData(
-                        new
-                        {
-                            RoleId = 1,
-                            PermissionId = 1,
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "",
-                            Id = 0,
-                            IsDeleted = false
-                        },
-                        new
-                        {
-                            RoleId = 1,
-                            PermissionId = 4,
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "",
-                            Id = 0,
-                            IsDeleted = false
-                        },
-                        new
-                        {
-                            RoleId = 1,
-                            PermissionId = 5,
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "",
-                            Id = 0,
-                            IsDeleted = false
-                        },
-                        new
-                        {
-                            RoleId = 1,
-                            PermissionId = 6,
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "",
-                            Id = 0,
-                            IsDeleted = false
-                        },
-                        new
-                        {
-                            RoleId = 1,
-                            PermissionId = 7,
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "",
-                            Id = 0,
-                            IsDeleted = false
-                        },
-                        new
-                        {
-                            RoleId = 1,
-                            PermissionId = 9,
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "",
-                            Id = 0,
-                            IsDeleted = false
-                        },
-                        new
-                        {
-                            RoleId = 1,
-                            PermissionId = 10,
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "",
-                            Id = 0,
-                            IsDeleted = false
-                        },
-                        new
-                        {
-                            RoleId = 1,
-                            PermissionId = 15,
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "",
-                            Id = 0,
-                            IsDeleted = false
-                        },
-                        new
-                        {
-                            RoleId = 3,
-                            PermissionId = 5,
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "",
-                            Id = 0,
-                            IsDeleted = false
-                        },
-                        new
-                        {
-                            RoleId = 3,
-                            PermissionId = 6,
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "",
-                            Id = 0,
-                            IsDeleted = false
-                        },
-                        new
-                        {
-                            RoleId = 3,
-                            PermissionId = 7,
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "",
-                            Id = 0,
-                            IsDeleted = false
-                        },
-                        new
-                        {
-                            RoleId = 3,
-                            PermissionId = 9,
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "",
-                            Id = 0,
-                            IsDeleted = false
-                        },
-                        new
-                        {
-                            RoleId = 3,
-                            PermissionId = 10,
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "",
-                            Id = 0,
-                            IsDeleted = false
-                        },
-                        new
-                        {
-                            RoleId = 3,
-                            PermissionId = 15,
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "",
-                            Id = 0,
-                            IsDeleted = false
-                        });
                 });
 
             modelBuilder.Entity("ECafe.Domain.Entities.Status", b =>

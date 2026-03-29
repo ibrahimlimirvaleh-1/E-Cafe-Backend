@@ -4,17 +4,19 @@ namespace ECafe.Domain.Enums
 {
     public enum RoleCode
     {
-        [Description("Sistem administratoru")]
-        Admin = 1,
+        [Description("Platforma super administratoru")]
+        SuperAdmin = 1,
+
+        [Description("Sahibkar")]
+        Owner = 2,
 
         [Description("Restoran meneceri")]
-        Manager,
+        Manager = 3,
 
         [Description("Ofisiant")]
-        Waiter,
+        Waiter = 4,
 
         [Description("Müştəri")]
-        Customer
+        Customer = 5
     }
-
 }
