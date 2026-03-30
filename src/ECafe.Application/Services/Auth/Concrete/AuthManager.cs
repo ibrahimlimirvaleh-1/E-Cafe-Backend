@@ -34,9 +34,10 @@ namespace ECafe.Application.Services.Auth.Concrete
             if (user is null)
                 throw new BusinessRuleException("User not found!");
 
-            if (user.Password != request.Password)
-                throw new BusinessRuleException("Password is wrong!");
+            var isPasswordValid = BCrypt.Net.BCrypt.Verify(request.Password, user.Password);
 
+            if (!isPasswordValid)
+                throw new BusinessRuleException("Password is wrong!");
 
             var token = _jwtService.GenerateToken(user);
 
