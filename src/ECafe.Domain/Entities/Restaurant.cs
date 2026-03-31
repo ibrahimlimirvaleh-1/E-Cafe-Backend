@@ -17,6 +17,8 @@ public partial class Restaurant : AuditableSoftDeletableEntity<int>
 
     public bool IsActive { get; set; }
 
+    public virtual List<File>? Files { get; set; }
+
     public virtual ICollection<Category> Categories { get; set; } = new List<Category>();
 
     public virtual ICollection<Item> Items { get; set; } = new List<Item>();

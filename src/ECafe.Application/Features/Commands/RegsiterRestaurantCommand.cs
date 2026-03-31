@@ -1,6 +1,7 @@
 ﻿using ECafe.Application.DTOs.Restaurant;
 using ECafe.Application.Services.Restaurant.Abstract;
 using MediatR;
+using Microsoft.AspNetCore.Http;
 
 namespace ECafe.Application.Features.Commands
 {
@@ -13,6 +14,8 @@ namespace ECafe.Application.Features.Commands
         public decimal? RatingAverage { get; set; }
 
         public int? RatingCount { get; set; }
+        public List<IFormFile>? Files { get; set; }
+
 
     }
 
@@ -34,7 +37,8 @@ namespace ECafe.Application.Features.Commands
                 Phone = request.Phone,
                 Email = request.Email,
                 RatingAverage = request.RatingAverage,
-                RatingCount = request.RatingCount
+                RatingCount = request.RatingCount,
+                Files = request.Files
             };
 
             return await _restaurantService.RegisterRestaurantAsync(dto);
