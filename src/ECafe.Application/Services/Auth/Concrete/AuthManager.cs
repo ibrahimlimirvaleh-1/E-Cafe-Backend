@@ -33,7 +33,6 @@ namespace ECafe.Application.Services.Auth.Concrete
 
             if (user is null)
                 throw new BusinessRuleException("User not found!");
-
             var isPasswordValid = BCrypt.Net.BCrypt.Verify(request.Password, user.Password);
 
             if (!isPasswordValid)

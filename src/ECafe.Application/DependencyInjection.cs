@@ -1,6 +1,9 @@
-﻿using ECafe.Application.Services.Auth.Abstract;
+﻿using ECafe.Application.Services;
+using ECafe.Application.Services.Auth.Abstract;
 using ECafe.Application.Services.Auth.Concrete;
 using ECafe.Application.Services.MinIO.Abstracts;
+using ECafe.Application.Services.Restaurant.Abstract;
+using ECafe.Application.Services.Restaurant.Concrete;
 using ECafe.Application.Validation;
 using ECafe.Infrastructure.Services.MinIO;
 using FluentValidation;
@@ -26,6 +29,8 @@ namespace ECafe.Application
 
             services.AddScoped<IMinioService, MinioManager>();
             services.AddScoped<IAuthService, AuthManager>();
+            services.AddScoped<IEmailService, EmailManager>();
+            services.AddScoped<IRestaurantService, RestaurantManager>();
 
             return services;
         }

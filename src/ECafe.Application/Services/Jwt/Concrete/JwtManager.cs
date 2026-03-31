@@ -41,7 +41,7 @@ namespace ECafe.Application.Services.Jwt.Concrete
 
             foreach (var userRole in user.UserRoles)
             {
-                claims.Add(new Claim("roleId", userRole.RoleId.ToString()));
+                claims.Add(new Claim(ClaimTypes.Role, userRole.RoleId.ToString()));
                 claims.Add(new Claim("roleName", userRole.Role.Name));
             }
 

@@ -1,7 +1,9 @@
-﻿using ECafe.Application.Repositories.User;
+﻿using ECafe.Application.Repositories.Restaurant;
+using ECafe.Application.Repositories.User;
 using ECafe.Application.Repository;
 using ECafe.Infrastructure.Context;
 using ECafe.Infrastructure.Repositories;
+using ECafe.Infrastructure.Repositories.Restaurant;
 using ECafe.Infrastructure.Repositories.User;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -23,6 +25,7 @@ namespace ECafe.Infrastructure
 
             services.AddScoped(typeof(IBaseRepository<>), typeof(BaseRepository<>));
             services.AddScoped<IUserRepository, UserRepository>();
+            services.AddScoped<IRestaurantRepository, RestaurantRepository>();
             return services;
         }
     }
