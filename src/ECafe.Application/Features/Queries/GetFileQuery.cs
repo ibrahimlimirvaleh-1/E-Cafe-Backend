@@ -8,6 +8,7 @@ namespace ECafe.Application.Features.Queries
     {
         public string token { get; set; }
 
+
         public class GetFileQueryHandler : IRequestHandler<GetFileQuery, GetFileResponse>
         {
             private readonly IMinioService _minioService;
