@@ -30,8 +30,6 @@ namespace ECafe.Application.Features.Commands.User
                 RestaurantId = request.RestaurantId,
                 RoleId = request.RoleId
             };
-            //var dto = _mapper.Map<CreateUserRequest>(request);
-
             await _userService.CreateUserAsync(dto);
         }
     }
