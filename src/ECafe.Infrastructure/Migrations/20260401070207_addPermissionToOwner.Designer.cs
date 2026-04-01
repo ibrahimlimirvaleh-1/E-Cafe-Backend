@@ -3,6 +3,7 @@ using System;
 using ECafe.Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace ECafe.Infrastructure.Migrations
 {
     [DbContext(typeof(ECafeDbContext))]
-    partial class ECafeDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260401070207_addPermissionToOwner")]
+    partial class addPermissionToOwner
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -986,15 +989,6 @@ namespace ECafe.Infrastructure.Migrations
                         new
                         {
                             RoleId = 1,
-                            PermissionId = 2,
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "",
-                            Id = 0,
-                            IsDeleted = false
-                        },
-                        new
-                        {
-                            RoleId = 1,
                             PermissionId = 1,
                             CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CreatedBy = "",
@@ -1601,8 +1595,7 @@ namespace ECafe.Infrastructure.Migrations
                     b.HasKey("Id")
                         .HasName("users_pkey");
 
-                    b.HasIndex("FileId")
-                        .IsUnique();
+                    b.HasIndex("FileId");
 
                     b.HasIndex(new[] { "Email" }, "users_email_key")
                         .IsUnique();
@@ -1967,10 +1960,10 @@ namespace ECafe.Infrastructure.Migrations
             modelBuilder.Entity("ECafe.Domain.Entities.User", b =>
                 {
                     b.HasOne("ECafe.Domain.Entities.File", "File")
-                        .WithOne("User")
-                        .HasForeignKey("ECafe.Domain.Entities.User", "FileId")
+                        .WithMany("Users")
+                        .HasForeignKey("FileId")
                         .OnDelete(DeleteBehavior.SetNull)
-                        .HasConstraintName("user_file_id_fkey");
+                        .HasConstraintName("users_file_id_fkey");
 
                     b.Navigation("File");
                 });
@@ -2026,7 +2019,7 @@ namespace ECafe.Infrastructure.Migrations
                 {
                     b.Navigation("Items");
 
-                    b.Navigation("User");
+                    b.Navigation("Users");
                 });
 
             modelBuilder.Entity("ECafe.Domain.Entities.Item", b =>

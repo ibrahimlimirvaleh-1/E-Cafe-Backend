@@ -18,7 +18,7 @@ namespace ECafe.Application.Services.Jwt.Concrete
         {
         }
 
-        public string GenerateToken(User user)
+        public string GenerateToken(Domain.Entities.User user)
         {
             var key = new SymmetricSecurityKey(
             Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]!));

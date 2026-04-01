@@ -2,7 +2,7 @@
 using ECafe.Application.Services.Restaurant.Abstract;
 using MediatR;
 
-namespace ECafe.Application.Features.Queries
+namespace ECafe.Application.Features.Queries.Restaurant.GetAll
 {
     public class GetAllRestaurantsQuery : IRequest<List<GetAllRestaurantsResponse>>
     {

@@ -37,7 +37,7 @@ namespace ECafe.Infrastructure.Services.MinIO
 
 
 
-        public async Task<GetFileResponse> GetFileAync(string token)
+        public async Task<GetFileResponse> GetFileAsync(string token)
         {
             if (!await IsBucketExists(_bucket))
                 throw new Exception("NotFound");
@@ -83,13 +83,13 @@ namespace ECafe.Infrastructure.Services.MinIO
 
             var host = HttpContextAccessor.HttpContext.Request.Host.Value;
 
-            string protocol = environment switch
-            {
-                "development" or "staging" or "production" or "testing" => "https",
-                _ => "http"
-            };
+            //string protocol = environment switch
+            //{
+            //    "development" or "staging" or "production" or "testing" => "https",
+            //    _ => "http"
+            //};
 
-            return $"{protocol}://{host}/api/file/getFile/{token}";
+            return $"http://{host}/api/file/getFile?token={token}";
         }
 
         private async Task<bool> IsBucketExists(string bucketName)

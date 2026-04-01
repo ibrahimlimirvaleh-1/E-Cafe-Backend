@@ -2,6 +2,8 @@
 {
     public interface IEmailService
     {
-        public Task SendMailAsync(string toEmail, string restaurantName);
+        public Task SendMailAsync(string toEmail, string name);
+
+        public Task SendMailAsync(string toEmail,string name,string surName,string password,string role);
     }
 }

@@ -1,5 +1,5 @@
-﻿using ECafe.Application.Features.Commands;
-using ECafe.Application.Features.Queries;
+﻿using ECafe.Application.Features.Commands.Restaurant;
+using ECafe.Application.Features.Queries.Restaurant.GetAll;
 using ECafe.Infrastructure.Authorization;
 using Microsoft.AspNetCore.Mvc;
 

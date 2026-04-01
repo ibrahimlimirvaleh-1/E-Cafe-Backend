@@ -1,5 +1,5 @@
-﻿using ECafe.Application.Features.Commands;
-using ECafe.Application.Features.Queries;
+﻿using ECafe.Application.Features.Commands.File;
+using ECafe.Application.Features.Queries.File;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ECafe.Api.Controllers
@@ -17,8 +17,8 @@ namespace ECafe.Api.Controllers
         [HttpGet("api/file/getFile")]
         public async Task<IActionResult> GetFile([FromQuery] GetFileQuery query)
         {
-            var fileName = await Mediator.Send(query);
-            return Ok(fileName);
+            var file = await Mediator.Send(query);
+            return File(file.Bytes,file.ContentType);
         }
     }
 }

@@ -14,7 +14,7 @@ namespace ECafe.Application.Services
         {
         }
 
-        public async Task SendMailAsync(string toEmail, string restaurantName)
+        public async Task SendMailAsync(string toEmail, string name)
         {
             var smtpHost = _configuration["Email:SmtpHost"];
             var smtpPort = int.Parse(_configuration["Email:SmtpPort"]!);
@@ -32,7 +32,34 @@ namespace ECafe.Application.Services
             {
                 From = new MailAddress(fromEmail!),
                 Subject = "Restoran qeydiyyatı tamamlandı",
-                Body = $"{restaurantName} uğurla qeydiyyatdan keçdi.",
+                Body = $"{name} uğurla qeydiyyatdan keçdi.",
+                IsBodyHtml = false
+            };
+
+            mail.To.Add(toEmail);
+
+            await client.SendMailAsync(mail);
+        }
+
+        public async Task SendMailAsync(string toEmail, string name,string surname, string password, string role)
+        {
+            var smtpHost = _configuration["Email:SmtpHost"];
+            var smtpPort = int.Parse(_configuration["Email:SmtpPort"]!);
+            var smtpUser = _configuration["Email:Username"];
+            var smtpPass = _configuration["Email:Password"];
+            var fromEmail = _configuration["Email:From"];
+
+            using var client = new SmtpClient(smtpHost, smtpPort)
+            {
+                Credentials = new NetworkCredential(smtpUser, smtpPass),
+                EnableSsl = true
+            };
+
+            var mail = new MailMessage
+            {
+                From = new MailAddress(fromEmail!),
+                Subject = "İstifadəçi qeydiyyatı tamamlandı",
+                Body = $"{name} {surname} {role} rolu ilə uğurla qeydiyyatdan keçdi.Şifrəniz : {password}",
                 IsBodyHtml = false
             };
 
