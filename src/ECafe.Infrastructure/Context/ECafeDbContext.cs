@@ -65,20 +65,34 @@ public partial class ECafeDbContext : DbContext
     {
         var now = DateTime.UtcNow;
 
-        foreach (EntityEntry<IAuditable> entry in ChangeTracker.Entries<IAuditable>())
+        foreach (var entry in ChangeTracker.Entries())
         {
-            switch (entry.State)
+            if (entry.State == EntityState.Deleted && entry.Entity is ISoftDelete softDeleteEntity)
             {
-                case EntityState.Added:
-                    entry.Entity.CreatedAt = now;
-                    entry.Entity.UpdatedAt = null;
-                    break;
+                entry.State = EntityState.Modified;
+                softDeleteEntity.IsDeleted = true;
 
-                case EntityState.Modified:
-                    // CreatedAt dəyişməsin
-                    entry.Property(x => x.CreatedAt).IsModified = false;
-                    entry.Entity.UpdatedAt = now;
-                    break;
+                if (entry.Entity is IAuditable auditableDeleted)
+                {
+                    entry.Property(nameof(IAuditable.CreatedAt)).IsModified = false;
+                    auditableDeleted.UpdatedAt = now;
+                }
+            }
+
+            if (entry.Entity is IAuditable auditable)
+            {
+                switch (entry.State)
+                {
+                    case EntityState.Added:
+                        auditable.CreatedAt = now;
+                        auditable.UpdatedAt = null;
+                        break;
+
+                    case EntityState.Modified:
+                        entry.Property(nameof(IAuditable.CreatedAt)).IsModified = false;
+                        auditable.UpdatedAt = now;
+                        break;
+                }
             }
         }
     }

@@ -4,6 +4,7 @@ using ECafe.Application.DTOs.User;
 using ECafe.Application.Repositories.Restaurant;
 using ECafe.Application.Repositories.Role;
 using ECafe.Application.Repositories.User;
+using ECafe.Application.Repositories.UserRole;
 using ECafe.Application.Services.MinIO.Abstracts;
 using ECafe.Application.Services.User.Abstract;
 using ECafe.Domain.Entities;
@@ -19,6 +20,7 @@ namespace ECafe.Application.Services.User.Concrete
     {
         private readonly IRestaurantRepository _restaurantRepository;
         private readonly IRoleRepository _roleRepository;
+        private readonly IUserRoleRepository _userRoleRepository;
         private readonly IUserRepository _userRepository;
         private readonly IMinioService _minioService;
         private readonly IEmailService _emailService;
@@ -31,7 +33,8 @@ namespace ECafe.Application.Services.User.Concrete
             IRoleRepository roleRepository,
             IMinioService minioService,
             IUserRepository userRepository,
-            IEmailService emailService)
+            IEmailService emailService,
+            IUserRoleRepository userRoleRepository)
             : base(httpContextAccessor, mapper, configuration)
         {
             _restaurantRepository = restaurantRepository;
@@ -39,6 +42,7 @@ namespace ECafe.Application.Services.User.Concrete
             _minioService = minioService;
             _userRepository = userRepository;
             _emailService = emailService;
+            _userRoleRepository = userRoleRepository;
         }
 
         public async Task CreateUserAsync(CreateUserRequest request)
@@ -60,6 +64,59 @@ namespace ECafe.Application.Services.User.Concrete
 
             var roleName = GetRoleDescription(request.RoleId);
             await _emailService.SendMailAsync(user.Email, user.Name,user.Surname, request.Password, roleName);
+        }
+
+
+        public async Task DeleteAsync(int userId)
+        {
+            if (userId <= 0)
+                throw new BusinessRuleException("Invalid user id");
+
+            var user = await _userRepository.GetByIdAsync(userId);
+
+            if (user is null)
+                throw new BusinessRuleException("User not found");
+
+            await _userRepository.Delete(user);
+            await _userRepository.SaveChangesAsync();
+        }
+
+        public async Task UpdateRoleAsync(int userId, int roleId)
+        {
+            if (userId <= 0)
+                throw new BusinessRuleException("Invalid user id");
+
+            if (roleId <= 0)
+                throw new BusinessRuleException("Invalid role id");
+
+            var user = await _userRepository.GetByIdAsync(userId);
+            if (user is null)
+                throw new BusinessRuleException("User not found");
+
+            var role = await _roleRepository.GetByIdAsync(roleId);
+            if (role is null)
+                throw new BusinessRuleException("Role not found");
+
+            var existingUserRoles = await _userRoleRepository.GetByUserIdAsync(userId);
+
+            if (existingUserRoles.Any(x => x.RoleId == roleId))
+                return;
+
+            foreach (var userRole in existingUserRoles)
+            {
+                await _userRoleRepository.Delete(userRole);
+            }
+
+            var newUserRole = new UserRole
+            {
+                UserId = userId,
+                RoleId = roleId
+            };
+
+            await _userRoleRepository.Add(newUserRole);
+            await _userRoleRepository.SaveChangesAsync();
+
+            await _emailService.SendMailAsync(user.Email, user.Name, user.Surname, GetRoleDescription(roleId));
         }
 
         private async Task EnsureRestaurantExistsAsync(int restaurantId)
@@ -134,5 +191,7 @@ namespace ECafe.Application.Services.User.Concrete
         {
             return BCrypt.Net.BCrypt.HashPassword(password);
         }
+
+        
     }
 }

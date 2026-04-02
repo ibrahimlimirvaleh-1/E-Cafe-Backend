@@ -1,7 +1,7 @@
 ﻿using MediatR;
 using Microsoft.AspNetCore.Http;
 
-namespace ECafe.Application.Features.Commands.User
+namespace ECafe.Application.Features.Commands.User.Create
 {
     public sealed class CreateUserCommand : IRequest
     {

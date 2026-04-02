@@ -1,4 +1,4 @@
-﻿using ECafe.Application.Features.Commands.User;
+﻿using ECafe.Application.Features.Commands.User.Create;
 using FluentValidation;
 using Microsoft.AspNetCore.Http;
 

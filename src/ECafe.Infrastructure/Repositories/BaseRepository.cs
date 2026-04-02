@@ -1,7 +1,8 @@
-﻿using System.Linq.Expressions;
-using ECafe.Application.Repository;
+﻿using ECafe.Application.Repository;
+using ECafe.Domain.Entities.Base;
 using ECafe.Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
 
 namespace ECafe.Infrastructure.Repositories
 {
@@ -36,7 +37,16 @@ namespace ECafe.Infrastructure.Repositories
 
         public Task Delete(TEntity model)
         {
-            _dbSet.Remove(model);
+            if (model is ISoftDelete softDeleteEntity)
+            {
+                softDeleteEntity.IsDeleted = true;
+                _dbSet.Update(model);
+            }
+            else
+            {
+                _dbSet.Remove(model);
+            }
+
             return Task.CompletedTask;
         }
 

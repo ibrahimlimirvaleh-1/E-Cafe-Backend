@@ -3,7 +3,7 @@ using ECafe.Application.DTOs.User;
 using ECafe.Application.Services.User.Abstract;
 using MediatR;
 
-namespace ECafe.Application.Features.Commands.User
+namespace ECafe.Application.Features.Commands.User.Create
 {
     public class CreateUserCommandHandler : IRequestHandler<CreateUserCommand>
     {
