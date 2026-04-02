@@ -97,26 +97,26 @@ namespace ECafe.Application.Services.User.Concrete
             if (role is null)
                 throw new BusinessRuleException("Role not found");
 
-            var existingUserRoles = await _userRoleRepository.GetByUserIdAsync(userId);
+            var userRole = await _userRoleRepository.GetSingleByUserIdAsync(userId);
 
-            if (existingUserRoles.Any(x => x.RoleId == roleId))
-                return;
-
-            foreach (var userRole in existingUserRoles)
+            if (userRole is null)
             {
-                await _userRoleRepository.Delete(userRole);
+                await _userRoleRepository.Add(new UserRole
+                {
+                    UserId = userId,
+                    RoleId = roleId
+                });
+            }
+            else
+            {
+                if (userRole.RoleId == roleId)
+                    return;
+
+                userRole.RoleId = roleId;
+                await _userRoleRepository.Update(userRole);
             }
 
-            var newUserRole = new UserRole
-            {
-                UserId = userId,
-                RoleId = roleId
-            };
-
-            await _userRoleRepository.Add(newUserRole);
             await _userRoleRepository.SaveChangesAsync();
-
-            await _emailService.SendMailAsync(user.Email, user.Name, user.Surname, GetRoleDescription(roleId));
         }
 
         private async Task EnsureRestaurantExistsAsync(int restaurantId)

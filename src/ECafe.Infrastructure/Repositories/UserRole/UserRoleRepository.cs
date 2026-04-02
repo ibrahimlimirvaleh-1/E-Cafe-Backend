@@ -10,11 +10,10 @@ namespace ECafe.Infrastructure.Repositories.UserRole
         {
         }
 
-        public async Task<List<Domain.Entities.UserRole>> GetByUserIdAsync(int userId)
+        public async Task<Domain.Entities.UserRole?> GetSingleByUserIdAsync(int userId)
         {
             return await Query()
-                .Where(ur => ur.UserId == userId)
-                .ToListAsync();
+                .FirstOrDefaultAsync(x => x.UserId == userId);
         }
     }
 }
