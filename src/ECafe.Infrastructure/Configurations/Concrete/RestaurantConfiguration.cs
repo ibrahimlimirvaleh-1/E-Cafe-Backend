@@ -25,6 +25,9 @@ namespace ECafe.Infrastructure.Configurations.Concrete
             builder.Property(e => e.Phone)
                 .HasMaxLength(50)
                 .HasColumnName("phone");
+            builder.Property(e => e.Email)
+                .HasMaxLength(50)
+                .HasColumnName("email");
             builder.Property(e => e.RatingAverage)
                 .HasPrecision(3, 2)
                 .HasColumnName("rating_average");
@@ -32,6 +35,7 @@ namespace ECafe.Infrastructure.Configurations.Concrete
                 .HasDefaultValue(0)
                 .HasColumnName("rating_count");
 
+            builder.HasIndex(e => e.Email).HasDatabaseName("restaurants_email_key").IsUnique();
         }
     }
 }

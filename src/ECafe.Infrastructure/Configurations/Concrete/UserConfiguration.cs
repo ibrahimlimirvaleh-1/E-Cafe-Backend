@@ -40,10 +40,11 @@ namespace ECafe.Infrastructure.Configurations.Concrete
                 .HasMaxLength(50)
                 .HasColumnName("surname");
 
-            builder.HasOne(d => d.File).WithMany(p => p.Users)
-                .HasForeignKey(d => d.FileId)
+            builder.HasOne(d => d.File)
+                .WithOne(p => p.User)
+                .HasForeignKey<User>(d => d.FileId)
                 .OnDelete(DeleteBehavior.SetNull)
-                .HasConstraintName("users_file_id_fkey");
+                .HasConstraintName("user_file_id_fkey");
 
         }
     }

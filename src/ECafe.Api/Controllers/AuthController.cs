@@ -1,4 +1,4 @@
-﻿using ECafe.Application.Features.Commands;
+﻿using ECafe.Application.Features.Commands.Auth;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ECafe.Api.Controllers

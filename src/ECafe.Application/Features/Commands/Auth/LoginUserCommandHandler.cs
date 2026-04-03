@@ -2,14 +2,8 @@
 using ECafe.Application.Services.Auth.Abstract;
 using MediatR;
 
-namespace ECafe.Application.Features.Commands
+namespace ECafe.Application.Features.Commands.Auth
 {
-    public class LoginUserCommand : IRequest<string>
-    {
-        public string Email { get; set; } = null!;
-        public string Password { get; set; } = null!;
-    }
-
     public class LoginUserCommandHandler : IRequestHandler<LoginUserCommand, string>
     {
         private readonly IAuthService _authService;

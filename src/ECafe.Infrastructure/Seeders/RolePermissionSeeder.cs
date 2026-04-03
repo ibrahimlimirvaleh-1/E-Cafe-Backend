@@ -13,6 +13,7 @@ namespace ECafe.Infrastructure.Seeders
             // Admin
             AddPermissions(rolePermissions, RoleCode.SuperAdmin, new[]
             {
+                PermissionCode.ManageStaff,
                 PermissionCode.ManageUsers,
                 PermissionCode.ManageRestaurants,
                 PermissionCode.ManageCatalog,
@@ -23,9 +24,17 @@ namespace ECafe.Infrastructure.Seeders
                 PermissionCode.ViewReports
             });
 
+            //Owner
+            // Manager
+            AddPermissions(rolePermissions, RoleCode.Owner, new[]
+            {
+                PermissionCode.ManageStaff,
+                PermissionCode.ViewReports
+            });
             // Manager
             AddPermissions(rolePermissions, RoleCode.Manager, new[]
             {
+                PermissionCode.ManageStaff,
                 PermissionCode.ManageCatalog,
                 PermissionCode.ManageTables,
                 PermissionCode.ManageReservations,

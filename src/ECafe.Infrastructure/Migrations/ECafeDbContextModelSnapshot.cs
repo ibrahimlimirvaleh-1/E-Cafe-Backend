@@ -130,6 +130,9 @@ namespace ECafe.Infrastructure.Migrations
                         .HasColumnType("character varying(255)")
                         .HasColumnName("name");
 
+                    b.Property<int?>("RestaurantId")
+                        .HasColumnType("integer");
+
                     b.Property<long>("Size")
                         .HasColumnType("bigint")
                         .HasColumnName("size");
@@ -154,6 +157,8 @@ namespace ECafe.Infrastructure.Migrations
 
                     b.HasKey("Id")
                         .HasName("files_pkey");
+
+                    b.HasIndex("RestaurantId");
 
                     b.HasIndex(new[] { "Token" }, "files_token_key")
                         .IsUnique();
@@ -787,6 +792,12 @@ namespace ECafe.Infrastructure.Migrations
                     b.Property<string>("DeletedBy")
                         .HasColumnType("text");
 
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("email");
+
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
@@ -814,12 +825,12 @@ namespace ECafe.Infrastructure.Migrations
                         .HasColumnType("character varying(50)")
                         .HasColumnName("phone");
 
-                    b.Property<decimal>("RatingAverage")
+                    b.Property<decimal?>("RatingAverage")
                         .HasPrecision(3, 2)
                         .HasColumnType("numeric(3,2)")
                         .HasColumnName("rating_average");
 
-                    b.Property<int>("RatingCount")
+                    b.Property<int?>("RatingCount")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer")
                         .HasDefaultValue(0)
@@ -833,6 +844,10 @@ namespace ECafe.Infrastructure.Migrations
 
                     b.HasKey("Id")
                         .HasName("restaurants_pkey");
+
+                    b.HasIndex("Email")
+                        .IsUnique()
+                        .HasDatabaseName("restaurants_email_key");
 
                     b.ToTable("restaurants", "core");
                 });
@@ -971,6 +986,15 @@ namespace ECafe.Infrastructure.Migrations
                         new
                         {
                             RoleId = 1,
+                            PermissionId = 2,
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            CreatedBy = "",
+                            Id = 0,
+                            IsDeleted = false
+                        },
+                        new
+                        {
+                            RoleId = 1,
                             PermissionId = 1,
                             CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CreatedBy = "",
@@ -1035,6 +1059,33 @@ namespace ECafe.Infrastructure.Migrations
                         {
                             RoleId = 1,
                             PermissionId = 15,
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            CreatedBy = "",
+                            Id = 0,
+                            IsDeleted = false
+                        },
+                        new
+                        {
+                            RoleId = 2,
+                            PermissionId = 2,
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            CreatedBy = "",
+                            Id = 0,
+                            IsDeleted = false
+                        },
+                        new
+                        {
+                            RoleId = 2,
+                            PermissionId = 15,
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            CreatedBy = "",
+                            Id = 0,
+                            IsDeleted = false
+                        },
+                        new
+                        {
+                            RoleId = 3,
+                            PermissionId = 2,
                             CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CreatedBy = "",
                             Id = 0,
@@ -1550,7 +1601,8 @@ namespace ECafe.Infrastructure.Migrations
                     b.HasKey("Id")
                         .HasName("users_pkey");
 
-                    b.HasIndex("FileId");
+                    b.HasIndex("FileId")
+                        .IsUnique();
 
                     b.HasIndex(new[] { "Email" }, "users_email_key")
                         .IsUnique();
@@ -1669,6 +1721,13 @@ namespace ECafe.Infrastructure.Migrations
                         .HasConstraintName("categories_restaurant_id_fkey");
 
                     b.Navigation("Restaurant");
+                });
+
+            modelBuilder.Entity("ECafe.Domain.Entities.File", b =>
+                {
+                    b.HasOne("ECafe.Domain.Entities.Restaurant", null)
+                        .WithMany("Files")
+                        .HasForeignKey("RestaurantId");
                 });
 
             modelBuilder.Entity("ECafe.Domain.Entities.Item", b =>
@@ -1908,10 +1967,10 @@ namespace ECafe.Infrastructure.Migrations
             modelBuilder.Entity("ECafe.Domain.Entities.User", b =>
                 {
                     b.HasOne("ECafe.Domain.Entities.File", "File")
-                        .WithMany("Users")
-                        .HasForeignKey("FileId")
+                        .WithOne("User")
+                        .HasForeignKey("ECafe.Domain.Entities.User", "FileId")
                         .OnDelete(DeleteBehavior.SetNull)
-                        .HasConstraintName("users_file_id_fkey");
+                        .HasConstraintName("user_file_id_fkey");
 
                     b.Navigation("File");
                 });
@@ -1967,7 +2026,7 @@ namespace ECafe.Infrastructure.Migrations
                 {
                     b.Navigation("Items");
 
-                    b.Navigation("Users");
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("ECafe.Domain.Entities.Item", b =>
@@ -1997,6 +2056,8 @@ namespace ECafe.Infrastructure.Migrations
             modelBuilder.Entity("ECafe.Domain.Entities.Restaurant", b =>
                 {
                     b.Navigation("Categories");
+
+                    b.Navigation("Files");
 
                     b.Navigation("Items");
 

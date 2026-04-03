@@ -9,12 +9,15 @@ public partial class Restaurant : AuditableSoftDeletableEntity<int>
     public string Location { get; set; } = null!;
 
     public string Phone { get; set; } = null!;
+    public string Email { get; set; } = null!;
 
-    public decimal RatingAverage { get; set; }
+    public decimal? RatingAverage { get; set; }
 
-    public int RatingCount { get; set; }
+    public int? RatingCount { get; set; }
 
     public bool IsActive { get; set; }
+
+    public virtual List<File>? Files { get; set; }
 
     public virtual ICollection<Category> Categories { get; set; } = new List<Category>();
 
