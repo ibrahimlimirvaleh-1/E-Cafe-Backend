@@ -17,6 +17,8 @@ public partial class User : AuditableSoftDeletableEntity<int>
     public bool IsActive { get; set; }
     public int? FileId { get; set; }
 
+    public int RoleId { get; set; }
+
     public decimal? Rating { get; set; }
     public virtual File? File { get; set; }
 
@@ -28,6 +30,6 @@ public partial class User : AuditableSoftDeletableEntity<int>
 
     public virtual UserRestaurant? UserRestaurant { get; set; }
 
-    public virtual ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
+    public virtual Role Role { get; set; } = null!;
 
 }

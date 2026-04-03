@@ -2,7 +2,6 @@
 using System.Security.Claims;
 using System.Text;
 using AutoMapper;
-using ECafe.Domain.Entities;
 using ECafe.Shared.Services.Jwt.Abstract;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
@@ -39,11 +38,8 @@ namespace ECafe.Application.Services.Jwt.Concrete
                 claims.Add(new Claim("fileUrl", user.File.Url));
             }
 
-            foreach (var userRole in user.UserRoles)
-            {
-                claims.Add(new Claim(ClaimTypes.Role, userRole.RoleId.ToString()));
-                claims.Add(new Claim("roleName", userRole.Role.Name));
-            }
+            claims.Add(new Claim(ClaimTypes.Role,user.RoleId.ToString()));
+            claims.Add(new Claim("roleName", user.Role.Name));
 
             var token = new JwtSecurityToken(
                 issuer: _configuration["Jwt:Issuer"],
