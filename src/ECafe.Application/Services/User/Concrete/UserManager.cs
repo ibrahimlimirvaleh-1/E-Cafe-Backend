@@ -4,7 +4,6 @@ using ECafe.Application.DTOs.User;
 using ECafe.Application.Repositories.Restaurant;
 using ECafe.Application.Repositories.Role;
 using ECafe.Application.Repositories.User;
-using ECafe.Application.Repositories.UserRole;
 using ECafe.Application.Services.MinIO.Abstracts;
 using ECafe.Application.Services.User.Abstract;
 using ECafe.Domain.Entities;
@@ -20,7 +19,6 @@ namespace ECafe.Application.Services.User.Concrete
     {
         private readonly IRestaurantRepository _restaurantRepository;
         private readonly IRoleRepository _roleRepository;
-        private readonly IUserRoleRepository _userRoleRepository;
         private readonly IUserRepository _userRepository;
         private readonly IMinioService _minioService;
         private readonly IEmailService _emailService;
@@ -33,8 +31,7 @@ namespace ECafe.Application.Services.User.Concrete
             IRoleRepository roleRepository,
             IMinioService minioService,
             IUserRepository userRepository,
-            IEmailService emailService,
-            IUserRoleRepository userRoleRepository)
+            IEmailService emailService)
             : base(httpContextAccessor, mapper, configuration)
         {
             _restaurantRepository = restaurantRepository;
@@ -42,7 +39,6 @@ namespace ECafe.Application.Services.User.Concrete
             _minioService = minioService;
             _userRepository = userRepository;
             _emailService = emailService;
-            _userRoleRepository = userRoleRepository;
         }
 
         public async Task CreateUserAsync(CreateUserRequest request)
@@ -54,16 +50,11 @@ namespace ECafe.Application.Services.User.Concrete
             var file = await CreateFileIfExistsAsync(request.Image);
             var user = CreateUserEntity(request, file);
 
-            user.UserRoles.Add(new UserRole
-            {
-                RoleId = request.RoleId
-            });
-
             await _userRepository.Add(user);
             await _userRepository.SaveChangesAsync();
 
             var roleName = GetRoleDescription(request.RoleId);
-            await _emailService.SendMailAsync(user.Email, user.Name,user.Surname, request.Password, roleName);
+            await _emailService.SendMailAsync(user.Email, user.Name, user.Surname, request.Password, roleName);
         }
 
 
@@ -97,26 +88,13 @@ namespace ECafe.Application.Services.User.Concrete
             if (role is null)
                 throw new BusinessRuleException("Role not found");
 
-            var userRole = await _userRoleRepository.GetSingleByUserIdAsync(userId);
+            user.RoleId = roleId;
 
-            if (userRole is null)
-            {
-                await _userRoleRepository.Add(new UserRole
-                {
-                    UserId = userId,
-                    RoleId = roleId
-                });
-            }
-            else
-            {
-                if (userRole.RoleId == roleId)
-                    return;
+            var roleName = GetRoleDescription(roleId);
 
-                userRole.RoleId = roleId;
-                await _userRoleRepository.Update(userRole);
-            }
+            await _userRepository.SaveChangesAsync();
 
-            await _userRoleRepository.SaveChangesAsync();
+            await _emailService.SendMailAsync(user.Email, user.Name, user.Surname, roleName);
         }
 
         private async Task EnsureRestaurantExistsAsync(int restaurantId)
@@ -179,6 +157,7 @@ namespace ECafe.Application.Services.User.Concrete
             };
         }
 
+
         private static string GetRoleDescription(int roleId)
         {
             if (!Enum.IsDefined(typeof(RoleCode), roleId))
@@ -192,6 +171,6 @@ namespace ECafe.Application.Services.User.Concrete
             return BCrypt.Net.BCrypt.HashPassword(password);
         }
 
-        
+
     }
 }

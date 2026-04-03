@@ -13,8 +13,7 @@ namespace ECafe.Infrastructure.Repositories.User
         public async Task<Domain.Entities.User> GetByEmailAsync(string email)
         {
             return await Query()
-                .Include(u => u.UserRoles)
-                .ThenInclude(ur => ur.Role)
+                .Include(u => u.Role)
                 .Where(u => u.Email == email).FirstOrDefaultAsync();
         }
     }
