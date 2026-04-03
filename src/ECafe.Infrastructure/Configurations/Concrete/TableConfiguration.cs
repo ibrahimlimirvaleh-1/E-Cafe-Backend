@@ -20,6 +20,9 @@ namespace ECafe.Infrastructure.Configurations.Concrete
             builder.Property(e => e.IsActive)
                 .HasDefaultValue(true)
                 .HasColumnName("is_active");
+            builder.Property(e => e.IsEmpty)
+                .HasDefaultValue(true)
+                .HasColumnName("is_empty");
             builder.Property(e => e.Name)
                 .HasMaxLength(50)
                 .HasColumnName("name");
