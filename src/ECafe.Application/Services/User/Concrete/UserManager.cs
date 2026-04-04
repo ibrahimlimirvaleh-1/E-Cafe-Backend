@@ -150,13 +150,13 @@ namespace ECafe.Application.Services.User.Concrete
                 IsActive = request.IsActive,
                 Rating = request.Rating,
                 File = file,
+                RoleId = request.RoleId,
                 UserRestaurant = new UserRestaurant
                 {
                     RestaurantId = request.RestaurantId
                 }
             };
         }
-
 
         private static string GetRoleDescription(int roleId)
         {
