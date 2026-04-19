@@ -9,8 +9,10 @@ using ECafe.Application.Services.User.Abstract;
 using ECafe.Domain.Entities;
 using ECafe.Domain.Enums;
 using ECafe.Domain.Exceptions;
+using ECafe.Shared.DTOs;
 using ECafe.Shared.Extensions;
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 
 namespace ECafe.Application.Services.User.Concrete
@@ -97,6 +99,31 @@ namespace ECafe.Application.Services.User.Concrete
             await _emailService.SendMailAsync(user.Email, user.Name, user.Surname, roleName);
         }
 
+
+
+        public async Task<PaginatedList<GetAllUserResponseDto>> GetAllAsync(PaginationFilter filter)
+        {
+            var users = _userRepository.GetAll().OrderBy(x => x.Id)
+                .Select(x => new GetAllUserResponseDto
+                {
+                    Id = x.Id,
+                    Name = x.Name,
+                    Surname = x.Surname,
+                    Email = x.Email,
+                    Phone = x.Phone,
+                    IsActive = x.IsActive,
+                    Rating = x.Rating,
+                    Role = new RoleDto
+                    {
+                        Id = x.RoleId,
+                        Name = x.Role.Name
+                    }
+                });
+
+            return await PaginatedList<GetAllUserResponseDto>.CreateAsync(users, filter.PageNumber, filter.PageSize);
+        }
+
+        #region Helpers
         private async Task EnsureRestaurantExistsAsync(int restaurantId)
         {
             var restaurant = await _restaurantRepository.GetByIdAsync(restaurantId);
@@ -171,6 +198,7 @@ namespace ECafe.Application.Services.User.Concrete
             return BCrypt.Net.BCrypt.HashPassword(password);
         }
 
-
+        
+        #endregion
     }
 }

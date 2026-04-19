@@ -1,4 +1,5 @@
 ﻿using ECafe.Application.DTOs.User;
+using ECafe.Shared.DTOs;
 
 namespace ECafe.Application.Services.User.Abstract
 {
@@ -9,5 +10,7 @@ namespace ECafe.Application.Services.User.Abstract
         public Task DeleteAsync(int userId);
 
         public Task UpdateRoleAsync(int userId,int roleId);
+
+        public Task<PaginatedList<GetAllUserResponseDto>> GetAllAsync(PaginationFilter filter);
     }
 }
