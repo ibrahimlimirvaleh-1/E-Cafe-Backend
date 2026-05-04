@@ -1,41 +1,30 @@
-﻿using System.Security.Claims;
-using ECafe.Infrastructure.Context;
+﻿using ECafe.Infrastructure.Redis;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace ECafe.Infrastructure.Authorization
 {
     public sealed class PermissionAuthorizationHandler
         : AuthorizationHandler<PermissionRequirement>
     {
-        private readonly ECafeDbContext _context;
-
-        public PermissionAuthorizationHandler(ECafeDbContext context)
+        private readonly IPermissionCacheService _cache;
+        public PermissionAuthorizationHandler(IPermissionCacheService cache)
         {
-            _context = context;
+            _cache = cache;
         }
 
         protected override async Task HandleRequirementAsync(
             AuthorizationHandlerContext context,
             PermissionRequirement requirement)
         {
-            var roleIds = context.User.FindAll(ClaimTypes.Role)
-                .Select(x => x.Value)
-                .Where(x => int.TryParse(x, out _))
-                .Select(int.Parse)
-                .Distinct()
-                .ToList();
+            var role = context.User.FindFirst(ClaimTypes.Role)?.Value;
 
-            if (roleIds.Count == 0)
+            if (role == null)
                 return;
 
-            var hasPermission = await _context.RolePermissions
-                .AsNoTracking()
-                .AnyAsync(x =>
-                    roleIds.Contains(x.RoleId) &&
-                    x.PermissionId == requirement.PermissionId);
+            var permissions = await _cache.GetPermissionsAsync(int.Parse(role));
 
-            if (hasPermission)
+            if (permissions.Contains(requirement.PermissionId))
             {
                 context.Succeed(requirement);
             }

@@ -14,7 +14,10 @@ namespace ECafe.Api.Controllers
         => Ok(await Mediator.Send(command));
 
         [HttpGet("api/restaurants/getAll")]
-        public async Task<IActionResult> GetAllRestaurants([FromQuery] GetAllRestaurantsQuery query)
-        => Ok(await Mediator.Send(query));
+        public async Task<IActionResult> GetAllRestaurants()
+        {
+            var queryResult = new GetAllRestaurantsQuery();
+            return Ok(await Mediator.Send(queryResult));
+        }
     }
 }

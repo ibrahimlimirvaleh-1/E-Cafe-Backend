@@ -3,29 +3,24 @@ using Microsoft.Extensions.Options;
 
 namespace ECafe.Infrastructure.Authorization
 {
-    public sealed class PermissionPolicyProvider : DefaultAuthorizationPolicyProvider
+    public class PermissionPolicyProvider : DefaultAuthorizationPolicyProvider
     {
-        private const string PolicyPrefix = "Permission:";
-
         public PermissionPolicyProvider(IOptions<AuthorizationOptions> options)
-            : base(options)
-        {
-        }
+            : base(options) { }
 
         public override Task<AuthorizationPolicy?> GetPolicyAsync(string policyName)
         {
-            if (policyName.StartsWith(PolicyPrefix, StringComparison.OrdinalIgnoreCase))
+            if (policyName.StartsWith("Permission:"))
             {
-                var permissionValue = policyName.Substring(PolicyPrefix.Length);
+                var idPart = policyName.Replace("Permission:", "");
 
-                if (int.TryParse(permissionValue, out var permissionId))
+                if (int.TryParse(idPart, out var permissionId))
                 {
-                    var policy = new AuthorizationPolicyBuilder()
-                        .RequireAuthenticatedUser()
-                        .AddRequirements(new PermissionRequirement(permissionId))
-                        .Build();
-
-                    return Task.FromResult<AuthorizationPolicy?>(policy);
+                    return Task.FromResult<AuthorizationPolicy?>(
+                        new AuthorizationPolicyBuilder()
+                            .RequireAuthenticatedUser()
+                            .AddRequirements(new PermissionRequirement(permissionId))
+                            .Build());
                 }
             }
 

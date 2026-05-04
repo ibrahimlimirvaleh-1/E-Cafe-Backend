@@ -10,11 +10,23 @@ namespace ECafe.Infrastructure.Repositories.User
         {
         }
 
+
         public async Task<Domain.Entities.User> GetByEmailAsync(string email)
         {
             return await Query()
                 .Include(u => u.Role)
                 .Where(u => u.Email == email).FirstOrDefaultAsync();
+        }
+
+        public async Task<List<Domain.Entities.User>> GetByRestaurantIdAsync(int restaurantId)
+        {
+            return await Query()
+                .Include(u => u.Role)
+                .Include(u => u.UserRestaurant)
+                .Where(u => u.UserRestaurant != null &&
+                            u.UserRestaurant.RestaurantId == restaurantId &&
+                            u.UserRestaurant.IsActive)
+                .ToListAsync();
         }
     }
 }

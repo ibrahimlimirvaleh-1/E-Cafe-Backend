@@ -1,14 +1,15 @@
-﻿using System.Text;
-using ECafe.Api.Middlewares;
+﻿using ECafe.Api.Middlewares;
 using ECafe.Application;
 using ECafe.Application.Services.Jwt.Concrete;
 using ECafe.Infrastructure;
 using ECafe.Infrastructure.Authorization;
+using ECafe.Infrastructure.Redis;
 using ECafe.Shared.Services.Jwt.Abstract;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -81,7 +82,16 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization();
 
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = builder.Configuration["Redis:Connection"];
+});
+
 builder.Services.AddScoped<IJwtService, JwtManager>();
+builder.Services.AddScoped<IPermissionCacheService, PermissionCacheService>();
+
+builder.Services.AddMemoryCache();
+
 
 builder.Services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
 builder.Services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();

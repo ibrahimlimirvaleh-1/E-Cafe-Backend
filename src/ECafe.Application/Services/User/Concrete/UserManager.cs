@@ -99,28 +99,9 @@ namespace ECafe.Application.Services.User.Concrete
             await _emailService.SendMailAsync(user.Email, user.Name, user.Surname, roleName);
         }
 
-
-
-        public async Task<PaginatedList<GetAllUserResponseDto>> GetAllAsync(PaginationFilter filter)
+        public Task<PaginatedList<GetAllUserResponseDto>> GetAllAsync(int? restaurantId, PaginationFilter filter)
         {
-            var users = _userRepository.GetAll().OrderBy(x => x.Id)
-                .Select(x => new GetAllUserResponseDto
-                {
-                    Id = x.Id,
-                    Name = x.Name,
-                    Surname = x.Surname,
-                    Email = x.Email,
-                    Phone = x.Phone,
-                    IsActive = x.IsActive,
-                    Rating = x.Rating,
-                    Role = new RoleDto
-                    {
-                        Id = x.RoleId,
-                        Name = x.Role.Name
-                    }
-                });
-
-            return await PaginatedList<GetAllUserResponseDto>.CreateAsync(users, filter.PageNumber, filter.PageSize);
+            throw new NotImplementedException();
         }
 
         #region Helpers
@@ -199,6 +180,8 @@ namespace ECafe.Application.Services.User.Concrete
         }
 
         
+
+
         #endregion
     }
 }
