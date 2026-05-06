@@ -84,8 +84,8 @@ public sealed class ExceptionHandlingMiddleware
         context.Response.StatusCode = statusCode;
 
         var message = statusCode == (int)HttpStatusCode.InternalServerError
-            ? "Internal server error"
-            : ex.Message;
+            ? $"{ex.Message},{ex.InnerException?.Message}"
+            : "Internal server error";
 
         await context.Response.WriteAsJsonAsync(new
         {

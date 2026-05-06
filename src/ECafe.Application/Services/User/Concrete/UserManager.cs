@@ -46,16 +46,21 @@ namespace ECafe.Application.Services.User.Concrete
         public async Task CreateUserAsync(CreateUserRequest request)
         {
             await EnsureRestaurantExistsAsync(request.RestaurantId);
+
             await EnsureRoleExistsAsync(request.RoleId);
+
             await EnsureUserDoesNotExistAsync(request.Email);
 
             var file = await CreateFileIfExistsAsync(request.Image);
+
             var user = CreateUserEntity(request, file);
 
             await _userRepository.Add(user);
+
             await _userRepository.SaveChangesAsync();
 
             var roleName = GetRoleDescription(request.RoleId);
+
             await _emailService.SendMailAsync(user.Email, user.Name, user.Surname, request.Password, roleName);
         }
 

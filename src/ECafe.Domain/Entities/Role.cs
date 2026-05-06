@@ -8,5 +8,5 @@ public partial class Role : AuditableSoftDeletableEntity<int>
 
     public virtual ICollection<RolePermission> RolePermissions { get; set; } = new List<RolePermission>();
 
-    public User User { get; set; } = null!;
+    public ICollection<User> Users { get; set; } = new List<User>();
 }
