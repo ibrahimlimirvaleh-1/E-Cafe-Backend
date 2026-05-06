@@ -10,6 +10,12 @@ namespace ECafe.Infrastructure.Seeders
         {
             var rolePermissions = new List<RolePermission>();
 
+
+            // Customer
+            AddPermissions(rolePermissions, RoleCode.Customer, new[]
+            {
+                PermissionCode.ViewRestaurantInfo
+            });
             // Admin
             AddPermissions(rolePermissions, RoleCode.SuperAdmin, new[]
             {
@@ -21,7 +27,8 @@ namespace ECafe.Infrastructure.Seeders
                 PermissionCode.ManageReservations,
                 PermissionCode.ManageOrders,
                 PermissionCode.ManagePayments,
-                PermissionCode.ViewReports
+                PermissionCode.ViewReports,
+                PermissionCode.ViewRestaurantInfo
             });
 
             //Owner
@@ -29,7 +36,9 @@ namespace ECafe.Infrastructure.Seeders
             AddPermissions(rolePermissions, RoleCode.Owner, new[]
             {
                 PermissionCode.ManageStaff,
-                PermissionCode.ViewReports
+                PermissionCode.ViewReports,
+                PermissionCode.ViewRestaurantInfo
+
             });
             // Manager
             AddPermissions(rolePermissions, RoleCode.Manager, new[]
@@ -40,7 +49,9 @@ namespace ECafe.Infrastructure.Seeders
                 PermissionCode.ManageReservations,
                 PermissionCode.ManageOrders,
                 PermissionCode.ManagePayments,
-                PermissionCode.ViewReports
+                PermissionCode.ViewReports,
+                PermissionCode.ViewRestaurantInfo
+
             });
 
             // Waiter -> hazırkı permission modelində ayrıca uyğun permission yoxdur

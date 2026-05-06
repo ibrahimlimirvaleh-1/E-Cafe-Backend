@@ -53,6 +53,9 @@ namespace ECafe.Domain.Enums
         ViewDashboard,
 
         [Description("Audit qeydlərinə baxmaq")]
-        ViewAuditLogs
+        ViewAuditLogs,
+
+        [Description("Restoran məlumatlarını görmək")]
+        ViewRestaurantInfo,
     }
 }
