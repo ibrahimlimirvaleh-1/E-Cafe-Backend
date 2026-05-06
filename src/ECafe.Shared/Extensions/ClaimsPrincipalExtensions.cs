@@ -23,5 +23,15 @@ namespace ECafe.Shared.Extensions
 
             return int.Parse(roleClaim.Value);
         }
+
+        public static int GetRestaurantId(this ClaimsPrincipal user)
+        {
+            var restaurantClaim = user.FindFirst("restaurantId");
+
+            if (restaurantClaim == null)
+                throw new UnauthorizedAccessException("RestaurantId claim not found");
+
+            return int.Parse(restaurantClaim.Value);
+        }
     }
 }

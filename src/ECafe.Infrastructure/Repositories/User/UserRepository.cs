@@ -15,6 +15,8 @@ namespace ECafe.Infrastructure.Repositories.User
         {
             return await Query()
                 .Include(u => u.Role)
+                .Include(u => u.UserRestaurant)
+                .ThenInclude(ur => ur.Restaurant)
                 .Where(u => u.Email == email).FirstOrDefaultAsync();
         }
 

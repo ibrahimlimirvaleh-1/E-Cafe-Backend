@@ -30,12 +30,17 @@ namespace ECafe.Application.Services.Jwt.Concrete
             new Claim("name", user.Name),
             new Claim("surname", user.Surname),
             new Claim("email", user.Email),
-            new Claim("isActive", user.IsActive.ToString())
+            new Claim("isActive", user.IsActive.ToString()),
+            new Claim("restaurantId", user.UserRestaurant?.RestaurantId.ToString() ?? string.Empty)
         };
 
             if (user.File != null)
             {
                 claims.Add(new Claim("fileUrl", user.File.Url));
+            }
+            if (user.RoleId != 1)
+            {
+                claims.Add(new Claim("restaurantId", user.UserRestaurant?.Restaurant.Id.ToString() ?? string.Empty));
             }
 
             claims.Add(new Claim(ClaimTypes.Role,user.RoleId.ToString()));

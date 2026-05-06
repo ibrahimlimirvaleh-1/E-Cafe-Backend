@@ -8,6 +8,7 @@ namespace ECafe.Application.Services.Restaurant.Abstract
 
         public Task<List<GetAllRestaurantsResponse>> GetAllRestaurantsAsync();
 
-        public Task<GetAllRestaurantsResponse> GetRestaurantAsync(int restaurantId);
+        public Task<GetByIdRestaurantResponse> GetRestaurantAsync(int restaurantId);
+
     }
 }

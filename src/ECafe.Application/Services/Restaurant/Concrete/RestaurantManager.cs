@@ -63,7 +63,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             return response;
         }
 
-        public async Task<GetAllRestaurantsResponse> GetRestaurantAsync(int restaurantId)
+        public async Task<GetByIdRestaurantResponse> GetRestaurantAsync(int restaurantId)
         {
             if (restaurantId <= 0)
                 throw new BusinessRuleException("Invalid restaurant ID!");
@@ -73,11 +73,12 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             if (restaurant is null)
                 throw new BusinessRuleException("Restaurant not found!");
 
-            var response = new GetAllRestaurantsResponse
+            var response = new GetByIdRestaurantResponse
             {
                 Name = restaurant.Name,
                 Location = restaurant.Location,
                 Phone = restaurant.Phone,
+                Email = restaurant.Email,
                 RatingAverage = restaurant.RatingAverage,
                 RatingCount = restaurant.RatingCount,
                 ImageUrls = restaurant.Files?.Select(f => _minioService.GenerateFileUrl(f.Token).Result).ToList()

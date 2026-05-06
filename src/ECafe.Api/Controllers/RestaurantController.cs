@@ -1,5 +1,6 @@
 ﻿using ECafe.Application.Features.Commands.Restaurant;
 using ECafe.Application.Features.Queries.Restaurant.GetAll;
+using ECafe.Application.Features.Queries.Restaurant.GetById;
 using ECafe.Infrastructure.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -19,5 +20,11 @@ namespace ECafe.Api.Controllers
             var queryResult = new GetAllRestaurantsQuery();
             return Ok(await Mediator.Send(queryResult));
         }
+
+        [HasPermission(Domain.Enums.PermissionCode.ViewRestaurantInfo)]
+        [HttpGet("api/restaurants/getById/{id}")]
+        public async Task<IActionResult> GetByIdRestaurants(int id)
+        => Ok(await Mediator.Send(new GetRestaurantQuery(id)));
+
     }
 }
