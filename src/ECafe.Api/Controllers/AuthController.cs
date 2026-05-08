@@ -8,7 +8,7 @@ namespace ECafe.Api.Controllers
     {
         [HttpPost("api/user/login")]
         public async Task<IActionResult> Login([FromForm] LoginUserCommand command)
-        => Ok(await Mediator.Send(command));
+        => Ok(await Mediator.Send(command));   
 
     }
 }

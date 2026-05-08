@@ -4,5 +4,6 @@ namespace ECafe.Application.Repositories.UserRestaurant
 {
     public interface IUserRestaurantRepository : IBaseRepository<Domain.Entities.UserRestaurant>
     {
+        public Task<List<Domain.Entities.UserRestaurant>> GetRestaurantStaffAsync(int restaurantId);
     }
 }

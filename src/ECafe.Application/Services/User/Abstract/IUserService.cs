@@ -12,5 +12,6 @@ namespace ECafe.Application.Services.User.Abstract
         public Task UpdateRoleAsync(int userId,int roleId);
 
         public Task<PaginatedList<GetAllUserResponseDto>> GetAllAsync(int? restaurantId, PaginationFilter filter);
+
     }
 }

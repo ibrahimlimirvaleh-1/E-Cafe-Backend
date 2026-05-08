@@ -1,31 +1,37 @@
 ﻿using AutoMapper;
 using ECafe.Application.DTOs.File;
 using ECafe.Application.DTOs.Restaurant;
+using ECafe.Application.DTOs.User.Staff;
 using ECafe.Application.Repositories.Restaurant;
+using ECafe.Application.Repositories.UserRestaurant;
 using ECafe.Application.Services.MinIO.Abstracts;
 using ECafe.Application.Services.Restaurant.Abstract;
+using ECafe.Domain.Entities;
 using ECafe.Domain.Exceptions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using File = ECafe.Domain.Entities.File;
 
 namespace ECafe.Application.Services.Restaurant.Concrete
 {
     public class RestaurantManager : BaseManager, IRestaurantService
     {
         private readonly IRestaurantRepository _restaurantRepository;
+        private readonly IUserRestaurantRepository _userRestaurantRepository;
         private readonly IEmailService _emailService;
         private readonly IMinioService _minioService;
         public RestaurantManager(IHttpContextAccessor httpContextAccessor,
                                  IMapper mapper, IConfiguration configuration,
                                  IRestaurantRepository restaurantRepository,
                                  IEmailService emailService,
-                                 IMinioService minioService)
+                                 IMinioService minioService, IUserRestaurantRepository userRestaurantRepository)
                                  : base(httpContextAccessor, mapper, configuration)
         {
             _restaurantRepository = restaurantRepository;
             _emailService = emailService;
             _minioService = minioService;
+            _userRestaurantRepository = userRestaurantRepository;
         }
 
         public async Task<List<GetAllRestaurantsResponse>> GetAllRestaurantsAsync()
@@ -88,6 +94,26 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             return response;
         }
 
+        public async Task<List<StaffPublicResponseDto>> GetRestaurantPublicStaffAsync(int restaurantId)
+        {
+            var staffs = await GetRestaurantStaffEntitiesAsync(restaurantId);
+
+            var tasks = staffs.Select(MapToPublicDtoAsync);
+
+            return (await Task.WhenAll(tasks)).ToList();
+        }
+
+        public async Task<List<StaffDetailResponseDto>> GetRestaurantStaffAsync(int restaurantId)
+        {
+            var staffs = await GetRestaurantStaffEntitiesAsync(restaurantId);
+
+            var tasks = staffs.Select(MapToDetailDtoAsync);
+
+            return (await Task.WhenAll(tasks)).ToList();
+        }
+
+
+
         public async Task<int> RegisterRestaurantAsync(RegisterRestaurantRequest request)
         {
             if (request is null)
@@ -135,5 +161,52 @@ namespace ECafe.Application.Services.Restaurant.Concrete
 
             return restaurant.Id;
         }
+
+
+
+        #region Helpers
+        private async Task<List<UserRestaurant>> GetRestaurantStaffEntitiesAsync(int restaurantId)
+        {
+            if (restaurantId <= 0)
+                throw new BusinessRuleException("Invalid restaurant ID!");
+
+            return await _userRestaurantRepository
+                .GetRestaurantStaffAsync(restaurantId);
+        }
+
+        private async Task<StaffPublicResponseDto> MapToPublicDtoAsync(UserRestaurant staff)
+        {
+            return new StaffPublicResponseDto
+            {
+                Id = staff.User.Id,
+                Name = staff.User.Name,
+                Surname = staff.User.Surname,
+                FileUrl = await GenerateFileUrlAsync(staff.User.File),
+                Role = staff.User.Role.Name
+            };
+        }
+
+        private async Task<StaffDetailResponseDto> MapToDetailDtoAsync(UserRestaurant staff)
+        {
+            return new StaffDetailResponseDto
+            {
+                Id = staff.User.Id,
+                Name = staff.User.Name,
+                Surname = staff.User.Surname,
+                FileUrl = await GenerateFileUrlAsync(staff.User.File),
+                Email = staff.User.Email,
+                Phone = staff.User.Phone,
+                Role = staff.User.Role.Name
+            };
+        }
+
+        private async Task<string?> GenerateFileUrlAsync(File? file)
+        {
+            if (file == null)
+                return null;
+
+            return await _minioService.GenerateFileUrl(file.Token);
+        }
+        #endregion
     }
 }

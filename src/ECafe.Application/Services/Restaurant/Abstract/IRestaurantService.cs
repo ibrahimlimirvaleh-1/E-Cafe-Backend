@@ -1,4 +1,5 @@
 ﻿using ECafe.Application.DTOs.Restaurant;
+using ECafe.Application.DTOs.User.Staff;
 
 namespace ECafe.Application.Services.Restaurant.Abstract
 {
@@ -9,6 +10,10 @@ namespace ECafe.Application.Services.Restaurant.Abstract
         public Task<List<GetAllRestaurantsResponse>> GetAllRestaurantsAsync();
 
         public Task<GetByIdRestaurantResponse> GetRestaurantAsync(int restaurantId);
+
+        public Task<List<StaffDetailResponseDto>> GetRestaurantStaffAsync(int restaurantId);
+
+        public Task<List<StaffPublicResponseDto>> GetRestaurantPublicStaffAsync(int restaurantId);
 
     }
 }

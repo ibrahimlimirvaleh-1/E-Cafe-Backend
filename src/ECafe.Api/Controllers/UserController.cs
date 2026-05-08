@@ -1,8 +1,12 @@
 ﻿using ECafe.Application.Features.Commands.User.Create;
 using ECafe.Application.Features.Commands.User.Delete;
 using ECafe.Application.Features.Commands.User.UpdateRole;
+using ECafe.Application.Features.Queries.Restaurant.GetAll;
 using ECafe.Infrastructure.Authorization;
+using ECafe.Shared.Extensions;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace ECafe.Api.Controllers
 {
@@ -30,6 +34,16 @@ namespace ECafe.Api.Controllers
         {
             await Mediator.Send(command);
             return Ok();
+        }
+
+
+        [HasPermission(Domain.Enums.PermissionCode.ViewRestaurantInfo)]
+        [HttpGet("api/staff/{restaurantId}")]
+        public async Task<IActionResult> GetStaff(int restaurantId)
+        {
+            var role = ClaimsPrincipalExtensions.GetRoleId(User);
+            var result = await Mediator.Send(new GetRestaurantStaffQuery(restaurantId,role));
+            return Ok(result);
         }
     }
 }

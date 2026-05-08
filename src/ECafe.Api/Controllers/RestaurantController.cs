@@ -22,8 +22,8 @@ namespace ECafe.Api.Controllers
         }
 
         [HasPermission(Domain.Enums.PermissionCode.ViewRestaurantInfo)]
-        [HttpGet("api/restaurants/getById/{id}")]
-        public async Task<IActionResult> GetByIdRestaurants(int id)
+        [HttpGet("api/restaurant/getById/{id}")]
+        public async Task<IActionResult> GetByIdRestaurant(int id)
         => Ok(await Mediator.Send(new GetRestaurantQuery(id)));
 
     }
