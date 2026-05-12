@@ -2,7 +2,7 @@
 using ECafe.Application.Services.Auth.Abstract;
 using MediatR;
 
-namespace ECafe.Application.Features.Commands.Auth
+namespace ECafe.Application.Features.Commands.Auth.Login
 {
     public class LoginUserCommandHandler : IRequestHandler<LoginUserCommand, string>
     {

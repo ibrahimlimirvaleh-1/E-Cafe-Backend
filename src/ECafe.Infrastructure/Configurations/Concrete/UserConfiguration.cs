@@ -39,6 +39,8 @@ namespace ECafe.Infrastructure.Configurations.Concrete
             builder.Property(e => e.Surname)
                 .HasMaxLength(50)
                 .HasColumnName("surname");
+            builder.Property(e => e.RoleId).HasColumnName("role_id");
+            builder.HasIndex(e => e.RoleId, "IX_users_role_id").IsUnique(false);
             builder.HasOne(d => d.Role)
                 .WithMany(p => p.Users)
                 .HasForeignKey(d => d.RoleId)

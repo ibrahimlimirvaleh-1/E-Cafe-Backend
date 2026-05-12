@@ -1,6 +1,6 @@
 ﻿using MediatR;
 
-namespace ECafe.Application.Features.Commands.Auth
+namespace ECafe.Application.Features.Commands.Auth.Login
 {
     public class LoginUserCommand : IRequest<string>
     {

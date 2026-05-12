@@ -5,7 +5,7 @@ namespace ECafe.Shared.Services.Jwt.Abstract
 {
     public interface IJwtService
     {
-        public string GenerateToken(User user);
+        public string GenerateToken(User user, string? fileUrl = null);
 
         public string GenerateRefreshToken(User user);
 
