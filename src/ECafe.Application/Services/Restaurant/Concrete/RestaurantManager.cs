@@ -76,6 +76,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
 
             var restaurant = await _restaurantRepository.GetRestaurantInfoAsync(restaurantId);
 
+
             if (restaurant is null)
                 throw new BusinessRuleException("Restaurant not found!");
 
