@@ -1,9 +1,12 @@
-﻿using ECafe.Application.Services;
+﻿using ECafe.Application.Repositories.Table;
+using ECafe.Application.Services;
 using ECafe.Application.Services.Auth.Abstract;
 using ECafe.Application.Services.Auth.Concrete;
 using ECafe.Application.Services.MinIO.Abstracts;
 using ECafe.Application.Services.Restaurant.Abstract;
 using ECafe.Application.Services.Restaurant.Concrete;
+using ECafe.Application.Services.Table.Abstract;
+using ECafe.Application.Services.Table.Concrete;
 using ECafe.Application.Services.User.Abstract;
 using ECafe.Application.Services.User.Concrete;
 using ECafe.Application.Validation;
@@ -34,6 +37,7 @@ namespace ECafe.Application
             services.AddScoped<IEmailService, EmailManager>();
             services.AddScoped<IRestaurantService, RestaurantManager>();
             services.AddScoped<IUserService, UserManager>();
+            services.AddScoped<ITableService,TableManager>();
 
             return services;
         }

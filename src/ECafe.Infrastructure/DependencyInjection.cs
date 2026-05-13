@@ -1,5 +1,6 @@
 ﻿using ECafe.Application.Repositories.Restaurant;
 using ECafe.Application.Repositories.Role;
+using ECafe.Application.Repositories.Table;
 using ECafe.Application.Repositories.User;
 using ECafe.Application.Repositories.UserRestaurant;
 using ECafe.Application.Repository;
@@ -7,6 +8,7 @@ using ECafe.Infrastructure.Context;
 using ECafe.Infrastructure.Repositories;
 using ECafe.Infrastructure.Repositories.Restaurant;
 using ECafe.Infrastructure.Repositories.Role;
+using ECafe.Infrastructure.Repositories.Table;
 using ECafe.Infrastructure.Repositories.User;
 using ECafe.Infrastructure.Repositories.UserRestaurant;
 using Microsoft.EntityFrameworkCore;
@@ -32,6 +34,7 @@ namespace ECafe.Infrastructure
             services.AddScoped<IRoleRepository, RoleRepository>();
             services.AddScoped<IRestaurantRepository, RestaurantRepository>();
             services.AddScoped<IUserRestaurantRepository, UserRestaurantRepository>();
+            services.AddScoped<ITableRepository, TableRepository>();
             return services;
         }
     }

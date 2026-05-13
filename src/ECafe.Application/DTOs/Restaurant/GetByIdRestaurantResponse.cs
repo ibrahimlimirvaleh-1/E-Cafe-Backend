@@ -17,5 +17,7 @@ namespace ECafe.Application.DTOs.Restaurant
 
         public List<string>? ImageUrls { get; set; }
 
+        public List<TableDto> Tables { get; set; } = new List<TableDto>();
+
     }
 }

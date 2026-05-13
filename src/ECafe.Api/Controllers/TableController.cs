@@ -1,11 +1,15 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using ECafe.Application.Features.Commands.Table;
+using ECafe.Infrastructure.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ECafe.Api.Controllers
 {
-    [Route("api/[controller]")]
-    [ApiController]
-    public class TableController : ControllerBase
+
+    public class TableController : BaseController
     {
+        [HasPermission(Domain.Enums.PermissionCode.ManageTables)]
+        [HttpPost("api/table/create")]
+        public async Task<IActionResult> CreateTable([FromForm] CreateTableCommand command)
+        => Ok(await Mediator.Send(command));
     }
 }

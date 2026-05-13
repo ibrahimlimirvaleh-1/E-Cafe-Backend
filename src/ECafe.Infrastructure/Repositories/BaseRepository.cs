@@ -76,5 +76,13 @@ namespace ECafe.Infrastructure.Repositories
             var query = _dbSet.AsQueryable(); // tracking
             return predicate is null ? query : query.Where(predicate);
         }
+
+        public Task<bool> CheckExistAsync(Expression<Func<TEntity, bool>> predicate = null)
+        {
+            if (predicate == null)
+                return _dbSet.AnyAsync();
+
+            return _dbSet.AnyAsync(predicate);
+        }
     }
 }

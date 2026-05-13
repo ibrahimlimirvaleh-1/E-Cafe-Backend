@@ -74,7 +74,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             if (restaurantId <= 0)
                 throw new BusinessRuleException("Invalid restaurant ID!");
 
-            var restaurant = await _restaurantRepository.GetByIdAsync(restaurantId);
+            var restaurant = await _restaurantRepository.GetRestaurantInfoAsync(restaurantId);
 
             if (restaurant is null)
                 throw new BusinessRuleException("Restaurant not found!");
@@ -87,7 +87,16 @@ namespace ECafe.Application.Services.Restaurant.Concrete
                 Email = restaurant.Email,
                 RatingAverage = restaurant.RatingAverage,
                 RatingCount = restaurant.RatingCount,
-                ImageUrls = restaurant.Files?.Select(f => _minioService.GenerateFileUrl(f.Token).Result).ToList()
+                ImageUrls = restaurant.Files?.Select(f => _minioService.GenerateFileUrl(f.Token).Result).ToList(),
+                Tables = restaurant.Tables?.Select(t => new TableDto
+                {
+                    Id = t.Id,
+                    TableNo = t.TableNo,
+                    Name = t.Name,
+                    Capacity = t.Capacity,
+                    IsActive = t.IsActive,
+                    IsEmpty = t.IsEmpty
+                }).ToList()
             };
 
 
