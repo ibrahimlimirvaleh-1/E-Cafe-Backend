@@ -1,7 +1,7 @@
-﻿using ECafe.Application.Repositories.Table;
-using ECafe.Application.Services;
+﻿using ECafe.Application.Services;
 using ECafe.Application.Services.Auth.Abstract;
 using ECafe.Application.Services.Auth.Concrete;
+using ECafe.Application.Services.Category.Abstract;
 using ECafe.Application.Services.MinIO.Abstracts;
 using ECafe.Application.Services.Restaurant.Abstract;
 using ECafe.Application.Services.Restaurant.Concrete;
@@ -38,6 +38,7 @@ namespace ECafe.Application
             services.AddScoped<IRestaurantService, RestaurantManager>();
             services.AddScoped<IUserService, UserManager>();
             services.AddScoped<ITableService,TableManager>();
+            services.AddScoped<ICategoryService, CategoryManager>();    
 
             return services;
         }

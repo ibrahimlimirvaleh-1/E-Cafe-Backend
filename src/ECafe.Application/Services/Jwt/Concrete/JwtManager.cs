@@ -47,7 +47,7 @@ namespace ECafe.Application.Services.Jwt.Concrete
         {
             var claims = new List<Claim>
                 {
-                    new Claim("userId", user.Id.ToString()),
+                    new Claim("userId", user.Id.ToString()),    
                     new Claim("name", user.Name),
                     new Claim("surname", user.Surname),
                     new Claim("email", user.Email),

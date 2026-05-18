@@ -57,6 +57,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
 
                 response.Add(new GetAllRestaurantsResponse
                 {
+                    Id = restaurant.Id,
                     Name = restaurant.Name,
                     Location = restaurant.Location,
                     Phone = restaurant.Phone,

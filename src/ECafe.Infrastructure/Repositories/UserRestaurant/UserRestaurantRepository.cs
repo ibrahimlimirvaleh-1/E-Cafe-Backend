@@ -18,6 +18,7 @@ namespace ECafe.Infrastructure.Repositories.UserRestaurant
                 .Include(ur => ur.User)
                 .ThenInclude(u => u.File)
                 .Where(ur => ur.RestaurantId == restaurantId &&
+                ur.Restaurant.Tables.Any(t => t.IsActive) &&
                 ur.IsActive &&
                 ur.User.RoleId != (int)RoleCode.Customer)
                 .ToListAsync();
