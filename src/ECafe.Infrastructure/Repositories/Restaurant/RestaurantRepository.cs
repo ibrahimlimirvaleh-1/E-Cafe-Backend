@@ -22,7 +22,12 @@ namespace ECafe.Infrastructure.Repositories.Restaurant
             return Query()
                 .Include(r => r.Files)
                 .Include(r => r.Tables)
-                .FirstOrDefaultAsync(r => r.Id == id && r.IsActive && r.Tables.Any(t => t.IsActive));
+                .Include(r => r.Categories)
+                .Include(r => r.UserRestaurants)
+                .ThenInclude(r=>r.User)
+                .ThenInclude(r => r.Role)
+                .FirstOrDefaultAsync(r => r.Id == id && r.IsActive
+                );
         }
     }
 }

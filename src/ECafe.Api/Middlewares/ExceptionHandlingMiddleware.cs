@@ -83,14 +83,15 @@ public sealed class ExceptionHandlingMiddleware
 
         context.Response.StatusCode = statusCode;
 
-        var message = statusCode == (int)HttpStatusCode.InternalServerError
-            ? $"{ex.Message},{ex.InnerException?.Message}"
-            : "Internal server error";
+        //var message = statusCode == (int)HttpStatusCode.InternalServerError
+        //    //? $"{ex.Message},{ex.InnerException?.Message}"
+        //    ? $"{ex.Message}"
+        //    : "Internal server error";
 
         await context.Response.WriteAsJsonAsync(new
         {
             statusCode,
-            message,
+            message = $"{ex.Message}",
             traceId = context.TraceIdentifier,
             timestamp = DateTime.UtcNow
         });

@@ -1,4 +1,5 @@
-﻿using ECafe.Application.Services;
+﻿using ECafe.Application.Mappings;
+using ECafe.Application.Services;
 using ECafe.Application.Services.Auth.Abstract;
 using ECafe.Application.Services.Auth.Concrete;
 using ECafe.Application.Services.Category.Abstract;
@@ -38,7 +39,11 @@ namespace ECafe.Application
             services.AddScoped<IRestaurantService, RestaurantManager>();
             services.AddScoped<IUserService, UserManager>();
             services.AddScoped<ITableService,TableManager>();
-            services.AddScoped<ICategoryService, CategoryManager>();    
+            services.AddScoped<ICategoryService, CategoryManager>();
+
+
+
+            services.AddAutoMapper(typeof(RestaurantProfile));
 
             return services;
         }

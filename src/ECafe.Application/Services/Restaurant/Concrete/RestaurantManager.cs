@@ -75,32 +75,31 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             if (restaurantId <= 0)
                 throw new BusinessRuleException("Invalid restaurant ID!");
 
-            var restaurant = await _restaurantRepository.GetRestaurantInfoAsync(restaurantId);
-
+            var restaurant =
+                await _restaurantRepository.GetRestaurantInfoAsync(restaurantId);
 
             if (restaurant is null)
                 throw new BusinessRuleException("Restaurant not found!");
 
-            var response = new GetByIdRestaurantResponse
-            {
-                Name = restaurant.Name,
-                Location = restaurant.Location,
-                Phone = restaurant.Phone,
-                Email = restaurant.Email,
-                RatingAverage = restaurant.RatingAverage,
-                RatingCount = restaurant.RatingCount,
-                ImageUrls = restaurant.Files?.Select(f => _minioService.GenerateFileUrl(f.Token).Result).ToList(),
-                Tables = restaurant.Tables?.Select(t => new TableDto
-                {
-                    Id = t.Id,
-                    TableNo = t.TableNo,
-                    Name = t.Name,
-                    Capacity = t.Capacity,
-                    IsActive = t.IsActive,
-                    IsEmpty = t.IsEmpty
-                }).ToList()
-            };
+            var response = Mapper.Map<GetByIdRestaurantResponse>(restaurant);
 
+            response.Restaurant.ImageUrls = restaurant.Files is null
+                ? []
+                : (await Task.WhenAll(
+                    restaurant.Files.Select(f =>
+                        _minioService.GenerateFileUrl(f.Token))
+                  )).ToList();
+
+            foreach (var userDto in response.Users)
+            {
+                var entityUser = restaurant.UserRestaurants
+                    .First(x => x.User.Id == userDto.Id)
+                    .User;
+
+                userDto.FileUrl = entityUser.File != null
+                    ? await _minioService.GenerateFileUrl(entityUser.File.Token)
+                    : null;
+            }
 
             return response;
         }

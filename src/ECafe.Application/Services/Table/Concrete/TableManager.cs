@@ -15,7 +15,7 @@ namespace ECafe.Application.Services.Table.Concrete
 
         public async Task<int> CreateAsync(CreateTableRequest request)
         {
-            var existTable = await _tableRepository.CheckExistAsync(x => x.TableNo == request.TableNo);
+            var existTable = await _tableRepository.CheckExistAsync(x => x.TableNo == request.TableNo && x.RestaurantId == request.RestaurantId);
 
             if (existTable)
                 throw new InvalidOperationException("Table with the same number already exists.");
