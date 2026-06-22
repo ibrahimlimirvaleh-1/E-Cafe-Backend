@@ -2,7 +2,7 @@
 
 namespace ECafe.Application.DTOs.Item
 {
-    public class CreateItemRequest
+    public class    CreateItemRequest
     {
         public int RestaurantId { get; set; }
 
