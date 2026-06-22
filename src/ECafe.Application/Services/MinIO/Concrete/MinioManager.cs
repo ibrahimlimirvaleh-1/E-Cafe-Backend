@@ -83,12 +83,6 @@ namespace ECafe.Infrastructure.Services.MinIO
 
             var host = HttpContextAccessor.HttpContext.Request.Host.Value;
 
-            //string protocol = environment switch
-            //{
-            //    "development" or "staging" or "production" or "testing" => "https",
-            //    _ => "http"
-            //};
-
             return $"http://{host}/api/file/getFile?token={token}";
         }
 
