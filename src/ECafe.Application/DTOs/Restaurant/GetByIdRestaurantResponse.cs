@@ -1,6 +1,4 @@
-﻿using ECafe.Application.DTOs.File;
-
-namespace ECafe.Application.DTOs.Restaurant
+﻿namespace ECafe.Application.DTOs.Restaurant
 {
     public class GetByIdRestaurantResponse
     {
@@ -11,6 +9,7 @@ namespace ECafe.Application.DTOs.Restaurant
         public List<CategoryDto> Categories { get; set; } = new List<CategoryDto>();
 
         public List<UserDto> Users { get; set; } = new List<UserDto>();
+
 
     }
 }

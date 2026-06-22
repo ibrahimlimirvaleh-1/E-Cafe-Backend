@@ -14,6 +14,8 @@ namespace ECafe.Application.Mappings
 
             CreateMap<Category, CategoryDto>();
 
+            CreateMap<Item, ItemDto>();
+
             CreateMap<Role, RoleDto>();
 
             CreateMap<User, UserDto>()

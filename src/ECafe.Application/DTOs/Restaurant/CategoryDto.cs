@@ -10,5 +10,8 @@
         public int SortOrder { get; set; }
 
         public bool IsActive { get; set; }
+
+        public List<ItemDto> Items { get; set; } = new List<ItemDto>();
+
     }
 }

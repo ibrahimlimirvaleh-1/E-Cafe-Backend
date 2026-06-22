@@ -23,11 +23,15 @@ namespace ECafe.Infrastructure.Repositories.Restaurant
                 .Include(r => r.Files)
                 .Include(r => r.Tables)
                 .Include(r => r.Categories)
+                    .ThenInclude(c => c.Items)
+                        .ThenInclude(i => i.File) 
                 .Include(r => r.UserRestaurants)
-                .ThenInclude(r => r.User)
-                .ThenInclude(r => r.Role)
-                .FirstOrDefaultAsync(r => r.Id == id && r.IsActive
-                );
+                    .ThenInclude(ur => ur.User)
+                        .ThenInclude(u => u.Role)
+                .Include(r => r.UserRestaurants)
+                    .ThenInclude(ur => ur.User)
+                        .ThenInclude(u => u.File) 
+                .FirstOrDefaultAsync(r => r.Id == id && r.IsActive);
         }
     }
 }

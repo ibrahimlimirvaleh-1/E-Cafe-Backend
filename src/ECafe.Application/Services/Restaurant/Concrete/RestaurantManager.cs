@@ -11,6 +11,7 @@ using ECafe.Domain.Exceptions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Minio.DataModel;
 using File = ECafe.Domain.Entities.File;
 
 namespace ECafe.Application.Services.Restaurant.Concrete
@@ -75,33 +76,70 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             if (restaurantId <= 0)
                 throw new BusinessRuleException("Invalid restaurant ID!");
 
-            var restaurant =
-                await _restaurantRepository.GetRestaurantInfoAsync(restaurantId);
-
+            var restaurant = await _restaurantRepository.GetRestaurantInfoAsync(restaurantId);
             if (restaurant is null)
                 throw new BusinessRuleException("Restaurant not found!");
 
             var response = Mapper.Map<GetByIdRestaurantResponse>(restaurant);
 
+            await Task.WhenAll(
+                    PopulateRestaurantImageUrlsAsync(response, restaurant),
+                    PopulateUserFileUrlsAsync(response, restaurant),
+                    PopulateCategoryItemFileUrlsAsync(response, restaurant) // ✅
+                    );
+
+            return response;
+        }
+
+        private async Task PopulateRestaurantImageUrlsAsync(
+            GetByIdRestaurantResponse response,
+            Domain.Entities.Restaurant restaurant)
+        {
             response.Restaurant.ImageUrls = restaurant.Files is null
                 ? []
                 : (await Task.WhenAll(
-                    restaurant.Files.Select(f =>
-                        _minioService.GenerateFileUrl(f.Token))
+                    restaurant.Files.Select(f => _minioService.GenerateFileUrl(f.Token))
                   )).ToList();
+        }
 
-            foreach (var userDto in response.Users)
+        private async Task PopulateUserFileUrlsAsync(GetByIdRestaurantResponse response,Domain.Entities.Restaurant restaurant)
+        {
+            var userLookup = restaurant.UserRestaurants
+                .ToDictionary(x => x.User.Id, x => x.User); 
+
+            await Task.WhenAll(response.Users.Select(userDto =>
             {
-                var entityUser = restaurant.UserRestaurants
-                    .First(x => x.User.Id == userDto.Id)
-                    .User;
-
-                userDto.FileUrl = entityUser.File != null
-                    ? await _minioService.GenerateFileUrl(entityUser.File.Token)
+                var token = userLookup.TryGetValue(userDto.Id, out var user)
+                    ? user.File?.Token
                     : null;
-            }
 
-            return response;
+                return AssignFileUrlAsync(token, url => userDto.FileUrl = url);
+            }));
+        }
+
+        private async Task PopulateCategoryItemFileUrlsAsync( GetByIdRestaurantResponse response, Domain.Entities.Restaurant restaurant)
+        {
+            var itemLookup = restaurant.Categories
+                .SelectMany(c => c.Items)
+                .ToDictionary(x => x.Id);
+
+            var allItemDtos = response.Categories.SelectMany(c => c.Items);
+
+            await Task.WhenAll(allItemDtos.Select(itemDto =>
+            {
+                var token = itemLookup.TryGetValue(itemDto.Id, out var entity)
+                    ? entity.File?.Token
+                    : null;
+
+                return AssignFileUrlAsync(token, url => itemDto.FileUrl = url);
+            }));
+        }
+
+        private async Task AssignFileUrlAsync(string? token, Action<string?> assign)
+        {
+            assign(token is not null
+                ? await _minioService.GenerateFileUrl(token)
+                : null);
         }
 
         public async Task<List<StaffPublicResponseDto>> GetRestaurantPublicStaffAsync(int restaurantId)

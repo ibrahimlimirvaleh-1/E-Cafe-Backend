@@ -21,8 +21,6 @@ public partial class Restaurant : AuditableSoftDeletableEntity<int>
 
     public virtual ICollection<Category> Categories { get; set; } = new List<Category>();
 
-    public virtual ICollection<Item> Items { get; set; } = new List<Item>();
-
     public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
 
     public virtual ICollection<Payment> Payments { get; set; } = new List<Payment>();

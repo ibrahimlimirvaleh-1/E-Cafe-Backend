@@ -43,9 +43,6 @@ namespace ECafe.Infrastructure.Configurations.Concrete
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("items_category_id_fkey");
 
-            builder.HasOne(d => d.Restaurant).WithMany(p => p.Items)
-                .HasForeignKey(d => d.RestaurantId)
-                .HasConstraintName("items_restaurant_id_fkey");
 
             builder.HasOne(d => d.File).WithMany(p => p.Items)
                 .HasForeignKey(d => d.FileId)
