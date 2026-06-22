@@ -1,16 +1,9 @@
-﻿using MediatR;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using ECafe.Application.DTOs.Category;
+using MediatR;
 
 namespace ECafe.Application.Features.Commands.Category
 {
-    public class CreateCategoryCommand : IRequest<int>
+    public class CreateCategoryCommand : CreateCategoryRequest, IRequest<int>
     {
-        public int RestaurantId { get; set; }
-        public string Name { get; set; } = null!;
-        public int SortOrder { get; set; }
     }
 }

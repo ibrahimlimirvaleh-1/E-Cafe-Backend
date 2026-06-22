@@ -8,8 +8,8 @@ namespace ECafe.Application.Services
 {
     public class EmailManager : BaseManager, IEmailService
     {
-        public EmailManager(IHttpContextAccessor httpContextAccessor, 
-                            IMapper mapper, IConfiguration configuration) 
+        public EmailManager(IHttpContextAccessor httpContextAccessor,
+                            IMapper mapper, IConfiguration configuration)
                             : base(httpContextAccessor, mapper, configuration)
         {
         }
@@ -41,7 +41,7 @@ namespace ECafe.Application.Services
             await client.SendMailAsync(mail);
         }
 
-        public async Task SendMailAsync(string toEmail, string name,string surname, string password, string role)
+        public async Task SendMailAsync(string toEmail, string name, string surname, string password, string role)
         {
             var smtpHost = _configuration["Email:SmtpHost"];
             var smtpPort = int.Parse(_configuration["Email:SmtpPort"]!);

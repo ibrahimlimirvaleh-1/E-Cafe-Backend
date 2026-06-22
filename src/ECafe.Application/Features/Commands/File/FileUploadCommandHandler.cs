@@ -1,4 +1,3 @@
-﻿using ECafe.Application.DTOs.File;
 using ECafe.Application.Services.MinIO.Abstracts;
 using MediatR;
 
@@ -15,8 +14,7 @@ namespace ECafe.Application.Features.Commands.File
 
         public async Task<string> Handle(FileUploadCommand request, CancellationToken cancellationToken)
         {
-            var dto = new UploadFileDto(request.File);
-            return await _minioService.UploadFileAsync(dto);
+            return await _minioService.UploadFileAsync(request);
         }
     }
 }

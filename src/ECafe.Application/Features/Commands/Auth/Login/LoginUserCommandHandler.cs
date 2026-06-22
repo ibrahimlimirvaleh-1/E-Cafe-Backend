@@ -1,4 +1,3 @@
-﻿using ECafe.Application.DTOs.Auth;
 using ECafe.Application.Services.Auth.Abstract;
 using MediatR;
 
@@ -15,13 +14,7 @@ namespace ECafe.Application.Features.Commands.Auth.Login
 
         public async Task<string> Handle(LoginUserCommand request, CancellationToken cancellationToken)
         {
-            var dto = new LoginRequestDto
-            {
-                Email = request.Email,
-                Password = request.Password
-            };
-
-            return await _authService.LoginAsync(dto);
+            return await _authService.LoginAsync(request);
         }
     }
 }

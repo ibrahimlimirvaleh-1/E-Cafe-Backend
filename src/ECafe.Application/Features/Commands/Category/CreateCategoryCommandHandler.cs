@@ -1,4 +1,3 @@
-﻿using ECafe.Application.DTOs.Category;
 using ECafe.Application.Services.Category.Abstract;
 using MediatR;
 
@@ -15,14 +14,7 @@ namespace ECafe.Application.Features.Commands.Category
 
         public async Task<int> Handle(CreateCategoryCommand request, CancellationToken cancellationToken)
         {
-            var dto = new CreateCategoryRequest
-            {
-                RestaurantId = request.RestaurantId,
-                Name = request.Name,
-                SortOrder = request.SortOrder
-            };
-
-            return await _categoryService.CreateCategoryAsync(dto);
+            return await _categoryService.CreateCategoryAsync(request);
         }
     }
 }

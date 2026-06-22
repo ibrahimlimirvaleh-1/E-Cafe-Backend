@@ -1,10 +1,9 @@
-﻿using MediatR;
+using ECafe.Application.DTOs.Auth;
+using MediatR;
 
 namespace ECafe.Application.Features.Commands.Auth.Login
 {
-    public class LoginUserCommand : IRequest<string>
+    public class LoginUserCommand : LoginRequestDto, IRequest<string>
     {
-        public string Email { get; set; } = null!;
-        public string Password { get; set; } = null!;
     }
 }

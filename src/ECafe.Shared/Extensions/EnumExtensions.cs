@@ -27,7 +27,7 @@ public static class EnumExtensions
 
         if (!string.IsNullOrWhiteSpace(attribute?.Name))
             return attribute!.Name!;
-        
+
         var description = field?.GetCustomAttribute<DescriptionAttribute>();
 
         return description?.Description ?? value.ToString();

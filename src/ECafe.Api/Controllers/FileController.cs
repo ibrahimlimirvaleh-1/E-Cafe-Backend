@@ -18,7 +18,7 @@ namespace ECafe.Api.Controllers
         public async Task<IActionResult> GetFile([FromQuery] GetFileQuery query)
         {
             var file = await Mediator.Send(query);
-            return File(file.Bytes,file.ContentType);
+            return File(file.Bytes, file.ContentType);
         }
     }
 }

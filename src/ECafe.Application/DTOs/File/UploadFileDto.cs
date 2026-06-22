@@ -8,12 +8,12 @@ namespace ECafe.Application.DTOs.File
 
         public UploadFileDto()
         {
-            
+
         }
 
         public UploadFileDto(IFormFile? file)
         {
-            File= file;
+            File = file;
         }
     }
 }

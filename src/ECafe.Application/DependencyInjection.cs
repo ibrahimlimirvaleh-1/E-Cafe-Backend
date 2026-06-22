@@ -40,7 +40,7 @@ namespace ECafe.Application
             services.AddScoped<IEmailService, EmailManager>();
             services.AddScoped<IRestaurantService, RestaurantManager>();
             services.AddScoped<IUserService, UserManager>();
-            services.AddScoped<ITableService,TableManager>();
+            services.AddScoped<ITableService, TableManager>();
             services.AddScoped<ICategoryService, CategoryManager>();
             services.AddScoped<IItemService, ItemManager>();
 

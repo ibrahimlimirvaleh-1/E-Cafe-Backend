@@ -1,9 +1,3 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
 namespace ECafe.Domain.Entities.Base
 {
     public abstract class AuditableSoftDeletableEntity<T> : BaseEntity<T>, IAuditable, ISoftDelete

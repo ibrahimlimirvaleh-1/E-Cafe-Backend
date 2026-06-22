@@ -1,4 +1,3 @@
-﻿using ECafe.Application.DTOs.Restaurant;
 using ECafe.Application.Services.Restaurant.Abstract;
 using MediatR;
 
@@ -15,18 +14,7 @@ namespace ECafe.Application.Features.Commands.Restaurant
 
         public async Task<int> Handle(RegisterRestaurantCommand request, CancellationToken cancellationToken)
         {
-            var dto = new RegisterRestaurantRequest
-            {
-                Name = request.Name,
-                Location = request.Location,
-                Phone = request.Phone,
-                Email = request.Email,
-                RatingAverage = request.RatingAverage,
-                RatingCount = request.RatingCount,
-                Files = request.Files
-            };
-
-            return await _restaurantService.RegisterRestaurantAsync(dto);
+            return await _restaurantService.RegisterRestaurantAsync(request);
         }
     }
 }

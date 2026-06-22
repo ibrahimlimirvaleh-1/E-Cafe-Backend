@@ -184,7 +184,7 @@ namespace ECafe.Application.Services.User.Concrete
             return BCrypt.Net.BCrypt.HashPassword(password);
         }
 
-        
+
 
 
         #endregion

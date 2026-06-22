@@ -1,10 +1,9 @@
-﻿using MediatR;
-using Microsoft.AspNetCore.Http;
+using ECafe.Application.DTOs.File;
+using MediatR;
 
 namespace ECafe.Application.Features.Commands.File
 {
-    public class FileUploadCommand : IRequest<string>
+    public class FileUploadCommand : UploadFileDto, IRequest<string>
     {
-        public IFormFile File { get; set; }
     }
 }

@@ -13,7 +13,7 @@ namespace ECafe.Application.DTOs.User
         public string Phone { get; set; } = null!;
 
         public string Password { get; set; } = null!;
-         
+
         public bool IsActive { get; set; }
 
         public decimal? Rating { get; set; }

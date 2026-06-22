@@ -1,9 +1,3 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
 namespace ECafe.Application.DTOs.Table
 {
     public class CreateTableRequest
@@ -15,6 +9,5 @@ namespace ECafe.Application.DTOs.Table
         public string? Name { get; set; }
 
         public int Capacity { get; set; }
-
     }
 }

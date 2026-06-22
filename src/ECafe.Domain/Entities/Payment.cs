@@ -26,7 +26,7 @@ public partial class Payment : AuditableSoftDeletableEntity<int>
 
     public virtual Order? Order { get; set; }
 
-    public virtual Status  PaymentMethod { get; set; } = null!;
+    public virtual Status PaymentMethod { get; set; } = null!;
 
     public virtual Status PaymentStatus { get; set; } = null!;
 

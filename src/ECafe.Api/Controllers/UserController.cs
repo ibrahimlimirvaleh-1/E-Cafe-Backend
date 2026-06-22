@@ -42,7 +42,7 @@ namespace ECafe.Api.Controllers
         public async Task<IActionResult> GetStaff(int restaurantId)
         {
             var role = ClaimsPrincipalExtensions.GetRoleId(User);
-            var result = await Mediator.Send(new GetRestaurantStaffQuery(restaurantId,role));
+            var result = await Mediator.Send(new GetRestaurantStaffQuery(restaurantId, role));
             return Ok(result);
         }
     }

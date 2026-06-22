@@ -5,7 +5,7 @@ namespace ECafe.Domain.Enums
     public enum OrderStatus
     {
         [Description("Sifariş açılıb")]
-        Open=1,
+        Open = 1,
 
         [Description("Sifariş hazırlanır")]
         InProgress,

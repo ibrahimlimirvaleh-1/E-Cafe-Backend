@@ -35,7 +35,7 @@ namespace ECafe.Application.Services.Auth.Concrete
             if (request is null)
                 throw new BusinessRuleException("request is not null!");
 
-            var user = await  _userRepository.GetByEmailAsync(request.Email);
+            var user = await _userRepository.GetByEmailAsync(request.Email);
 
             if (user is null)
                 throw new BusinessRuleException("User not found!");

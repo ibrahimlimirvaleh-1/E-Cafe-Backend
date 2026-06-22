@@ -13,7 +13,7 @@ namespace ECafe.Infrastructure.Repositories
 
         public BaseRepository(ECafeDbContext context)
         {
-            _context = context; 
+            _context = context;
             _dbSet = _context.Set<TEntity>();
 
         }

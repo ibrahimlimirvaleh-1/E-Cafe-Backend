@@ -1,6 +1,7 @@
 ﻿using ECafe.Domain.Entities.Base;
 
 namespace ECafe.Domain.Entities;
+
 public partial class OrderItem : AuditableSoftDeletableEntity<int>
 {
     public int OrderId { get; set; }
