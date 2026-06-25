@@ -18,6 +18,17 @@ namespace ECafe.Application.Mappings
                 .ForMember(dest => dest.IsActive, opt => opt.MapFrom(_ => true))
                 .ForMember(dest => dest.IsAvailable, opt => opt.MapFrom(src => string.IsNullOrWhiteSpace(src.UnavailableReason)))
                 .ForMember(dest => dest.File, opt => opt.Ignore());
+
+            CreateMap<Domain.Entities.Item, ItemDto>()
+                .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.Id))
+                .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Name))
+                .ForMember(dest => dest.CategoryName, opt => opt.MapFrom(src => src.Category.Name))
+                .ForMember(dest => dest.BasePrice, opt => opt.MapFrom(src => src.BasePrice))
+                .ForMember(dest => dest.IsActive, opt => opt.MapFrom(src => src.IsActive))
+                .ForMember(dest => dest.SalesCount, opt => opt.MapFrom(src => src.SalesCount));
+
+
+
         }
     }
 }

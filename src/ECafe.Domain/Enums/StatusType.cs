@@ -14,7 +14,10 @@ namespace ECafe.Domain.Enums
         PaymentStatus,
 
         [Description("Ödəniş üsulları")]
-        PaymentMethod
+        PaymentMethod,
+
+        [Description("Məhsul statusları")]
+        ItemStatus
     }
 
 
