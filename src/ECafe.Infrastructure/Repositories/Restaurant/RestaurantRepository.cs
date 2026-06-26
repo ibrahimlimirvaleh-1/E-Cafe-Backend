@@ -30,7 +30,8 @@ namespace ECafe.Infrastructure.Repositories.Restaurant
                         .ThenInclude(u => u.Role)
                 .Include(r => r.UserRestaurants)
                     .ThenInclude(ur => ur.User)
-                        .ThenInclude(u => u.File) 
+                        .ThenInclude(u => u.File)
+                .AsSplitQuery()
                 .FirstOrDefaultAsync(r => r.Id == id && r.IsActive);
         }
     }

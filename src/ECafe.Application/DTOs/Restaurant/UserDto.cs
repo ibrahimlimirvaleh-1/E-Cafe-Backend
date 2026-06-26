@@ -13,7 +13,7 @@
 
         public decimal? Rating { get; set; }
 
-        public string FileUrl { get; set; } = null!;
+        public string? FileUrl { get; set; }
 
         public RoleDto Role { get; set; } = null!;
     }

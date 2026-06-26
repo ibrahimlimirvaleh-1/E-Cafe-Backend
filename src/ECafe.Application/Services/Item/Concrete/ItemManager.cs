@@ -6,9 +6,12 @@ using ECafe.Application.Repositories.Item;
 using ECafe.Application.Repositories.Restaurant;
 using ECafe.Application.Services.Item.Abstract;
 using ECafe.Application.Services.MinIO.Abstracts;
+using ECafe.Domain.Enums;
 using ECafe.Domain.Exceptions;
+using ECafe.Shared.DTOs;
 using FluentValidation;
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 
 namespace ECafe.Application.Services.Item.Concrete
@@ -102,6 +105,46 @@ namespace ECafe.Application.Services.Item.Concrete
                 Extension = Path.GetExtension(file.FileName),
                 Size = file.Length,
                 Url = string.Empty
+            };
+        }
+
+        public async Task<GetAllItemResponse> GetAllAsync(PaginationFilter filter, int categoryId, int statusId)
+        {
+            filter ??= new PaginationFilter();
+
+            if (filter.PageNumber <= 0)
+                filter.PageNumber = 1;
+
+            if (filter.PageSize <= 0)
+                filter.PageSize = 5;
+
+            var query = _itemRepository.Query();
+
+            if (categoryId > 0)
+                query = query.Where(x => x.CategoryId == categoryId);
+
+            query = statusId switch
+            {
+                (int)ItemStatus.Available or 5001 => query.Where(x => x.IsActive && x.IsAvailable),
+                (int)ItemStatus.OutOfStock or 5003 => query.Where(x => !x.IsAvailable),
+                _ => query
+            };
+
+            var items = query
+                .OrderBy(x => x.Name)
+                .Select(x => new ItemDto
+                {
+                    Id = x.Id,
+                    Name = x.Name,
+                    CategoryName = x.Category.Name,
+                    BasePrice = x.BasePrice,
+                    IsActive = x.IsActive,
+                    SalesCount = x.SalesCount
+                });
+
+            return new GetAllItemResponse
+            {
+                Items = await PaginatedList<ItemDto>.CreateAsync(items, filter.PageNumber, filter.PageSize)
             };
         }
     }

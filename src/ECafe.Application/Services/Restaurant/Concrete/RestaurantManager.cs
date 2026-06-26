@@ -38,37 +38,22 @@ namespace ECafe.Application.Services.Restaurant.Concrete
         public async Task<List<GetAllRestaurantsResponse>> GetAllRestaurantsAsync()
         {
             var restaurants = await _restaurantRepository.GetActiveRestaurants()
-                .Include(r => r.Files)
                 .ToListAsync();
 
-            var response = new List<GetAllRestaurantsResponse>();
-
-            foreach (var restaurant in restaurants)
+            var responseTasks = restaurants.Select(async restaurant => new GetAllRestaurantsResponse
             {
-                var imageUrls = new List<string>();
+                Id = restaurant.Id,
+                Name = restaurant.Name,
+                Location = restaurant.Location,
+                Phone = restaurant.Phone,
+                RatingAverage = restaurant.RatingAverage,
+                RatingCount = restaurant.RatingCount,
+                ImageUrls = restaurant.Files is null
+                    ? []
+                    : (await Task.WhenAll(restaurant.Files.Select(file => _minioService.GenerateFileUrl(file.Token)))).ToList()
+            });
 
-                if (restaurant.Files is not null && restaurant.Files.Any())
-                {
-                    foreach (var file in restaurant.Files)
-                    {
-                        var url = await _minioService.GenerateFileUrl(file.Token);
-                        imageUrls.Add(url);
-                    }
-                }
-
-                response.Add(new GetAllRestaurantsResponse
-                {
-                    Id = restaurant.Id,
-                    Name = restaurant.Name,
-                    Location = restaurant.Location,
-                    Phone = restaurant.Phone,
-                    RatingAverage = restaurant.RatingAverage,
-                    RatingCount = restaurant.RatingCount,
-                    ImageUrls = imageUrls
-                });
-            }
-
-            return response;
+            return (await Task.WhenAll(responseTasks)).ToList();
         }
 
         public async Task<GetByIdRestaurantResponse> GetRestaurantAsync(int restaurantId)

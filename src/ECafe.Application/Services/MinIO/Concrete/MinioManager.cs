@@ -6,31 +6,32 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Minio;
 using Minio.DataModel.Args;
-using ECafe.Shared.Extensions;
 
 namespace ECafe.Infrastructure.Services.MinIO
 {
     public class MinioManager : BaseManager, IMinioService
     {
         private readonly IMinioClient _minioClient;
-        private readonly string? _bucket;
-        private readonly string? _endpoint;
-        private readonly string? _accessKey;
-        private readonly string? _secretKey;
+        private readonly string _bucket;
+        private bool _bucketExists;
 
         public MinioManager(IHttpContextAccessor httpContextAccessor,
                             IMapper mapper,
                             IConfiguration configuration)
                             : base(httpContextAccessor, mapper, configuration)
         {
-            _bucket = configuration["Minio:BucketName"];
-            _endpoint = configuration["Minio:Endpoint"];
-            _accessKey = configuration["Minio:AccessKey"];
-            _secretKey = configuration["Minio:SecretKey"];
+            _bucket = configuration["Minio:BucketName"]
+                ?? throw new InvalidOperationException("Minio:BucketName is not configured.");
+            var endpoint = configuration["Minio:Endpoint"]
+                ?? throw new InvalidOperationException("Minio:Endpoint is not configured.");
+            var accessKey = configuration["Minio:AccessKey"]
+                ?? throw new InvalidOperationException("Minio:AccessKey is not configured.");
+            var secretKey = configuration["Minio:SecretKey"]
+                ?? throw new InvalidOperationException("Minio:SecretKey is not configured.");
 
             _minioClient = new MinioClient()
-            .WithEndpoint(_endpoint)
-            .WithCredentials(_accessKey, _secretKey)
+            .WithEndpoint(endpoint)
+            .WithCredentials(accessKey, secretKey)
             .WithSSL(false)
             .Build();
         }
@@ -39,8 +40,7 @@ namespace ECafe.Infrastructure.Services.MinIO
 
         public async Task<GetFileResponse> GetFileAsync(string token)
         {
-            if (!await IsBucketExists(_bucket))
-                throw new Exception("NotFound");
+            await EnsureBucketExistsAsync();
 
             var contentType = await IsFileExists(token);
 
@@ -59,11 +59,13 @@ namespace ECafe.Infrastructure.Services.MinIO
 
         public async Task<string> UploadFileAsync(UploadFileDto request)
         {
-            if (!await IsBucketExists(_bucket))
-                throw new Exception("NotFound");
+            if (request.File is null || request.File.Length == 0)
+                throw new ArgumentException("File is required.", nameof(request));
 
-            var filestream = new MemoryStream(await request.File.GetBytes());
+            await EnsureBucketExistsAsync();
+
             var filename = Guid.NewGuid().ToString();
+            await using var filestream = request.File.OpenReadStream();
 
             var putObjectArgs = new PutObjectArgs()
                 .WithBucket(_bucket)
@@ -79,11 +81,21 @@ namespace ECafe.Infrastructure.Services.MinIO
 
         public async Task<string> GenerateFileUrl(string token)
         {
-            string environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")?.ToLowerInvariant();
-
-            var host = HttpContextAccessor.HttpContext.Request.Host.Value;
+            var host = HttpContextAccessor.HttpContext?.Request.Host.Value
+                ?? throw new InvalidOperationException("HTTP context is not available.");
 
             return $"http://{host}/api/file/getFile?token={token}";
+        }
+
+        private async Task EnsureBucketExistsAsync()
+        {
+            if (_bucketExists)
+                return;
+
+            if (!await IsBucketExists(_bucket))
+                throw new Exception("NotFound");
+
+            _bucketExists = true;
         }
 
         private async Task<bool> IsBucketExists(string bucketName)

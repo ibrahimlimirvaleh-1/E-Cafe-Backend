@@ -1,7 +1,9 @@
-﻿namespace ECafe.Application.DTOs.Item
+﻿using ECafe.Shared.DTOs;
+
+namespace ECafe.Application.DTOs.Item
 {
     public class GetAllItemResponse
     {
-        public List<ItemDto> Items { get; set; }
+        public PaginatedList<ItemDto> Items { get; set; } = null!;
     }
 }

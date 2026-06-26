@@ -8,7 +8,7 @@ namespace ECafe.Application.Repository
         Task AddRangeAsync(ICollection<TEntity> entities);
         Task Update(TEntity model);
         Task Delete(TEntity model);
-        Task<bool> CheckExistAsync(Expression<Func<TEntity, bool>> predicate = null);
+        Task<bool> CheckExistAsync(Expression<Func<TEntity, bool>>? predicate = null);
 
         Task<TEntity?> GetByIdAsync<T>(T id);
         IQueryable<TEntity> GetAll();

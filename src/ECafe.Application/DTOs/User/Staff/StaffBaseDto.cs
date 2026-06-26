@@ -6,7 +6,7 @@
         public string Name { get; set; } = null!;
         public string Surname { get; set; } = null!;
         public decimal? Rating { get; set; }
-        public string Role { get; set; }
+        public string Role { get; set; } = null!;
 
         public string? FileUrl { get; set; }
 

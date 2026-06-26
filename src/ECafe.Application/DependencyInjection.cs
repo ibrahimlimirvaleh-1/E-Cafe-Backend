@@ -28,7 +28,7 @@ namespace ECafe.Application
             services.AddMediatR(cfg =>
                 cfg.RegisterServicesFromAssembly(typeof(DependencyInjection).Assembly));
 
-            services.AddAutoMapper(typeof(DependencyInjection).Assembly);
+            services.AddAutoMapper(_ => { }, typeof(DependencyInjection).Assembly);
 
 
             services.AddValidatorsFromAssembly(typeof(DependencyInjection).Assembly);
@@ -43,10 +43,6 @@ namespace ECafe.Application
             services.AddScoped<ITableService, TableManager>();
             services.AddScoped<ICategoryService, CategoryManager>();
             services.AddScoped<IItemService, ItemManager>();
-
-
-
-            services.AddAutoMapper(typeof(RestaurantProfile));
 
             return services;
         }

@@ -77,7 +77,7 @@ namespace ECafe.Infrastructure.Repositories
             return predicate is null ? query : query.Where(predicate);
         }
 
-        public Task<bool> CheckExistAsync(Expression<Func<TEntity, bool>> predicate = null)
+        public Task<bool> CheckExistAsync(Expression<Func<TEntity, bool>>? predicate = null)
         {
             if (predicate == null)
                 return _dbSet.AnyAsync();

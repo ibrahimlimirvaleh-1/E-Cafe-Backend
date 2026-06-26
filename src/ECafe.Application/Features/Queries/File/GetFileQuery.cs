@@ -6,7 +6,7 @@ namespace ECafe.Application.Features.Queries.File
 {
     public class GetFileQuery : IRequest<GetFileResponse>
     {
-        public string token { get; set; }
+        public string token { get; set; } = null!;
 
     }
 }
