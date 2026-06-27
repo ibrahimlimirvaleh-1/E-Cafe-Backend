@@ -22,6 +22,7 @@ namespace ECafe.Infrastructure.Configurations.Concrete
             builder.Property(e => e.CreatedByUserId).HasColumnName("created_by_user_id");
             builder.Property(e => e.OrderId).HasColumnName("order_id");
             builder.Property(e => e.PaidAt).HasColumnName("paid_at");
+            builder.Property(e => e.RefundedAt).HasColumnName("refunded_at");
             builder.Property(e => e.PaymentMethodId).HasColumnName("payment_method_id");
             builder.Property(e => e.PaymentStatusId).HasColumnName("payment_status_id");
             builder.Property(e => e.ProviderRef).HasColumnName("provider_ref");

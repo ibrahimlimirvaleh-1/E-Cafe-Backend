@@ -19,6 +19,7 @@ public partial class Payment : AuditableSoftDeletableEntity<int>
     public string? ProviderRef { get; set; }
 
     public DateTime? PaidAt { get; set; }
+    public DateTime? RefundedAt { get; set; }
 
     public int? CreatedByUserId { get; set; }
 

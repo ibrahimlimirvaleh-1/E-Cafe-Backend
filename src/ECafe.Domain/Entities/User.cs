@@ -31,5 +31,6 @@ public partial class User : AuditableSoftDeletableEntity<int>
     public virtual UserRestaurant? UserRestaurant { get; set; }
 
     public virtual Role Role { get; set; } = null!;
+    public virtual Wallet? Wallet { get; set; }
 
 }

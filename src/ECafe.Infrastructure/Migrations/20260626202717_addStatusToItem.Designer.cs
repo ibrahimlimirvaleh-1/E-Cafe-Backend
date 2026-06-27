@@ -3,6 +3,7 @@ using System;
 using ECafe.Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace ECafe.Infrastructure.Migrations
 {
     [DbContext(typeof(ECafeDbContext))]
-    partial class ECafeDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260626202717_addStatusToItem")]
+    partial class addStatusToItem
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -472,10 +475,6 @@ namespace ECafe.Infrastructure.Migrations
                     b.Property<string>("ProviderRef")
                         .HasColumnType("text")
                         .HasColumnName("provider_ref");
-
-                    b.Property<DateTime?>("RefundedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("refunded_at");
 
                     b.Property<int?>("ReservationId")
                         .HasColumnType("integer")
@@ -1104,15 +1103,6 @@ namespace ECafe.Infrastructure.Migrations
                         },
                         new
                         {
-                            RoleId = 1,
-                            PermissionId = 3,
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "",
-                            Id = 0,
-                            IsDeleted = false
-                        },
-                        new
-                        {
                             RoleId = 2,
                             PermissionId = 2,
                             CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
@@ -1205,51 +1195,6 @@ namespace ECafe.Infrastructure.Migrations
                         {
                             RoleId = 3,
                             PermissionId = 18,
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "",
-                            Id = 0,
-                            IsDeleted = false
-                        },
-                        new
-                        {
-                            RoleId = 4,
-                            PermissionId = 18,
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "",
-                            Id = 0,
-                            IsDeleted = false
-                        },
-                        new
-                        {
-                            RoleId = 4,
-                            PermissionId = 8,
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "",
-                            Id = 0,
-                            IsDeleted = false
-                        },
-                        new
-                        {
-                            RoleId = 4,
-                            PermissionId = 9,
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "",
-                            Id = 0,
-                            IsDeleted = false
-                        },
-                        new
-                        {
-                            RoleId = 4,
-                            PermissionId = 10,
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "",
-                            Id = 0,
-                            IsDeleted = false
-                        },
-                        new
-                        {
-                            RoleId = 4,
-                            PermissionId = 13,
                             CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CreatedBy = "",
                             Id = 0,
@@ -1822,179 +1767,6 @@ namespace ECafe.Infrastructure.Migrations
                     b.ToTable("user_restaurants", "auth");
                 });
 
-            modelBuilder.Entity("ECafe.Domain.Entities.Wallet", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<decimal>("Balance")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("CreatedBy")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("DeletedBy")
-                        .HasColumnType("text");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("text");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId")
-                        .IsUnique();
-
-                    b.ToTable("wallets", "billing");
-                });
-
-            modelBuilder.Entity("ECafe.Domain.Entities.WalletTransaction", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<decimal>("Amount")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("CreatedBy")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("DeletedBy")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean");
-
-                    b.Property<int?>("OrderId")
-                        .HasColumnType("integer");
-
-                    b.Property<int?>("PaymentId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("Source")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("Type")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("text");
-
-                    b.Property<int>("WalletId")
-                        .HasColumnType("integer");
-
-                    b.Property<int?>("WithdrawRequestId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("OrderId");
-
-                    b.HasIndex("PaymentId");
-
-                    b.HasIndex("WalletId");
-
-                    b.HasIndex("WithdrawRequestId");
-
-                    b.ToTable("wallet_transactions", "billing");
-                });
-
-            modelBuilder.Entity("ECafe.Domain.Entities.WithdrawRequest", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<decimal>("Amount")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<DateTime?>("ApprovedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int?>("ApprovedByUserId")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("CreatedBy")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("DeletedBy")
-                        .HasColumnType("text");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("RejectReason")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<int>("StatusId")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("text");
-
-                    b.Property<int>("WalletId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ApprovedByUserId");
-
-                    b.HasIndex("StatusId");
-
-                    b.HasIndex("WalletId");
-
-                    b.ToTable("withdraw_requests", "billing");
-                });
-
             modelBuilder.Entity("ECafe.Domain.Entities.Category", b =>
                 {
                     b.HasOne("ECafe.Domain.Entities.Restaurant", "Restaurant")
@@ -2297,75 +2069,6 @@ namespace ECafe.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("ECafe.Domain.Entities.Wallet", b =>
-                {
-                    b.HasOne("ECafe.Domain.Entities.User", "User")
-                        .WithOne("Wallet")
-                        .HasForeignKey("ECafe.Domain.Entities.Wallet", "UserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("ECafe.Domain.Entities.WalletTransaction", b =>
-                {
-                    b.HasOne("ECafe.Domain.Entities.Order", "Order")
-                        .WithMany()
-                        .HasForeignKey("OrderId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("ECafe.Domain.Entities.Payment", "Payment")
-                        .WithMany()
-                        .HasForeignKey("PaymentId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("ECafe.Domain.Entities.Wallet", "Wallet")
-                        .WithMany("Transactions")
-                        .HasForeignKey("WalletId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("ECafe.Domain.Entities.WithdrawRequest", "WithdrawRequest")
-                        .WithMany()
-                        .HasForeignKey("WithdrawRequestId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("Order");
-
-                    b.Navigation("Payment");
-
-                    b.Navigation("Wallet");
-
-                    b.Navigation("WithdrawRequest");
-                });
-
-            modelBuilder.Entity("ECafe.Domain.Entities.WithdrawRequest", b =>
-                {
-                    b.HasOne("ECafe.Domain.Entities.User", "ApprovedByUser")
-                        .WithMany()
-                        .HasForeignKey("ApprovedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("ECafe.Domain.Entities.Status", "Status")
-                        .WithMany()
-                        .HasForeignKey("StatusId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("ECafe.Domain.Entities.Wallet", "Wallet")
-                        .WithMany("WithdrawRequests")
-                        .HasForeignKey("WalletId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("ApprovedByUser");
-
-                    b.Navigation("Status");
-
-                    b.Navigation("Wallet");
-                });
-
             modelBuilder.Entity("ECafe.Domain.Entities.Category", b =>
                 {
                     b.Navigation("Items");
@@ -2460,15 +2163,6 @@ namespace ECafe.Infrastructure.Migrations
                     b.Navigation("Reservations");
 
                     b.Navigation("UserRestaurant");
-
-                    b.Navigation("Wallet");
-                });
-
-            modelBuilder.Entity("ECafe.Domain.Entities.Wallet", b =>
-                {
-                    b.Navigation("Transactions");
-
-                    b.Navigation("WithdrawRequests");
                 });
 #pragma warning restore 612, 618
         }

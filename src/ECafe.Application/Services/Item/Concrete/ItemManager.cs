@@ -6,12 +6,10 @@ using ECafe.Application.Repositories.Item;
 using ECafe.Application.Repositories.Restaurant;
 using ECafe.Application.Services.Item.Abstract;
 using ECafe.Application.Services.MinIO.Abstracts;
-using ECafe.Domain.Enums;
 using ECafe.Domain.Exceptions;
 using ECafe.Shared.DTOs;
 using FluentValidation;
 using Microsoft.AspNetCore.Http;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 
 namespace ECafe.Application.Services.Item.Concrete
@@ -123,12 +121,8 @@ namespace ECafe.Application.Services.Item.Concrete
             if (categoryId > 0)
                 query = query.Where(x => x.CategoryId == categoryId);
 
-            query = statusId switch
-            {
-                (int)ItemStatus.Available or 5001 => query.Where(x => x.IsActive && x.IsAvailable),
-                (int)ItemStatus.OutOfStock or 5003 => query.Where(x => !x.IsAvailable),
-                _ => query
-            };
+            if (statusId > 0)
+                query = query.Where(x => x.StatusId == statusId);
 
             var items = query
                 .OrderBy(x => x.Name)
@@ -137,6 +131,8 @@ namespace ECafe.Application.Services.Item.Concrete
                     Id = x.Id,
                     Name = x.Name,
                     CategoryName = x.Category.Name,
+                    StatusId = x.StatusId,
+                    StatusName = x.Status.Name,
                     BasePrice = x.BasePrice,
                     IsActive = x.IsActive,
                     SalesCount = x.SalesCount

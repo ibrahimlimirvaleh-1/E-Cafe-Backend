@@ -23,6 +23,9 @@ namespace ECafe.Infrastructure.Configurations.Concrete
                 .HasMaxLength(500)
                 .HasColumnName("description");
             builder.Property(e => e.FileId).HasColumnName("file_id");
+            builder.Property(e => e.StatusId)
+                .HasDefaultValue(5001)
+                .HasColumnName("status_id");
             builder.Property(e => e.IsActive)
                 .HasDefaultValue(true)
                 .HasColumnName("is_active");
@@ -48,6 +51,11 @@ namespace ECafe.Infrastructure.Configurations.Concrete
                 .HasForeignKey(d => d.FileId)
                 .OnDelete(DeleteBehavior.SetNull)
                 .HasConstraintName("items_file_id_fkey");
+
+            builder.HasOne(d => d.Status).WithMany(p => p.Items)
+                .HasForeignKey(d => d.StatusId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("items_status_id_fkey");
 
         }
     }

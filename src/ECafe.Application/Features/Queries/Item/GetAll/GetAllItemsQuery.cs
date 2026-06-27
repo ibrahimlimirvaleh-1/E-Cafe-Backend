@@ -21,10 +21,10 @@ namespace ECafe.Application.Features.Queries.Item.GetAll
                 _itemService = itemService;
             }
 
-            public Task<GetAllItemResponse> Handle(GetAllItemsQuery request, CancellationToken cancellationToken)
+            public async Task<GetAllItemResponse> Handle(GetAllItemsQuery request, CancellationToken cancellationToken)
             {
                 var filter = new PaginationFilter(request.PageNumber, request.PageSize);
-                return _itemService.GetAllAsync(filter, request.CategoryId, request.StatusId);
+                return await _itemService.GetAllAsync(filter, request.CategoryId, request.StatusId);
             }
         }
     }

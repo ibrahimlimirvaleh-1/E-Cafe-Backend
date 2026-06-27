@@ -8,6 +8,10 @@
 
         public string? CategoryName { get; set; }
 
+        public int StatusId { get; set; }
+
+        public string? StatusName { get; set; }
+
         public decimal BasePrice { get; set; }
 
         public bool IsActive { get; set; }

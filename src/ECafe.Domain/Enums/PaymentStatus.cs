@@ -21,3 +21,4 @@ namespace ECafe.Domain.Enums
     }
 
 }
+    

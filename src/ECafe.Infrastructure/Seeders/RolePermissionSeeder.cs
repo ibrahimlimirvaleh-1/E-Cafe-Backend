@@ -28,7 +28,8 @@ namespace ECafe.Infrastructure.Seeders
                 PermissionCode.ManageOrders,
                 PermissionCode.ManagePayments,
                 PermissionCode.ViewReports,
-                PermissionCode.ViewRestaurantInfo
+                PermissionCode.ViewRestaurantInfo,
+                PermissionCode.AssignRoles,
             });
 
             //Owner
@@ -54,8 +55,15 @@ namespace ECafe.Infrastructure.Seeders
 
             });
 
-            // Waiter -> hazırkı permission modelində ayrıca uyğun permission yoxdur
-            // Customer -> permission seed verilmir
+            // Waiter
+            AddPermissions(rolePermissions, RoleCode.Waiter, new[]
+            {
+                PermissionCode.ViewRestaurantInfo,
+                PermissionCode.ViewAssignedReservations,
+                PermissionCode.ManageOrders,
+                PermissionCode.ManagePayments,
+                PermissionCode.ViewOwnWallet
+            });
 
             modelBuilder.Entity<RolePermission>().HasData(rolePermissions);
         }

@@ -10,19 +10,22 @@ namespace ECafe.Application.Mappings
             CreateMap<CreateItemRequest, Domain.Entities.Item>()
                 .ForMember(dest => dest.CategoryId, opt => opt.MapFrom(src => src.CategoryId))
                 .ForMember(dest => dest.RestaurantId, opt => opt.MapFrom(src => src.RestaurantId))
+                .ForMember(dest => dest.StatusId, opt => opt.MapFrom(src => src.StatusId))
                 .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Name.Trim()))
                 .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Description == null ? null : src.Description.Trim()))
                 .ForMember(dest => dest.BasePrice, opt => opt.MapFrom(src => src.BasePrice))
                 .ForMember(dest => dest.UnavailableReason, opt => opt.MapFrom(src => src.UnavailableReason == null ? null : src.UnavailableReason.Trim()))
                 .ForMember(dest => dest.SalesCount, opt => opt.MapFrom(src => src.SalesCount))
                 .ForMember(dest => dest.IsActive, opt => opt.MapFrom(_ => true))
-                .ForMember(dest => dest.IsAvailable, opt => opt.MapFrom(src => string.IsNullOrWhiteSpace(src.UnavailableReason)))
+                .ForMember(dest => dest.IsAvailable, opt => opt.MapFrom(src => src.StatusId != 5003))
                 .ForMember(dest => dest.File, opt => opt.Ignore());
 
             CreateMap<Domain.Entities.Item, ItemDto>()
                 .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.Id))
                 .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Name))
                 .ForMember(dest => dest.CategoryName, opt => opt.MapFrom(src => src.Category.Name))
+                .ForMember(dest => dest.StatusId, opt => opt.MapFrom(src => src.StatusId))
+                .ForMember(dest => dest.StatusName, opt => opt.MapFrom(src => src.Status.Name))
                 .ForMember(dest => dest.BasePrice, opt => opt.MapFrom(src => src.BasePrice))
                 .ForMember(dest => dest.IsActive, opt => opt.MapFrom(src => src.IsActive))
                 .ForMember(dest => dest.SalesCount, opt => opt.MapFrom(src => src.SalesCount));

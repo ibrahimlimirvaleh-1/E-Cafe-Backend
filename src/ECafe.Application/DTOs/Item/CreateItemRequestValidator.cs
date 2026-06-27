@@ -1,5 +1,6 @@
 using FluentValidation;
 using Microsoft.AspNetCore.Http;
+using ECafe.Domain.Enums;
 
 namespace ECafe.Application.DTOs.Item
 {
@@ -15,6 +16,9 @@ namespace ECafe.Application.DTOs.Item
 
             RuleFor(x => x.CategoryId)
                 .GreaterThan(0).WithMessage("CategoryId must be greater than 0.");
+
+            RuleFor(x => x.StatusId)
+                .Must(BeValidItemStatus).WithMessage("StatusId is not a valid item status.");
 
             RuleFor(x => x.Name)
                 .NotEmpty().WithMessage("Name is required.")
@@ -60,6 +64,14 @@ namespace ECafe.Application.DTOs.Item
                 return true;
 
             return file.Length <= MaxFileSize;
+        }
+
+        private static bool BeValidItemStatus(int statusId)
+        {
+            const int itemStatusTypeId = (int)StatusType.ItemStatus;
+            return Enum.GetValues<ItemStatus>()
+                .Select(status => (itemStatusTypeId * 1000) + Convert.ToInt32(status))
+                .Contains(statusId);
         }
     }
 }

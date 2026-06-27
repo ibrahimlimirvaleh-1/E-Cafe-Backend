@@ -27,6 +27,11 @@ public partial class ECafeDbContext : DbContext
     public virtual DbSet<User> Users { get; set; } = null!;
     public virtual DbSet<UserRestaurant> UserRestaurants { get; set; } = null!;
     public virtual DbSet<RolePermission> RolePermissions { get; set; } = null!;
+    public DbSet<Wallet> Wallets { get; set; } = null!;
+
+    public DbSet<WalletTransaction> WalletTransactions { get; set; } = null!;
+
+    public DbSet<WithdrawRequest> WithdrawRequests { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

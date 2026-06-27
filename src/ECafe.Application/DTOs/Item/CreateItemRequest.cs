@@ -8,6 +8,8 @@ namespace ECafe.Application.DTOs.Item
 
         public int CategoryId { get; set; }
 
+        public int StatusId { get; set; } = 5001;
+
         public string Name { get; set; } = null!;
 
         public string? Description { get; set; }
