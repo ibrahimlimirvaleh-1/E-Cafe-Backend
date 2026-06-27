@@ -2,6 +2,7 @@
 
 namespace ECafe.Domain.Enums
 {
+ 
     public enum RoleCode
     {
         [Description("Platforma super administratoru")]
