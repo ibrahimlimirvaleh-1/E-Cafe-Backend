@@ -14,6 +14,7 @@ namespace ECafe.Infrastructure.Services.MinIO
         private readonly IMinioClient _minioClient;
         private readonly string _bucket;
         private bool _bucketExists;
+        private readonly SemaphoreSlim _bucketLock = new(1, 1);
 
         public MinioManager(IHttpContextAccessor httpContextAccessor,
                             IMapper mapper,
@@ -94,15 +95,34 @@ namespace ECafe.Infrastructure.Services.MinIO
             if (_bucketExists)
                 return;
 
-            if (!await IsBucketExists(_bucket))
+            await _bucketLock.WaitAsync();
+            try
             {
-                var makeBucketArgs = new MakeBucketArgs()
-                    .WithBucket(_bucket);
+                if (_bucketExists)
+                    return;
 
-                await _minioClient.MakeBucketAsync(makeBucketArgs);
+                if (!await IsBucketExists(_bucket))
+                {
+                    var makeBucketArgs = new MakeBucketArgs()
+                        .WithBucket(_bucket);
+
+                    try
+                    {
+                        await _minioClient.MakeBucketAsync(makeBucketArgs);
+                    }
+                    catch
+                    {
+                        if (!await IsBucketExists(_bucket))
+                            throw;
+                    }
+                }
+
+                _bucketExists = true;
             }
-
-            _bucketExists = true;
+            finally
+            {
+                _bucketLock.Release();
+            }
         }
 
         private async Task<bool> IsBucketExists(string bucketName)
