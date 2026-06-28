@@ -46,6 +46,7 @@ namespace ECafe.Infrastructure.Repositories.User
                     u.UserRestaurant.IsActive);
             }
 
+
             return query;
         }
 
