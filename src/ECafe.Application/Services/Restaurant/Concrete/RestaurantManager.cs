@@ -69,7 +69,6 @@ namespace ECafe.Application.Services.Restaurant.Concrete
 
             await Task.WhenAll(
                     PopulateRestaurantImageUrlsAsync(response, restaurant),
-                    PopulateUserFileUrlsAsync(response, restaurant),
                     PopulateCategoryItemFileUrlsAsync(response, restaurant) // ✅
                     );
 
@@ -85,21 +84,6 @@ namespace ECafe.Application.Services.Restaurant.Concrete
                 : (await Task.WhenAll(
                     restaurant.Files.Select(f => _minioService.GenerateFileUrl(f.Token))
                   )).ToList();
-        }
-
-        private async Task PopulateUserFileUrlsAsync(GetByIdRestaurantResponse response,Domain.Entities.Restaurant restaurant)
-        {
-            var userLookup = restaurant.UserRestaurants
-                .ToDictionary(x => x.User.Id, x => x.User); 
-
-            await Task.WhenAll(response.Users.Select(userDto =>
-            {
-                var token = userLookup.TryGetValue(userDto.Id, out var user)
-                    ? user.File?.Token
-                    : null;
-
-                return AssignFileUrlAsync(token, url => userDto.FileUrl = url);
-            }));
         }
 
         private async Task PopulateCategoryItemFileUrlsAsync( GetByIdRestaurantResponse response, Domain.Entities.Restaurant restaurant)

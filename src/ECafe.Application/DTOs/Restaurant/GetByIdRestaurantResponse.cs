@@ -7,9 +7,5 @@
         public List<TableDto> Tables { get; set; } = new List<TableDto>();
 
         public List<CategoryDto> Categories { get; set; } = new List<CategoryDto>();
-
-        public List<UserDto> Users { get; set; } = new List<UserDto>();
-
-
     }
 }

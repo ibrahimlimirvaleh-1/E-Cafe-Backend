@@ -62,10 +62,6 @@ namespace ECafe.Application.Mappings
                 .ForMember(
                     dest => dest.Categories,
                     opt => opt.MapFrom(src => src.Categories)
-                )
-                .ForMember(
-                    dest => dest.Users,
-                    opt => opt.MapFrom(src => src.UserRestaurants)
                 );
         }
     }

@@ -87,7 +87,7 @@ namespace ECafe.Infrastructure.Services.MinIO
             var host = HttpContextAccessor.HttpContext?.Request.Host.Value
                 ?? throw new InvalidOperationException("HTTP context is not available.");
 
-            return $"http://{host}/api/file/getFile?token={token}";
+            return $"http://{host}/api/v1/file/getFile?token={token}";
         }
 
         private async Task EnsureBucketExistsAsync()
