@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using ECafe.Application.DTOs.File;
 using ECafe.Application.DTOs.User;
+using ECafe.Application.DTOs.User.Staff;
 using ECafe.Application.Repositories.Restaurant;
 using ECafe.Application.Repositories.Role;
 using ECafe.Application.Repositories.User;
@@ -12,7 +13,6 @@ using ECafe.Domain.Exceptions;
 using ECafe.Shared.DTOs;
 using ECafe.Shared.Extensions;
 using Microsoft.AspNetCore.Http;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 
 namespace ECafe.Application.Services.User.Concrete
@@ -106,7 +106,99 @@ namespace ECafe.Application.Services.User.Concrete
 
         public Task<PaginatedList<GetAllUserResponseDto>> GetAllAsync(int? restaurantId, PaginationFilter filter)
         {
-            throw new NotImplementedException();
+            filter ??= new PaginationFilter();
+
+            if (filter.PageNumber <= 0)
+                filter.PageNumber = 1;
+
+            if (filter.PageSize <= 0)
+                filter.PageSize = 5;
+
+            var query = _userRepository.GetUsersForList(restaurantId);
+
+            var users = query
+                .OrderBy(x => x.Name)
+                .ThenBy(x => x.Surname)
+                .Select(x => new GetAllUserResponseDto
+                {
+                    Id = x.Id,
+                    Name = x.Name,
+                    Surname = x.Surname,
+                    IsActive = x.IsActive,
+                    Rating = x.Rating,
+                    Role = new RoleDto
+                    {
+                        Id = x.Role.Id,
+                        Name = x.Role.Name
+                    }
+                });
+
+            return PaginatedList<GetAllUserResponseDto>.CreateAsync(users, filter.PageNumber, filter.PageSize);
+        }
+
+        public async Task<ProfileResponseDto> GetProfileAsync(int userId)
+        {
+            if (userId <= 0)
+                throw new BusinessRuleException("Invalid user id");
+
+            var user = await _userRepository.GetProfileByIdAsync(userId);
+
+            if (user is null)
+                throw new BusinessRuleException("User not found");
+
+            return await MapToProfileResponseAsync(user);
+        }
+
+        public async Task UpdateProfileAsync(int userId, UpdateProfileRequest request)
+        {
+            if (userId <= 0)
+                throw new BusinessRuleException("Invalid user id");
+
+            if (request is null)
+                throw new BusinessRuleException("Request is required");
+
+            var user = await _userRepository.GetProfileByIdTrackedAsync(userId);
+
+            if (user is null)
+                throw new BusinessRuleException("User not found");
+
+            var email = request.Email.Trim().ToLowerInvariant();
+            var phone = request.Phone.Trim();
+
+            var conflictingUser = await _userRepository.GetProfileConflictAsync(userId, email, phone);
+
+            if (conflictingUser?.Email == email)
+                throw new BusinessRuleException("User with this email already exists");
+
+            if (conflictingUser?.Phone == phone)
+                throw new BusinessRuleException("User with this phone already exists");
+
+            user.Name = request.Name.Trim();
+            user.Surname = request.Surname.Trim();
+            user.Email = email;
+            user.Phone = phone;
+
+            var file = await CreateFileIfExistsAsync(request.Image);
+            if (file is not null)
+                user.File = file;
+
+            await _userRepository.SaveChangesAsync();
+        }
+
+        public async Task<StaffDetailResponseDto> GetStaffDetailAsync(int restaurantId, int staffId)
+        {
+            if (restaurantId <= 0)
+                throw new BusinessRuleException("Invalid restaurant ID!");
+
+            if (staffId <= 0)
+                throw new BusinessRuleException("Invalid staff id");
+
+            var staff = await _userRepository.GetStaffDetailAsync(restaurantId, staffId);
+
+            if (staff is null)
+                throw new BusinessRuleException("Staff not found");
+
+            return await MapToStaffDetailResponseAsync(staff);
         }
 
         #region Helpers
@@ -182,6 +274,47 @@ namespace ECafe.Application.Services.User.Concrete
         private static string HashPassword(string password)
         {
             return BCrypt.Net.BCrypt.HashPassword(password);
+        }
+
+        private async Task<ProfileResponseDto> MapToProfileResponseAsync(Domain.Entities.User user)
+        {
+            return new ProfileResponseDto
+            {
+                Id = user.Id,
+                Name = user.Name,
+                Surname = user.Surname,
+                Email = user.Email,
+                Phone = user.Phone,
+                IsActive = user.IsActive,
+                Rating = user.Rating,
+                Role = user.Role.Name,
+                RestaurantId = user.UserRestaurant?.RestaurantId,
+                FileUrl = await GenerateFileUrlAsync(user.File)
+            };
+        }
+
+        private async Task<StaffDetailResponseDto> MapToStaffDetailResponseAsync(Domain.Entities.User user)
+        {
+            return new StaffDetailResponseDto
+            {
+                Id = user.Id,
+                Name = user.Name,
+                Surname = user.Surname,
+                Rating = user.Rating,
+                Role = user.Role.Name,
+                FileUrl = await GenerateFileUrlAsync(user.File),
+                Email = user.Email,
+                Phone = user.Phone,
+                IsActive = user.IsActive
+            };
+        }
+
+        private async Task<string?> GenerateFileUrlAsync(Domain.Entities.File? file)
+        {
+            if (file is null)
+                return null;
+
+            return await _minioService.GenerateFileUrl(file.Token);
         }
 
 

@@ -10,11 +10,11 @@ namespace ECafe.Api.Controllers
     public class RestaurantController : BaseController
     {
         [HasPermission(Domain.Enums.PermissionCode.ManageRestaurants)]
-        [HttpPost("api/restaurant/register")]
+        [HttpPost("api/v1/restaurant/register")]
         public async Task<IActionResult> RegisterRestaurant([FromForm] RegisterRestaurantCommand command)
         => Ok(await Mediator.Send(command));
 
-        [HttpGet("api/restaurants/getAll")]
+        [HttpGet("api/v1/restaurants/getAll")]
         public async Task<IActionResult> GetAllRestaurants()
         {
             var queryResult = new GetAllRestaurantsQuery();
@@ -22,7 +22,7 @@ namespace ECafe.Api.Controllers
         }
 
         [HasPermission(Domain.Enums.PermissionCode.ViewRestaurantInfo)]
-        [HttpGet("api/restaurant/getById/{id}")]
+        [HttpGet("api/v1/restaurant/getById/{id}")]
         public async Task<IActionResult> GetByIdRestaurant(int id)
         => Ok(await Mediator.Send(new GetRestaurantQuery(id)));
 

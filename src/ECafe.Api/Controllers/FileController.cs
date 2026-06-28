@@ -6,7 +6,7 @@ namespace ECafe.Api.Controllers
 {
     public class FileController : BaseController
     {
-        [HttpPost("api/file/upload")]
+        [HttpPost("api/v1/file/upload")]
         [Consumes("multipart/form-data")]
         public async Task<IActionResult> Upload([FromForm] FileUploadCommand command)
         {
@@ -14,7 +14,7 @@ namespace ECafe.Api.Controllers
             return Ok(fileName);
         }
 
-        [HttpGet("api/file/getFile")]
+        [HttpGet("api/v1/file/getFile")]
         public async Task<IActionResult> GetFile([FromQuery] GetFileQuery query)
         {
             var file = await Mediator.Send(query);

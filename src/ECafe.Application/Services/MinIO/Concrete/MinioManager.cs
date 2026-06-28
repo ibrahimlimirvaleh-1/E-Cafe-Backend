@@ -29,11 +29,13 @@ namespace ECafe.Infrastructure.Services.MinIO
             var secretKey = configuration["Minio:SecretKey"]
                 ?? throw new InvalidOperationException("Minio:SecretKey is not configured.");
 
+            var useSsl = bool.TryParse(configuration["MinIO:UseSSL"], out var parsedUseSsl) && parsedUseSsl;
+
             _minioClient = new MinioClient()
-            .WithEndpoint(endpoint)
-            .WithCredentials(accessKey, secretKey)
-            .WithSSL(false)
-            .Build();
+                .WithEndpoint(endpoint)
+                .WithCredentials(accessKey, secretKey)
+                .WithSSL(useSsl)
+                .Build();
         }
 
 
@@ -93,7 +95,12 @@ namespace ECafe.Infrastructure.Services.MinIO
                 return;
 
             if (!await IsBucketExists(_bucket))
-                throw new Exception("NotFound");
+            {
+                var makeBucketArgs = new MakeBucketArgs()
+                    .WithBucket(_bucket);
+
+                await _minioClient.MakeBucketAsync(makeBucketArgs);
+            }
 
             _bucketExists = true;
         }

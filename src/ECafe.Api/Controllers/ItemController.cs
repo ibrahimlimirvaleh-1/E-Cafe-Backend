@@ -9,11 +9,11 @@ namespace ECafe.Api.Controllers
     public class ItemController : BaseController
     {
         [HasPermission(PermissionCode.ManageCatalog)]
-        [HttpPost("api/item")]
+        [HttpPost("api/v1/item")]
         public async Task<IActionResult> Create([FromForm] CreateItemCommand command)
         => Ok(await Mediator.Send(command));
 
-        [HttpGet("api/items/getAll")]
+        [HttpGet("api/v1/items/getAll")]
         public async Task<IActionResult> GetAll([FromQuery] GetAllItemsQuery query)
         => Ok(await Mediator.Send(query));
     }

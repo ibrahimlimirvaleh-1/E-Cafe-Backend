@@ -9,12 +9,12 @@ namespace ECafe.Api.Controllers
 
     public class CategoryController : BaseController
     {
-        [HttpGet("api/category/{restaurantId}")]
+        [HttpGet("api/v1/category/{restaurantId}")]
         public async Task<IActionResult> GetAll([FromRoute] int restaurantId)
         => Ok(await Mediator.Send(new GetAllCategoryQuery(restaurantId)));
 
         [HasPermission(PermissionCode.ManageCatalog)]
-        [HttpPost("api/category")]
+        [HttpPost("api/v1/category")]
         public async Task<IActionResult> Create([FromForm] CreateCategoryCommand command)
         => Ok(await Mediator.Send(command));
     }
