@@ -24,6 +24,7 @@ public partial class ECafeDbContext : DbContext
     public virtual DbSet<StatusType> StatusTypes { get; set; } = null!;
     public virtual DbSet<Table> Tables { get; set; } = null!;
     public virtual DbSet<User> Users { get; set; } = null!;
+    public virtual DbSet<UserRefreshToken> UserRefreshTokens { get; set; } = null!;
     public virtual DbSet<UserRestaurant> UserRestaurants { get; set; } = null!;
     public virtual DbSet<RolePermission> RolePermissions { get; set; } = null!;
     public DbSet<Wallet> Wallets { get; set; } = null!;

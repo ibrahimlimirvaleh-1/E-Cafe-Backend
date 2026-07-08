@@ -1,9 +1,10 @@
 using ECafe.Application.Services.Auth.Abstract;
+using ECafe.Application.DTOs.Auth;
 using MediatR;
 
 namespace ECafe.Application.Features.Commands.Auth.Login
 {
-    public class LoginUserCommandHandler : IRequestHandler<LoginUserCommand, string>
+    public class LoginUserCommandHandler : IRequestHandler<LoginUserCommand, AuthResponseDto>
     {
         private readonly IAuthService _authService;
 
@@ -12,7 +13,7 @@ namespace ECafe.Application.Features.Commands.Auth.Login
             _authService = authService;
         }
 
-        public async Task<string> Handle(LoginUserCommand request, CancellationToken cancellationToken)
+        public async Task<AuthResponseDto> Handle(LoginUserCommand request, CancellationToken cancellationToken)
         {
             return await _authService.LoginAsync(request);
         }

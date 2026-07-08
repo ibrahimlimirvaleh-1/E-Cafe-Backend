@@ -15,6 +15,7 @@ public partial class User : AuditableSoftDeletableEntity<int>
     public string Password { get; set; } = null!;
 
     public bool IsActive { get; set; }
+
     public int? FileId { get; set; }
 
     public int RoleId { get; set; }
@@ -34,5 +35,7 @@ public partial class User : AuditableSoftDeletableEntity<int>
     public virtual Wallet? Wallet { get; set; }
 
     public virtual ICollection<Notification> Notifications { get; set; } = new List<Notification>();
+
+    public virtual ICollection<UserRefreshToken> RefreshTokens { get; set; } = new List<UserRefreshToken>();
 
 }

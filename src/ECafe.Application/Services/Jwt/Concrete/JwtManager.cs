@@ -1,9 +1,8 @@
-﻿using System.IdentityModel.Tokens.Jwt;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using AutoMapper;
-using ECafe.Application.DTOs.Auth;
-using ECafe.Application.Services.MinIO.Abstracts;
 using ECafe.Domain.Enums;
 using ECafe.Shared.Extensions;
 using ECafe.Shared.Services.Jwt.Abstract;
@@ -15,32 +14,17 @@ namespace ECafe.Application.Services.Jwt.Concrete
 {
     public class JwtManager : BaseManager, IJwtService
     {
-        private readonly IMinioService _minioService;
-
         public JwtManager(IHttpContextAccessor httpContextAccessor,
-                          IMapper mapper, IConfiguration configuration,
-                          IMinioService minioService)
+                          IMapper mapper,
+                          IConfiguration configuration)
                           : base(httpContextAccessor, mapper, configuration)
         {
-            _minioService = minioService;
         }
 
-
-
-        public string GenerateRefreshToken(Domain.Entities.User user)
+        public string GenerateRefreshToken()
         {
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]!));
-            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
-            var token = new JwtSecurityToken(
-                issuer: _configuration["Jwt:Issuer"],
-                audience: _configuration["Jwt:Audience"],
-                claims: [new Claim("userId", user.Id.ToString())],
-                expires: DateTime.UtcNow.AddDays(7),
-                signingCredentials: creds
-            );
-
-            return new JwtSecurityTokenHandler().WriteToken(token);
+            var bytes = RandomNumberGenerator.GetBytes(64);
+            return Convert.ToBase64String(bytes);
         }
 
         public string GenerateToken(Domain.Entities.User user, string? fileUrl = null)
@@ -76,21 +60,5 @@ namespace ECafe.Application.Services.Jwt.Concrete
 
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
-
-
-        public async Task<AuthResponseDto> CreateTokenResponseAsync(Domain.Entities.User user)
-        {
-            string? fileUrl = null;
-
-            if (user.File != null)
-                fileUrl = await _minioService.GenerateFileUrl(user.File.Token);
-
-            return new AuthResponseDto
-            {
-                AccessToken = GenerateToken(user, fileUrl),
-                RefreshToken = GenerateRefreshToken(user)
-            };
-        }
-
     }
 }

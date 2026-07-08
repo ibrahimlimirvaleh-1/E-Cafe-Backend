@@ -1,4 +1,3 @@
-﻿using ECafe.Application.DTOs.Auth;
 using ECafe.Domain.Entities;
 
 namespace ECafe.Shared.Services.Jwt.Abstract
@@ -7,9 +6,6 @@ namespace ECafe.Shared.Services.Jwt.Abstract
     {
         public string GenerateToken(User user, string? fileUrl = null);
 
-        public string GenerateRefreshToken(User user);
-
-        public Task<AuthResponseDto> CreateTokenResponseAsync(User user);
-
+        public string GenerateRefreshToken();
     }
 }

@@ -6,6 +6,8 @@ namespace ECafe.Application.Repositories.User
     {
         Task<Domain.Entities.User?> GetByEmailAsync(string email);
 
+        Task<Domain.Entities.User?> GetByEmailTrackedAsync(string email);
+
         Task<List<Domain.Entities.User>> GetByRestaurantIdAsync(int restaurantId);
 
         IQueryable<Domain.Entities.User> GetUsersForList(int? restaurantId);

@@ -20,6 +20,12 @@ namespace ECafe.Infrastructure.Repositories.User
                 .Where(u => u.Email == email).FirstOrDefaultAsync();
         }
 
+        public Task<Domain.Entities.User?> GetByEmailTrackedAsync(string email)
+        {
+            return UserWithAuthDetailsTrackedQuery()
+                .FirstOrDefaultAsync(u => u.Email == email);
+        }
+
         public async Task<List<Domain.Entities.User>> GetByRestaurantIdAsync(int restaurantId)
         {
             return await Query()
@@ -87,6 +93,15 @@ namespace ECafe.Infrastructure.Repositories.User
                 .Include(u => u.Role)
                 .Include(u => u.File)
                 .Include(u => u.UserRestaurant);
+        }
+
+        private IQueryable<Domain.Entities.User> UserWithAuthDetailsTrackedQuery()
+        {
+            return QueryTracked()
+                .Include(u => u.Role)
+                .Include(u => u.File)
+                .Include(u => u.UserRestaurant!)
+                .ThenInclude(ur => ur.Restaurant);
         }
     }
 }
