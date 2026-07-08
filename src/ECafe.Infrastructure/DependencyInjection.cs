@@ -1,4 +1,4 @@
-﻿using ECafe.Application.Repositories.Category;
+using ECafe.Application.Repositories.Category;
 using ECafe.Application.Repositories.Item;
 using ECafe.Application.Repositories.Restaurant;
 using ECafe.Application.Repositories.Role;
@@ -7,6 +7,7 @@ using ECafe.Application.Repositories.User;
 using ECafe.Application.Repositories.UserRestaurant;
 using ECafe.Application.Repository;
 using ECafe.Infrastructure.Context;
+using ECafe.Infrastructure.Authorization;
 using ECafe.Infrastructure.Repositories;
 using ECafe.Infrastructure.Repositories.Category;
 using ECafe.Infrastructure.Repositories.Item;
@@ -30,8 +31,12 @@ namespace ECafe.Infrastructure
             if (string.IsNullOrWhiteSpace(connStr))
                 throw new InvalidOperationException("Connection string 'ECafeDb' is missing.");
 
-            services.AddDbContext<ECafeDbContext>(options =>
-                options.UseNpgsql(connStr));
+            services.AddScoped<PermissionCacheInvalidationInterceptor>();
+
+            services.AddDbContext<ECafeDbContext>((serviceProvider, options) =>
+                options
+                    .UseNpgsql(connStr)
+                    .AddInterceptors(serviceProvider.GetRequiredService<PermissionCacheInvalidationInterceptor>()));
 
             services.AddScoped(typeof(IBaseRepository<>), typeof(BaseRepository<>));
             services.AddScoped<IUserRepository, UserRepository>();
@@ -45,3 +50,4 @@ namespace ECafe.Infrastructure
         }
     }
 }
+

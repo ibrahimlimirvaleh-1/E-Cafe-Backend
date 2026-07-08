@@ -1,9 +1,8 @@
-﻿using System.Linq.Expressions;
+using System.Linq.Expressions;
 using ECafe.Domain.Entities;
 using ECafe.Domain.Entities.Base;
 using ECafe.Infrastructure.Seeders;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace ECafe.Infrastructure.Context;
@@ -42,7 +41,7 @@ public partial class ECafeDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
-        // Bütün IEntityTypeConfiguration<T> config-ləri avtomatik tapır
+        // Automatically discovers all IEntityTypeConfiguration<T> configurations.
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(ECafeDbContext).Assembly);
 
         StatusTypeSeeder.Seed(modelBuilder);
@@ -53,7 +52,7 @@ public partial class ECafeDbContext : DbContext
 
         ApplySoftDeleteQueryFilters(modelBuilder);
 
-        // əgər scaffold partial mapping-in varsa, buradan çağır:
+        // Call scaffold partial mappings from here when present.
         OnModelCreatingPartial(modelBuilder);
     }
 
@@ -123,3 +122,4 @@ public partial class ECafeDbContext : DbContext
         }
     }
 }
+
