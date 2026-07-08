@@ -1,4 +1,5 @@
-﻿using AutoMapper;
+using AutoMapper;
+using ECafe.Application.DTOs.Auth;
 using ECafe.Application.DTOs.File;
 using ECafe.Application.DTOs.Restaurant;
 using ECafe.Application.DTOs.User.Staff;
@@ -11,7 +12,6 @@ using ECafe.Domain.Exceptions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-using Minio.DataModel;
 using File = ECafe.Domain.Entities.File;
 
 namespace ECafe.Application.Services.Restaurant.Concrete
@@ -22,11 +22,14 @@ namespace ECafe.Application.Services.Restaurant.Concrete
         private readonly IUserRestaurantRepository _userRestaurantRepository;
         private readonly IEmailService _emailService;
         private readonly IMinioService _minioService;
+
         public RestaurantManager(IHttpContextAccessor httpContextAccessor,
-                                 IMapper mapper, IConfiguration configuration,
+                                 IMapper mapper,
+                                 IConfiguration configuration,
                                  IRestaurantRepository restaurantRepository,
                                  IEmailService emailService,
-                                 IMinioService minioService, IUserRestaurantRepository userRestaurantRepository)
+                                 IMinioService minioService,
+                                 IUserRestaurantRepository userRestaurantRepository)
                                  : base(httpContextAccessor, mapper, configuration)
         {
             _restaurantRepository = restaurantRepository;
@@ -40,17 +43,14 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             var restaurants = await _restaurantRepository.GetActiveRestaurants()
                 .ToListAsync();
 
-            var responseTasks = restaurants.Select(async restaurant => new GetAllRestaurantsResponse
+            var responseTasks = restaurants.Select(async restaurant =>
             {
-                Id = restaurant.Id,
-                Name = restaurant.Name,
-                Location = restaurant.Location,
-                Phone = restaurant.Phone,
-                RatingAverage = restaurant.RatingAverage,
-                RatingCount = restaurant.RatingCount,
-                ImageUrls = restaurant.Files is null
+                var response = Mapper.Map<GetAllRestaurantsResponse>(restaurant);
+                response.ImageUrls = restaurant.Files is null
                     ? []
-                    : (await Task.WhenAll(restaurant.Files.Select(file => _minioService.GenerateFileUrl(file.Token)))).ToList()
+                    : (await Task.WhenAll(restaurant.Files.Select(file => _minioService.GenerateFileUrl(file.Token)))).ToList();
+
+                return response;
             });
 
             return (await Task.WhenAll(responseTasks)).ToList();
@@ -68,11 +68,61 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             var response = Mapper.Map<GetByIdRestaurantResponse>(restaurant);
 
             await Task.WhenAll(
-                    PopulateRestaurantImageUrlsAsync(response, restaurant),
-                    PopulateCategoryItemFileUrlsAsync(response, restaurant) // ✅
-                    );
+                PopulateRestaurantImageUrlsAsync(response, restaurant),
+                PopulateCategoryItemFileUrlsAsync(response, restaurant));
 
             return response;
+        }
+
+        public async Task<List<StaffPublicResponseDto>> GetRestaurantPublicStaffAsync(int restaurantId)
+        {
+            var staffs = await GetRestaurantStaffEntitiesAsync(restaurantId);
+            var tasks = staffs.Select(MapToPublicDtoAsync);
+            return (await Task.WhenAll(tasks)).ToList();
+        }
+
+        public async Task<List<StaffDetailResponseDto>> GetRestaurantStaffAsync(int restaurantId)
+        {
+            var staffs = await GetRestaurantStaffEntitiesAsync(restaurantId);
+            var tasks = staffs.Select(MapToDetailDtoAsync);
+            return (await Task.WhenAll(tasks)).ToList();
+        }
+
+        public async Task<int> RegisterRestaurantAsync(RegisterRestaurantRequest request)
+        {
+            if (request is null)
+                throw new BusinessRuleException("request is not null!");
+
+            var restaurant = Mapper.Map<Domain.Entities.Restaurant>(request);
+            restaurant.Files = [];
+
+            if (request.Files is not null && request.Files.Any())
+            {
+                foreach (var formFile in request.Files)
+                {
+                    if (formFile is null || formFile.Length == 0)
+                        continue;
+
+                    var token = await _minioService.UploadFileAsync(new UploadFileDto(formFile));
+
+                    var fileEntity = Mapper.Map<Domain.Entities.File>(new FileMapData
+                    {
+                        Token = token,
+                        FileName = formFile.FileName,
+                        Size = formFile.Length,
+                        Url = await _minioService.GenerateFileUrl(token)
+                    });
+
+                    restaurant.Files.Add(fileEntity);
+                }
+            }
+
+            await _restaurantRepository.Add(restaurant);
+            await _restaurantRepository.SaveChangesAsync();
+
+            await _emailService.SendMailAsync(restaurant.Email, restaurant.Name);
+
+            return restaurant.Id;
         }
 
         private async Task PopulateRestaurantImageUrlsAsync(
@@ -86,7 +136,9 @@ namespace ECafe.Application.Services.Restaurant.Concrete
                   )).ToList();
         }
 
-        private async Task PopulateCategoryItemFileUrlsAsync( GetByIdRestaurantResponse response, Domain.Entities.Restaurant restaurant)
+        private async Task PopulateCategoryItemFileUrlsAsync(
+            GetByIdRestaurantResponse response,
+            Domain.Entities.Restaurant restaurant)
         {
             var itemLookup = restaurant.Categories
                 .SelectMany(c => c.Items)
@@ -111,77 +163,6 @@ namespace ECafe.Application.Services.Restaurant.Concrete
                 : null);
         }
 
-        public async Task<List<StaffPublicResponseDto>> GetRestaurantPublicStaffAsync(int restaurantId)
-        {
-            var staffs = await GetRestaurantStaffEntitiesAsync(restaurantId);
-
-            var tasks = staffs.Select(MapToPublicDtoAsync);
-
-            return (await Task.WhenAll(tasks)).ToList();
-        }
-
-        public async Task<List<StaffDetailResponseDto>> GetRestaurantStaffAsync(int restaurantId)
-        {
-            var staffs = await GetRestaurantStaffEntitiesAsync(restaurantId);
-
-            var tasks = staffs.Select(MapToDetailDtoAsync);
-
-            return (await Task.WhenAll(tasks)).ToList();
-        }
-
-
-
-        public async Task<int> RegisterRestaurantAsync(RegisterRestaurantRequest request)
-        {
-            if (request is null)
-                throw new BusinessRuleException("request is not null!");
-
-            var restaurant = new Domain.Entities.Restaurant
-            {
-                Name = request.Name,
-                Location = request.Location,
-                Phone = request.Phone,
-                Email = request.Email,
-                RatingAverage = 0,
-                RatingCount = 0,
-                IsActive = true,
-                Files = new List<Domain.Entities.File>()
-            };
-
-            if (request.Files is not null && request.Files.Any())
-            {
-                foreach (var formFile in request.Files)
-                {
-                    if (formFile is null || formFile.Length == 0)
-                        continue;
-
-                    var token = await _minioService.UploadFileAsync(new UploadFileDto(formFile));
-
-                    var fileEntity = new Domain.Entities.File
-                    {
-                        Token = token,
-                        Name = Path.GetFileNameWithoutExtension(formFile.FileName),
-                        Extension = Path.GetExtension(formFile.FileName),
-                        Size = formFile.Length,
-                        Url = await _minioService.GenerateFileUrl(token)
-                    };
-
-                    restaurant.Files.Add(fileEntity);
-                }
-            }
-
-
-            await _restaurantRepository.Add(restaurant);
-            await _restaurantRepository.SaveChangesAsync();
-
-            await _emailService.SendMailAsync(restaurant.Email, restaurant.Name);
-
-            return restaurant.Id;
-        }
-
-
-
-        #region Helpers
         private async Task<List<UserRestaurant>> GetRestaurantStaffEntitiesAsync(int restaurantId)
         {
             if (restaurantId <= 0)
@@ -193,28 +174,16 @@ namespace ECafe.Application.Services.Restaurant.Concrete
 
         private async Task<StaffPublicResponseDto> MapToPublicDtoAsync(UserRestaurant staff)
         {
-            return new StaffPublicResponseDto
-            {
-                Id = staff.User.Id,
-                Name = staff.User.Name,
-                Surname = staff.User.Surname,
-                FileUrl = await GenerateFileUrlAsync(staff.User.File),
-                Role = staff.User.Role.Name
-            };
+            var response = Mapper.Map<StaffPublicResponseDto>(staff);
+            response.FileUrl = await GenerateFileUrlAsync(staff.User.File);
+            return response;
         }
 
         private async Task<StaffDetailResponseDto> MapToDetailDtoAsync(UserRestaurant staff)
         {
-            return new StaffDetailResponseDto
-            {
-                Id = staff.User.Id,
-                Name = staff.User.Name,
-                Surname = staff.User.Surname,
-                FileUrl = await GenerateFileUrlAsync(staff.User.File),
-                Email = staff.User.Email,
-                Phone = staff.User.Phone,
-                Role = staff.User.Role.Name
-            };
+            var response = Mapper.Map<StaffDetailResponseDto>(staff);
+            response.FileUrl = await GenerateFileUrlAsync(staff.User.File);
+            return response;
         }
 
         private async Task<string?> GenerateFileUrlAsync(File? file)
@@ -224,6 +193,5 @@ namespace ECafe.Application.Services.Restaurant.Concrete
 
             return await _minioService.GenerateFileUrl(file.Token);
         }
-        #endregion
     }
 }

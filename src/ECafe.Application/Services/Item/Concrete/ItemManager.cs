@@ -1,4 +1,6 @@
 using AutoMapper;
+using AutoMapper.QueryableExtensions;
+using ECafe.Application.DTOs.Auth;
 using ECafe.Application.DTOs.File;
 using ECafe.Application.DTOs.Item;
 using ECafe.Application.Repositories.Category;
@@ -61,6 +63,35 @@ namespace ECafe.Application.Services.Item.Concrete
             return item.Id;
         }
 
+        public async Task<GetAllItemResponse> GetAllAsync(PaginationFilter filter, int categoryId, int statusId)
+        {
+            filter ??= new PaginationFilter();
+
+            if (filter.PageNumber <= 0)
+                filter.PageNumber = 1;
+
+            if (filter.PageSize <= 0)
+                filter.PageSize = 5;
+
+            var query = _itemRepository.Query();
+
+            if (categoryId > 0)
+                query = query.Where(x => x.CategoryId == categoryId);
+
+            if (statusId > 0)
+                query = query.Where(x => x.StatusId == statusId);
+
+            var items = query
+                .OrderBy(x => x.Name)
+                .ProjectTo<ItemDto>(Mapper.ConfigurationProvider);
+
+            var paginatedItems = await PaginatedList<ItemDto>.CreateAsync(items, filter.PageNumber, filter.PageSize);
+            return Mapper.Map<GetAllItemResponse>(new GetAllItemResponseMapData
+            {
+                Items = paginatedItems
+            });
+        }
+
         private async Task EnsureRestaurantExistsAsync(int restaurantId)
         {
             var restaurant = await _restaurantRepository.GetByIdAsync(restaurantId);
@@ -96,52 +127,12 @@ namespace ECafe.Application.Services.Item.Concrete
 
             var token = await _minioService.UploadFileAsync(new UploadFileDto(file));
 
-            return new Domain.Entities.File
+            return Mapper.Map<Domain.Entities.File>(new FileMapData
             {
                 Token = token,
-                Name = Path.GetFileNameWithoutExtension(file.FileName),
-                Extension = Path.GetExtension(file.FileName),
-                Size = file.Length,
-                Url = string.Empty
-            };
-        }
-
-        public async Task<GetAllItemResponse> GetAllAsync(PaginationFilter filter, int categoryId, int statusId)
-        {
-            filter ??= new PaginationFilter();
-
-            if (filter.PageNumber <= 0)
-                filter.PageNumber = 1;
-
-            if (filter.PageSize <= 0)
-                filter.PageSize = 5;
-
-            var query = _itemRepository.Query();
-
-            if (categoryId > 0)
-                query = query.Where(x => x.CategoryId == categoryId);
-
-            if (statusId > 0)
-                query = query.Where(x => x.StatusId == statusId);
-
-            var items = query
-                .OrderBy(x => x.Name)
-                .Select(x => new ItemDto
-                {
-                    Id = x.Id,
-                    Name = x.Name,
-                    CategoryName = x.Category.Name,
-                    StatusId = x.StatusId,
-                    StatusName = x.Status.Name,
-                    BasePrice = x.BasePrice,
-                    IsActive = x.IsActive,
-                    SalesCount = x.SalesCount
-                });
-
-            return new GetAllItemResponse
-            {
-                Items = await PaginatedList<ItemDto>.CreateAsync(items, filter.PageNumber, filter.PageSize)
-            };
+                FileName = file.FileName,
+                Size = file.Length
+            });
         }
     }
 }

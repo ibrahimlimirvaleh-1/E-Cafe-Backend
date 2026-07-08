@@ -1,5 +1,6 @@
-﻿using AutoMapper;
+using AutoMapper;
 using ECafe.Application.DTOs.Item;
+using ECafe.Shared.DTOs;
 
 namespace ECafe.Application.Mappings
 {
@@ -30,8 +31,7 @@ namespace ECafe.Application.Mappings
                 .ForMember(dest => dest.IsActive, opt => opt.MapFrom(src => src.IsActive))
                 .ForMember(dest => dest.SalesCount, opt => opt.MapFrom(src => src.SalesCount));
 
-
-
+            CreateMap<GetAllItemResponseMapData, GetAllItemResponse>();
         }
     }
 }

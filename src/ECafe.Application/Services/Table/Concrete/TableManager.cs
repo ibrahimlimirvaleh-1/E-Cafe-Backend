@@ -1,4 +1,5 @@
-﻿using ECafe.Application.DTOs.Table;
+using AutoMapper;
+using ECafe.Application.DTOs.Table;
 using ECafe.Application.Repositories.Table;
 using ECafe.Application.Services.Table.Abstract;
 
@@ -7,10 +8,12 @@ namespace ECafe.Application.Services.Table.Concrete
     public class TableManager : ITableService
     {
         private readonly ITableRepository _tableRepository;
+        private readonly IMapper _mapper;
 
-        public TableManager(ITableRepository tableRepository)
+        public TableManager(ITableRepository tableRepository, IMapper mapper)
         {
             _tableRepository = tableRepository;
+            _mapper = mapper;
         }
 
         public async Task<int> CreateAsync(CreateTableRequest request)
@@ -20,15 +23,7 @@ namespace ECafe.Application.Services.Table.Concrete
             if (existTable)
                 throw new InvalidOperationException("Table with the same number already exists.");
 
-            var table = new Domain.Entities.Table
-            {
-                RestaurantId = request.RestaurantId,
-                Name = request.Name,
-                TableNo = request.TableNo,
-                Capacity = request.Capacity,
-                IsActive = true,
-                IsEmpty = true
-            };
+            var table = _mapper.Map<Domain.Entities.Table>(request);
 
             await _tableRepository.Add(table);
             await _tableRepository.SaveChangesAsync();

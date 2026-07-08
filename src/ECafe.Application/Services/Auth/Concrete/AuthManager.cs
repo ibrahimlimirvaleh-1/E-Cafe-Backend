@@ -62,17 +62,8 @@ namespace ECafe.Application.Services.Auth.Concrete
             await EnsureUserDoesNotExistAsync(request.Email);
             var file = await CreateFileIfExistsAsync(request.Image);
 
-            var user = new Domain.Entities.User
-            {
-                Name = request.Name.Trim(),
-                Surname = request.Surname.Trim(),
-                Email = request.Email.Trim().ToLowerInvariant(),
-                Phone = request.Phone.Trim(),
-                Password = HashPassword(request.Password),
-                IsActive = true,
-                RoleId = (int)RoleCode.Customer,
-                File = file
-            };
+            var user = Mapper.Map<Domain.Entities.User>(request);
+            user.File = file;
 
             await _userRepository.Add(user);
             await _userRepository.SaveChangesAsync();
@@ -113,18 +104,13 @@ namespace ECafe.Application.Services.Auth.Concrete
 
             var token = await _minioService.UploadFileAsync(new UploadFileDto(image));
 
-            return new Domain.Entities.File
+            return Mapper.Map<Domain.Entities.File>(new FileMapData
             {
                 Token = token,
-                Name = Path.GetFileNameWithoutExtension(image.FileName),
-                Extension = Path.GetExtension(image.FileName),
-                Size = image.Length,
-                Url = string.Empty
-            };
+                FileName = image.FileName,
+                Size = image.Length
+            });
         }
-
-        private static string HashPassword(string password)
-            => BCrypt.Net.BCrypt.HashPassword(password);
 
         private async Task<AuthResponseDto> CreateAndStoreTokenResponseAsync(Domain.Entities.User user)
         {
@@ -137,11 +123,11 @@ namespace ECafe.Application.Services.Auth.Concrete
 
             await _refreshTokenRepository.SaveChangesAsync();
 
-            return new AuthResponseDto
+            return Mapper.Map<AuthResponseDto>(new AuthTokenMapData
             {
                 AccessToken = _jwtService.GenerateToken(user, fileUrl),
                 RefreshToken = refreshToken
-            };
+            });
         }
 
         private static string HashRefreshToken(string refreshToken)
@@ -167,11 +153,11 @@ namespace ECafe.Application.Services.Auth.Concrete
             await AddRefreshTokenAsync(storedToken.User, refreshTokenHash);
             await _refreshTokenRepository.SaveChangesAsync();
 
-            return new AuthResponseDto
+            return Mapper.Map<AuthResponseDto>(new AuthTokenMapData
             {
                 AccessToken = _jwtService.GenerateToken(storedToken.User, fileUrl),
                 RefreshToken = refreshToken
-            };
+            });
         }
 
         private async Task<string> AddRefreshTokenAsync(Domain.Entities.User user)
@@ -185,7 +171,7 @@ namespace ECafe.Application.Services.Auth.Concrete
             Domain.Entities.User user,
             string refreshTokenHash)
         {
-            await _refreshTokenRepository.Add(new Domain.Entities.UserRefreshToken
+            var refreshToken = Mapper.Map<Domain.Entities.UserRefreshToken>(new RefreshTokenMapData
             {
                 UserId = user.Id,
                 TokenHash = refreshTokenHash,
@@ -193,6 +179,8 @@ namespace ECafe.Application.Services.Auth.Concrete
                 CreatedByIp = GetRequestIp(),
                 UserAgent = HttpContextAccessor.HttpContext?.Request.Headers["User-Agent"].ToString()
             });
+
+            await _refreshTokenRepository.Add(refreshToken);
         }
 
         private string? GetRequestIp()

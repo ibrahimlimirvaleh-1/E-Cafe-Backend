@@ -1,4 +1,6 @@
-﻿using AutoMapper;
+using AutoMapper;
+using AutoMapper.QueryableExtensions;
+using ECafe.Application.DTOs.Auth;
 using ECafe.Application.DTOs.File;
 using ECafe.Application.DTOs.User;
 using ECafe.Application.DTOs.User.Staff;
@@ -7,7 +9,6 @@ using ECafe.Application.Repositories.Role;
 using ECafe.Application.Repositories.User;
 using ECafe.Application.Services.MinIO.Abstracts;
 using ECafe.Application.Services.User.Abstract;
-using ECafe.Domain.Entities;
 using ECafe.Domain.Enums;
 using ECafe.Domain.Exceptions;
 using ECafe.Shared.DTOs;
@@ -46,24 +47,21 @@ namespace ECafe.Application.Services.User.Concrete
         public async Task CreateUserAsync(CreateUserRequest request)
         {
             await EnsureRestaurantExistsAsync(request.RestaurantId);
-
             await EnsureRoleExistsAsync(request.RoleId);
-
             await EnsureUserDoesNotExistAsync(request.Email);
 
             var file = await CreateFileIfExistsAsync(request.Image);
 
-            var user = CreateUserEntity(request, file);
+            var user = Mapper.Map<Domain.Entities.User>(request);
+            user.File = file;
 
             await _userRepository.Add(user);
-
             await _userRepository.SaveChangesAsync();
 
             var roleName = GetRoleDescription(request.RoleId);
 
             await _emailService.SendMailAsync(user.Email, user.Name, user.Surname, request.Password, roleName);
         }
-
 
         public async Task DeleteAsync(int userId)
         {
@@ -114,24 +112,10 @@ namespace ECafe.Application.Services.User.Concrete
             if (filter.PageSize <= 0)
                 filter.PageSize = 5;
 
-            var query = _userRepository.GetUsersForList(restaurantId);
-
-            var users = query
+            var users = _userRepository.GetUsersForList(restaurantId)
                 .OrderBy(x => x.Name)
                 .ThenBy(x => x.Surname)
-                .Select(x => new GetAllUserResponseDto
-                {
-                    Id = x.Id,
-                    Name = x.Name,
-                    Surname = x.Surname,
-                    IsActive = x.IsActive,
-                    Rating = x.Rating,
-                    Role = new RoleDto
-                    {
-                        Id = x.Role.Id,
-                        Name = x.Role.Name
-                    }
-                });
+                .ProjectTo<GetAllUserResponseDto>(Mapper.ConfigurationProvider);
 
             return PaginatedList<GetAllUserResponseDto>.CreateAsync(users, filter.PageNumber, filter.PageSize);
         }
@@ -173,10 +157,7 @@ namespace ECafe.Application.Services.User.Concrete
             if (conflictingUser?.Phone == phone)
                 throw new BusinessRuleException("User with this phone already exists");
 
-            user.Name = request.Name.Trim();
-            user.Surname = request.Surname.Trim();
-            user.Email = email;
-            user.Phone = phone;
+            Mapper.Map(request, user);
 
             var file = await CreateFileIfExistsAsync(request.Image);
             if (file is not null)
@@ -201,7 +182,6 @@ namespace ECafe.Application.Services.User.Concrete
             return await MapToStaffDetailResponseAsync(staff);
         }
 
-        #region Helpers
         private async Task EnsureRestaurantExistsAsync(int restaurantId)
         {
             var restaurant = await _restaurantRepository.GetByIdAsync(restaurantId);
@@ -220,7 +200,7 @@ namespace ECafe.Application.Services.User.Concrete
 
         private async Task EnsureUserDoesNotExistAsync(string email)
         {
-            var existingUser = await _userRepository.GetByEmailAsync(email);
+            var existingUser = await _userRepository.GetByEmailAsync(email.Trim().ToLowerInvariant());
 
             if (existingUser is not null)
                 throw new BusinessRuleException("User with this email already exists");
@@ -233,34 +213,12 @@ namespace ECafe.Application.Services.User.Concrete
 
             var token = await _minioService.UploadFileAsync(new UploadFileDto(image));
 
-            return new Domain.Entities.File
+            return Mapper.Map<Domain.Entities.File>(new FileMapData
             {
                 Token = token,
-                Name = Path.GetFileNameWithoutExtension(image.FileName),
-                Extension = Path.GetExtension(image.FileName),
-                Size = image.Length,
-                Url = string.Empty
-            };
-        }
-
-        private Domain.Entities.User CreateUserEntity(CreateUserRequest request, Domain.Entities.File? file)
-        {
-            return new Domain.Entities.User
-            {
-                Name = request.Name.Trim(),
-                Surname = request.Surname.Trim(),
-                Email = request.Email.Trim().ToLowerInvariant(),
-                Phone = request.Phone.Trim(),
-                Password = HashPassword(request.Password),
-                IsActive = request.IsActive,
-                Rating = request.Rating,
-                File = file,
-                RoleId = request.RoleId,
-                UserRestaurant = new UserRestaurant
-                {
-                    RestaurantId = request.RestaurantId
-                }
-            };
+                FileName = image.FileName,
+                Size = image.Length
+            });
         }
 
         private static string GetRoleDescription(int roleId)
@@ -271,42 +229,18 @@ namespace ECafe.Application.Services.User.Concrete
             return ((RoleCode)roleId).GetDescription();
         }
 
-        private static string HashPassword(string password)
-        {
-            return BCrypt.Net.BCrypt.HashPassword(password);
-        }
-
         private async Task<ProfileResponseDto> MapToProfileResponseAsync(Domain.Entities.User user)
         {
-            return new ProfileResponseDto
-            {
-                Id = user.Id,
-                Name = user.Name,
-                Surname = user.Surname,
-                Email = user.Email,
-                Phone = user.Phone,
-                IsActive = user.IsActive,
-                Rating = user.Rating,
-                Role = user.Role.Name,
-                RestaurantId = user.UserRestaurant?.RestaurantId,
-                FileUrl = await GenerateFileUrlAsync(user.File)
-            };
+            var response = Mapper.Map<ProfileResponseDto>(user);
+            response.FileUrl = await GenerateFileUrlAsync(user.File);
+            return response;
         }
 
         private async Task<StaffDetailResponseDto> MapToStaffDetailResponseAsync(Domain.Entities.User user)
         {
-            return new StaffDetailResponseDto
-            {
-                Id = user.Id,
-                Name = user.Name,
-                Surname = user.Surname,
-                Rating = user.Rating,
-                Role = user.Role.Name,
-                FileUrl = await GenerateFileUrlAsync(user.File),
-                Email = user.Email,
-                Phone = user.Phone,
-                IsActive = user.IsActive
-            };
+            var response = Mapper.Map<StaffDetailResponseDto>(user);
+            response.FileUrl = await GenerateFileUrlAsync(user.File);
+            return response;
         }
 
         private async Task<string?> GenerateFileUrlAsync(Domain.Entities.File? file)
@@ -316,10 +250,5 @@ namespace ECafe.Application.Services.User.Concrete
 
             return await _minioService.GenerateFileUrl(file.Token);
         }
-
-
-
-
-        #endregion
     }
 }
