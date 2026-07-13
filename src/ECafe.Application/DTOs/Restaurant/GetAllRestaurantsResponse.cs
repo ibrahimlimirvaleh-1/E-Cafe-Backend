@@ -13,6 +13,12 @@
 
         public int? RatingCount { get; set; }
 
+        public decimal DepositAmount { get; set; }
+
+        public int CancellationWindowMinutes { get; set; }
+
+        public decimal ServiceFeePercent { get; set; }
+
         public List<string>? ImageUrls { get; set; }
     }
 }

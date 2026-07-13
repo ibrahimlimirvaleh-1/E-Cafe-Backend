@@ -11,13 +11,27 @@ public partial class Reservation : AuditableSoftDeletableEntity<int>
 
     public int TableId { get; set; }
 
+    public int? WaiterUserId { get; set; }
+
     public int PeopleCount { get; set; }
 
     public int StatusId { get; set; }
 
+    public decimal DepositAmount { get; set; }
+
+    public int CancellationWindowMinutes { get; set; }
+
+    public DateTime? CancellationDeadline { get; set; }
+
     public DateTime ReservedFrom { get; set; }
 
     public DateTime ReservedTo { get; set; }
+
+    public DateTime? CancelledAt { get; set; }
+
+    public bool? RefundEligible { get; set; }
+
+    public DateTime? NoShowAt { get; set; }
 
     public DateTime? PaidAt { get; set; }
 
@@ -38,4 +52,6 @@ public partial class Reservation : AuditableSoftDeletableEntity<int>
     public virtual Status Status { get; set; } = null!;
 
     public virtual Table Table { get; set; } = null!;
+
+    public virtual User? WaiterUser { get; set; }
 }

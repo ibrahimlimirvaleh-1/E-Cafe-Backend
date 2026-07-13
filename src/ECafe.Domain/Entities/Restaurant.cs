@@ -15,6 +15,12 @@ public partial class Restaurant : AuditableSoftDeletableEntity<int>
 
     public int? RatingCount { get; set; }
 
+    public decimal DepositAmount { get; set; }
+
+    public int CancellationWindowMinutes { get; set; }
+
+    public decimal ServiceFeePercent { get; set; }
+
     public bool IsActive { get; set; }
 
     public virtual List<File>? Files { get; set; }

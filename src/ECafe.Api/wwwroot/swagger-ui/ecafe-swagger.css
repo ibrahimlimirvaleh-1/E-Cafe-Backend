@@ -1,0 +1,476 @@
+:root {
+  --ecafe-bg: #0f1720;
+  --ecafe-panel: #151f2b;
+  --ecafe-panel-soft: #1b2836;
+  --ecafe-text: #e6edf5;
+  --ecafe-muted: #9aa9bb;
+  --ecafe-border: #2c3a4c;
+  --ecafe-accent: #42c2bd;
+  --ecafe-accent-strong: #74dad6;
+  --ecafe-code: #203142;
+  --ecafe-code-text: #f2f7fb;
+  --ecafe-code-border: #405267;
+  --ecafe-code-key: #d8e7ff;
+  --ecafe-code-string: #7dd3c7;
+  --ecafe-code-number: #fca5a5;
+  --ecafe-code-literal: #c4b5fd;
+  --ecafe-code-comment: #9aa9bb;
+  --ecafe-success-bg: #183528;
+  --ecafe-success-text: #b7f7cf;
+  --ecafe-topbar: #101820;
+  --ecafe-brand-text: #c1905f;
+  --ecafe-brand-subtext: #d0b08c;
+}
+
+body.ecafe-light {
+  --ecafe-bg: #edf3f5;
+  --ecafe-panel: #ffffff;
+  --ecafe-panel-soft: #f6f9fb;
+  --ecafe-text: #172033;
+  --ecafe-muted: #667085;
+  --ecafe-border: #cbd5df;
+  --ecafe-accent: #0f8b8d;
+  --ecafe-accent-strong: #0b6f71;
+  --ecafe-code: #e5eef1;
+  --ecafe-code-text: #182230;
+  --ecafe-code-border: #b9c8d2;
+  --ecafe-code-key: #102a43;
+  --ecafe-code-string: #006d77;
+  --ecafe-code-number: #b42318;
+  --ecafe-code-literal: #6941c6;
+  --ecafe-code-comment: #667085;
+  --ecafe-success-bg: #dff4eb;
+  --ecafe-success-text: #14532d;
+  --ecafe-topbar: #ffffff;
+  --ecafe-brand-text: #172033;
+  --ecafe-brand-subtext: #667085;
+}
+
+body {
+  background: var(--ecafe-bg) !important;
+}
+
+html,
+body,
+#swagger-ui,
+.swagger-ui {
+  background: var(--ecafe-bg) !important;
+}
+
+.swagger-ui {
+  color: var(--ecafe-text);
+}
+
+.swagger-ui .topbar {
+  background: var(--ecafe-topbar);
+  border-bottom: 1px solid var(--ecafe-border);
+  min-height: 76px;
+  padding-left: 220px;
+  padding-right: 240px;
+}
+
+.swagger-ui .topbar .wrapper {
+  align-items: center;
+  display: flex;
+  gap: 18px;
+  justify-content: space-between;
+}
+
+.swagger-ui .topbar .download-url-wrapper .select-label,
+.swagger-ui .topbar .download-url-wrapper input {
+  color: var(--ecafe-text);
+}
+
+.ecafe-brand {
+  align-items: center;
+  display: flex;
+  flex: 0 0 auto;
+  gap: 12px;
+  min-width: 220px;
+}
+
+.ecafe-floating-brand {
+  background: color-mix(in srgb, var(--ecafe-panel) 92%, transparent);
+  border: 1px solid var(--ecafe-border);
+  border-radius: 10px;
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.22);
+  left: 18px;
+  min-width: 0;
+  padding: 8px 12px;
+  position: fixed;
+  top: 12px;
+  z-index: 10000;
+}
+
+.ecafe-brand-logo {
+  border-radius: 8px;
+  display: block;
+  height: 52px;
+  object-fit: contain;
+  width: 52px;
+}
+
+body.ecafe-dark .ecafe-brand-logo {
+  height: 56px;
+  width: 86px;
+}
+
+.ecafe-brand-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  line-height: 1.1;
+}
+
+.ecafe-brand-copy strong {
+  color: var(--ecafe-brand-text);
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+.ecafe-brand-copy span {
+  color: var(--ecafe-brand-subtext);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+body.ecafe-dark .ecafe-floating-brand .ecafe-brand-copy {
+  display: flex;
+}
+
+.swagger-ui .info {
+  margin: 34px 0 24px;
+}
+
+.swagger-ui .info .title {
+  color: var(--ecafe-text);
+  font-size: 34px;
+}
+
+.swagger-ui .info .description,
+.swagger-ui .info li,
+.swagger-ui .info p {
+  color: var(--ecafe-muted);
+}
+
+.swagger-ui .scheme-container,
+.swagger-ui .opblock-tag,
+.swagger-ui .opblock,
+.swagger-ui .opblock .opblock-section-header,
+.swagger-ui .responses-inner,
+.swagger-ui .response,
+.swagger-ui .response-col_description__inner,
+.swagger-ui .models {
+  background: var(--ecafe-panel) !important;
+  border-color: var(--ecafe-border) !important;
+  box-shadow: 0 10px 30px rgba(15, 23, 32, 0.08);
+}
+
+.swagger-ui .wrapper,
+.swagger-ui .information-container,
+.swagger-ui .scheme-container,
+.swagger-ui .opblock-body,
+.swagger-ui .opblock-description-wrapper,
+.swagger-ui .opblock-external-docs-wrapper,
+.swagger-ui .opblock-title_normal,
+.swagger-ui .model-container,
+.swagger-ui section.models {
+  background: var(--ecafe-bg) !important;
+}
+
+.swagger-ui .opblock {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.swagger-ui .opblock-tag {
+  border-radius: 8px;
+  margin: 0 0 12px;
+  padding: 14px 18px;
+}
+
+.swagger-ui .opblock-tag,
+.swagger-ui .opblock-summary-path,
+.swagger-ui .opblock-summary-description,
+.swagger-ui table thead tr td,
+.swagger-ui table thead tr th,
+.swagger-ui .response-col_status,
+.swagger-ui .response-col_description,
+.swagger-ui .response-col_links,
+.swagger-ui .model-title,
+.swagger-ui .model,
+.swagger-ui .property,
+.swagger-ui .prop-format,
+.swagger-ui .parameter__name,
+.swagger-ui .parameter__type,
+.swagger-ui .parameter__deprecated,
+.swagger-ui .parameter__in,
+.swagger-ui .tab li,
+.swagger-ui .tab li button,
+.swagger-ui .servers-title,
+.swagger-ui .servers > label,
+.swagger-ui label,
+.swagger-ui p,
+.swagger-ui h1,
+.swagger-ui h2,
+.swagger-ui h3,
+.swagger-ui h4,
+.swagger-ui h5 {
+  color: var(--ecafe-text) !important;
+}
+
+.swagger-ui input,
+.swagger-ui textarea,
+.swagger-ui select {
+  background: var(--ecafe-panel) !important;
+  color: var(--ecafe-text) !important;
+  border-color: var(--ecafe-border) !important;
+}
+
+.swagger-ui .filter .operation-filter-input {
+  border: 1px solid var(--ecafe-border);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.swagger-ui code,
+.swagger-ui pre,
+.swagger-ui .microlight,
+.swagger-ui .highlight-code,
+.swagger-ui .curl-command,
+.swagger-ui .response-content-type,
+.swagger-ui .responses-table,
+.swagger-ui .model-box,
+.swagger-ui .download-contents {
+  background: var(--ecafe-code) !important;
+  color: var(--ecafe-code-text) !important;
+  border-color: var(--ecafe-code-border) !important;
+}
+
+.swagger-ui .curl-command {
+  border: 1px solid var(--ecafe-code-border);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.swagger-ui .curl-command h4,
+.swagger-ui .curl-command span,
+.swagger-ui .curl-command pre,
+.swagger-ui .curl-command code,
+.swagger-ui .curl-command .microlight,
+.swagger-ui .highlight-code pre,
+.swagger-ui .highlight-code code,
+.swagger-ui .highlight-code .microlight,
+.swagger-ui .response-col_description pre,
+.swagger-ui .response-col_description code,
+.swagger-ui .response-col_description .microlight,
+.swagger-ui .responses-inner pre,
+.swagger-ui .responses-inner code,
+.swagger-ui .responses-inner .microlight {
+  background: var(--ecafe-code) !important;
+  color: var(--ecafe-code-text) !important;
+  text-shadow: none !important;
+}
+
+.swagger-ui .hljs,
+.swagger-ui .hljs-subst {
+  color: var(--ecafe-code-text) !important;
+}
+
+.swagger-ui .hljs-attr,
+.swagger-ui .hljs-attribute,
+.swagger-ui .hljs-name,
+.swagger-ui .hljs-section {
+  color: var(--ecafe-code-key) !important;
+}
+
+.swagger-ui .hljs-string,
+.swagger-ui .hljs-title,
+.swagger-ui .hljs-symbol,
+.swagger-ui .hljs-bullet {
+  color: var(--ecafe-code-string) !important;
+}
+
+.swagger-ui .hljs-number,
+.swagger-ui .hljs-selector-id,
+.swagger-ui .hljs-template-variable,
+.swagger-ui .hljs-variable {
+  color: var(--ecafe-code-number) !important;
+}
+
+.swagger-ui .hljs-literal,
+.swagger-ui .hljs-keyword,
+.swagger-ui .hljs-built_in,
+.swagger-ui .hljs-type {
+  color: var(--ecafe-code-literal) !important;
+}
+
+.swagger-ui .hljs-comment,
+.swagger-ui .hljs-quote {
+  color: var(--ecafe-code-comment) !important;
+}
+
+.swagger-ui .copy-to-clipboard {
+  background: var(--ecafe-panel) !important;
+  border-color: var(--ecafe-border) !important;
+}
+
+.swagger-ui .download-contents {
+  border: 1px solid var(--ecafe-code-border) !important;
+  border-radius: 6px !important;
+  box-shadow: none !important;
+}
+
+.swagger-ui .responses-inner h4,
+.swagger-ui .responses-inner h5,
+.swagger-ui .request-url,
+.swagger-ui .request-url pre {
+  color: var(--ecafe-code-text) !important;
+}
+
+.swagger-ui .opblock.opblock-post,
+.swagger-ui .opblock.opblock-get,
+.swagger-ui .opblock.opblock-put,
+.swagger-ui .opblock.opblock-delete,
+.swagger-ui .opblock.opblock-patch {
+  background: var(--ecafe-panel) !important;
+}
+
+.swagger-ui .opblock.opblock-get .opblock-summary-method,
+.swagger-ui .opblock.opblock-post .opblock-summary-method,
+.swagger-ui .opblock.opblock-put .opblock-summary-method,
+.swagger-ui .opblock.opblock-delete .opblock-summary-method,
+.swagger-ui .opblock.opblock-patch .opblock-summary-method {
+  color: #ffffff !important;
+  border-radius: 6px;
+}
+
+.swagger-ui .response-control-media-type__accept-message {
+  background: var(--ecafe-success-bg) !important;
+  color: var(--ecafe-success-text) !important;
+  border-color: var(--ecafe-success-text) !important;
+}
+
+.swagger-ui .dialog-ux .backdrop-ux {
+  background: rgba(0, 0, 0, 0.72) !important;
+}
+
+.swagger-ui .dialog-ux .modal-ux {
+  background: var(--ecafe-panel) !important;
+  border: 1px solid var(--ecafe-border) !important;
+  border-radius: 10px !important;
+  box-shadow: 0 28px 90px rgba(0, 0, 0, 0.48) !important;
+  color: var(--ecafe-text) !important;
+}
+
+.swagger-ui .dialog-ux .modal-ux-header {
+  background: var(--ecafe-panel-soft) !important;
+  border-bottom: 1px solid var(--ecafe-border) !important;
+}
+
+.swagger-ui .dialog-ux .modal-ux-header h3,
+.swagger-ui .dialog-ux .modal-ux-header h4,
+.swagger-ui .dialog-ux .modal-ux-header button,
+.swagger-ui .dialog-ux .modal-ux-header .close-modal {
+  color: var(--ecafe-text) !important;
+}
+
+.swagger-ui .dialog-ux .modal-ux-content,
+.swagger-ui .auth-container,
+.swagger-ui .auth-container .wrapper {
+  background: var(--ecafe-panel) !important;
+  color: var(--ecafe-text) !important;
+}
+
+.swagger-ui .auth-container h4,
+.swagger-ui .auth-container h5,
+.swagger-ui .auth-container label,
+.swagger-ui .auth-container span,
+.swagger-ui .auth-container p,
+.swagger-ui .auth-container code,
+.swagger-ui .auth-container .errors-wrapper,
+.swagger-ui .auth-container .scopes h2 {
+  background: transparent !important;
+  color: var(--ecafe-text) !important;
+}
+
+.swagger-ui .auth-container .auth-btn-wrapper {
+  background: var(--ecafe-panel) !important;
+  border-top: 1px solid var(--ecafe-border) !important;
+}
+
+.swagger-ui .auth-container input[type="text"],
+.swagger-ui .auth-container input[type="password"],
+.swagger-ui .auth-container input[type="email"] {
+  background: var(--ecafe-bg) !important;
+  border: 1px solid var(--ecafe-accent) !important;
+  color: var(--ecafe-text) !important;
+}
+
+.swagger-ui .auth-container .btn,
+.swagger-ui .dialog-ux .modal-ux-content .btn {
+  background: var(--ecafe-panel-soft) !important;
+  border-color: var(--ecafe-border) !important;
+  color: var(--ecafe-text) !important;
+}
+
+.swagger-ui .auth-container .btn.modal-btn.auth,
+.swagger-ui .auth-container .btn.authorize {
+  border-color: var(--ecafe-accent) !important;
+  color: var(--ecafe-accent-strong) !important;
+}
+
+.swagger-ui .btn.authorize,
+.swagger-ui .btn.execute,
+.swagger-ui .auth-wrapper .authorize {
+  border-color: var(--ecafe-accent) !important;
+  color: var(--ecafe-accent-strong) !important;
+}
+
+.ecafe-toolbar {
+  position: fixed;
+  right: 18px;
+  top: 18px;
+  z-index: 10001;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 8px;
+  background: var(--ecafe-panel);
+  border: 1px solid var(--ecafe-border);
+  border-radius: 10px;
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.22);
+}
+
+.ecafe-toolbar button {
+  border: 1px solid var(--ecafe-border);
+  background: var(--ecafe-bg);
+  color: var(--ecafe-text);
+  border-radius: 8px;
+  padding: 9px 13px;
+  cursor: pointer;
+  font-weight: 600;
+  min-width: 104px;
+}
+
+.ecafe-toolbar button:hover {
+  border-color: var(--ecafe-accent);
+  color: var(--ecafe-accent-strong);
+}
+
+body.ecafe-dark .swagger-ui .opblock-summary,
+body.ecafe-dark .swagger-ui .opblock-description-wrapper,
+body.ecafe-dark .swagger-ui .opblock-external-docs-wrapper,
+body.ecafe-dark .swagger-ui .opblock-title_normal {
+  background: var(--ecafe-panel) !important;
+  color: var(--ecafe-text) !important;
+}
+
+body.ecafe-dark .swagger-ui svg,
+body.ecafe-dark .swagger-ui .arrow {
+  fill: var(--ecafe-text) !important;
+  color: var(--ecafe-text) !important;
+}

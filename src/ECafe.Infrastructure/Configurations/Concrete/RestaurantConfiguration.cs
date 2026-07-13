@@ -34,6 +34,17 @@ namespace ECafe.Infrastructure.Configurations.Concrete
             builder.Property(e => e.RatingCount)
                 .HasDefaultValue(0)
                 .HasColumnName("rating_count");
+            builder.Property(e => e.DepositAmount)
+                .HasPrecision(18, 2)
+                .HasDefaultValue(0m)
+                .HasColumnName("deposit_amount");
+            builder.Property(e => e.CancellationWindowMinutes)
+                .HasDefaultValue(60)
+                .HasColumnName("cancellation_window_minutes");
+            builder.Property(e => e.ServiceFeePercent)
+                .HasPrecision(5, 2)
+                .HasDefaultValue(0m)
+                .HasColumnName("service_fee_percent");
 
             builder.HasIndex(e => e.Email).HasDatabaseName("restaurants_email_key").IsUnique();
         }

@@ -15,6 +15,12 @@ namespace ECafe.Application.DTOs.Restaurant
 
         public int? RatingCount { get; set; }
 
+        public decimal DepositAmount { get; set; }
+
+        public int CancellationWindowMinutes { get; set; } = 60;
+
+        public decimal ServiceFeePercent { get; set; }
+
         public List<IFormFile>? Files { get; set; }
 
     }
