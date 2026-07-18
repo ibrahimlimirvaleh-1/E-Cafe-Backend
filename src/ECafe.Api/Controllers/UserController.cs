@@ -24,6 +24,7 @@ namespace ECafe.Api.Controllers
             return Ok();
         }
 
+
         [HasPermission(Domain.Enums.PermissionCode.ManageStaff)]
         [HttpDelete("api/v1/user/delete")]
         public async Task<IActionResult> Delete([FromQuery] DeleteUserCommand command)
