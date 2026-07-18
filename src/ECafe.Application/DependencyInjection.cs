@@ -7,6 +7,8 @@ using ECafe.Application.Services.Item.Abstract;
 using ECafe.Application.Services.Item.Concrete;
 using ECafe.Application.Services.MinIO.Abstracts;
 using ECafe.Application.Services.Restaurant.Abstract;
+using ECafe.Application.Services.RestaurantContract.Abstract;
+using ECafe.Application.Services.RestaurantContract.Concrete;
 using ECafe.Application.Services.Restaurant.Concrete;
 using ECafe.Application.Services.Table.Abstract;
 using ECafe.Application.Services.Table.Concrete;
@@ -39,6 +41,7 @@ namespace ECafe.Application
             services.AddScoped<IAuthService, AuthManager>();
             services.AddScoped<IEmailService, EmailManager>();
             services.AddScoped<IRestaurantService, RestaurantManager>();
+            services.AddScoped<IRestaurantContractService, RestaurantContractManager>();
             services.AddScoped<IUserService, UserManager>();
             services.AddScoped<ITableService, TableManager>();
             services.AddScoped<ICategoryService, CategoryManager>();

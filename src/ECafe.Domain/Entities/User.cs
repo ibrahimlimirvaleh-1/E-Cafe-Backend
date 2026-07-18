@@ -38,4 +38,6 @@ public partial class User : AuditableSoftDeletableEntity<int>
 
     public virtual ICollection<UserRefreshToken> RefreshTokens { get; set; } = new List<UserRefreshToken>();
 
+    public virtual ICollection<RestaurantContract> SignedRestaurantContracts { get; set; } = new List<RestaurantContract>();
+
 }

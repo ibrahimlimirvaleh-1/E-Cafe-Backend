@@ -29,6 +29,8 @@ namespace ECafe.Infrastructure.Seeders
                 PermissionCode.ManagePayments,
                 PermissionCode.ViewReports,
                 PermissionCode.ViewRestaurantInfo,
+                PermissionCode.ManageRestaurantContracts,
+                PermissionCode.ViewRestaurantContracts,
                 PermissionCode.AssignRoles,
             });
 
@@ -38,7 +40,8 @@ namespace ECafe.Infrastructure.Seeders
             {
                 PermissionCode.ManageStaff,
                 PermissionCode.ViewReports,
-                PermissionCode.ViewRestaurantInfo
+                PermissionCode.ViewRestaurantInfo,
+                PermissionCode.ViewRestaurantContracts
 
             });
             // Manager
@@ -51,7 +54,8 @@ namespace ECafe.Infrastructure.Seeders
                 PermissionCode.ManageOrders,
                 PermissionCode.ManagePayments,
                 PermissionCode.ViewReports,
-                PermissionCode.ViewRestaurantInfo
+                PermissionCode.ViewRestaurantInfo,
+                PermissionCode.ViewRestaurantContracts
 
             });
 

@@ -17,5 +17,7 @@ namespace ECafe.Domain.Entities
         public virtual ICollection<Item> Items { get; set; } = new List<Item>();
 
         public virtual User? User { get; set; }
+
+        public virtual ICollection<RestaurantContract> RestaurantContracts { get; set; } = new List<RestaurantContract>();
     }
 }

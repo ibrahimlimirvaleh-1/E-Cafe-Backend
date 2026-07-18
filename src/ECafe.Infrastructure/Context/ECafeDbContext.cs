@@ -38,6 +38,8 @@ public partial class ECafeDbContext : DbContext
     public DbSet<Notification> Notifications { get; set; } = null!;
 
     public DbSet<Review> Reviews { get; set; } = null!;
+
+    public DbSet<RestaurantContract> RestaurantContracts { get; set; } = null!;
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

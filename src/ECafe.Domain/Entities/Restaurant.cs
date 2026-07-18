@@ -38,4 +38,6 @@ public partial class Restaurant : AuditableSoftDeletableEntity<int>
     public virtual ICollection<Table> Tables { get; set; } = new List<Table>();
 
     public virtual ICollection<UserRestaurant> UserRestaurants { get; set; } = new List<UserRestaurant>();
+
+    public virtual ICollection<RestaurantContract> Contracts { get; set; } = new List<RestaurantContract>();
 }

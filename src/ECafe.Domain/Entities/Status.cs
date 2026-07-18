@@ -18,5 +18,7 @@ public partial class Status : AuditableSoftDeletableEntity<int>
 
     public virtual ICollection<Reservation> Reservations { get; set; } = new List<Reservation>();
 
+    public virtual ICollection<RestaurantContract> RestaurantContracts { get; set; } = new List<RestaurantContract>();
+
     public virtual StatusType StatusType { get; set; } = null!;
 }

@@ -1,4 +1,5 @@
 ﻿using ECafe.Application.Repositories.Restaurant;
+using ECafe.Domain.Enums;
 using ECafe.Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
 
@@ -12,9 +13,11 @@ namespace ECafe.Infrastructure.Repositories.Restaurant
 
         public IQueryable<Domain.Entities.Restaurant> GetActiveRestaurants()
         {
+            var activeContractStatusId = ((int)StatusType.Contract * 1000) + (int)ContractStatus.Active;
+
             return Query()
                 .Include(r => r.Files)
-                .Where(r => r.IsActive);
+                .Where(r => r.IsActive && r.Contracts.Any(c => c.StatusId == activeContractStatusId));
         }
 
         public Task<Domain.Entities.Restaurant?> GetRestaurantInfoAsync(int id)
