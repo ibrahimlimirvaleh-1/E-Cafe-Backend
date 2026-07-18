@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace ECafe.Api.Controllers
 {
+
     public class UserController : BaseController
     {
         [HasPermission(Domain.Enums.PermissionCode.ManageStaff)]
