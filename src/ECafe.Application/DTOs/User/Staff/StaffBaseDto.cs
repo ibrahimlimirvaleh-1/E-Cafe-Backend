@@ -1,4 +1,4 @@
-﻿namespace ECafe.Application.DTOs.User.Staff
+namespace ECafe.Application.DTOs.User.Staff
 {
     public class StaffBaseDto
     {
@@ -7,6 +7,7 @@
         public string Surname { get; set; } = null!;
         public decimal? Rating { get; set; }
         public string Role { get; set; } = null!;
+        public decimal? ServiceFeePercent { get; set; }
 
         public string? FileUrl { get; set; }
 

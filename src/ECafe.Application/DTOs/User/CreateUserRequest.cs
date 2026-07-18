@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http;
 
 namespace ECafe.Application.DTOs.User
 {
@@ -22,5 +22,7 @@ namespace ECafe.Application.DTOs.User
         public int RestaurantId { get; set; }
 
         public int RoleId { get; set; }
+
+        public decimal? ServiceFeePercent { get; set; }
     }
 }

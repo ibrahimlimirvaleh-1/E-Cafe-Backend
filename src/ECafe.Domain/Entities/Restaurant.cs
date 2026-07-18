@@ -1,4 +1,4 @@
-﻿using ECafe.Domain.Entities.Base;
+using ECafe.Domain.Entities.Base;
 
 namespace ECafe.Domain.Entities;
 
@@ -20,6 +20,8 @@ public partial class Restaurant : AuditableSoftDeletableEntity<int>
     public int CancellationWindowMinutes { get; set; }
 
     public decimal ServiceFeePercent { get; set; }
+
+    public int StaffSettlementPeriod { get; set; }
 
     public bool IsActive { get; set; }
 

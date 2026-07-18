@@ -1,4 +1,4 @@
-﻿using ECafe.Domain.Entities;
+using ECafe.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -19,6 +19,11 @@ namespace ECafe.Infrastructure.Configurations.Concrete
             builder.Property(e => e.IsActive)
                 .HasDefaultValue(true)
                 .HasColumnName("is_active");
+
+            builder.Property(e => e.ServiceFeePercent)
+                .HasPrecision(5, 2)
+                .HasColumnName("service_fee_percent")
+                .IsRequired(false);
 
             builder.HasOne(d => d.Restaurant).WithMany(p => p.UserRestaurants)
                 .HasForeignKey(d => d.RestaurantId)

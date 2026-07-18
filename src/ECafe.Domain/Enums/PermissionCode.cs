@@ -1,4 +1,4 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 
 namespace ECafe.Domain.Enums
 {
@@ -57,5 +57,8 @@ namespace ECafe.Domain.Enums
 
         [Description("Restoran məlumatlarını görmək")]
         ViewRestaurantInfo,
+
+        [Description("Mətbəx sifariş statuslarını idarə etmək")]
+        ManageKitchenOrders,
     }
 }

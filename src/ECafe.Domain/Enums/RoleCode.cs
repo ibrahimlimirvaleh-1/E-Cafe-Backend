@@ -1,8 +1,7 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 
 namespace ECafe.Domain.Enums
 {
- 
     public enum RoleCode
     {
         [Description("Platforma super administratoru")]
@@ -18,6 +17,9 @@ namespace ECafe.Domain.Enums
         Waiter = 4,
 
         [Description("Müştəri")]
-        Customer = 5
+        Customer = 5,
+
+        [Description("Mətbəx")]
+        Kitchen = 6
     }
 }

@@ -1,4 +1,4 @@
-﻿using ECafe.Domain.Entities;
+using ECafe.Domain.Entities;
 using ECafe.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
@@ -63,6 +63,13 @@ namespace ECafe.Infrastructure.Seeders
                 PermissionCode.ManageOrders,
                 PermissionCode.ManagePayments,
                 PermissionCode.ViewOwnWallet
+            });
+
+            // Kitchen
+            AddPermissions(rolePermissions, RoleCode.Kitchen, new[]
+            {
+                PermissionCode.ViewRestaurantInfo,
+                PermissionCode.ManageKitchenOrders
             });
 
             modelBuilder.Entity<RolePermission>().HasData(rolePermissions);

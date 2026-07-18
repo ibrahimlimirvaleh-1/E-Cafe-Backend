@@ -1,4 +1,4 @@
-﻿using ECafe.Domain.Entities.Base;
+using ECafe.Domain.Entities.Base;
 
 namespace ECafe.Domain.Entities;
 
@@ -9,6 +9,8 @@ public partial class UserRestaurant : AuditableSoftDeletableEntity<int>
     public int RestaurantId { get; set; }
 
     public bool IsActive { get; set; }
+
+    public decimal? ServiceFeePercent { get; set; }
 
     public virtual Restaurant Restaurant { get; set; } = null!;
 

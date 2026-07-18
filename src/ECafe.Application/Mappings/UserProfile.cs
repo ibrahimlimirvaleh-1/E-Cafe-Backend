@@ -18,7 +18,8 @@ namespace ECafe.Application.Mappings
                 .ForMember(dest => dest.File, opt => opt.Ignore())
                 .ForMember(dest => dest.UserRestaurant, opt => opt.MapFrom(src => new UserRestaurant
                 {
-                    RestaurantId = src.RestaurantId
+                    RestaurantId = src.RestaurantId,
+                    ServiceFeePercent = src.ServiceFeePercent
                 }));
 
             CreateMap<UpdateProfileRequest, User>()
@@ -47,6 +48,7 @@ namespace ECafe.Application.Mappings
                 .ForMember(dest => dest.Surname, opt => opt.MapFrom(src => src.User.Surname))
                 .ForMember(dest => dest.Rating, opt => opt.MapFrom(src => src.User.Rating))
                 .ForMember(dest => dest.Role, opt => opt.MapFrom(src => src.User.Role.Name))
+                .ForMember(dest => dest.ServiceFeePercent, opt => opt.MapFrom(src => src.ServiceFeePercent))
                 .ForMember(dest => dest.FileUrl, opt => opt.Ignore());
 
             CreateMap<UserRestaurant, StaffDetailResponseDto>()
@@ -58,6 +60,7 @@ namespace ECafe.Application.Mappings
                 .ForMember(dest => dest.Email, opt => opt.MapFrom(src => src.User.Email))
                 .ForMember(dest => dest.Phone, opt => opt.MapFrom(src => src.User.Phone))
                 .ForMember(dest => dest.IsActive, opt => opt.MapFrom(src => src.User.IsActive))
+                .ForMember(dest => dest.ServiceFeePercent, opt => opt.MapFrom(src => src.ServiceFeePercent))
                 .ForMember(dest => dest.FileUrl, opt => opt.Ignore());
         }
     }

@@ -1,4 +1,5 @@
-﻿using ECafe.Domain.Entities;
+using ECafe.Domain.Entities;
+using ECafe.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -45,6 +46,10 @@ namespace ECafe.Infrastructure.Configurations.Concrete
                 .HasPrecision(5, 2)
                 .HasDefaultValue(0m)
                 .HasColumnName("service_fee_percent");
+
+            builder.Property(e => e.StaffSettlementPeriod)
+                .HasDefaultValue((int)StaffSettlementPeriod.Weekly)
+                .HasColumnName("staff_settlement_period");
 
             builder.HasIndex(e => e.Email).HasDatabaseName("restaurants_email_key").IsUnique();
         }

@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http;
 
 namespace ECafe.Application.DTOs.Restaurant
 {
@@ -20,6 +20,8 @@ namespace ECafe.Application.DTOs.Restaurant
         public int CancellationWindowMinutes { get; set; } = 60;
 
         public decimal ServiceFeePercent { get; set; }
+
+        public int StaffSettlementPeriod { get; set; } = 2;
 
         public List<IFormFile>? Files { get; set; }
 

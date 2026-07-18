@@ -1,4 +1,5 @@
 ﻿using ECafe.Domain.Enums;
+using ECafe.Domain.Policies;
 using ECafe.Shared.Extensions;
 using Microsoft.EntityFrameworkCore;
 
@@ -13,7 +14,7 @@ namespace ECafe.Infrastructure.Seeders
             statuses.AddRange(CreateStatuses<OrderStatus>(Domain.Enums.StatusType.Order));
             statuses.AddRange(CreateStatuses<ReservationStatus>(Domain.Enums.StatusType.Reservation));
             statuses.AddRange(CreateStatuses<PaymentStatus>(Domain.Enums.StatusType.PaymentStatus));
-            statuses.AddRange(CreateStatuses<PaymentMethod>(Domain.Enums.StatusType.PaymentMethod));
+            statuses.AddRange(CreatePaymentMethodStatuses());
             statuses.AddRange(CreateStatuses<ItemStatus>(Domain.Enums.StatusType.ItemStatus));
 
             modelBuilder.Entity<Domain.Entities.Status>().HasData(statuses);
@@ -32,5 +33,21 @@ namespace ECafe.Infrastructure.Seeders
                     StatusTypeId = statusTypeId
                 });
         }
+
+        private static IEnumerable<Domain.Entities.Status> CreatePaymentMethodStatuses()
+        {
+            const Domain.Enums.StatusType statusType = Domain.Enums.StatusType.PaymentMethod;
+            var statusTypeId = (int)statusType;
+
+            return Enum.GetValues<PaymentMethod>()
+                .Select(paymentMethod => new Domain.Entities.Status
+                {
+                    Id = (statusTypeId * 1000) + Convert.ToInt32(paymentMethod),
+                    Name = paymentMethod.GetName(),
+                    StatusTypeId = statusTypeId,
+                    IsDeleted = !PaymentMethodPolicy.IsMvpSupported(paymentMethod)
+                });
+        }
+
     }
 }
