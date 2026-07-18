@@ -76,6 +76,7 @@ namespace ECafe.Api.Controllers
 
         [HasPermission(Domain.Enums.PermissionCode.ViewRestaurantInfo)]
         [HttpGet("api/v1/staff/{restaurantId}/detail/{staffId}")]
+
         public async Task<IActionResult> GetStaffDetail(int restaurantId, int staffId)
         {
             var result = await Mediator.Send(new GetStaffDetailQuery(restaurantId, staffId));
