@@ -4,10 +4,12 @@ using ECafe.Application.DTOs.File;
 using ECafe.Application.DTOs.Restaurant;
 using ECafe.Application.DTOs.User.Staff;
 using ECafe.Application.Repositories.Restaurant;
+using ECafe.Application.Repositories.User;
 using ECafe.Application.Repositories.UserRestaurant;
 using ECafe.Application.Services.MinIO.Abstracts;
 using ECafe.Application.Services.Restaurant.Abstract;
 using ECafe.Domain.Entities;
+using ECafe.Domain.Enums;
 using ECafe.Domain.Exceptions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
@@ -19,6 +21,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
     public class RestaurantManager : BaseManager, IRestaurantService
     {
         private readonly IRestaurantRepository _restaurantRepository;
+        private readonly IUserRepository _userRepository;
         private readonly IUserRestaurantRepository _userRestaurantRepository;
         private readonly IEmailService _emailService;
         private readonly IMinioService _minioService;
@@ -27,12 +30,14 @@ namespace ECafe.Application.Services.Restaurant.Concrete
                                  IMapper mapper,
                                  IConfiguration configuration,
                                  IRestaurantRepository restaurantRepository,
+                                 IUserRepository userRepository,
                                  IEmailService emailService,
                                  IMinioService minioService,
                                  IUserRestaurantRepository userRestaurantRepository)
                                  : base(httpContextAccessor, mapper, configuration)
         {
             _restaurantRepository = restaurantRepository;
+            _userRepository = userRepository;
             _emailService = emailService;
             _minioService = minioService;
             _userRestaurantRepository = userRestaurantRepository;
@@ -93,8 +98,20 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             if (request is null)
                 throw new BusinessRuleException("request is not null!");
 
+            await EnsureRestaurantDoesNotExistAsync(request.Name, request.Email, request.Phone);
+
             var restaurant = Mapper.Map<Domain.Entities.Restaurant>(request);
             restaurant.Files = [];
+
+            if (request.OwnerUserId.HasValue)
+            {
+                var owner = await GetAvailableOwnerAsync(request.OwnerUserId.Value);
+                restaurant.UserRestaurants.Add(new UserRestaurant
+                {
+                    UserId = owner.Id,
+                    IsActive = true
+                });
+            }
 
             if (request.Files is not null && request.Files.Any())
             {
@@ -123,6 +140,50 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             await _emailService.SendMailAsync(restaurant.Email, restaurant.Name);
 
             return restaurant.Id;
+        }
+
+        public async Task UpdateRestaurantAsync(int restaurantId, UpdateRestaurantRequest request)
+        {
+            if (restaurantId <= 0)
+                throw new BusinessRuleException("Invalid restaurant ID!");
+
+            if (request is null)
+                throw new BusinessRuleException("Request is required!");
+
+            var restaurant = await GetTrackedRestaurantAsync(restaurantId);
+
+            await EnsureRestaurantDoesNotExistAsync(request.Name, request.Email, request.Phone, restaurantId);
+
+            restaurant.Name = request.Name.Trim();
+            restaurant.Location = request.Location.Trim();
+            restaurant.Phone = request.Phone.Trim();
+            restaurant.Email = request.Email.Trim().ToLowerInvariant();
+            restaurant.DepositAmount = request.DepositAmount;
+            restaurant.CancellationWindowMinutes = request.CancellationWindowMinutes;
+            restaurant.ServiceFeePercent = request.ServiceFeePercent;
+            restaurant.StaffSettlementPeriod = request.StaffSettlementPeriod;
+
+            if (request.OwnerUserId.HasValue)
+                await AssignOwnerAsync(restaurant, request.OwnerUserId.Value);
+
+            await _restaurantRepository.Update(restaurant);
+            await _restaurantRepository.SaveChangesAsync();
+        }
+
+        public async Task DeactivateRestaurantAsync(int restaurantId)
+        {
+            if (restaurantId <= 0)
+                throw new BusinessRuleException("Invalid restaurant ID!");
+
+            var restaurant = await GetTrackedRestaurantAsync(restaurantId);
+
+            restaurant.IsActive = false;
+
+            foreach (var userRestaurant in restaurant.UserRestaurants.Where(x => x.IsActive))
+                userRestaurant.IsActive = false;
+
+            await _restaurantRepository.Update(restaurant);
+            await _restaurantRepository.SaveChangesAsync();
         }
 
         private async Task PopulateRestaurantImageUrlsAsync(
@@ -170,6 +231,110 @@ namespace ECafe.Application.Services.Restaurant.Concrete
 
             return await _userRestaurantRepository
                 .GetRestaurantStaffAsync(restaurantId);
+        }
+
+        private async Task<Domain.Entities.Restaurant> GetTrackedRestaurantAsync(int restaurantId)
+        {
+            var restaurant = await _restaurantRepository.QueryTracked(x => x.Id == restaurantId)
+                .Include(x => x.UserRestaurants)
+                    .ThenInclude(x => x.User)
+                .FirstOrDefaultAsync();
+
+            if (restaurant is null)
+                throw new BusinessRuleException("Restaurant not found!");
+
+            return restaurant;
+        }
+
+        private async Task EnsureRestaurantDoesNotExistAsync(
+            string name,
+            string email,
+            string phone,
+            int? excludedRestaurantId = null)
+        {
+            var normalizedName = name.Trim();
+            var normalizedEmail = email.Trim().ToLowerInvariant();
+            var normalizedPhone = phone.Trim();
+
+            var query = _restaurantRepository.Query();
+
+            if (excludedRestaurantId.HasValue)
+                query = query.Where(x => x.Id != excludedRestaurantId.Value);
+
+            if (await query.AnyAsync(x => x.Email == normalizedEmail))
+                throw new BusinessRuleException("Bu email ilə restoran artıq mövcuddur");
+
+            if (await query.AnyAsync(x => x.Name == normalizedName))
+                throw new BusinessRuleException("Bu ad ilə restoran artıq mövcuddur");
+
+            if (await query.AnyAsync(x => x.Phone == normalizedPhone))
+                throw new BusinessRuleException("Bu telefon nömrəsi ilə restoran artıq mövcuddur");
+        }
+
+        private async Task<Domain.Entities.User> GetAvailableOwnerAsync(int ownerUserId)
+        {
+            if (ownerUserId <= 0)
+                throw new BusinessRuleException("Invalid owner user ID!");
+
+            var owner = await _userRepository.QueryTracked(x => x.Id == ownerUserId)
+                .Include(x => x.UserRestaurant)
+                .FirstOrDefaultAsync();
+
+            if (owner is null)
+                throw new BusinessRuleException("Owner user not found!");
+
+            if (!owner.IsActive)
+                throw new BusinessRuleException("Owner user is inactive!");
+
+            if (owner.RoleId != (int)RoleCode.Owner)
+                throw new BusinessRuleException("Selected user must have Owner role!");
+
+            if (owner.UserRestaurant is not null)
+                throw new BusinessRuleException("Owner user is already linked to a restaurant!");
+
+            return owner;
+        }
+
+        private async Task AssignOwnerAsync(Domain.Entities.Restaurant restaurant, int ownerUserId)
+        {
+            var owner = await _userRepository.QueryTracked(x => x.Id == ownerUserId)
+                .Include(x => x.UserRestaurant)
+                .FirstOrDefaultAsync();
+
+            if (owner is null)
+                throw new BusinessRuleException("Owner user not found!");
+
+            if (!owner.IsActive)
+                throw new BusinessRuleException("Owner user is inactive!");
+
+            if (owner.RoleId != (int)RoleCode.Owner)
+                throw new BusinessRuleException("Selected user must have Owner role!");
+
+            if (owner.UserRestaurant is not null &&
+                owner.UserRestaurant.RestaurantId != restaurant.Id)
+                throw new BusinessRuleException("Owner user is already linked to another restaurant!");
+
+            foreach (var userRestaurant in restaurant.UserRestaurants
+                         .Where(x => x.IsActive && x.User.RoleId == (int)RoleCode.Owner))
+            {
+                userRestaurant.IsActive = false;
+            }
+
+            var existingOwnerLink = restaurant.UserRestaurants
+                .FirstOrDefault(x => x.UserId == ownerUserId);
+
+            if (existingOwnerLink is not null)
+            {
+                existingOwnerLink.IsActive = true;
+                return;
+            }
+
+            restaurant.UserRestaurants.Add(new UserRestaurant
+            {
+                UserId = ownerUserId,
+                RestaurantId = restaurant.Id,
+                IsActive = true
+            });
         }
 
         private async Task<StaffPublicResponseDto> MapToPublicDtoAsync(UserRestaurant staff)

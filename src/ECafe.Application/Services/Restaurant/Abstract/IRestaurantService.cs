@@ -7,6 +7,10 @@ namespace ECafe.Application.Services.Restaurant.Abstract
     {
         public Task<int> RegisterRestaurantAsync(RegisterRestaurantRequest request);
 
+        public Task UpdateRestaurantAsync(int restaurantId, UpdateRestaurantRequest request);
+
+        public Task DeactivateRestaurantAsync(int restaurantId);
+
         public Task<List<GetAllRestaurantsResponse>> GetAllRestaurantsAsync();
 
         public Task<GetByIdRestaurantResponse> GetRestaurantAsync(int restaurantId);

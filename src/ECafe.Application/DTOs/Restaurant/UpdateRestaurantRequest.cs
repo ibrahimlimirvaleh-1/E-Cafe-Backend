@@ -1,19 +1,14 @@
-using Microsoft.AspNetCore.Http;
-
 namespace ECafe.Application.DTOs.Restaurant
 {
-    public class RegisterRestaurantRequest
+    public class UpdateRestaurantRequest
     {
         public string Name { get; set; } = null!;
 
         public string Location { get; set; } = null!;
 
         public string Phone { get; set; } = null!;
+
         public string Email { get; set; } = null!;
-
-        public decimal? RatingAverage { get; set; }
-
-        public int? RatingCount { get; set; }
 
         public decimal DepositAmount { get; set; }
 
@@ -24,8 +19,5 @@ namespace ECafe.Application.DTOs.Restaurant
         public int StaffSettlementPeriod { get; set; } = 2;
 
         public int? OwnerUserId { get; set; }
-
-        public List<IFormFile>? Files { get; set; }
-
     }
 }

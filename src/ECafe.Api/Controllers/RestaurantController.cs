@@ -14,6 +14,23 @@ namespace ECafe.Api.Controllers
         public async Task<IActionResult> RegisterRestaurant([FromForm] RegisterRestaurantCommand command)
         => Ok(await Mediator.Send(command));
 
+        [HasPermission(Domain.Enums.PermissionCode.ManageRestaurants)]
+        [HttpPut("api/v1/restaurant/{id}")]
+        public async Task<IActionResult> UpdateRestaurant(int id, [FromBody] UpdateRestaurantCommand command)
+        {
+            command.RestaurantId = id;
+            await Mediator.Send(command);
+            return Ok();
+        }
+
+        [HasPermission(Domain.Enums.PermissionCode.ManageRestaurants)]
+        [HttpPatch("api/v1/restaurant/{id}/deactivate")]
+        public async Task<IActionResult> DeactivateRestaurant(int id)
+        {
+            await Mediator.Send(new DeactivateRestaurantCommand { RestaurantId = id });
+            return Ok();
+        }
+
         [HttpGet("api/v1/restaurants/getAll")]
         public async Task<IActionResult> GetAllRestaurants()
         {
