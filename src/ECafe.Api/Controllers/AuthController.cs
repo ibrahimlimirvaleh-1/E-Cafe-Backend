@@ -9,7 +9,13 @@ namespace ECafe.Api.Controllers
     public class AuthController : BaseController
     {
         [HttpPost("api/v1/user/login")]
-        public async Task<IActionResult> Login([FromForm] LoginUserCommand command)
+        [Consumes("application/json")]
+        public async Task<IActionResult> Login([FromBody] LoginUserCommand command)
+            => Ok(await Mediator.Send(command));
+
+        [HttpPost("api/v1/user/login")]
+        [Consumes("multipart/form-data", "application/x-www-form-urlencoded")]
+        public async Task<IActionResult> LoginForm([FromForm] LoginUserCommand command)
             => Ok(await Mediator.Send(command));
 
         [HttpPost("api/v1/user/register")]
