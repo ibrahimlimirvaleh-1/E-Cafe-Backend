@@ -13,11 +13,6 @@ namespace ECafe.Api.Controllers
         public async Task<IActionResult> Login([FromBody] LoginUserCommand command)
             => Ok(await Mediator.Send(command));
 
-        [HttpPost("api/v1/user/login")]
-        [Consumes("multipart/form-data", "application/x-www-form-urlencoded")]
-        public async Task<IActionResult> LoginForm([FromForm] LoginUserCommand command)
-            => Ok(await Mediator.Send(command));
-
         [HttpPost("api/v1/user/register")]
         public async Task<IActionResult> Register([FromForm] RegisterUserCommand command)
             => Ok(await Mediator.Send(command));
