@@ -59,7 +59,7 @@ namespace ECafe.Application.Services.Auth.Concrete
 
         public async Task<AuthResponseDto> RegisterAsync(RegisterRequestDto request)
         {
-            await EnsureUserDoesNotExistAsync(request.Email);
+            await EnsureUserDoesNotExistAsync(request.Email, request.Phone);
             var file = await CreateFileIfExistsAsync(request.Image);
 
             var user = Mapper.Map<Domain.Entities.User>(request);
@@ -91,11 +91,18 @@ namespace ECafe.Application.Services.Auth.Concrete
         }
 
         #region Helpers
-        private async Task EnsureUserDoesNotExistAsync(string email)
+        private async Task EnsureUserDoesNotExistAsync(string email, string phone)
         {
-            var user = await _userRepository.GetByEmailAsync(email.Trim().ToLowerInvariant());
-            if (user is not null)
+            var normalizedEmail = email.Trim().ToLowerInvariant();
+            var normalizedPhone = phone.Trim();
+
+            var emailExists = await _userRepository.CheckExistAsync(x => x.Email == normalizedEmail);
+            if (emailExists)
                 throw new BusinessRuleException("Bu email ilə istifadəçi artıq mövcuddur");
+
+            var phoneExists = await _userRepository.CheckExistAsync(x => x.Phone == normalizedPhone);
+            if (phoneExists)
+                throw new BusinessRuleException("Bu telefon nömrəsi ilə istifadəçi artıq mövcuddur");
         }
 
         private async Task<Domain.Entities.File?> CreateFileIfExistsAsync(IFormFile? image)
