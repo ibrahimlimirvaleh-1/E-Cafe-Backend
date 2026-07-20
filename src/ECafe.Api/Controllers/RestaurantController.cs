@@ -32,10 +32,9 @@ namespace ECafe.Api.Controllers
         }
 
         [HttpGet("api/v1/restaurants/getAll")]
-        public async Task<IActionResult> GetAllRestaurants()
+        public async Task<IActionResult> GetAllRestaurants([FromQuery] GetAllRestaurantsQuery query)
         {
-            var queryResult = new GetAllRestaurantsQuery();
-            return Ok(await Mediator.Send(queryResult));
+            return Ok(await Mediator.Send(query));
         }
 
         [HasPermission(Domain.Enums.PermissionCode.ViewRestaurantInfo)]

@@ -1,5 +1,7 @@
-﻿using ECafe.Application.DTOs.Restaurant;
+using ECafe.Application.DTOs.Restaurant;
+using ECafe.Application.DTOs.Restaurant.Public;
 using ECafe.Application.DTOs.User.Staff;
+using ECafe.Shared.DTOs;
 
 namespace ECafe.Application.Services.Restaurant.Abstract
 {
@@ -11,7 +13,11 @@ namespace ECafe.Application.Services.Restaurant.Abstract
 
         public Task DeactivateRestaurantAsync(int restaurantId);
 
-        public Task<List<GetAllRestaurantsResponse>> GetAllRestaurantsAsync();
+        public Task<PaginatedList<GetAllRestaurantsResponse>> GetAllRestaurantsAsync(
+            PaginationFilter filter,
+            string? search,
+            string? location,
+            string? cuisine);
 
         public Task<GetByIdRestaurantResponse> GetRestaurantAsync(int restaurantId);
 
@@ -19,5 +25,14 @@ namespace ECafe.Application.Services.Restaurant.Abstract
 
         public Task<List<StaffPublicResponseDto>> GetRestaurantPublicStaffAsync(int restaurantId);
 
+        Task<List<PublicRestaurantListItemDto>> GetPublicRestaurantsAsync();
+
+        Task<PublicRestaurantProfileDto> GetPublicRestaurantProfileAsync(int restaurantId);
+
+        Task<List<PublicMenuCategoryDto>> GetPublicRestaurantMenuAsync(int restaurantId);
+
+        Task<List<PublicStaffDto>> GetPublicRestaurantStaffAsync(int restaurantId);
+
+        Task<List<PublicTableDto>> GetPublicRestaurantTablesAsync(int restaurantId);
     }
 }

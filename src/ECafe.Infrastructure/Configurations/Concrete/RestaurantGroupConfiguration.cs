@@ -22,9 +22,6 @@ namespace ECafe.Infrastructure.Configurations.Concrete
                 .HasMaxLength(200)
                 .HasColumnName("legal_name");
 
-            builder.Property(e => e.OwnerUserId)
-                .HasColumnName("owner_user_id");
-
             builder.Property(e => e.IsActive)
                 .HasDefaultValue(true)
                 .HasColumnName("is_active");
@@ -32,11 +29,6 @@ namespace ECafe.Infrastructure.Configurations.Concrete
             builder.HasIndex(e => e.Name)
                 .HasDatabaseName("restaurant_groups_name_key")
                 .IsUnique();
-
-            builder.HasOne(e => e.OwnerUser)
-                .WithMany(e => e.OwnedRestaurantGroups)
-                .HasForeignKey(e => e.OwnerUserId)
-                .HasConstraintName("restaurant_groups_owner_user_id_fkey");
         }
     }
 }

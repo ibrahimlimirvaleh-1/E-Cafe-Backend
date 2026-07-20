@@ -31,8 +31,6 @@ namespace ECafe.Application.DTOs.Restaurant
 
         public int StaffSettlementPeriod { get; set; } = 2;
 
-        public int? OwnerUserId { get; set; }
-
         public List<IFormFile>? Files { get; set; }
 
     }

@@ -41,6 +41,4 @@ public partial class User : AuditableSoftDeletableEntity<int>
 
     public virtual ICollection<RestaurantContract> SignedRestaurantContracts { get; set; } = new List<RestaurantContract>();
 
-    public virtual ICollection<RestaurantGroup> OwnedRestaurantGroups { get; set; } = new List<RestaurantGroup>();
-
 }

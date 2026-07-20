@@ -21,6 +21,18 @@ namespace ECafe.Infrastructure.Repositories.Restaurant
                 .Where(r => r.IsActive && r.Contracts.Any(c => c.StatusId == activeContractStatusId));
         }
 
+        public IQueryable<Domain.Entities.Restaurant> GetRestaurantsForList()
+        {
+            return Query()
+                .Include(r => r.RestaurantGroup)
+                .Include(r => r.Files)
+                .Include(r => r.Contracts)
+                .Include(r => r.Categories)
+                    .ThenInclude(c => c.Items)
+                .AsSplitQuery()
+                .Where(r => r.IsActive);
+        }
+
         public Task<Domain.Entities.Restaurant?> GetRestaurantInfoAsync(int id)
         {
             return Query()
@@ -38,6 +50,30 @@ namespace ECafe.Infrastructure.Repositories.Restaurant
                         .ThenInclude(u => u.File)
                 .AsSplitQuery()
                 .FirstOrDefaultAsync(r => r.Id == id && r.IsActive);
+        }
+
+        public Task<Domain.Entities.Restaurant?> GetPublicRestaurantInfoAsync(int id)
+        {
+            var activeContractStatusId = ((int)StatusType.Contract * 1000) + (int)ContractStatus.Active;
+
+            return Query()
+                .Include(r => r.RestaurantGroup)
+                .Include(r => r.Files)
+                .Include(r => r.Tables)
+                .Include(r => r.Categories)
+                    .ThenInclude(c => c.Items)
+                        .ThenInclude(i => i.File)
+                .Include(r => r.UserRestaurants)
+                    .ThenInclude(ur => ur.User)
+                        .ThenInclude(u => u.Role)
+                .Include(r => r.UserRestaurants)
+                    .ThenInclude(ur => ur.User)
+                        .ThenInclude(u => u.File)
+                .AsSplitQuery()
+                .FirstOrDefaultAsync(r =>
+                    r.Id == id &&
+                    r.IsActive &&
+                    r.Contracts.Any(c => c.StatusId == activeContractStatusId));
         }
     }
 }

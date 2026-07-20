@@ -2,16 +2,17 @@ using AutoMapper;
 using ECafe.Application.DTOs.Auth;
 using ECafe.Application.DTOs.File;
 using ECafe.Application.DTOs.Restaurant;
+using ECafe.Application.DTOs.Restaurant.Public;
 using ECafe.Application.DTOs.User.Staff;
 using ECafe.Application.Repositories.Restaurant;
 using ECafe.Application.Repositories.RestaurantGroup;
-using ECafe.Application.Repositories.User;
 using ECafe.Application.Repositories.UserRestaurant;
 using ECafe.Application.Services.MinIO.Abstracts;
 using ECafe.Application.Services.Restaurant.Abstract;
 using ECafe.Domain.Entities;
 using ECafe.Domain.Enums;
 using ECafe.Domain.Exceptions;
+using ECafe.Shared.DTOs;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -23,7 +24,6 @@ namespace ECafe.Application.Services.Restaurant.Concrete
     {
         private readonly IRestaurantRepository _restaurantRepository;
         private readonly IRestaurantGroupRepository _restaurantGroupRepository;
-        private readonly IUserRepository _userRepository;
         private readonly IUserRestaurantRepository _userRestaurantRepository;
         private readonly IEmailService _emailService;
         private readonly IMinioService _minioService;
@@ -34,7 +34,6 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             IConfiguration configuration,
             IRestaurantRepository restaurantRepository,
             IRestaurantGroupRepository restaurantGroupRepository,
-            IUserRepository userRepository,
             IEmailService emailService,
             IMinioService minioService,
             IUserRestaurantRepository userRestaurantRepository)
@@ -42,28 +41,79 @@ namespace ECafe.Application.Services.Restaurant.Concrete
         {
             _restaurantRepository = restaurantRepository;
             _restaurantGroupRepository = restaurantGroupRepository;
-            _userRepository = userRepository;
             _emailService = emailService;
             _minioService = minioService;
             _userRestaurantRepository = userRestaurantRepository;
         }
 
-        public async Task<List<GetAllRestaurantsResponse>> GetAllRestaurantsAsync()
+        public async Task<PaginatedList<GetAllRestaurantsResponse>> GetAllRestaurantsAsync(
+            PaginationFilter filter,
+            string? search,
+            string? location,
+            string? cuisine)
         {
-            var restaurants = await _restaurantRepository.GetActiveRestaurants()
+            filter ??= new PaginationFilter();
+
+            if (filter.PageNumber <= 0)
+                filter.PageNumber = 1;
+
+            if (filter.PageSize <= 0)
+                filter.PageSize = 5;
+
+            if (filter.PageSize > 100)
+                filter.PageSize = 100;
+
+            var activeContractStatusId = ((int)ECafe.Domain.Enums.StatusType.Contract * 1000) + (int)ContractStatus.Active;
+            var restaurantsQuery = _restaurantRepository.GetRestaurantsForList();
+
+            search = NormalizeFilter(search);
+            if (search is not null)
+            {
+                restaurantsQuery = restaurantsQuery.Where(r =>
+                    r.Name.Contains(search) ||
+                    r.Location.Contains(search) ||
+                    r.Phone.Contains(search) ||
+                    (r.BranchName != null && r.BranchName.Contains(search)) ||
+                    (r.RestaurantGroup != null && r.RestaurantGroup.Name.Contains(search)));
+            }
+
+            location = NormalizeFilter(location);
+            if (location is not null)
+            {
+                restaurantsQuery = restaurantsQuery.Where(r => r.Location.Contains(location));
+            }
+
+            cuisine = NormalizeFilter(cuisine);
+            if (cuisine is not null)
+            {
+                restaurantsQuery = restaurantsQuery.Where(r =>
+                    r.Categories.Any(c =>
+                        c.IsActive &&
+                        (c.Name.Contains(cuisine) ||
+                         c.Slug.Contains(cuisine) ||
+                         c.Items.Any(i =>
+                             i.IsActive &&
+                             i.IsAvailable &&
+                             (i.Name.Contains(cuisine) ||
+                              (i.Description != null && i.Description.Contains(cuisine)))))));
+            }
+
+            var totalCount = await restaurantsQuery.CountAsync();
+            var restaurants = await restaurantsQuery
+                .OrderByDescending(r => r.Contracts.Any(c => c.StatusId == activeContractStatusId))
+                .ThenBy(r => r.Name)
+                .Skip((filter.PageNumber - 1) * filter.PageSize)
+                .Take(filter.PageSize)
                 .ToListAsync();
 
-            var responseTasks = restaurants.Select(async restaurant =>
-            {
-                var response = Mapper.Map<GetAllRestaurantsResponse>(restaurant);
-                response.ImageUrls = restaurant.Files is null
-                    ? []
-                    : (await Task.WhenAll(restaurant.Files.Select(file => _minioService.GenerateFileUrl(file.Token)))).ToList();
+            var responseTasks = restaurants.Select(MapToGetAllRestaurantResponseAsync);
+            var response = (await Task.WhenAll(responseTasks)).ToList();
 
-                return response;
-            });
-
-            return (await Task.WhenAll(responseTasks)).ToList();
+            return new PaginatedList<GetAllRestaurantsResponse>(
+                response,
+                totalCount,
+                filter.PageNumber,
+                filter.PageSize);
         }
 
         public async Task<GetByIdRestaurantResponse> GetRestaurantAsync(int restaurantId)
@@ -82,6 +132,46 @@ namespace ECafe.Application.Services.Restaurant.Concrete
                 PopulateCategoryItemFileUrlsAsync(response, restaurant));
 
             return response;
+        }
+
+        public async Task<List<PublicRestaurantListItemDto>> GetPublicRestaurantsAsync()
+        {
+            var restaurants = await _restaurantRepository.GetActiveRestaurants()
+                .ToListAsync();
+
+            var responseTasks = restaurants.Select(MapToPublicListItemAsync);
+            return (await Task.WhenAll(responseTasks)).ToList();
+        }
+
+        public async Task<PublicRestaurantProfileDto> GetPublicRestaurantProfileAsync(int restaurantId)
+        {
+            var restaurant = await GetPublicRestaurantEntityAsync(restaurantId);
+
+            return new PublicRestaurantProfileDto
+            {
+                Restaurant = await MapToPublicDetailAsync(restaurant),
+                Tables = MapToPublicTables(restaurant),
+                Menu = await MapToPublicMenuAsync(restaurant),
+                Staff = await MapToPublicStaffAsync(restaurant)
+            };
+        }
+
+        public async Task<List<PublicMenuCategoryDto>> GetPublicRestaurantMenuAsync(int restaurantId)
+        {
+            var restaurant = await GetPublicRestaurantEntityAsync(restaurantId);
+            return await MapToPublicMenuAsync(restaurant);
+        }
+
+        public async Task<List<PublicStaffDto>> GetPublicRestaurantStaffAsync(int restaurantId)
+        {
+            var restaurant = await GetPublicRestaurantEntityAsync(restaurantId);
+            return await MapToPublicStaffAsync(restaurant);
+        }
+
+        public async Task<List<PublicTableDto>> GetPublicRestaurantTablesAsync(int restaurantId)
+        {
+            var restaurant = await GetPublicRestaurantEntityAsync(restaurantId);
+            return MapToPublicTables(restaurant);
         }
 
         public async Task<List<StaffPublicResponseDto>> GetRestaurantPublicStaffAsync(int restaurantId)
@@ -109,7 +199,6 @@ namespace ECafe.Application.Services.Restaurant.Concrete
                 request.RestaurantGroupId,
                 request.RestaurantGroupName,
                 request.RestaurantGroupLegalName,
-                request.OwnerUserId,
                 request.Name);
 
             var restaurant = Mapper.Map<Domain.Entities.Restaurant>(request);
@@ -143,14 +232,12 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             await EnsureRestaurantDoesNotExistAsync(request.Name, request.Email, request.Phone, restaurantId);
 
             if (request.RestaurantGroupId.HasValue ||
-                !string.IsNullOrWhiteSpace(request.RestaurantGroupName) ||
-                request.OwnerUserId.HasValue)
+                !string.IsNullOrWhiteSpace(request.RestaurantGroupName))
             {
                 var restaurantGroup = await ResolveRestaurantGroupAsync(
                     request.RestaurantGroupId ?? restaurant.RestaurantGroupId,
                     request.RestaurantGroupName,
                     request.RestaurantGroupLegalName,
-                    request.OwnerUserId,
                     request.Name);
 
                 restaurant.RestaurantGroup = restaurantGroup;
@@ -191,6 +278,23 @@ namespace ECafe.Application.Services.Restaurant.Concrete
 
             await _restaurantRepository.Update(restaurant);
             await _restaurantRepository.SaveChangesAsync();
+        }
+
+        private async Task<GetAllRestaurantsResponse> MapToGetAllRestaurantResponseAsync(Domain.Entities.Restaurant restaurant)
+        {
+            var response = Mapper.Map<GetAllRestaurantsResponse>(restaurant);
+
+            response.ImageUrls = restaurant.Files is null
+                ? []
+                : (await Task.WhenAll(restaurant.Files.Select(file => _minioService.GenerateFileUrl(file.Token)))).ToList();
+
+            return response;
+        }
+
+        private static string? NormalizeFilter(string? value)
+        {
+            var normalized = value?.Trim();
+            return string.IsNullOrWhiteSpace(normalized) ? null : normalized;
         }
 
         private async Task AttachRestaurantFilesAsync(
@@ -257,6 +361,98 @@ namespace ECafe.Application.Services.Restaurant.Concrete
                 : null);
         }
 
+        private async Task<Domain.Entities.Restaurant> GetPublicRestaurantEntityAsync(int restaurantId)
+        {
+            if (restaurantId <= 0)
+                throw new BusinessRuleException("Invalid restaurant ID!");
+
+            var restaurant = await _restaurantRepository.GetPublicRestaurantInfoAsync(restaurantId);
+            if (restaurant is null)
+                throw new BusinessRuleException("Public restaurant not found!");
+
+            return restaurant;
+        }
+
+        private async Task<PublicRestaurantListItemDto> MapToPublicListItemAsync(Domain.Entities.Restaurant restaurant)
+        {
+            var response = Mapper.Map<PublicRestaurantListItemDto>(restaurant);
+            response.ImageUrls = await GenerateRestaurantImageUrlsAsync(restaurant);
+
+            return response;
+        }
+
+        private async Task<PublicRestaurantDetailDto> MapToPublicDetailAsync(Domain.Entities.Restaurant restaurant)
+        {
+            var response = Mapper.Map<PublicRestaurantDetailDto>(restaurant);
+            response.ImageUrls = await GenerateRestaurantImageUrlsAsync(restaurant);
+
+            return response;
+        }
+
+        private async Task<List<string>> GenerateRestaurantImageUrlsAsync(Domain.Entities.Restaurant restaurant)
+        {
+            if (restaurant.Files is null || restaurant.Files.Count == 0)
+                return [];
+
+            return (await Task.WhenAll(
+                restaurant.Files.Select(file => _minioService.GenerateFileUrl(file.Token)))).ToList();
+        }
+
+        private async Task<List<PublicMenuCategoryDto>> MapToPublicMenuAsync(Domain.Entities.Restaurant restaurant)
+        {
+            var categories = restaurant.Categories
+                .Where(category => category.IsActive)
+                .OrderBy(category => category.SortOrder)
+                .ThenBy(category => category.Name)
+                .ToList();
+
+            var response = Mapper.Map<List<PublicMenuCategoryDto>>(categories);
+            var itemLookup = categories
+                .SelectMany(category => category.Items)
+                .ToDictionary(item => item.Id);
+
+            foreach (var item in response.SelectMany(category => category.Items))
+            {
+                var token = itemLookup.TryGetValue(item.Id, out var entity)
+                    ? entity.File?.Token
+                    : null;
+
+                await AssignFileUrlAsync(token, url => item.FileUrl = url);
+            }
+
+            return response;
+        }
+
+        private async Task<List<PublicStaffDto>> MapToPublicStaffAsync(Domain.Entities.Restaurant restaurant)
+        {
+            var staffTasks = restaurant.UserRestaurants
+                .Where(staff =>
+                    staff.IsActive &&
+                    staff.User.IsActive &&
+                    staff.User.RoleId == (int)RoleCode.Waiter)
+                .OrderBy(staff => staff.User.Name)
+                .ThenBy(staff => staff.User.Surname)
+                .Select(async staff =>
+                {
+                    var response = Mapper.Map<PublicStaffDto>(staff);
+                    response.FileUrl = await GenerateFileUrlAsync(staff.User.File);
+
+                    return response;
+                });
+
+            return (await Task.WhenAll(staffTasks)).ToList();
+        }
+
+        private List<PublicTableDto> MapToPublicTables(Domain.Entities.Restaurant restaurant)
+        {
+            var tables = restaurant.Tables
+                .Where(table => table.IsActive)
+                .OrderBy(table => table.TableNo)
+                .ToList();
+
+            return Mapper.Map<List<PublicTableDto>>(tables);
+        }
+
         private async Task<List<UserRestaurant>> GetRestaurantStaffEntitiesAsync(int restaurantId)
         {
             if (restaurantId <= 0)
@@ -309,7 +505,6 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             int? restaurantGroupId,
             string? restaurantGroupName,
             string? restaurantGroupLegalName,
-            int? ownerUserId,
             string fallbackGroupName)
         {
             if (restaurantGroupId.HasValue)
@@ -327,9 +522,6 @@ namespace ECafe.Application.Services.Restaurant.Concrete
                 if (!string.IsNullOrWhiteSpace(restaurantGroupLegalName))
                     existingGroup.LegalName = restaurantGroupLegalName.Trim();
 
-                if (ownerUserId.HasValue)
-                    existingGroup.OwnerUserId = (await GetOwnerAsync(ownerUserId.Value)).Id;
-
                 return existingGroup;
             }
 
@@ -343,39 +535,14 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             if (groupNameExists)
                 throw new BusinessRuleException("Restaurant group with this name already exists!");
 
-            var owner = ownerUserId.HasValue
-                ? await GetOwnerAsync(ownerUserId.Value)
-                : null;
-
             return new RestaurantGroup
             {
                 Name = groupName,
                 LegalName = string.IsNullOrWhiteSpace(restaurantGroupLegalName)
                     ? null
                     : restaurantGroupLegalName.Trim(),
-                OwnerUserId = owner?.Id,
                 IsActive = true
             };
-        }
-
-        private async Task<Domain.Entities.User> GetOwnerAsync(int ownerUserId)
-        {
-            if (ownerUserId <= 0)
-                throw new BusinessRuleException("Invalid owner user ID!");
-
-            var owner = await _userRepository.QueryTracked(x => x.Id == ownerUserId)
-                .FirstOrDefaultAsync();
-
-            if (owner is null)
-                throw new BusinessRuleException("Owner user not found!");
-
-            if (!owner.IsActive)
-                throw new BusinessRuleException("Owner user is inactive!");
-
-            if (owner.RoleId != (int)RoleCode.Owner)
-                throw new BusinessRuleException("Selected user must have Owner role!");
-
-            return owner;
         }
 
         private async Task EnsureBranchDoesNotExistAsync(
