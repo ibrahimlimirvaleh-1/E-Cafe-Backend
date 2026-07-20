@@ -34,6 +34,7 @@ public partial class User : AuditableSoftDeletableEntity<int>
     public virtual Role Role { get; set; } = null!;
     public virtual Wallet? Wallet { get; set; }
 
+
     public virtual ICollection<Notification> Notifications { get; set; } = new List<Notification>();
 
     public virtual ICollection<UserRefreshToken> RefreshTokens { get; set; } = new List<UserRefreshToken>();
