@@ -7,7 +7,7 @@ services:
     environment:
       POSTGRES_DB: ${ECAFE_DB_NAME:-ECafe}
       POSTGRES_USER: ${ECAFE_DB_USER:-ecafe_user}
-      POSTGRES_PASSWORD: ${ECAFE_DB_PASSWORD:-StrongPass123}
+      POSTGRES_PASSWORD: ${ECAFE_DB_PASSWORD:?Set ECAFE_DB_PASSWORD in deploy/sentry-minio/.env}
     ports:
       - "${ECAFE_DB_PORT:-5433}:5432"
     volumes:
@@ -38,7 +38,7 @@ services:
     restart: unless-stopped
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioStrongPass123}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?Set MINIO_ROOT_PASSWORD in deploy/sentry-minio/.env}
     command: server /data --console-address ":9001"
     ports:
       - "${MINIO_API_PORT:-9000}:9000"
@@ -60,7 +60,7 @@ services:
       ASPNETCORE_URLS: http://+:8080
 
       # PostgreSQL connection
-      ConnectionStrings__EcafeDb: Host=ecafe-db;Port=5432;Database=${ECAFE_DB_NAME:-ECafe};Username=${ECAFE_DB_USER:-ecafe_user};Password=${ECAFE_DB_PASSWORD:-StrongPass123}
+      ConnectionStrings__ECafeDb: Host=ecafe-db;Port=5432;Database=${ECAFE_DB_NAME:-ECafe};Username=${ECAFE_DB_USER:-ecafe_user};Password=${ECAFE_DB_PASSWORD:?Set ECAFE_DB_PASSWORD in deploy/sentry-minio/.env}
 
       # Sentry deaktiv (lokalda özün run edəcəksən)
       Sentry__Dsn: ${ECAFE_SENTRY_DSN:-}
@@ -69,9 +69,14 @@ services:
       # MinIO
       MinIO__Endpoint: ecafe-minio:9000
       MinIO__AccessKey: ${MINIO_ROOT_USER:-minioadmin}
-      MinIO__SecretKey: ${MINIO_ROOT_PASSWORD:-minioStrongPass123}
+      MinIO__SecretKey: ${MINIO_ROOT_PASSWORD:?Set MINIO_ROOT_PASSWORD in deploy/sentry-minio/.env}
       MinIO__BucketName: ${MINIO_BUCKET_NAME:-ecafefiles}
       MinIO__UseSSL: "false"
+
+      # JWT
+      Jwt__Key: ${ECAFE_JWT_KEY:?Set ECAFE_JWT_KEY in deploy/sentry-minio/.env}
+      Jwt__Issuer: ${ECAFE_JWT_ISSUER:-ecafe}
+      Jwt__Audience: ${ECAFE_JWT_AUDIENCE:-ecafe-users}
 
       # Redis (əlavə istifadə edəcəksənsə)
       Redis__Connection: ecafe-redis:6379

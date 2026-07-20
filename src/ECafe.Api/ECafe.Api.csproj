@@ -4,6 +4,7 @@
     <TargetFramework>net9.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>ecafe-api-local-secrets</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
