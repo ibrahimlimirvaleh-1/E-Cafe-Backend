@@ -39,6 +39,7 @@ public class CategoryManager : BaseManager, ICategoryService
         if (restaurant is null)
             throw new BusinessRuleException("Restaurant not found!");
 
+        EnsureCurrentUserCanAccessRestaurant(request.RestaurantId);
         await _restaurantContractService.EnsureRestaurantHasActiveContractAsync(request.RestaurantId);
 
         var category = Mapper.Map<Category>(request);

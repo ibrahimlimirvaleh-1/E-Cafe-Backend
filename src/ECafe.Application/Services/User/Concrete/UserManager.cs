@@ -1,5 +1,6 @@
 using AutoMapper;
 using AutoMapper.QueryableExtensions;
+using ECafe.Application.Common.Exceptions;
 using ECafe.Application.DTOs.Auth;
 using ECafe.Application.DTOs.File;
 using ECafe.Application.DTOs.User;
@@ -46,7 +47,11 @@ namespace ECafe.Application.Services.User.Concrete
 
         public async Task CreateUserAsync(CreateUserRequest request)
         {
+            if (request is null)
+                throw new BusinessRuleException("Request is required");
+
             await EnsureRestaurantExistsAsync(request.RestaurantId);
+            EnsureCurrentUserCanAccessRestaurant(request.RestaurantId);
             await EnsureRoleExistsAsync(request.RoleId);
             await EnsureUserDoesNotExistAsync(request.Email);
 
@@ -68,8 +73,14 @@ namespace ECafe.Application.Services.User.Concrete
             if (userId <= 0)
                 throw new BusinessRuleException("Invalid user id");
 
-            var user = await _userRepository.GetByIdAsync(userId);
+            var userDetails = await _userRepository.GetProfileByIdAsync(userId);
 
+            if (userDetails is null)
+                throw new BusinessRuleException("User not found");
+
+            EnsureCanManageTargetUser(userDetails);
+
+            var user = await _userRepository.GetByIdAsync(userId);
             if (user is null)
                 throw new BusinessRuleException("User not found");
 
@@ -85,13 +96,19 @@ namespace ECafe.Application.Services.User.Concrete
             if (roleId <= 0)
                 throw new BusinessRuleException("Invalid role id");
 
-            var user = await _userRepository.GetByIdAsync(userId);
-            if (user is null)
+            var userDetails = await _userRepository.GetProfileByIdAsync(userId);
+            if (userDetails is null)
                 throw new BusinessRuleException("User not found");
+
+            EnsureCanManageTargetUser(userDetails);
 
             var role = await _roleRepository.GetByIdAsync(roleId);
             if (role is null)
                 throw new BusinessRuleException("Role not found");
+
+            var user = await _userRepository.GetByIdAsync(userId);
+            if (user is null)
+                throw new BusinessRuleException("User not found");
 
             user.RoleId = roleId;
 
@@ -111,6 +128,21 @@ namespace ECafe.Application.Services.User.Concrete
 
             if (filter.PageSize <= 0)
                 filter.PageSize = 5;
+
+            if (IsCurrentUserSuperAdmin())
+            {
+                if (restaurantId is <= 0)
+                    restaurantId = null;
+            }
+            else if (restaurantId.HasValue && restaurantId.Value > 0)
+            {
+                EnsureCurrentUserCanAccessRestaurant(restaurantId.Value);
+            }
+            else
+            {
+                restaurantId = GetCurrentRestaurantId()
+                    ?? throw new ForbiddenException("Restaurant context is required.");
+            }
 
             var users = _userRepository.GetUsersForList(restaurantId)
                 .OrderBy(x => x.Name)
@@ -174,6 +206,8 @@ namespace ECafe.Application.Services.User.Concrete
             if (staffId <= 0)
                 throw new BusinessRuleException("Invalid staff id");
 
+            EnsureCurrentUserCanAccessRestaurant(restaurantId);
+
             var staff = await _userRepository.GetStaffDetailAsync(restaurantId, staffId);
 
             if (staff is null)
@@ -188,6 +222,18 @@ namespace ECafe.Application.Services.User.Concrete
 
             if (restaurant is null)
                 throw new BusinessRuleException("Restaurant not found");
+        }
+
+        private void EnsureCanManageTargetUser(Domain.Entities.User user)
+        {
+            if (IsCurrentUserSuperAdmin())
+                return;
+
+            var restaurantId = user.UserRestaurant?.RestaurantId;
+            if (!restaurantId.HasValue)
+                throw new ForbiddenException("Target user is not assigned to a restaurant.");
+
+            EnsureCurrentUserCanAccessRestaurant(restaurantId.Value);
         }
 
         private async Task EnsureRoleExistsAsync(int roleId)

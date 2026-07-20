@@ -136,6 +136,8 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             if (request is null)
                 throw new BusinessRuleException("Request is required!");
 
+            EnsureCurrentUserCanAccessRestaurant(restaurantId);
+
             var restaurant = await GetTrackedRestaurantAsync(restaurantId);
 
             await EnsureRestaurantDoesNotExistAsync(request.Name, request.Email, request.Phone, restaurantId);
@@ -177,6 +179,8 @@ namespace ECafe.Application.Services.Restaurant.Concrete
         {
             if (restaurantId <= 0)
                 throw new BusinessRuleException("Invalid restaurant ID!");
+
+            EnsureCurrentUserCanAccessRestaurant(restaurantId);
 
             var restaurant = await GetTrackedRestaurantAsync(restaurantId);
 

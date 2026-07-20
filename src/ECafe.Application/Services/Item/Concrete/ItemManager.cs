@@ -55,6 +55,7 @@ namespace ECafe.Application.Services.Item.Concrete
             var itemName = request.Name.Trim();
 
             await EnsureRestaurantExistsAsync(request.RestaurantId);
+            EnsureCurrentUserCanAccessRestaurant(request.RestaurantId);
             await _restaurantContractService.EnsureRestaurantHasActiveContractAsync(request.RestaurantId);
             await EnsureCategoryBelongsToRestaurantAsync(request.CategoryId, request.RestaurantId);
             await EnsureItemNameIsUniqueAsync(request.RestaurantId, request.CategoryId, itemName);
