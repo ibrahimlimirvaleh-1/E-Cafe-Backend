@@ -9,6 +9,12 @@
         public string Phone { get; set; } = null!;
         public string Email { get; set; } = null!;
 
+        public int? RestaurantGroupId { get; set; }
+
+        public string? RestaurantGroupName { get; set; }
+
+        public string? BranchName { get; set; }
+
         public decimal? RatingAverage { get; set; }
 
         public int? RatingCount { get; set; }

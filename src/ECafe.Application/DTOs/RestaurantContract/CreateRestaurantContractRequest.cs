@@ -4,8 +4,6 @@ namespace ECafe.Application.DTOs.RestaurantContract
 {
     public class CreateRestaurantContractRequest
     {
-        public string ContractNumber { get; set; } = null!;
-
         public DateTime StartDate { get; set; }
 
         public DateTime? EndDate { get; set; }

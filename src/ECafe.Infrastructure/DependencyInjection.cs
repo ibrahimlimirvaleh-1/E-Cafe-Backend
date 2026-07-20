@@ -1,6 +1,7 @@
 using ECafe.Application.Repositories.Category;
 using ECafe.Application.Repositories.Item;
 using ECafe.Application.Repositories.Restaurant;
+using ECafe.Application.Repositories.RestaurantGroup;
 using ECafe.Application.Repositories.RestaurantContract;
 using ECafe.Application.Repositories.Role;
 using ECafe.Application.Repositories.Table;
@@ -14,6 +15,7 @@ using ECafe.Infrastructure.Repositories;
 using ECafe.Infrastructure.Repositories.Category;
 using ECafe.Infrastructure.Repositories.Item;
 using ECafe.Infrastructure.Repositories.Restaurant;
+using ECafe.Infrastructure.Repositories.RestaurantGroup;
 using ECafe.Infrastructure.Repositories.RestaurantContract;
 using ECafe.Infrastructure.Repositories.Role;
 using ECafe.Infrastructure.Repositories.Table;
@@ -47,6 +49,7 @@ namespace ECafe.Infrastructure
             services.AddScoped<IUserRefreshTokenRepository, UserRefreshTokenRepository>();
             services.AddScoped<IRoleRepository, RoleRepository>();
             services.AddScoped<IRestaurantRepository, RestaurantRepository>();
+            services.AddScoped<IRestaurantGroupRepository, RestaurantGroupRepository>();
             services.AddScoped<IRestaurantContractRepository, RestaurantContractRepository>();
             services.AddScoped<IUserRestaurantRepository, UserRestaurantRepository>();
             services.AddScoped<ITableRepository, TableRepository>();

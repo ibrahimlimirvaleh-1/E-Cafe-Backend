@@ -6,6 +6,7 @@ using ECafe.Application.Services.RestaurantContract.Abstract;
 using ECafe.Domain.Enums;
 using ECafe.Domain.Exceptions;
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 
 namespace ECafe.Application.Services.RestaurantContract.Concrete
@@ -42,13 +43,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             if (restaurant is null)
                 throw new BusinessRuleException("Restaurant not found!");
 
-            var contractNumber = request.ContractNumber?.Trim();
-            if (string.IsNullOrWhiteSpace(contractNumber))
-                throw new BusinessRuleException("Contract number is required!");
-
-            var exists = await _contractRepository.CheckExistAsync(x => x.ContractNumber == contractNumber);
-            if (exists)
-                throw new BusinessRuleException("Contract number already exists!");
+            var contractNumber = await GenerateContractNumberAsync(restaurantId, request.StartDate);
 
             var contract = new Domain.Entities.RestaurantContract
             {
@@ -162,6 +157,25 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
 
         private static int ContractStatusId(ContractStatus status)
             => ((int)StatusType.Contract * 1000) + (int)status;
+
+        private async Task<string> GenerateContractNumberAsync(int restaurantId, DateTime startDate)
+        {
+            var year = startDate.Year;
+            var prefix = $"EC-{year}-{restaurantId:D5}-";
+            var sequence = await _contractRepository.Query(x => x.ContractNumber.StartsWith(prefix))
+                .CountAsync() + 1;
+
+            for (var attempt = 0; attempt < 100; attempt++)
+            {
+                var contractNumber = $"{prefix}{sequence + attempt:D5}";
+                var exists = await _contractRepository.CheckExistAsync(x => x.ContractNumber == contractNumber);
+
+                if (!exists)
+                    return contractNumber;
+            }
+
+            throw new BusinessRuleException("Could not generate a unique contract number.");
+        }
 
         private static void ValidateContractDates(DateTime startDate, DateTime? endDate)
         {

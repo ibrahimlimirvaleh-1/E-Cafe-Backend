@@ -16,6 +16,7 @@ namespace ECafe.Infrastructure.Repositories.Restaurant
             var activeContractStatusId = ((int)StatusType.Contract * 1000) + (int)ContractStatus.Active;
 
             return Query()
+                .Include(r => r.RestaurantGroup)
                 .Include(r => r.Files)
                 .Where(r => r.IsActive && r.Contracts.Any(c => c.StatusId == activeContractStatusId));
         }
@@ -23,6 +24,7 @@ namespace ECafe.Infrastructure.Repositories.Restaurant
         public Task<Domain.Entities.Restaurant?> GetRestaurantInfoAsync(int id)
         {
             return Query()
+                .Include(r => r.RestaurantGroup)
                 .Include(r => r.Files)
                 .Include(r => r.Tables)
                 .Include(r => r.Categories)

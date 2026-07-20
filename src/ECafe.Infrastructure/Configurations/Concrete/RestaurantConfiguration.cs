@@ -29,6 +29,11 @@ namespace ECafe.Infrastructure.Configurations.Concrete
             builder.Property(e => e.Email)
                 .HasMaxLength(50)
                 .HasColumnName("email");
+            builder.Property(e => e.RestaurantGroupId)
+                .HasColumnName("restaurant_group_id");
+            builder.Property(e => e.BranchName)
+                .HasMaxLength(100)
+                .HasColumnName("branch_name");
             builder.Property(e => e.RatingAverage)
                 .HasPrecision(3, 2)
                 .HasColumnName("rating_average");
@@ -52,6 +57,11 @@ namespace ECafe.Infrastructure.Configurations.Concrete
                 .HasColumnName("staff_settlement_period");
 
             builder.HasIndex(e => e.Email).HasDatabaseName("restaurants_email_key").IsUnique();
+
+            builder.HasOne(e => e.RestaurantGroup)
+                .WithMany(e => e.Restaurants)
+                .HasForeignKey(e => e.RestaurantGroupId)
+                .HasConstraintName("restaurants_restaurant_group_id_fkey");
         }
     }
 }

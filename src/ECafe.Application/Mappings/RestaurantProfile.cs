@@ -8,7 +8,8 @@ namespace ECafe.Application.Mappings
     {
         public RestaurantProfile()
         {
-            CreateMap<Restaurant, RestaurantDetailDto>();
+            CreateMap<Restaurant, RestaurantDetailDto>()
+                .ForMember(dest => dest.RestaurantGroupName, opt => opt.MapFrom(src => src.RestaurantGroup == null ? null : src.RestaurantGroup.Name));
 
             CreateMap<Table, TableDto>();
 
@@ -35,6 +36,7 @@ namespace ECafe.Application.Mappings
                 .ForMember(dest => dest.Categories, opt => opt.MapFrom(src => src.Categories));
 
             CreateMap<Restaurant, GetAllRestaurantsResponse>()
+                .ForMember(dest => dest.RestaurantGroupName, opt => opt.MapFrom(src => src.RestaurantGroup == null ? null : src.RestaurantGroup.Name))
                 .ForMember(dest => dest.ImageUrls, opt => opt.Ignore());
 
             CreateMap<RegisterRestaurantRequest, Restaurant>()
@@ -42,9 +44,11 @@ namespace ECafe.Application.Mappings
                 .ForMember(dest => dest.Location, opt => opt.MapFrom(src => src.Location.Trim()))
                 .ForMember(dest => dest.Phone, opt => opt.MapFrom(src => src.Phone.Trim()))
                 .ForMember(dest => dest.Email, opt => opt.MapFrom(src => src.Email.Trim().ToLowerInvariant()))
+                .ForMember(dest => dest.BranchName, opt => opt.MapFrom(src => string.IsNullOrWhiteSpace(src.BranchName) ? null : src.BranchName.Trim()))
                 .ForMember(dest => dest.RatingAverage, opt => opt.MapFrom(_ => 0))
                 .ForMember(dest => dest.RatingCount, opt => opt.MapFrom(_ => 0))
                 .ForMember(dest => dest.IsActive, opt => opt.MapFrom(_ => true))
+                .ForMember(dest => dest.RestaurantGroup, opt => opt.Ignore())
                 .ForMember(dest => dest.Files, opt => opt.Ignore());
         }
     }
