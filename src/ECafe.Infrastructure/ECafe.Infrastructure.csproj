@@ -21,6 +21,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\ECafe.Application\ECafe.Application.csproj" />
     <ProjectReference Include="..\ECafe.Domain\ECafe.Domain.csproj" />
     <ProjectReference Include="..\ECafe.Shared\ECafe.Shared.csproj" />

@@ -10,6 +10,17 @@ namespace ECafe.Infrastructure.Authorization
 
         public override Task<AuthorizationPolicy?> GetPolicyAsync(string policyName)
         {
+            if (policyName.StartsWith($"{RequireActiveRestaurantContractAttribute.PolicyPrefix}:"))
+            {
+                var restaurantIdKey = policyName.Replace($"{RequireActiveRestaurantContractAttribute.PolicyPrefix}:", "");
+
+                return Task.FromResult<AuthorizationPolicy?>(
+                    new AuthorizationPolicyBuilder()
+                        .RequireAuthenticatedUser()
+                        .AddRequirements(new ActiveRestaurantContractRequirement(restaurantIdKey))
+                        .Build());
+            }
+
             if (policyName.StartsWith("Permission:"))
             {
                 var idPart = policyName.Replace("Permission:", "");

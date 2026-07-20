@@ -8,6 +8,7 @@ using ECafe.Application.Repositories.Item;
 using ECafe.Application.Repositories.Restaurant;
 using ECafe.Application.Services.Item.Abstract;
 using ECafe.Application.Services.MinIO.Abstracts;
+using ECafe.Application.Services.RestaurantContract.Abstract;
 using ECafe.Domain.Exceptions;
 using ECafe.Shared.DTOs;
 using FluentValidation;
@@ -23,6 +24,7 @@ namespace ECafe.Application.Services.Item.Concrete
         private readonly IItemRepository _itemRepository;
         private readonly IMinioService _minioService;
         private readonly IValidator<CreateItemRequest> _validator;
+        private readonly IRestaurantContractService _restaurantContractService;
 
         public ItemManager(IHttpContextAccessor httpContextAccessor,
                            IMapper mapper,
@@ -31,7 +33,8 @@ namespace ECafe.Application.Services.Item.Concrete
                            IRestaurantRepository restaurantRepository,
                            IItemRepository itemRepository,
                            IMinioService minioService,
-                           IValidator<CreateItemRequest> validator)
+                           IValidator<CreateItemRequest> validator,
+                           IRestaurantContractService restaurantContractService)
                            : base(httpContextAccessor, mapper, configuration)
         {
             _categoryRepository = categoryRepository;
@@ -39,6 +42,7 @@ namespace ECafe.Application.Services.Item.Concrete
             _itemRepository = itemRepository;
             _minioService = minioService;
             _validator = validator;
+            _restaurantContractService = restaurantContractService;
         }
 
         public async Task<int> CreateAsync(CreateItemRequest request)
@@ -51,6 +55,7 @@ namespace ECafe.Application.Services.Item.Concrete
             var itemName = request.Name.Trim();
 
             await EnsureRestaurantExistsAsync(request.RestaurantId);
+            await _restaurantContractService.EnsureRestaurantHasActiveContractAsync(request.RestaurantId);
             await EnsureCategoryBelongsToRestaurantAsync(request.CategoryId, request.RestaurantId);
             await EnsureItemNameIsUniqueAsync(request.RestaurantId, request.CategoryId, itemName);
 

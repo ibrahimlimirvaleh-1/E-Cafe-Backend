@@ -4,6 +4,7 @@ using ECafe.Application.Repositories.Category;
 using ECafe.Application.Repositories.Restaurant;
 using ECafe.Application.Services;
 using ECafe.Application.Services.Category.Abstract;
+using ECafe.Application.Services.RestaurantContract.Abstract;
 using ECafe.Domain.Entities;
 using ECafe.Domain.Exceptions;
 using Microsoft.AspNetCore.Http;
@@ -13,17 +14,20 @@ public class CategoryManager : BaseManager, ICategoryService
 {
     private readonly ICategoryRepository _categoryRepository;
     private readonly IRestaurantRepository _restaurantRepository;
+    private readonly IRestaurantContractService _restaurantContractService;
 
     public CategoryManager(
         IHttpContextAccessor httpContextAccessor,
         IMapper mapper,
         IConfiguration configuration,
         ICategoryRepository categoryRepository,
-        IRestaurantRepository restaurantRepository)
+        IRestaurantRepository restaurantRepository,
+        IRestaurantContractService restaurantContractService)
         : base(httpContextAccessor, mapper, configuration)
     {
         _categoryRepository = categoryRepository;
         _restaurantRepository = restaurantRepository;
+        _restaurantContractService = restaurantContractService;
     }
 
     public async Task<int> CreateCategoryAsync(CreateCategoryRequest request)
@@ -34,6 +38,8 @@ public class CategoryManager : BaseManager, ICategoryService
         var restaurant = await _restaurantRepository.GetByIdAsync(request.RestaurantId);
         if (restaurant is null)
             throw new BusinessRuleException("Restaurant not found!");
+
+        await _restaurantContractService.EnsureRestaurantHasActiveContractAsync(request.RestaurantId);
 
         var category = Mapper.Map<Category>(request);
         category.Slug = request.Name.GenerateSlug();
