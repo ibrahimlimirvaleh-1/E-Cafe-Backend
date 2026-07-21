@@ -16,6 +16,7 @@ namespace ECafe.Infrastructure.Services.MinIO
         private readonly string _bucket;
         private bool _bucketExists;
         private readonly SemaphoreSlim _bucketLock = new(1, 1);
+        private const long MaxUploadSize = 10 * 1024 * 1024;
         private static readonly Dictionary<string, string[]> AllowedUploadTypes = new(StringComparer.OrdinalIgnoreCase)
         {
             ["image/jpeg"] = [".jpg", ".jpeg"],
@@ -75,6 +76,9 @@ namespace ECafe.Infrastructure.Services.MinIO
             if (request.File is null || request.File.Length == 0)
                 throw new ArgumentException("File is required.", nameof(request));
 
+            if (request.File.Length > MaxUploadSize)
+                throw new BusinessRuleException("File size must not exceed 10 MB.");
+
             var contentType = ValidateUploadType(request.File.FileName, request.File.ContentType);
             await ValidateFileSignatureAsync(request.File, contentType);
 
@@ -125,6 +129,20 @@ namespace ECafe.Infrastructure.Services.MinIO
                 ?? throw new InvalidOperationException("HTTP context is not available.");
 
             return $"http://{host}/api/v1/file/getFile?token={token}";
+        }
+
+        public async Task DeleteFileAsync(string token)
+        {
+            if (string.IsNullOrWhiteSpace(token))
+                throw new ArgumentException("File token is required.", nameof(token));
+
+            await EnsureBucketExistsAsync();
+
+            var removeObjectArgs = new RemoveObjectArgs()
+                .WithBucket(_bucket)
+                .WithObject(token);
+
+            await _minioClient.RemoveObjectAsync(removeObjectArgs);
         }
 
         private async Task EnsureBucketExistsAsync()

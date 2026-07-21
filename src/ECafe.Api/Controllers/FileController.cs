@@ -14,6 +14,13 @@ namespace ECafe.Api.Controllers
             return Ok(fileId);
         }
 
+        [HttpDelete("api/v1/file/{fileId:int}")]
+        public async Task<IActionResult> Delete(int fileId)
+        {
+            await Mediator.Send(new DeleteFileCommand { FileId = fileId });
+            return NoContent();
+        }
+
         [HttpGet("api/v1/file/getFile")]
         public async Task<IActionResult> GetFile([FromQuery] GetFileQuery query)
         {

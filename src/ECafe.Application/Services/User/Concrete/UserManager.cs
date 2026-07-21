@@ -1,10 +1,9 @@
 using AutoMapper;
 using AutoMapper.QueryableExtensions;
 using ECafe.Application.Common.Exceptions;
-using ECafe.Application.DTOs.Auth;
-using ECafe.Application.DTOs.File;
 using ECafe.Application.DTOs.User;
 using ECafe.Application.DTOs.User.Staff;
+using ECafe.Application.Repositories.File;
 using ECafe.Application.Repositories.Restaurant;
 using ECafe.Application.Repositories.Role;
 using ECafe.Application.Repositories.User;
@@ -25,6 +24,7 @@ namespace ECafe.Application.Services.User.Concrete
         private readonly IRoleRepository _roleRepository;
         private readonly IUserRepository _userRepository;
         private readonly IMinioService _minioService;
+        private readonly IFileRepository _fileRepository;
         private readonly IEmailService _emailService;
 
         public UserManager(
@@ -34,6 +34,7 @@ namespace ECafe.Application.Services.User.Concrete
             IRestaurantRepository restaurantRepository,
             IRoleRepository roleRepository,
             IMinioService minioService,
+            IFileRepository fileRepository,
             IUserRepository userRepository,
             IEmailService emailService)
             : base(httpContextAccessor, mapper, configuration)
@@ -41,6 +42,7 @@ namespace ECafe.Application.Services.User.Concrete
             _restaurantRepository = restaurantRepository;
             _roleRepository = roleRepository;
             _minioService = minioService;
+            _fileRepository = fileRepository;
             _userRepository = userRepository;
             _emailService = emailService;
         }
@@ -55,7 +57,7 @@ namespace ECafe.Application.Services.User.Concrete
             await EnsureRoleExistsAsync(request.RoleId);
             await EnsureUserDoesNotExistAsync(request.Email);
 
-            var file = await CreateFileIfExistsAsync(request.Image);
+            var file = await GetAttachableFileAsync(request.FileId);
 
             var user = Mapper.Map<Domain.Entities.User>(request);
             user.File = file;
@@ -191,7 +193,7 @@ namespace ECafe.Application.Services.User.Concrete
 
             Mapper.Map(request, user);
 
-            var file = await CreateFileIfExistsAsync(request.Image);
+            var file = await GetAttachableFileAsync(request.FileId);
             if (file is not null)
                 user.File = file;
 
@@ -252,19 +254,16 @@ namespace ECafe.Application.Services.User.Concrete
                 throw new BusinessRuleException("User with this email already exists");
         }
 
-        private async Task<Domain.Entities.File?> CreateFileIfExistsAsync(IFormFile? image)
+        private async Task<Domain.Entities.File?> GetAttachableFileAsync(int? fileId)
         {
-            if (image is null || image.Length == 0)
+            if (!fileId.HasValue)
                 return null;
 
-            var token = await _minioService.UploadFileAsync(new UploadFileDto(image));
+            var file = await _fileRepository.GetAttachableByIdAsync(fileId.Value);
+            if (file is null)
+                throw new BusinessRuleException("File not found or already attached.");
 
-            return Mapper.Map<Domain.Entities.File>(new FileMapData
-            {
-                Token = token,
-                FileName = image.FileName,
-                Size = image.Length
-            });
+            return file;
         }
 
         private static string GetRoleDescription(int roleId)

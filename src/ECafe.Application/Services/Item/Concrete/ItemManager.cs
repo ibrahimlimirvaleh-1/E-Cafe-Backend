@@ -1,13 +1,11 @@
 using AutoMapper;
 using AutoMapper.QueryableExtensions;
-using ECafe.Application.DTOs.Auth;
-using ECafe.Application.DTOs.File;
 using ECafe.Application.DTOs.Item;
 using ECafe.Application.Repositories.Category;
+using ECafe.Application.Repositories.File;
 using ECafe.Application.Repositories.Item;
 using ECafe.Application.Repositories.Restaurant;
 using ECafe.Application.Services.Item.Abstract;
-using ECafe.Application.Services.MinIO.Abstracts;
 using ECafe.Application.Services.RestaurantContract.Abstract;
 using ECafe.Domain.Exceptions;
 using ECafe.Shared.DTOs;
@@ -22,7 +20,7 @@ namespace ECafe.Application.Services.Item.Concrete
         private readonly ICategoryRepository _categoryRepository;
         private readonly IRestaurantRepository _restaurantRepository;
         private readonly IItemRepository _itemRepository;
-        private readonly IMinioService _minioService;
+        private readonly IFileRepository _fileRepository;
         private readonly IValidator<CreateItemRequest> _validator;
         private readonly IRestaurantContractService _restaurantContractService;
 
@@ -32,7 +30,7 @@ namespace ECafe.Application.Services.Item.Concrete
                            ICategoryRepository categoryRepository,
                            IRestaurantRepository restaurantRepository,
                            IItemRepository itemRepository,
-                           IMinioService minioService,
+                           IFileRepository fileRepository,
                            IValidator<CreateItemRequest> validator,
                            IRestaurantContractService restaurantContractService)
                            : base(httpContextAccessor, mapper, configuration)
@@ -40,7 +38,7 @@ namespace ECafe.Application.Services.Item.Concrete
             _categoryRepository = categoryRepository;
             _restaurantRepository = restaurantRepository;
             _itemRepository = itemRepository;
-            _minioService = minioService;
+            _fileRepository = fileRepository;
             _validator = validator;
             _restaurantContractService = restaurantContractService;
         }
@@ -61,7 +59,7 @@ namespace ECafe.Application.Services.Item.Concrete
             await EnsureItemNameIsUniqueAsync(request.RestaurantId, request.CategoryId, itemName);
 
             var item = Mapper.Map<Domain.Entities.Item>(request);
-            item.File = await CreateFileIfExistsAsync(request.File);
+            item.File = await GetAttachableFileAsync(request.FileId);
 
             await _itemRepository.Add(item);
             await _itemRepository.SaveChangesAsync();
@@ -126,19 +124,16 @@ namespace ECafe.Application.Services.Item.Concrete
                 throw new BusinessRuleException("Item with the same name already exists in this category.");
         }
 
-        private async Task<Domain.Entities.File?> CreateFileIfExistsAsync(IFormFile? file)
+        private async Task<Domain.Entities.File?> GetAttachableFileAsync(int? fileId)
         {
-            if (file is null || file.Length == 0)
+            if (!fileId.HasValue)
                 return null;
 
-            var token = await _minioService.UploadFileAsync(new UploadFileDto(file));
+            var file = await _fileRepository.GetAttachableByIdAsync(fileId.Value);
+            if (file is null)
+                throw new BusinessRuleException("File not found or already attached.");
 
-            return Mapper.Map<Domain.Entities.File>(new FileMapData
-            {
-                Token = token,
-                FileName = file.FileName,
-                Size = file.Length
-            });
+            return file;
         }
     }
 }

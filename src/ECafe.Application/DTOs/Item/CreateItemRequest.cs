@@ -1,8 +1,6 @@
-﻿using Microsoft.AspNetCore.Http;
-
 namespace ECafe.Application.DTOs.Item
 {
-    public class    CreateItemRequest
+    public class CreateItemRequest
     {
         public int RestaurantId { get; set; }
 
@@ -20,8 +18,6 @@ namespace ECafe.Application.DTOs.Item
 
         public int SalesCount { get; set; }
 
-        public IFormFile? File { get; set; }
-
-
+        public int? FileId { get; set; }
     }
 }

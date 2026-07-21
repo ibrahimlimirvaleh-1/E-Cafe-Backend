@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Http;
-
 namespace ECafe.Application.DTOs.User
 {
     public class CreateUserRequest
@@ -17,7 +15,8 @@ namespace ECafe.Application.DTOs.User
         public bool IsActive { get; set; }
 
         public decimal? Rating { get; set; }
-        public IFormFile? Image { get; set; }
+
+        public int? FileId { get; set; }
 
         public int RestaurantId { get; set; }
 

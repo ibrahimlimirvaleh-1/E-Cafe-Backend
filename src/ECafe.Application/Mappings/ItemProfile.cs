@@ -19,6 +19,7 @@ namespace ECafe.Application.Mappings
                 .ForMember(dest => dest.SalesCount, opt => opt.MapFrom(src => src.SalesCount))
                 .ForMember(dest => dest.IsActive, opt => opt.MapFrom(_ => true))
                 .ForMember(dest => dest.IsAvailable, opt => opt.MapFrom(src => src.StatusId != 5003))
+                .ForMember(dest => dest.FileId, opt => opt.Ignore())
                 .ForMember(dest => dest.File, opt => opt.Ignore());
 
             CreateMap<Domain.Entities.Item, ItemDto>()

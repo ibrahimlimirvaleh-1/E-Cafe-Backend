@@ -1,3 +1,4 @@
+using ECafe.Api.BackgroundServices;
 using ECafe.Api.Middlewares;
 using ECafe.Api.Swagger;
 using ECafe.Application;
@@ -111,6 +112,7 @@ builder.Services.AddScoped<IPermissionCacheService, PermissionCacheService>();
 
 builder.Services.AddMemoryCache();
 
+builder.Services.AddHostedService<UnattachedFileCleanupService>();
 
 builder.Services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
 builder.Services.AddScoped<IAuthorizationHandler, ActiveRestaurantContractAuthorizationHandler>();

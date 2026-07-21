@@ -10,6 +10,8 @@ namespace ECafe.Application.Services.MinIO.Abstracts
 
         Task<GetFileResponse> GetFileAsync(string token);
 
+        Task DeleteFileAsync(string token);
+
         public Task<string> GenerateFileUrl(string token);
 
     }

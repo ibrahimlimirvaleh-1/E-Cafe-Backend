@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Http;
-
 namespace ECafe.Application.DTOs.Restaurant
 {
     public class RegisterRestaurantRequest
@@ -31,7 +29,7 @@ namespace ECafe.Application.DTOs.Restaurant
 
         public int StaffSettlementPeriod { get; set; } = 2;
 
-        public List<IFormFile>? Files { get; set; }
+        public List<int>? FileIds { get; set; }
 
     }
 }

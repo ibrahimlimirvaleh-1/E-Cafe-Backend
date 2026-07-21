@@ -1,9 +1,8 @@
 using AutoMapper;
-using ECafe.Application.DTOs.Auth;
-using ECafe.Application.DTOs.File;
 using ECafe.Application.DTOs.Restaurant;
 using ECafe.Application.DTOs.Restaurant.Public;
 using ECafe.Application.DTOs.User.Staff;
+using ECafe.Application.Repositories.File;
 using ECafe.Application.Repositories.Restaurant;
 using ECafe.Application.Repositories.RestaurantGroup;
 using ECafe.Application.Repositories.UserRestaurant;
@@ -27,6 +26,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
         private readonly IUserRestaurantRepository _userRestaurantRepository;
         private readonly IEmailService _emailService;
         private readonly IMinioService _minioService;
+        private readonly IFileRepository _fileRepository;
 
         public RestaurantManager(
             IHttpContextAccessor httpContextAccessor,
@@ -36,7 +36,8 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             IRestaurantGroupRepository restaurantGroupRepository,
             IEmailService emailService,
             IMinioService minioService,
-            IUserRestaurantRepository userRestaurantRepository)
+            IUserRestaurantRepository userRestaurantRepository,
+            IFileRepository fileRepository)
             : base(httpContextAccessor, mapper, configuration)
         {
             _restaurantRepository = restaurantRepository;
@@ -44,6 +45,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             _emailService = emailService;
             _minioService = minioService;
             _userRestaurantRepository = userRestaurantRepository;
+            _fileRepository = fileRepository;
         }
 
         public async Task<PaginatedList<GetAllRestaurantsResponse>> GetAllRestaurantsAsync(
@@ -206,7 +208,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             restaurant.RestaurantGroup = restaurantGroup;
 
             await EnsureBranchDoesNotExistAsync(restaurantGroup?.Id, restaurant.BranchName);
-            await AttachRestaurantFilesAsync(restaurant, request.Files);
+            await AttachRestaurantFilesAsync(restaurant, request.FileIds);
 
             await _restaurantRepository.Add(restaurant);
             await _restaurantRepository.SaveChangesAsync();
@@ -261,6 +263,9 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             restaurant.ServiceFeePercent = request.ServiceFeePercent;
             restaurant.StaffSettlementPeriod = request.StaffSettlementPeriod;
 
+            if (request.FileIds is not null)
+                await ReplaceRestaurantFilesAsync(restaurant, request.FileIds);
+
             await _restaurantRepository.Update(restaurant);
             await _restaurantRepository.SaveChangesAsync();
         }
@@ -302,28 +307,54 @@ namespace ECafe.Application.Services.Restaurant.Concrete
 
         private async Task AttachRestaurantFilesAsync(
             Domain.Entities.Restaurant restaurant,
-            List<IFormFile>? files)
+            List<int>? fileIds)
         {
-            if (files is null || !files.Any())
+            if (fileIds is null || fileIds.Count == 0)
                 return;
 
-            foreach (var formFile in files)
+            var files = await GetAttachableFilesAsync(fileIds);
+            restaurant.Files ??= [];
+            restaurant.Files.AddRange(files);
+        }
+
+        private async Task ReplaceRestaurantFilesAsync(
+            Domain.Entities.Restaurant restaurant,
+            List<int> fileIds)
+        {
+            restaurant.Files ??= [];
+
+            if (fileIds.Count == 0)
             {
-                if (formFile is null || formFile.Length == 0)
-                    continue;
-
-                var token = await _minioService.UploadFileAsync(new UploadFileDto(formFile));
-
-                var fileEntity = Mapper.Map<Domain.Entities.File>(new FileMapData
-                {
-                    Token = token,
-                    FileName = formFile.FileName,
-                    Size = formFile.Length,
-                    Url = await _minioService.GenerateFileUrl(token)
-                });
-
-                restaurant.Files!.Add(fileEntity);
+                restaurant.Files.Clear();
+                return;
             }
+
+            var uniqueFileIds = fileIds.Distinct().ToList();
+            var currentFiles = restaurant.Files
+                .Where(file => uniqueFileIds.Contains(file.Id))
+                .ToList();
+            var missingIds = uniqueFileIds
+                .Except(currentFiles.Select(file => file.Id))
+                .ToList();
+            var attachableFiles = await GetAttachableFilesAsync(missingIds);
+
+            restaurant.Files.Clear();
+            restaurant.Files.AddRange(currentFiles.Concat(attachableFiles));
+        }
+
+        private async Task<List<File>> GetAttachableFilesAsync(IEnumerable<int> fileIds)
+        {
+            var uniqueFileIds = fileIds.Distinct().ToList();
+            if (uniqueFileIds.Any(fileId => fileId <= 0))
+                throw new BusinessRuleException("Invalid file ID!");
+
+            var files = await _fileRepository.GetAttachableByIdsAsync(uniqueFileIds);
+            var foundIds = files.Select(file => file.Id).ToHashSet();
+            var missingIds = uniqueFileIds.Where(fileId => !foundIds.Contains(fileId)).ToList();
+            if (missingIds.Count > 0)
+                throw new BusinessRuleException($"File(s) not found or already attached: {string.Join(", ", missingIds)}");
+
+            return files;
         }
 
         private async Task PopulateRestaurantImageUrlsAsync(
@@ -469,6 +500,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
         {
             var restaurant = await _restaurantRepository.QueryTracked(x => x.Id == restaurantId)
                 .Include(x => x.RestaurantGroup)
+                .Include(x => x.Files)
                 .Include(x => x.UserRestaurants)
                     .ThenInclude(x => x.User)
                 .FirstOrDefaultAsync();

@@ -1,7 +1,7 @@
 ﻿using AutoMapper;
 using ECafe.Application.Common.Exceptions;
 using ECafe.Application.DTOs.Auth;
-using ECafe.Application.DTOs.File;
+using ECafe.Application.Repositories.File;
 using ECafe.Application.Repositories.User;
 using ECafe.Application.Repositories.UserRefreshToken;
 using ECafe.Application.Services.Auth.Abstract;
@@ -22,19 +22,22 @@ namespace ECafe.Application.Services.Auth.Concrete
         private readonly IUserRefreshTokenRepository _refreshTokenRepository;
         private readonly IJwtService _jwtService;
         private readonly IMinioService _minioService;
+        private readonly IFileRepository _fileRepository;
         public AuthManager(IHttpContextAccessor httpContextAccessor,
                            IMapper mapper,
                            IConfiguration configuration,
                            IUserRepository userRepository,
                            IUserRefreshTokenRepository refreshTokenRepository,
                            IJwtService jwtService,
-                           IMinioService minioService)
+                           IMinioService minioService,
+                           IFileRepository fileRepository)
                            : base(httpContextAccessor, mapper, configuration)
         {
             _userRepository = userRepository;
             _refreshTokenRepository = refreshTokenRepository;
             _jwtService = jwtService;
             _minioService = minioService;
+            _fileRepository = fileRepository;
         }
 
         public async Task<AuthResponseDto> LoginAsync(LoginRequestDto request)
@@ -60,7 +63,7 @@ namespace ECafe.Application.Services.Auth.Concrete
         public async Task<AuthResponseDto> RegisterAsync(RegisterRequestDto request)
         {
             await EnsureUserDoesNotExistAsync(request.Email, request.Phone);
-            var file = await CreateFileIfExistsAsync(request.Image);
+            var file = await GetAttachableFileAsync(request.FileId);
 
             var user = Mapper.Map<Domain.Entities.User>(request);
             user.File = file;
@@ -105,18 +108,16 @@ namespace ECafe.Application.Services.Auth.Concrete
                 throw new BusinessRuleException("Bu telefon nömrəsi ilə istifadəçi artıq mövcuddur");
         }
 
-        private async Task<Domain.Entities.File?> CreateFileIfExistsAsync(IFormFile? image)
+        private async Task<Domain.Entities.File?> GetAttachableFileAsync(int? fileId)
         {
-            if (image is null || image.Length == 0) return null;
+            if (!fileId.HasValue)
+                return null;
 
-            var token = await _minioService.UploadFileAsync(new UploadFileDto(image));
+            var file = await _fileRepository.GetAttachableByIdAsync(fileId.Value);
+            if (file is null)
+                throw new BusinessRuleException("File not found or already attached.");
 
-            return Mapper.Map<Domain.Entities.File>(new FileMapData
-            {
-                Token = token,
-                FileName = image.FileName,
-                Size = image.Length
-            });
+            return file;
         }
 
         private async Task<AuthResponseDto> CreateAndStoreTokenResponseAsync(Domain.Entities.User user)

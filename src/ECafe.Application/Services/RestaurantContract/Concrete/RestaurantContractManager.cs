@@ -221,9 +221,9 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
                 if (request.FileId.Value <= 0)
                     throw new BusinessRuleException("Invalid contract file ID!");
 
-                var existingFile = await _fileRepository.GetByIdAsync(request.FileId.Value);
+                var existingFile = await _fileRepository.GetAttachableByIdAsync(request.FileId.Value);
                 if (existingFile is null)
-                    throw new BusinessRuleException("Contract file not found!");
+                    throw new BusinessRuleException("Contract file not found or already attached!");
 
                 return null;
             }

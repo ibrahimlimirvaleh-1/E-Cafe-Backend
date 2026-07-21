@@ -1,12 +1,8 @@
-﻿using ECafe.Application.Features.Commands.User.Create;
+using ECafe.Application.Features.Commands.User.Create;
 using FluentValidation;
-using Microsoft.AspNetCore.Http;
 
 public sealed class CreateUserCommandValidator : AbstractValidator<CreateUserCommand>
 {
-    private static readonly string[] AllowedExtensions = [".jpg", ".jpeg", ".png", ".webp"];
-    private const long MaxFileSize = 5 * 1024 * 1024;
-
     public CreateUserCommandValidator()
     {
         RuleFor(x => x.Name)
@@ -42,31 +38,9 @@ public sealed class CreateUserCommandValidator : AbstractValidator<CreateUserCom
             .When(x => x.Rating.HasValue)
             .WithMessage("Rating must be between 0 and 5.");
 
-        RuleFor(x => x.Image)
-            .Must(BeValidExtension)
-            .When(x => x.Image is not null)
-            .WithMessage("Only .jpg, .jpeg, .png and .webp files are allowed.");
-
-        RuleFor(x => x.Image)
-            .Must(BeValidSize)
-            .When(x => x.Image is not null)
-            .WithMessage("Image size must not exceed 5 MB.");
-    }
-
-    private static bool BeValidExtension(IFormFile? file)
-    {
-        if (file is null)
-            return true;
-
-        var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
-        return AllowedExtensions.Contains(extension);
-    }
-
-    private static bool BeValidSize(IFormFile? file)
-    {
-        if (file is null)
-            return true;
-
-        return file.Length <= MaxFileSize;
+        RuleFor(x => x.FileId)
+            .GreaterThan(0)
+            .When(x => x.FileId.HasValue)
+            .WithMessage("FileId must be greater than 0.");
     }
 }

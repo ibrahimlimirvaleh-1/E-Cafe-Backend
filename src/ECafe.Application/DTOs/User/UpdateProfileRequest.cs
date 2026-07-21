@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Http;
-
 namespace ECafe.Application.DTOs.User
 {
     public class UpdateProfileRequest
@@ -8,6 +6,6 @@ namespace ECafe.Application.DTOs.User
         public string Surname { get; set; } = null!;
         public string Email { get; set; } = null!;
         public string Phone { get; set; } = null!;
-        public IFormFile? Image { get; set; }
+        public int? FileId { get; set; }
     }
 }

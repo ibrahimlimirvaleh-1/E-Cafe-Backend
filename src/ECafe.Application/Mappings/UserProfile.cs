@@ -14,6 +14,7 @@ namespace ECafe.Application.Mappings
                 .ForMember(dest => dest.Surname, opt => opt.MapFrom(src => src.Surname.Trim()))
                 .ForMember(dest => dest.Email, opt => opt.MapFrom(src => src.Email.Trim().ToLowerInvariant()))
                 .ForMember(dest => dest.Phone, opt => opt.MapFrom(src => src.Phone.Trim()))
+                .ForMember(dest => dest.FileId, opt => opt.Ignore())
                 .ForMember(dest => dest.Password, opt => opt.MapFrom(src => BCrypt.Net.BCrypt.HashPassword(src.Password)))
                 .ForMember(dest => dest.File, opt => opt.Ignore())
                 .ForMember(dest => dest.UserRestaurant, opt => opt.MapFrom(src => new UserRestaurant
@@ -27,6 +28,7 @@ namespace ECafe.Application.Mappings
                 .ForMember(dest => dest.Surname, opt => opt.MapFrom(src => src.Surname.Trim()))
                 .ForMember(dest => dest.Email, opt => opt.MapFrom(src => src.Email.Trim().ToLowerInvariant()))
                 .ForMember(dest => dest.Phone, opt => opt.MapFrom(src => src.Phone.Trim()))
+                .ForMember(dest => dest.FileId, opt => opt.Ignore())
                 .ForMember(dest => dest.File, opt => opt.Ignore());
 
             CreateMap<Role, RoleDto>();

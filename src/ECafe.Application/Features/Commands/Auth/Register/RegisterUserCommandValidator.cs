@@ -1,13 +1,9 @@
 using FluentValidation;
-using Microsoft.AspNetCore.Http;
 
 namespace ECafe.Application.Features.Commands.Auth.Register
 {
     public sealed class RegisterUserCommandValidator : AbstractValidator<RegisterUserCommand>
     {
-        private static readonly string[] AllowedImageExtensions = [".jpg", ".jpeg", ".png", ".webp"];
-        private const long MaxImageSize = 5 * 1024 * 1024;
-
         public RegisterUserCommandValidator()
         {
             RuleFor(x => x.Name)
@@ -33,32 +29,10 @@ namespace ECafe.Application.Features.Commands.Auth.Register
                 .MinimumLength(8).WithMessage("Password must be at least 8 characters.")
                 .MaximumLength(100).WithMessage("Password must be at most 100 characters.");
 
-            RuleFor(x => x.Image)
-                .Must(BeValidImageExtension)
-                .When(x => x.Image is not null)
-                .WithMessage("Only .jpg, .jpeg, .png and .webp images are allowed.");
-
-            RuleFor(x => x.Image)
-                .Must(BeValidImageSize)
-                .When(x => x.Image is not null)
-                .WithMessage("Image size must not exceed 5 MB.");
-        }
-
-        private static bool BeValidImageExtension(IFormFile? image)
-        {
-            if (image is null)
-                return true;
-
-            var extension = Path.GetExtension(image.FileName).ToLowerInvariant();
-            return AllowedImageExtensions.Contains(extension);
-        }
-
-        private static bool BeValidImageSize(IFormFile? image)
-        {
-            if (image is null)
-                return true;
-
-            return image.Length <= MaxImageSize;
+            RuleFor(x => x.FileId)
+                .GreaterThan(0)
+                .When(x => x.FileId.HasValue)
+                .WithMessage("FileId must be greater than 0.");
         }
     }
 }

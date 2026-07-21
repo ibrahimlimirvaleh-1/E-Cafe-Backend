@@ -26,5 +26,7 @@ namespace ECafe.Application.DTOs.Restaurant
 
         public int StaffSettlementPeriod { get; set; } = 2;
 
+        public List<int>? FileIds { get; set; }
+
     }
 }

@@ -18,6 +18,7 @@ namespace ECafe.Application.Mappings
                 .ForMember(dest => dest.Password, opt => opt.MapFrom(src => BCrypt.Net.BCrypt.HashPassword(src.Password)))
                 .ForMember(dest => dest.IsActive, opt => opt.MapFrom(_ => true))
                 .ForMember(dest => dest.RoleId, opt => opt.MapFrom(_ => (int)RoleCode.Customer))
+                .ForMember(dest => dest.FileId, opt => opt.Ignore())
                 .ForMember(dest => dest.File, opt => opt.Ignore());
 
             CreateMap<FileMapData, File>()

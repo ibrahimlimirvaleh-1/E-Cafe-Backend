@@ -1,5 +1,3 @@
-﻿using Microsoft.AspNetCore.Http;
-
 namespace ECafe.Application.DTOs.Auth
 {
     public class RegisterRequestDto
@@ -13,8 +11,7 @@ namespace ECafe.Application.DTOs.Auth
         public string Phone { get; set; } = null!;
 
         public string Password { get; set; } = null!;
-        public IFormFile? Image { get; set; }
 
-
+        public int? FileId { get; set; }
     }
 }

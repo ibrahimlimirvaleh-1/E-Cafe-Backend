@@ -1,14 +1,10 @@
-using FluentValidation;
-using Microsoft.AspNetCore.Http;
 using ECafe.Domain.Enums;
+using FluentValidation;
 
 namespace ECafe.Application.DTOs.Item
 {
     public sealed class CreateItemRequestValidator : AbstractValidator<CreateItemRequest>
     {
-        private static readonly string[] AllowedExtensions = [".jpg", ".jpeg", ".png", ".webp"];
-        private const long MaxFileSize = 5 * 1024 * 1024;
-
         public CreateItemRequestValidator()
         {
             RuleFor(x => x.RestaurantId)
@@ -38,32 +34,10 @@ namespace ECafe.Application.DTOs.Item
             RuleFor(x => x.SalesCount)
                 .GreaterThanOrEqualTo(0).WithMessage("SalesCount cannot be negative.");
 
-            RuleFor(x => x.File)
-                .Must(BeValidExtension)
-                .When(x => x.File is not null)
-                .WithMessage("Only .jpg, .jpeg, .png and .webp files are allowed.");
-
-            RuleFor(x => x.File)
-                .Must(BeValidSize)
-                .When(x => x.File is not null)
-                .WithMessage("File size must not exceed 5 MB.");
-        }
-
-        private static bool BeValidExtension(IFormFile? file)
-        {
-            if (file is null)
-                return true;
-
-            var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
-            return AllowedExtensions.Contains(extension);
-        }
-
-        private static bool BeValidSize(IFormFile? file)
-        {
-            if (file is null)
-                return true;
-
-            return file.Length <= MaxFileSize;
+            RuleFor(x => x.FileId)
+                .GreaterThan(0)
+                .When(x => x.FileId.HasValue)
+                .WithMessage("FileId must be greater than 0.");
         }
 
         private static bool BeValidItemStatus(int statusId)
