@@ -13,7 +13,5 @@ namespace ECafe.Application.DTOs.RestaurantContract
         public int? StaffSettlementPeriod { get; set; }
 
         public int PaymentPolicyId { get; set; } = (int)ContractPaymentPolicy.OnlineOnly;
-
-        public int? FileId { get; set; }
     }
 }

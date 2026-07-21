@@ -17,7 +17,7 @@ namespace ECafe.Api.Controllers
     public class UserController : BaseController
     {
         [HasPermission(Domain.Enums.PermissionCode.ManageStaff)]
-        [HttpPost("api/v1/user/create")]
+        [HttpPost("api/v1/admin/user/create")]
         public async Task<IActionResult> Create([FromForm] CreateUserCommand command)
         {
             await Mediator.Send(command);
@@ -26,7 +26,7 @@ namespace ECafe.Api.Controllers
 
 
         [HasPermission(Domain.Enums.PermissionCode.ManageStaff)]
-        [HttpDelete("api/v1/user/delete")]
+        [HttpDelete("api/v1/admin/user/delete")]
         public async Task<IActionResult> Delete([FromQuery] DeleteUserCommand command)
         {
             await Mediator.Send(command);
@@ -34,7 +34,7 @@ namespace ECafe.Api.Controllers
         }
 
         [HasPermission(Domain.Enums.PermissionCode.ManageStaff)]
-        [HttpPatch("api/v1/user/role/update")]
+        [HttpPatch("api/v1/admin/user/role/update")]
         public async Task<IActionResult> UpdateRole([FromQuery] UpdateRoleCommand command)
         {
             await Mediator.Send(command);

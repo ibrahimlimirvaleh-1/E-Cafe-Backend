@@ -8,7 +8,8 @@ namespace ECafe.Application.Mappings
     {
         public CategoryProfile()
         {
-            CreateMap<CreateCategoryRequest, Category>();
+            CreateMap<CreateCategoryRequest, Category>()
+                .ForMember(dest => dest.SortOrder, opt => opt.Ignore());
             CreateMap<Category, GetAllCategoryResponse>();
         }
     }

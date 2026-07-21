@@ -232,7 +232,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
 
             await EnsureRestaurantDoesNotExistAsync(request.Name, request.Email, request.Phone, restaurantId);
 
-            if (request.RestaurantGroupId.HasValue ||
+            if (request.RestaurantGroupId.GetValueOrDefault() > 0 ||
                 !string.IsNullOrWhiteSpace(request.RestaurantGroupName))
             {
                 var restaurantGroup = await ResolveRestaurantGroupAsync(
@@ -541,10 +541,15 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             string? restaurantGroupName,
             string? restaurantGroupLegalName)
         {
-            if (restaurantGroupId.HasValue)
+            var groupId = restaurantGroupId.GetValueOrDefault();
+
+            if (groupId < 0)
+                throw new BusinessRuleException("Invalid restaurant group ID!");
+
+            if (groupId > 0)
             {
                 var existingGroup = await _restaurantGroupRepository
-                    .QueryTracked(x => x.Id == restaurantGroupId.Value)
+                    .QueryTracked(x => x.Id == groupId)
                     .FirstOrDefaultAsync();
 
                 if (existingGroup is null)

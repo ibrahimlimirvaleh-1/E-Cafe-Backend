@@ -14,7 +14,7 @@ namespace ECafe.Api.Controllers
         => Ok(await Mediator.Send(new GetAllCategoryQuery(restaurantId)));
 
         [HasPermission(PermissionCode.ManageCatalog)]
-        [HttpPost("api/v1/category")]
+        [HttpPost("api/v1/admin/category/create")]
         public async Task<IActionResult> Create([FromForm] CreateCategoryCommand command)
         => Ok(await Mediator.Send(command));
     }

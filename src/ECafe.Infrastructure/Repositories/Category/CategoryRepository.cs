@@ -19,5 +19,13 @@ namespace ECafe.Infrastructure.Repositories.Category
                 .OrderBy(c => c.SortOrder)
                 .ToListAsync();
         }
+
+        public async Task<int> GetMaxSortOrderByRestaurantIdAsync(int restaurantId)
+        {
+            return await Query()
+                .Where(c => c.RestaurantId == restaurantId && c.IsActive)
+                .Select(c => (int?)c.SortOrder)
+                .MaxAsync() ?? 0;
+        }
     }
 }

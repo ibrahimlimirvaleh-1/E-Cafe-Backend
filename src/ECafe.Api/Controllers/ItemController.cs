@@ -9,7 +9,7 @@ namespace ECafe.Api.Controllers
     public class ItemController : BaseController
     {
         [HasPermission(PermissionCode.ManageCatalog)]
-        [HttpPost("api/v1/item")]
+        [HttpPost("api/v1/admin/item/create")]
         public async Task<IActionResult> Create([FromForm] CreateItemCommand command)
         => Ok(await Mediator.Send(command));
 

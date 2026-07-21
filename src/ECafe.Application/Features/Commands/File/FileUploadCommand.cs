@@ -3,7 +3,7 @@ using MediatR;
 
 namespace ECafe.Application.Features.Commands.File
 {
-    public class FileUploadCommand : UploadFileDto, IRequest<int>
+    public class FileUploadCommand : UploadFileDto, IRequest<FileResponse>
     {
     }
 }

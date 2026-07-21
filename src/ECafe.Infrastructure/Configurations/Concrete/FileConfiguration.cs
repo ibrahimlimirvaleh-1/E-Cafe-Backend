@@ -26,6 +26,10 @@ namespace ECafe.Infrastructure.Configurations.Concrete
             builder.Property(e => e.Url)
                 .HasMaxLength(500)
                 .HasColumnName("url");
+
+            builder.HasOne(e => e.Restaurant)
+                .WithMany(r => r.Files);
+
         }
     }
 }

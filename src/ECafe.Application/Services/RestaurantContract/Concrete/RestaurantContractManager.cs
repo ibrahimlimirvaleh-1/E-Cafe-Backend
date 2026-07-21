@@ -2,7 +2,6 @@ using AutoMapper;
 using ECafe.Application.DTOs.Auth;
 using ECafe.Application.DTOs.File;
 using ECafe.Application.DTOs.RestaurantContract;
-using ECafe.Application.Repositories.File;
 using ECafe.Application.Repositories.Restaurant;
 using ECafe.Application.Repositories.RestaurantContract;
 using ECafe.Application.Services.MinIO.Abstracts;
@@ -12,8 +11,6 @@ using ECafe.Domain.Exceptions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-using System.IO.Compression;
-using System.Net;
 using File = ECafe.Domain.Entities.File;
 
 namespace ECafe.Application.Services.RestaurantContract.Concrete
@@ -22,9 +19,8 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
     {
         private readonly IRestaurantContractRepository _contractRepository;
         private readonly IRestaurantRepository _restaurantRepository;
-        private readonly IFileRepository _fileRepository;
         private readonly IMinioService _minioService;
-        private const string ContractContentType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+        private readonly IContractDocumentGenerator _contractDocumentGenerator;
 
         public RestaurantContractManager(
             IHttpContextAccessor httpContextAccessor,
@@ -32,14 +28,14 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             IConfiguration configuration,
             IRestaurantContractRepository contractRepository,
             IRestaurantRepository restaurantRepository,
-            IFileRepository fileRepository,
-            IMinioService minioService)
+            IMinioService minioService,
+            IContractDocumentGenerator contractDocumentGenerator)
             : base(httpContextAccessor, mapper, configuration)
         {
             _contractRepository = contractRepository;
             _restaurantRepository = restaurantRepository;
-            _fileRepository = fileRepository;
             _minioService = minioService;
+            _contractDocumentGenerator = contractDocumentGenerator;
         }
 
         public async Task<int> CreateAsync(int restaurantId, CreateRestaurantContractRequest request)
@@ -72,7 +68,6 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
                 StaffSettlementPeriod = request.StaffSettlementPeriod,
                 PaymentPolicyId = request.PaymentPolicyId,
                 StatusId = ContractStatusId(ContractStatus.Draft),
-                FileId = request.FileId,
                 File = generatedFile
             };
 
@@ -88,7 +83,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
                 throw new BusinessRuleException("Invalid restaurant ID!");
 
             var contracts = await _contractRepository.GetByRestaurantAsync(restaurantId);
-            return contracts.Select(MapToResponse).ToList();
+            return (await Task.WhenAll(contracts.Select(MapToResponseAsync))).ToList();
         }
 
         public async Task<RestaurantContractResponse> GetActiveAsync(int restaurantId)
@@ -97,7 +92,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             if (contract is null)
                 throw new BusinessRuleException("Restaurant does not have an active contract!");
 
-            return MapToResponse(contract);
+            return await MapToResponseAsync(contract);
         }
 
         public async Task ActivateAsync(int restaurantId, int contractId, int? signedByUserId)
@@ -152,8 +147,13 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             return contract;
         }
 
-        private static RestaurantContractResponse MapToResponse(Domain.Entities.RestaurantContract contract)
-            => new()
+        private async Task<RestaurantContractResponse> MapToResponseAsync(Domain.Entities.RestaurantContract contract)
+        {
+            var fileUrl = contract.File is null
+                ? null
+                : await _minioService.GenerateFileUrl(contract.File.Token);
+
+            return new RestaurantContractResponse
             {
                 Id = contract.Id,
                 RestaurantId = contract.RestaurantId,
@@ -166,13 +166,14 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
                 StatusId = contract.StatusId,
                 StatusName = contract.Status?.Name,
                 FileId = contract.FileId,
-                FileUrl = contract.File?.Url,
+                FileUrl = fileUrl,
                 SignedAt = contract.SignedAt,
                 SignedByUserId = contract.SignedByUserId,
                 SignedByUserName = contract.SignedByUser is null
                     ? null
                     : $"{contract.SignedByUser.Name} {contract.SignedByUser.Surname}".Trim()
             };
+        }
 
         private static int ContractStatusId(ContractStatus status)
             => ((int)StatusType.Contract * 1000) + (int)status;
@@ -211,141 +212,59 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
                 throw new BusinessRuleException($"{fieldName} must be between 0 and 100!");
         }
 
-        private async Task<File?> ResolveContractFileAsync(
+        private async Task<File> ResolveContractFileAsync(
             Domain.Entities.Restaurant restaurant,
             string contractNumber,
             CreateRestaurantContractRequest request)
         {
-            if (request.FileId.HasValue)
-            {
-                if (request.FileId.Value <= 0)
-                    throw new BusinessRuleException("Invalid contract file ID!");
+            var document = _contractDocumentGenerator.Generate(BuildContractDocumentData(
+                restaurant,
+                contractNumber,
+                request));
 
-                var existingFile = await _fileRepository.GetAttachableByIdAsync(request.FileId.Value);
-                if (existingFile is null)
-                    throw new BusinessRuleException("Contract file not found or already attached!");
-
-                return null;
-            }
-
-            var fileName = $"{contractNumber}.docx";
-            var bytes = GenerateContractDocx(restaurant, contractNumber, request);
             var token = await _minioService.UploadFileAsync(new UploadGeneratedFileDto
             {
-                Bytes = bytes,
-                FileName = fileName,
-                ContentType = ContractContentType
+                Bytes = document.Bytes,
+                FileName = document.FileName,
+                ContentType = document.ContentType
             });
 
             return Mapper.Map<File>(new FileMapData
             {
                 Token = token,
-                FileName = fileName,
-                Size = bytes.LongLength,
+                FileName = document.FileName,
+                Size = document.Bytes.LongLength,
                 Url = await _minioService.GenerateFileUrl(token)
             });
         }
 
-        private static byte[] GenerateContractDocx(
+        private static RestaurantContractDocumentData BuildContractDocumentData(
             Domain.Entities.Restaurant restaurant,
             string contractNumber,
             CreateRestaurantContractRequest request)
         {
-            using var stream = new MemoryStream();
-            using (var archive = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen: true))
-            {
-                WriteZipEntry(archive, "[Content_Types].xml", """
-                    <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-                    <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
-                      <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
-                      <Default Extension="xml" ContentType="application/xml"/>
-                      <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
-                    </Types>
-                    """);
-
-                WriteZipEntry(archive, "_rels/.rels", """
-                    <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-                    <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-                      <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
-                    </Relationships>
-                    """);
-
-                WriteZipEntry(archive, "word/document.xml", BuildContractDocumentXml(restaurant, contractNumber, request));
-            }
-
-            return stream.ToArray();
-        }
-
-        private static string BuildContractDocumentXml(
-            Domain.Entities.Restaurant restaurant,
-            string contractNumber,
-            CreateRestaurantContractRequest request)
-        {
-            var restaurantGroup = restaurant.RestaurantGroup;
-            var legalName = string.IsNullOrWhiteSpace(restaurantGroup?.LegalName)
+            var legalName = string.IsNullOrWhiteSpace(restaurant.RestaurantGroup?.LegalName)
                 ? restaurant.Name
-                : restaurantGroup.LegalName;
+                : restaurant.RestaurantGroup.LegalName;
             var branchName = string.IsNullOrWhiteSpace(restaurant.BranchName)
                 ? restaurant.Name
                 : restaurant.BranchName;
 
-            var lines = new[]
+            return new RestaurantContractDocumentData
             {
-                ("E-Cafe restoran xidmətləri müqaviləsi", true),
-                ($"Müqavilə nömrəsi: {contractNumber}", false),
-                ($"Restoran: {restaurant.Name}", false),
-                ($"Hüquqi ad: {legalName}", false),
-                ($"Filial: {branchName}", false),
-                ($"Ünvan: {restaurant.Location}", false),
-                ($"Telefon: {restaurant.Phone}", false),
-                ($"Email: {restaurant.Email}", false),
-                ($"Başlama tarixi: {FormatDate(request.StartDate)}", false),
-                ($"Bitmə tarixi: {FormatDate(request.EndDate)}", false),
-                ($"Komissiya faizi: {FormatPercent(request.CommissionPercent)}", false),
-                ($"İşçi hesablaşma periodu: {FormatSettlementPeriod(request.StaffSettlementPeriod)}", false),
-                ("", false),
-                ("Tərəflər bu müqavilə ilə E-Cafe platforması üzərindən restoran xidmətlərinin göstərilməsi, sifarişlərin idarə olunması və ödənişlərin emalı şərtlərini qəbul edirlər.", false),
-                ("", false),
-                ("Platforma nümayəndəsi: ____________________", false),
-                ("Restoran nümayəndəsi: ____________________", false)
+                ContractNumber = contractNumber,
+                RestaurantName = restaurant.Name,
+                LegalName = legalName,
+                BranchName = branchName,
+                Location = restaurant.Location,
+                Phone = restaurant.Phone,
+                Email = restaurant.Email,
+                StartDate = request.StartDate,
+                EndDate = request.EndDate,
+                CommissionPercent = request.CommissionPercent,
+                StaffSettlementPeriod = request.StaffSettlementPeriod,
+                PaymentPolicyId = request.PaymentPolicyId
             };
-
-            var paragraphs = string.Concat(lines.Select(line => BuildParagraph(line.Item1, line.Item2)));
-
-            return $$"""
-                <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-                <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
-                  <w:body>
-                    {{paragraphs}}
-                    <w:sectPr>
-                      <w:pgSz w:w="11906" w:h="16838"/>
-                      <w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="720" w:footer="720" w:gutter="0"/>
-                    </w:sectPr>
-                  </w:body>
-                </w:document>
-                """;
         }
-
-        private static string BuildParagraph(string text, bool bold)
-        {
-            var runProperties = bold ? "<w:rPr><w:b/></w:rPr>" : string.Empty;
-            return $"<w:p><w:r>{runProperties}<w:t>{WebUtility.HtmlEncode(text)}</w:t></w:r></w:p>";
-        }
-
-        private static void WriteZipEntry(ZipArchive archive, string entryName, string content)
-        {
-            var entry = archive.CreateEntry(entryName);
-            using var writer = new StreamWriter(entry.Open());
-            writer.Write(content);
-        }
-
-        private static string FormatDate(DateTime? value)
-            => value.HasValue ? value.Value.ToString("yyyy-MM-dd") : "-";
-
-        private static string FormatPercent(decimal? value)
-            => value.HasValue ? $"{value:0.##}%" : "-";
-
-        private static string FormatSettlementPeriod(int? value)
-            => value.HasValue ? $"{value} gün" : "-";
     }
 }

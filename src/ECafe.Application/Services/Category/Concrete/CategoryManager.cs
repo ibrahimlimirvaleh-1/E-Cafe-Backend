@@ -44,6 +44,7 @@ public class CategoryManager : BaseManager, ICategoryService
 
         var category = Mapper.Map<Category>(request);
         category.Slug = request.Name.GenerateSlug();
+        category.SortOrder = await ResolveSortOrderAsync(request.RestaurantId, request.SortOrder);
         category.IsActive = true;
 
         await _categoryRepository.Add(category);
@@ -63,5 +64,15 @@ public class CategoryManager : BaseManager, ICategoryService
             throw new BusinessRuleException("Category is empty");
 
         return Mapper.Map<List<GetAllCategoryResponse>>(categories);
+    }
+
+    private async Task<int> ResolveSortOrderAsync(int restaurantId, int? requestedSortOrder)
+    {
+        var sortOrder = requestedSortOrder.GetValueOrDefault();
+        if (sortOrder > 0)
+            return sortOrder;
+
+        var maxSortOrder = await _categoryRepository.GetMaxSortOrderByRestaurantIdAsync(restaurantId);
+        return maxSortOrder + 1;
     }
 }

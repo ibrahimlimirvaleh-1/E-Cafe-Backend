@@ -41,6 +41,7 @@ namespace ECafe.Application
             services.AddScoped<IAuthService, AuthManager>();
             services.AddScoped<IEmailService, EmailManager>();
             services.AddScoped<IRestaurantService, RestaurantManager>();
+            services.AddScoped<IContractDocumentGenerator, ContractDocumentGenerator>();
             services.AddScoped<IRestaurantContractService, RestaurantContractManager>();
             services.AddScoped<IUserService, UserManager>();
             services.AddScoped<ITableService, TableManager>();

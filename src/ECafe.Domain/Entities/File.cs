@@ -18,6 +18,8 @@ namespace ECafe.Domain.Entities
 
         public virtual User? User { get; set; }
 
+        public virtual Restaurant? Restaurant { get; set; }
+
         public virtual ICollection<RestaurantContract> RestaurantContracts { get; set; } = new List<RestaurantContract>();
     }
 }

@@ -29,6 +29,12 @@
 		<Folder Include="Filters\" />
 	</ItemGroup>
 
+	<ItemGroup>
+		<Content Include="Templates\Contracts\restaurant-contract-document.xml">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
+	</ItemGroup>
+
 	<PropertyGroup>
 		<TargetFramework>net9.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>

@@ -10,8 +10,8 @@ namespace ECafe.Api.Controllers
         [Consumes("multipart/form-data")]
         public async Task<IActionResult> Upload([FromForm] FileUploadCommand command)
         {
-            var fileId = await Mediator.Send(command);
-            return Ok(fileId);
+            var file = await Mediator.Send(command);
+            return Ok(file);
         }
 
         [HttpDelete("api/v1/file/{fileId:int}")]
@@ -19,6 +19,13 @@ namespace ECafe.Api.Controllers
         {
             await Mediator.Send(new DeleteFileCommand { FileId = fileId });
             return NoContent();
+        }
+
+        [HttpGet("api/v1/file/{fileId:int}")]
+        public async Task<IActionResult> GetById(int fileId)
+        {
+            var file = await Mediator.Send(new GetFileMetadataQuery { FileId = fileId });
+            return Ok(file);
         }
 
         [HttpGet("api/v1/file/getFile")]

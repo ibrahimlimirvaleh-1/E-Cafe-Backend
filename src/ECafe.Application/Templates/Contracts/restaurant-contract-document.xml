@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:body>
+    <w:p><w:r><w:rPr><w:b/></w:rPr><w:t>E-Cafe restoran xidm&#601;tl&#601;ri m&#252;qavil&#601;si</w:t></w:r></w:p>
+    <w:p><w:r><w:t>M&#252;qavil&#601; n&#246;mr&#601;si: {{ContractNumber}}</w:t></w:r></w:p>
+    <w:p><w:r><w:t>Restoran: {{RestaurantName}}</w:t></w:r></w:p>
+    <w:p><w:r><w:t>H&#252;quqi ad: {{LegalName}}</w:t></w:r></w:p>
+    <w:p><w:r><w:t>Filial: {{BranchName}}</w:t></w:r></w:p>
+    <w:p><w:r><w:t>&#220;nvan: {{Location}}</w:t></w:r></w:p>
+    <w:p><w:r><w:t>Telefon: {{Phone}}</w:t></w:r></w:p>
+    <w:p><w:r><w:t>Email: {{Email}}</w:t></w:r></w:p>
+    <w:p><w:r><w:t>Ba&#351;lama tarixi: {{StartDate}}</w:t></w:r></w:p>
+    <w:p><w:r><w:t>Bitm&#601; tarixi: {{EndDate}}</w:t></w:r></w:p>
+    <w:p><w:r><w:t>Komissiya faizi: {{CommissionPercent}}</w:t></w:r></w:p>
+    <w:p><w:r><w:t>&#304;&#351;&#231;i hesabla&#351;ma periodu: {{StaffSettlementPeriod}}</w:t></w:r></w:p>
+    <w:p><w:r><w:t>&#214;d&#601;ni&#351; siyas&#601;ti ID: {{PaymentPolicyId}}</w:t></w:r></w:p>
+    <w:p><w:r><w:t></w:t></w:r></w:p>
+    <w:p><w:r><w:t>T&#601;r&#601;fl&#601;r bu m&#252;qavil&#601; il&#601; E-Cafe platformas&#305; &#252;z&#601;rind&#601;n restoran xidm&#601;tl&#601;rinin g&#246;st&#601;rilm&#601;si, sifari&#351;l&#601;rin idar&#601; olunmas&#305; v&#601; &#246;d&#601;ni&#351;l&#601;rin emal&#305; &#351;&#601;rtl&#601;rini q&#601;bul edirl&#601;r.</w:t></w:r></w:p>
+    <w:p><w:r><w:t></w:t></w:r></w:p>
+    <w:p><w:r><w:t>Platforma n&#252;may&#601;nd&#601;si: ____________________</w:t></w:r></w:p>
+    <w:p><w:r><w:t>Restoran n&#252;may&#601;nd&#601;si: ____________________</w:t></w:r></w:p>
+    <w:sectPr>
+      <w:pgSz w:w="11906" w:h="16838"/>
+      <w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="720" w:footer="720" w:gutter="0"/>
+    </w:sectPr>
+  </w:body>
+</w:document>
