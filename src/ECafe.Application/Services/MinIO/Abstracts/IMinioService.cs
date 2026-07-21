@@ -6,6 +6,8 @@ namespace ECafe.Application.Services.MinIO.Abstracts
     {
         public Task<string> UploadFileAsync(UploadFileDto request);
 
+        public Task<string> UploadFileAsync(UploadGeneratedFileDto request);
+
         Task<GetFileResponse> GetFileAsync(string token);
 
         public Task<string> GenerateFileUrl(string token);

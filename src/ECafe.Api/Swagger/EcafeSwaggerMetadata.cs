@@ -36,7 +36,7 @@ public static class EcafeSwaggerMetadata
             ["User.GetProfile"] = new("Profilimi gətir", "Token sahibi istifadəçinin profil məlumatlarını qaytarır."),
             ["User.UpdateProfile"] = new("Profilimi yenilə", "Token sahibi istifadəçinin profil məlumatlarını və şəklini yeniləyir."),
             ["User.GetStaffDetail"] = new("Staff detalı", "Restorana aid konkret staff istifadəçisinin detallı məlumatını qaytarır."),
-            ["File.Upload"] = new("Fayl yüklə", "Menyu item-i, restoran və ya profil üçün fayl/şəkil yükləyir."),
+            ["File.Upload"] = new("Fayl yüklə", "Menyu item-i, restoran, profil və müqavilə üçün icazəli faylı yükləyir və fileId qaytarır."),
             ["File.GetFile"] = new("Faylı göstər", "Token və ya query məlumatına görə faylı binary response kimi qaytarır.")
         };
 

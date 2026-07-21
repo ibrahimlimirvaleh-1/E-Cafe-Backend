@@ -1,4 +1,5 @@
 using ECafe.Application.Repositories.Category;
+using ECafe.Application.Repositories.File;
 using ECafe.Application.Repositories.Item;
 using ECafe.Application.Repositories.Restaurant;
 using ECafe.Application.Repositories.RestaurantGroup;
@@ -13,6 +14,7 @@ using ECafe.Infrastructure.Context;
 using ECafe.Infrastructure.Authorization;
 using ECafe.Infrastructure.Repositories;
 using ECafe.Infrastructure.Repositories.Category;
+using ECafe.Infrastructure.Repositories.File;
 using ECafe.Infrastructure.Repositories.Item;
 using ECafe.Infrastructure.Repositories.Restaurant;
 using ECafe.Infrastructure.Repositories.RestaurantGroup;
@@ -55,6 +57,7 @@ namespace ECafe.Infrastructure
             services.AddScoped<ITableRepository, TableRepository>();
             services.AddScoped<ICategoryRepository, CategoryRepository>();
             services.AddScoped<IItemRepository, ItemRepository>();
+            services.AddScoped<IFileRepository, FileRepository>();
             return services;
         }
     }

@@ -198,15 +198,14 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             var restaurantGroup = await ResolveRestaurantGroupAsync(
                 request.RestaurantGroupId,
                 request.RestaurantGroupName,
-                request.RestaurantGroupLegalName,
-                request.Name);
+                request.RestaurantGroupLegalName);
 
             var restaurant = Mapper.Map<Domain.Entities.Restaurant>(request);
             restaurant.Files = [];
-            restaurant.BranchName = NormalizeBranchName(request.BranchName, request.Name);
+            restaurant.BranchName = NormalizeBranchName(request.BranchName, request.Name, restaurantGroup is not null);
             restaurant.RestaurantGroup = restaurantGroup;
 
-            await EnsureBranchDoesNotExistAsync(restaurantGroup.Id, restaurant.BranchName);
+            await EnsureBranchDoesNotExistAsync(restaurantGroup?.Id, restaurant.BranchName);
             await AttachRestaurantFilesAsync(restaurant, request.Files);
 
             await _restaurantRepository.Add(restaurant);
@@ -235,16 +234,20 @@ namespace ECafe.Application.Services.Restaurant.Concrete
                 !string.IsNullOrWhiteSpace(request.RestaurantGroupName))
             {
                 var restaurantGroup = await ResolveRestaurantGroupAsync(
-                    request.RestaurantGroupId ?? restaurant.RestaurantGroupId,
+                    request.RestaurantGroupId,
                     request.RestaurantGroupName,
-                    request.RestaurantGroupLegalName,
-                    request.Name);
+                    request.RestaurantGroupLegalName);
 
                 restaurant.RestaurantGroup = restaurantGroup;
-                restaurant.RestaurantGroupId = restaurantGroup.Id == 0 ? null : restaurantGroup.Id;
+                restaurant.RestaurantGroupId = restaurantGroup is null || restaurantGroup.Id == 0
+                    ? null
+                    : restaurantGroup.Id;
             }
 
-            var branchName = NormalizeBranchName(request.BranchName, request.Name);
+            var branchName = NormalizeBranchName(
+                request.BranchName,
+                request.Name,
+                restaurant.RestaurantGroup is not null || restaurant.RestaurantGroupId.HasValue);
             var groupIdForDuplicateCheck = restaurant.RestaurantGroupId;
             await EnsureBranchDoesNotExistAsync(groupIdForDuplicateCheck, branchName, restaurantId);
 
@@ -501,11 +504,10 @@ namespace ECafe.Application.Services.Restaurant.Concrete
                 throw new BusinessRuleException("Restaurant with this phone already exists!");
         }
 
-        private async Task<RestaurantGroup> ResolveRestaurantGroupAsync(
+        private async Task<RestaurantGroup?> ResolveRestaurantGroupAsync(
             int? restaurantGroupId,
             string? restaurantGroupName,
-            string? restaurantGroupLegalName,
-            string fallbackGroupName)
+            string? restaurantGroupLegalName)
         {
             if (restaurantGroupId.HasValue)
             {
@@ -519,15 +521,13 @@ namespace ECafe.Application.Services.Restaurant.Concrete
                 if (!existingGroup.IsActive)
                     throw new BusinessRuleException("Restaurant group is inactive!");
 
-                if (!string.IsNullOrWhiteSpace(restaurantGroupLegalName))
-                    existingGroup.LegalName = restaurantGroupLegalName.Trim();
-
                 return existingGroup;
             }
 
-            var groupName = string.IsNullOrWhiteSpace(restaurantGroupName)
-                ? fallbackGroupName.Trim()
-                : restaurantGroupName.Trim();
+            if (string.IsNullOrWhiteSpace(restaurantGroupName))
+                return null;
+
+            var groupName = restaurantGroupName.Trim();
 
             var groupNameExists = await _restaurantGroupRepository
                 .CheckExistAsync(x => x.Name == groupName);
@@ -565,11 +565,12 @@ namespace ECafe.Application.Services.Restaurant.Concrete
                 throw new BusinessRuleException("Branch with this name already exists in the selected restaurant group!");
         }
 
-        private static string? NormalizeBranchName(string? branchName, string fallbackName)
+        private static string? NormalizeBranchName(string? branchName, string fallbackName, bool hasRestaurantGroup)
         {
-            return string.IsNullOrWhiteSpace(branchName)
-                ? fallbackName.Trim()
-                : branchName.Trim();
+            if (!string.IsNullOrWhiteSpace(branchName))
+                return branchName.Trim();
+
+            return hasRestaurantGroup ? fallbackName.Trim() : null;
         }
 
         private async Task<StaffPublicResponseDto> MapToPublicDtoAsync(UserRestaurant staff)

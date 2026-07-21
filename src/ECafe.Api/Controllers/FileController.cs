@@ -10,8 +10,8 @@ namespace ECafe.Api.Controllers
         [Consumes("multipart/form-data")]
         public async Task<IActionResult> Upload([FromForm] FileUploadCommand command)
         {
-            var fileName = await Mediator.Send(command);
-            return Ok(fileName);
+            var fileId = await Mediator.Send(command);
+            return Ok(fileId);
         }
 
         [HttpGet("api/v1/file/getFile")]

@@ -24,6 +24,8 @@ namespace ECafe.Application.DTOs.RestaurantContract
 
         public int? FileId { get; set; }
 
+        public string? FileUrl { get; set; }
+
         public DateTime? SignedAt { get; set; }
 
         public int? SignedByUserId { get; set; }
