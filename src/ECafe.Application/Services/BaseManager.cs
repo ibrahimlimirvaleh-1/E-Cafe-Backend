@@ -33,6 +33,15 @@ public abstract class BaseManager
             : null;
     }
 
+    protected int GetCurrentUserId()
+    {
+        var userIdClaim = CurrentUser.FindFirst("userId")?.Value;
+        if (!int.TryParse(userIdClaim, out var userId) || userId <= 0)
+            throw new ForbiddenException("User context is required.");
+
+        return userId;
+    }
+
     protected void EnsureCurrentUserCanAccessRestaurant(int restaurantId)
     {
         if (restaurantId <= 0)

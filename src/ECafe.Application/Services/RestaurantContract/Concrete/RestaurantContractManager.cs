@@ -95,7 +95,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             return await MapToResponseAsync(contract);
         }
 
-        public async Task ActivateAsync(int restaurantId, int contractId, int? signedByUserId)
+        public async Task ActivateAsync(int restaurantId, int contractId)
         {
             var contract = await GetTrackedContractAsync(restaurantId, contractId);
 
@@ -111,7 +111,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
 
             contract.StatusId = ContractStatusId(ContractStatus.Active);
             contract.SignedAt ??= DateTime.UtcNow;
-            contract.SignedByUserId ??= signedByUserId;
+            contract.SignedByUserId ??= GetCurrentUserId();
 
             await _contractRepository.Update(contract);
             await _contractRepository.SaveChangesAsync();

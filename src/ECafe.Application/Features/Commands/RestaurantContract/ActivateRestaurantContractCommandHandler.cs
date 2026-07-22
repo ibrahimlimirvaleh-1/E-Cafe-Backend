@@ -13,6 +13,6 @@ namespace ECafe.Application.Features.Commands.RestaurantContract
         }
 
         public async Task Handle(ActivateRestaurantContractCommand request, CancellationToken cancellationToken)
-            => await _contractService.ActivateAsync(request.RestaurantId, request.ContractId, request.SignedByUserId);
+            => await _contractService.ActivateAsync(request.RestaurantId, request.ContractId);
     }
 }

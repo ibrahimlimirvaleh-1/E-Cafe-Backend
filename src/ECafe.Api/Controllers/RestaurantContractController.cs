@@ -27,12 +27,14 @@ namespace ECafe.Api.Controllers
 
         [HasPermission(Domain.Enums.PermissionCode.ManageRestaurantContracts)]
         [HttpPost("api/v1/restaurants/{restaurantId}/contracts/{contractId}/activate")]
-        public async Task<IActionResult> Activate(int restaurantId, int contractId, [FromBody] ActivateRestaurantContractCommand? command)
+        public async Task<IActionResult> Activate(int restaurantId, int contractId)
         {
-            command ??= new ActivateRestaurantContractCommand();
-            command.RestaurantId = restaurantId;
-            command.ContractId = contractId;
-            await Mediator.Send(command);
+            await Mediator.Send(new ActivateRestaurantContractCommand
+            {
+                RestaurantId = restaurantId,
+                ContractId = contractId
+            });
+
             return Ok();
         }
 

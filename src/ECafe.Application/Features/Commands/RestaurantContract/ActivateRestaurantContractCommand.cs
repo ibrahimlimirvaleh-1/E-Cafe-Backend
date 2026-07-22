@@ -7,7 +7,5 @@ namespace ECafe.Application.Features.Commands.RestaurantContract
         public int RestaurantId { get; set; }
 
         public int ContractId { get; set; }
-
-        public int? SignedByUserId { get; set; }
     }
 }

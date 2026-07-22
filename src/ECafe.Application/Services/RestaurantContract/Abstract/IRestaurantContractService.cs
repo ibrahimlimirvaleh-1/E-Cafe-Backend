@@ -10,7 +10,7 @@ namespace ECafe.Application.Services.RestaurantContract.Abstract
 
         Task<RestaurantContractResponse> GetActiveAsync(int restaurantId);
 
-        Task ActivateAsync(int restaurantId, int contractId, int? signedByUserId);
+        Task ActivateAsync(int restaurantId, int contractId);
 
         Task TerminateAsync(int restaurantId, int contractId);
 
