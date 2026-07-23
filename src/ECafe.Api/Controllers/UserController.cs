@@ -25,6 +25,7 @@ namespace ECafe.Api.Controllers
         }
 
 
+
         [HasPermission(Domain.Enums.PermissionCode.ManageStaff)]
         [HttpDelete("api/v1/users/{userId:int}")]
         public async Task<IActionResult> Delete(int userId)
