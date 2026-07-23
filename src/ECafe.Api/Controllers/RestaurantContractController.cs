@@ -38,6 +38,7 @@ namespace ECafe.Api.Controllers
             return Ok();
         }
 
+
         [HasPermission(Domain.Enums.PermissionCode.ManageRestaurantContracts)]
         [HttpPost("api/v1/restaurants/{restaurantId}/contracts/{contractId}/terminate")]
         public async Task<IActionResult> Terminate(int restaurantId, int contractId)
