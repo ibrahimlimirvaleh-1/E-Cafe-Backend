@@ -8,6 +8,7 @@ namespace ECafe.Application.Common.Audit
 
         public const string ContractCreated = "ContractCreated";
         public const string ContractActivated = "ContractActivated";
+        public const string ContractExpired = "ContractExpired";
         public const string ContractTerminated = "ContractTerminated";
 
         public const string CategoryCreated = "CategoryCreated";

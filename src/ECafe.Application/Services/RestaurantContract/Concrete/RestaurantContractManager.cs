@@ -182,6 +182,45 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
                 throw new BusinessRuleException("Restaurant does not have an active contract!");
         }
 
+        public async Task<int> ExpireActiveContractsAsync(int batchSize)
+        {
+            if (batchSize <= 0)
+                batchSize = 100;
+
+            var nowUtc = DateTime.UtcNow;
+            var expiredContracts = await _contractRepository.GetExpiredActiveContractsAsync(nowUtc, batchSize);
+
+            foreach (var contract in expiredContracts)
+            {
+                contract.StatusId = ContractStatusId(ContractStatus.Expired);
+                await _contractRepository.Update(contract);
+            }
+
+            if (expiredContracts.Count == 0)
+                return 0;
+
+            await _contractRepository.SaveChangesAsync();
+
+            foreach (var contract in expiredContracts)
+            {
+                await _auditLogService.RecordRestaurantActionAsync(
+                    contract.RestaurantId,
+                    AuditActions.ContractExpired,
+                    new
+                    {
+                        contractId = contract.Id,
+                        contract.ContractNumber,
+                        contract.EndDate,
+                        expiredAt = nowUtc
+                    },
+                    AuditEntityTypes.Contract,
+                    contract.Id,
+                    contract.ContractNumber);
+            }
+
+            return expiredContracts.Count;
+        }
+
         private async Task<Domain.Entities.RestaurantContract> GetTrackedContractAsync(int restaurantId, int contractId)
         {
             if (restaurantId <= 0)

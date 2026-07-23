@@ -114,6 +114,7 @@ builder.Services.AddMemoryCache();
 
 builder.Services.AddHostedService<UnattachedFileCleanupService>();
 builder.Services.AddHostedService<AuditOutboxWorker>();
+builder.Services.AddHostedService<ContractExpiryWorker>();
 
 builder.Services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
 builder.Services.AddScoped<IAuthorizationHandler, ActiveRestaurantContractAuthorizationHandler>();
