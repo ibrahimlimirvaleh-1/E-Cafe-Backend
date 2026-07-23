@@ -73,6 +73,7 @@ docker compose up -d --build
 Bu komanda aşağıdakı servisləri qaldırır:
 
 - `ecafe-api`
+- `ecafe-frontend`
 - `ecafe-db`
 - `sentry-web`, `sentry-worker`, `sentry-cron`, `sentry-init`
 - `postgres` (sentry üçün)
@@ -100,6 +101,7 @@ docker compose exec sentry-web sentry createuser \
 ## 4) URL-lər
 
 - ECafe API: http://localhost:${ECAFE_API_PORT} (default 8080)
+- ECafe Frontend: http://localhost:${ECAFE_FRONTEND_PORT} (default 5173)
 - Sentry: http://localhost:${SENTRY_PORT} (default 9002)
 - MinIO API: http://localhost:${MINIO_API_PORT} (default 9000)
 - MinIO Console: http://localhost:${MINIO_CONSOLE_PORT} (default 9011)

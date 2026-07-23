@@ -73,6 +73,12 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             var activeContractStatusId = ((int)ECafe.Domain.Enums.StatusType.Contract * 1000) + (int)ContractStatus.Active;
             var restaurantsQuery = _restaurantRepository.GetRestaurantsForList();
 
+            if (!IsCurrentUserSuperAdmin())
+            {
+                var currentRestaurantId = GetRequiredCurrentRestaurantId();
+                restaurantsQuery = restaurantsQuery.Where(r => r.Id == currentRestaurantId);
+            }
+
             search = NormalizeFilter(search);
             if (search is not null)
             {
@@ -128,6 +134,8 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             if (restaurantId <= 0)
                 throw new BusinessRuleException("Invalid restaurant ID!");
 
+            EnsureCurrentUserCanAccessRestaurant(restaurantId);
+
             var restaurant = await _restaurantRepository.GetRestaurantInfoAsync(restaurantId);
             if (restaurant is null)
                 throw new BusinessRuleException("Restaurant not found!");
@@ -141,13 +149,49 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             return response;
         }
 
-        public async Task<List<PublicRestaurantListItemDto>> GetPublicRestaurantsAsync()
+        public async Task<PaginatedList<PublicRestaurantListItemDto>> GetPublicRestaurantsAsync(
+            PaginationFilter filter,
+            string? search)
         {
-            var restaurants = await _restaurantRepository.GetActiveRestaurants()
+            NormalizePaginationFilter(filter, defaultPageSize: 10);
+
+            var restaurantsQuery = _restaurantRepository.GetActiveRestaurants();
+
+            search = NormalizeFilter(search);
+            if (search is not null)
+            {
+                restaurantsQuery = restaurantsQuery.Where(r =>
+                    r.Name.Contains(search) ||
+                    r.Location.Contains(search) ||
+                    r.Phone.Contains(search) ||
+                    (r.BranchName != null && r.BranchName.Contains(search)) ||
+                    (r.RestaurantGroup != null && r.RestaurantGroup.Name.Contains(search)) ||
+                    r.Categories.Any(c =>
+                        c.IsActive &&
+                        (c.Name.Contains(search) ||
+                         c.Slug.Contains(search) ||
+                         c.Items.Any(i =>
+                             i.IsActive &&
+                             i.IsAvailable &&
+                             (i.Name.Contains(search) ||
+                              (i.Description != null && i.Description.Contains(search)))))));
+            }
+
+            var totalCount = await restaurantsQuery.CountAsync();
+            var restaurants = await restaurantsQuery
+                .OrderBy(r => r.Name)
+                .Skip((filter.PageNumber - 1) * filter.PageSize)
+                .Take(filter.PageSize)
                 .ToListAsync();
 
             var responseTasks = restaurants.Select(MapToPublicListItemAsync);
-            return (await Task.WhenAll(responseTasks)).ToList();
+            var response = (await Task.WhenAll(responseTasks)).ToList();
+
+            return new PaginatedList<PublicRestaurantListItemDto>(
+                response,
+                totalCount,
+                filter.PageNumber,
+                filter.PageSize);
         }
 
         public async Task<PublicRestaurantProfileDto> GetPublicRestaurantProfileAsync(int restaurantId)
@@ -360,6 +404,18 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             return string.IsNullOrWhiteSpace(normalized) ? null : normalized;
         }
 
+        private static void NormalizePaginationFilter(PaginationFilter filter, int defaultPageSize)
+        {
+            if (filter.PageNumber <= 0)
+                filter.PageNumber = 1;
+
+            if (filter.PageSize <= 0)
+                filter.PageSize = defaultPageSize;
+
+            if (filter.PageSize > 100)
+                filter.PageSize = 100;
+        }
+
         private async Task AttachRestaurantFilesAsync(
             Domain.Entities.Restaurant restaurant,
             List<int>? fileIds)
@@ -546,6 +602,8 @@ namespace ECafe.Application.Services.Restaurant.Concrete
         {
             if (restaurantId <= 0)
                 throw new BusinessRuleException("Invalid restaurant ID!");
+
+            EnsureCurrentUserCanAccessRestaurant(restaurantId);
 
             return await _userRestaurantRepository
                 .GetRestaurantStaffAsync(restaurantId);

@@ -31,6 +31,7 @@ namespace ECafe.Api.Controllers
             return Ok();
         }
 
+        [HasPermission(Domain.Enums.PermissionCode.ViewRestaurantInfo)]
         [HttpGet("api/v1/restaurants/getAll")]
         public async Task<IActionResult> GetAllRestaurants([FromQuery] GetAllRestaurantsQuery query)
         {

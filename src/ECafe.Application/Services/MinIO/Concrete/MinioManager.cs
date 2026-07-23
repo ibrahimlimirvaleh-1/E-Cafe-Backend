@@ -14,6 +14,7 @@ namespace ECafe.Infrastructure.Services.MinIO
     {
         private readonly IMinioClient _minioClient;
         private readonly string _bucket;
+        private readonly string? _publicBaseUrl;
         private bool _bucketExists;
         private readonly SemaphoreSlim _bucketLock = new(1, 1);
         private const long MaxUploadSize = 10 * 1024 * 1024;
@@ -34,6 +35,7 @@ namespace ECafe.Infrastructure.Services.MinIO
         {
             _bucket = configuration["Minio:BucketName"]
                 ?? throw new InvalidOperationException("Minio:BucketName is not configured.");
+            _publicBaseUrl = configuration["FileStorage:PublicBaseUrl"]?.TrimEnd('/');
             var endpoint = configuration["Minio:Endpoint"]
                 ?? throw new InvalidOperationException("Minio:Endpoint is not configured.");
             var accessKey = configuration["Minio:AccessKey"]
@@ -123,12 +125,21 @@ namespace ECafe.Infrastructure.Services.MinIO
             return filename;
         }
 
-        public async Task<string> GenerateFileUrl(string token)
+        public Task<string> GenerateFileUrl(string token)
         {
-            var host = HttpContextAccessor.HttpContext?.Request.Host.Value
-                ?? throw new InvalidOperationException("HTTP context is not available.");
+            if (string.IsNullOrWhiteSpace(token))
+                throw new ArgumentException("File token is required.", nameof(token));
 
-            return $"http://{host}/api/v1/file/getFile?token={token}";
+            var baseUrl = _publicBaseUrl;
+            if (string.IsNullOrWhiteSpace(baseUrl))
+            {
+                var request = HttpContextAccessor.HttpContext?.Request
+                    ?? throw new InvalidOperationException("HTTP context is not available.");
+
+                baseUrl = $"{request.Scheme}://{request.Host.Value}".TrimEnd('/');
+            }
+
+            return Task.FromResult($"{baseUrl}/api/v1/file/getFile?token={Uri.EscapeDataString(token)}");
         }
 
         public async Task DeleteFileAsync(string token)

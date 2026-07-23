@@ -9,6 +9,7 @@ namespace ECafe.Api.Controllers
 
     public class CategoryController : BaseController
     {
+        [HasPermission(PermissionCode.ViewRestaurantInfo)]
         [HttpGet("api/v1/category/{restaurantId}")]
         public async Task<IActionResult> GetAll([FromRoute] int restaurantId)
         => Ok(await Mediator.Send(new GetAllCategoryQuery(restaurantId)));

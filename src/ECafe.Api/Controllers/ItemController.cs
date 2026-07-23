@@ -13,6 +13,7 @@ namespace ECafe.Api.Controllers
         public async Task<IActionResult> Create([FromForm] CreateItemCommand command)
         => Ok(await Mediator.Send(command));
 
+        [HasPermission(PermissionCode.ViewRestaurantInfo)]
         [HttpGet("api/v1/items/getAll")]
         public async Task<IActionResult> GetAll([FromQuery] GetAllItemsQuery query)
         => Ok(await Mediator.Send(query));

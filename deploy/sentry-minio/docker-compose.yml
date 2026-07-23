@@ -72,6 +72,7 @@ services:
       MinIO__SecretKey: ${MINIO_ROOT_PASSWORD:?Set MINIO_ROOT_PASSWORD in deploy/sentry-minio/.env}
       MinIO__BucketName: ${MINIO_BUCKET_NAME:-ecafefiles}
       MinIO__UseSSL: "false"
+      FileStorage__PublicBaseUrl: ${ECAFE_PUBLIC_API_BASE_URL:-http://localhost:8080}
 
       # JWT
       Jwt__Key: ${ECAFE_JWT_KEY:?Set ECAFE_JWT_KEY in deploy/sentry-minio/.env}
@@ -83,6 +84,17 @@ services:
 
     ports:
       - "${ECAFE_API_PORT:-8080}:8080"
+
+  ecafe-frontend:
+    build:
+      context: ../../../E-Cafe-Frontend
+      dockerfile: Dockerfile
+    container_name: ecafe-frontend
+    restart: unless-stopped
+    depends_on:
+      - ecafe-api
+    ports:
+      - "${ECAFE_FRONTEND_PORT:-5173}:80"
 
 volumes:
   ecafe-postgres:

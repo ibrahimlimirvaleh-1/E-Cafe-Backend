@@ -66,6 +66,8 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             if (request is null)
                 throw new BusinessRuleException("Contract request is required!");
 
+            EnsureCurrentUserCanAccessRestaurant(restaurantId);
+
             ValidateContractDates(request.StartDate, request.EndDate);
             ValidatePercent(request.CommissionPercent, nameof(request.CommissionPercent));
 
@@ -120,12 +122,16 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             if (restaurantId <= 0)
                 throw new BusinessRuleException("Invalid restaurant ID!");
 
+            EnsureCurrentUserCanAccessRestaurant(restaurantId);
+
             var contracts = await _contractRepository.GetByRestaurantAsync(restaurantId);
             return (await Task.WhenAll(contracts.Select(MapToResponseAsync))).ToList();
         }
 
         public async Task<RestaurantContractResponse> GetActiveAsync(int restaurantId)
         {
+            EnsureCurrentUserCanAccessRestaurant(restaurantId);
+
             var contract = await _contractRepository.GetActiveByRestaurantAsync(restaurantId);
             if (contract is null)
                 throw new BusinessRuleException("Restaurant does not have an active contract!");
@@ -135,6 +141,8 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
 
         public async Task ActivateAsync(int restaurantId, int contractId)
         {
+            EnsureCurrentUserCanAccessRestaurant(restaurantId);
+
             var contract = await GetTrackedContractAsync(restaurantId, contractId);
 
             ValidateContractDates(contract.StartDate, contract.EndDate);
@@ -215,6 +223,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             string? acceptanceText)
         {
             EnsureOwnerAcceptedContractTerms(hasAcceptedContractTerms, acceptanceText);
+            EnsureCurrentUserCanAccessRestaurant(restaurantId);
 
             var contract = await GetTrackedContractAsync(restaurantId, contractId);
             ValidateContractDates(contract.StartDate, contract.EndDate);
@@ -253,6 +262,8 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
 
         public async Task TerminateAsync(int restaurantId, int contractId)
         {
+            EnsureCurrentUserCanAccessRestaurant(restaurantId);
+
             var contract = await GetTrackedContractAsync(restaurantId, contractId);
             contract.StatusId = ContractStatusId(ContractStatus.Terminated);
 

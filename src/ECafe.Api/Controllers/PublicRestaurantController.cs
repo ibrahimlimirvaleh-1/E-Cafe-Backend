@@ -8,8 +8,8 @@ namespace ECafe.Api.Controllers
     public class PublicRestaurantController : BaseController
     {
         [HttpGet("api/v1/public/restaurants")]
-        public async Task<IActionResult> GetRestaurants()
-            => Ok(await Mediator.Send(new GetPublicRestaurantsQuery()));
+        public async Task<IActionResult> GetRestaurants([FromQuery] GetPublicRestaurantsQuery query)
+            => Ok(await Mediator.Send(query));
 
         [HttpGet("api/v1/public/restaurants/{restaurantId}")]
         public async Task<IActionResult> GetRestaurant(int restaurantId)

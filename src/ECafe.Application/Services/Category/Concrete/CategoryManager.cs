@@ -77,6 +77,8 @@ public class CategoryManager : BaseManager, ICategoryService
         if (restaurantId <= 0)
             throw new BusinessRuleException("Invalid restaurant ID!");
 
+        EnsureCurrentUserCanAccessRestaurant(restaurantId);
+
         var categories = await _categoryRepository.GetCategoriesByRestaurantIdAsync(restaurantId);
 
         if (!categories.Any())

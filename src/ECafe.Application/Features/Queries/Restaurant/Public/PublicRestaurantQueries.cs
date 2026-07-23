@@ -1,13 +1,19 @@
 using ECafe.Application.DTOs.Restaurant.Public;
 using ECafe.Application.Services.Restaurant.Abstract;
+using ECafe.Shared.DTOs;
 using MediatR;
 
 namespace ECafe.Application.Features.Queries.Restaurant.Public
 {
-    public record GetPublicRestaurantsQuery : IRequest<List<PublicRestaurantListItemDto>>;
+    public class GetPublicRestaurantsQuery : IRequest<PaginatedList<PublicRestaurantListItemDto>>
+    {
+        public int PageNumber { get; set; } = 1;
+        public int PageSize { get; set; } = 10;
+        public string? Search { get; set; }
+    }
 
     public class GetPublicRestaurantsQueryHandler
-        : IRequestHandler<GetPublicRestaurantsQuery, List<PublicRestaurantListItemDto>>
+        : IRequestHandler<GetPublicRestaurantsQuery, PaginatedList<PublicRestaurantListItemDto>>
     {
         private readonly IRestaurantService _restaurantService;
 
@@ -16,10 +22,13 @@ namespace ECafe.Application.Features.Queries.Restaurant.Public
             _restaurantService = restaurantService;
         }
 
-        public Task<List<PublicRestaurantListItemDto>> Handle(
+        public Task<PaginatedList<PublicRestaurantListItemDto>> Handle(
             GetPublicRestaurantsQuery request,
             CancellationToken cancellationToken)
-            => _restaurantService.GetPublicRestaurantsAsync();
+        {
+            var filter = new PaginationFilter(request.PageNumber, request.PageSize);
+            return _restaurantService.GetPublicRestaurantsAsync(filter, request.Search);
+        }
     }
 
     public record GetPublicRestaurantProfileQuery(int RestaurantId) : IRequest<PublicRestaurantProfileDto>;

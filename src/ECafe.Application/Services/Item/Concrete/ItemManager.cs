@@ -88,7 +88,7 @@ namespace ECafe.Application.Services.Item.Concrete
             return item.Id;
         }
 
-        public async Task<GetAllItemResponse> GetAllAsync(PaginationFilter filter, int categoryId, int statusId)
+        public async Task<GetAllItemResponse> GetAllAsync(PaginationFilter filter, int restaurantId, int categoryId, int statusId)
         {
             filter ??= new PaginationFilter();
 
@@ -99,6 +99,31 @@ namespace ECafe.Application.Services.Item.Concrete
                 filter.PageSize = 5;
 
             var query = _itemRepository.Query();
+            var targetRestaurantId = restaurantId;
+
+            if (categoryId > 0)
+            {
+                var category = await _categoryRepository.GetByIdAsync(categoryId);
+                if (category is null)
+                    throw new BusinessRuleException("Category not found!");
+
+                if (targetRestaurantId > 0 && category.RestaurantId != targetRestaurantId)
+                    throw new BusinessRuleException("Category does not belong to the selected restaurant.");
+
+                targetRestaurantId = category.RestaurantId;
+            }
+
+            if (!IsCurrentUserSuperAdmin())
+            {
+                var currentRestaurantId = GetRequiredCurrentRestaurantId();
+                if (targetRestaurantId > 0 && targetRestaurantId != currentRestaurantId)
+                    EnsureCurrentUserCanAccessRestaurant(targetRestaurantId);
+
+                targetRestaurantId = currentRestaurantId;
+            }
+
+            if (targetRestaurantId > 0)
+                query = query.Where(x => x.RestaurantId == targetRestaurantId);
 
             if (categoryId > 0)
                 query = query.Where(x => x.CategoryId == categoryId);

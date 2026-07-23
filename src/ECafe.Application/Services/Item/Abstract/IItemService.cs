@@ -7,6 +7,6 @@ namespace ECafe.Application.Services.Item.Abstract
     {
         public Task<int> CreateAsync(CreateItemRequest request);
 
-        public Task<GetAllItemResponse> GetAllAsync(PaginationFilter filter,int categoryId,int statusId);
+        public Task<GetAllItemResponse> GetAllAsync(PaginationFilter filter, int restaurantId, int categoryId, int statusId);
     }
 }

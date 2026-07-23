@@ -18,6 +18,9 @@ namespace ECafe.Infrastructure.Repositories.Restaurant
             return Query()
                 .Include(r => r.RestaurantGroup)
                 .Include(r => r.Files)
+                .Include(r => r.Categories)
+                    .ThenInclude(c => c.Items)
+                .AsSplitQuery()
                 .Where(r => r.IsActive && r.Contracts.Any(c => c.StatusId == activeContractStatusId));
         }
 

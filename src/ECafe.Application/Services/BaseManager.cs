@@ -33,6 +33,10 @@ public abstract class BaseManager
             : null;
     }
 
+    protected int GetRequiredCurrentRestaurantId()
+        => GetCurrentRestaurantId()
+           ?? throw new ForbiddenException("Restaurant context is required.");
+
     protected int GetCurrentUserId()
     {
         var userIdClaim = CurrentUser.FindFirst("userId")?.Value;
