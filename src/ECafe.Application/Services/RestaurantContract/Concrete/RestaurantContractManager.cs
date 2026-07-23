@@ -123,6 +123,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             var contract = await GetTrackedContractAsync(restaurantId, contractId);
 
             ValidateContractDates(contract.StartDate, contract.EndDate);
+            EnsureContractHasNotExpired(contract.EndDate);
 
             var hasOtherActive = await _contractRepository.CheckExistAsync(x =>
                 x.RestaurantId == restaurantId &&
@@ -293,6 +294,12 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
 
             if (endDate.HasValue && endDate.Value < startDate)
                 throw new BusinessRuleException("Contract end date cannot be earlier than start date!");
+        }
+
+        private static void EnsureContractHasNotExpired(DateTime? endDate)
+        {
+            if (endDate.HasValue && endDate.Value < DateTime.UtcNow)
+                throw new BusinessRuleException("Expired contract cannot be activated.");
         }
 
         private static void ValidatePercent(decimal? value, string fieldName)
