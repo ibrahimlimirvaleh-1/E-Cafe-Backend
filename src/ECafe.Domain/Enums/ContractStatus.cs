@@ -4,7 +4,7 @@ namespace ECafe.Domain.Enums
 {
     public enum ContractStatus
     {
-        [Description("Layihə")]
+        [Description("Qaralama")]
         Draft = 1,
 
         [Description("İmza gözləyir")]

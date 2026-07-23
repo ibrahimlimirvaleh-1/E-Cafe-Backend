@@ -36,6 +36,8 @@ public partial class ECafeDbContext : DbContext
 
     public DbSet<AuditLog> AuditLogs { get; set; } = null!;
 
+    public DbSet<OutboxEvent> OutboxEvents { get; set; } = null!;
+
     public DbSet<Notification> Notifications { get; set; } = null!;
 
     public DbSet<Review> Reviews { get; set; } = null!;

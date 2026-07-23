@@ -1,4 +1,5 @@
 using AutoMapper;
+using ECafe.Application.Common.Audit;
 using ECafe.Application.DTOs.Restaurant;
 using ECafe.Application.DTOs.Restaurant.Public;
 using ECafe.Application.DTOs.User.Staff;
@@ -6,6 +7,7 @@ using ECafe.Application.Repositories.File;
 using ECafe.Application.Repositories.Restaurant;
 using ECafe.Application.Repositories.RestaurantGroup;
 using ECafe.Application.Repositories.UserRestaurant;
+using ECafe.Application.Services.AuditLog.Abstract;
 using ECafe.Application.Services.MinIO.Abstracts;
 using ECafe.Application.Services.Restaurant.Abstract;
 using ECafe.Domain.Entities;
@@ -27,6 +29,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
         private readonly IEmailService _emailService;
         private readonly IMinioService _minioService;
         private readonly IFileRepository _fileRepository;
+        private readonly IAuditLogService _auditLogService;
 
         public RestaurantManager(
             IHttpContextAccessor httpContextAccessor,
@@ -37,7 +40,8 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             IEmailService emailService,
             IMinioService minioService,
             IUserRestaurantRepository userRestaurantRepository,
-            IFileRepository fileRepository)
+            IFileRepository fileRepository,
+            IAuditLogService auditLogService)
             : base(httpContextAccessor, mapper, configuration)
         {
             _restaurantRepository = restaurantRepository;
@@ -46,6 +50,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             _minioService = minioService;
             _userRestaurantRepository = userRestaurantRepository;
             _fileRepository = fileRepository;
+            _auditLogService = auditLogService;
         }
 
         public async Task<PaginatedList<GetAllRestaurantsResponse>> GetAllRestaurantsAsync(
@@ -213,6 +218,23 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             await _restaurantRepository.Add(restaurant);
             await _restaurantRepository.SaveChangesAsync();
 
+            await _auditLogService.RecordRestaurantActionAsync(
+                restaurant.Id,
+                AuditActions.RestaurantCreated,
+                new
+                {
+                    restaurant.Id,
+                    restaurant.Name,
+                    restaurant.BranchName,
+                    restaurant.Location,
+                    restaurant.Phone,
+                    restaurant.Email,
+                    restaurant.RestaurantGroupId
+                },
+                AuditEntityTypes.Restaurant,
+                restaurant.Id,
+                restaurant.Name);
+
             await _emailService.SendMailAsync(restaurant.Email, restaurant.Name);
 
             return restaurant.Id;
@@ -268,6 +290,27 @@ namespace ECafe.Application.Services.Restaurant.Concrete
 
             await _restaurantRepository.Update(restaurant);
             await _restaurantRepository.SaveChangesAsync();
+
+            await _auditLogService.RecordRestaurantActionAsync(
+                restaurant.Id,
+                AuditActions.RestaurantUpdated,
+                new
+                {
+                    restaurant.Id,
+                    restaurant.Name,
+                    restaurant.BranchName,
+                    restaurant.Location,
+                    restaurant.Phone,
+                    restaurant.Email,
+                    restaurant.DepositAmount,
+                    restaurant.CancellationWindowMinutes,
+                    restaurant.ServiceFeePercent,
+                    restaurant.StaffSettlementPeriod,
+                    restaurant.RestaurantGroupId
+                },
+                AuditEntityTypes.Restaurant,
+                restaurant.Id,
+                restaurant.Name);
         }
 
         public async Task DeactivateRestaurantAsync(int restaurantId)
@@ -286,6 +329,18 @@ namespace ECafe.Application.Services.Restaurant.Concrete
 
             await _restaurantRepository.Update(restaurant);
             await _restaurantRepository.SaveChangesAsync();
+
+            await _auditLogService.RecordRestaurantActionAsync(
+                restaurant.Id,
+                AuditActions.RestaurantDeactivated,
+                new
+                {
+                    restaurant.Id,
+                    restaurant.Name
+                },
+                AuditEntityTypes.Restaurant,
+                restaurant.Id,
+                restaurant.Name);
         }
 
         private async Task<GetAllRestaurantsResponse> MapToGetAllRestaurantResponseAsync(Domain.Entities.Restaurant restaurant)

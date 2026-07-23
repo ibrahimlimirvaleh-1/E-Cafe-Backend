@@ -1,9 +1,11 @@
 using AutoMapper;
+using ECafe.Application.Common.Audit;
 using ECafe.Application.DTOs.Auth;
 using ECafe.Application.DTOs.File;
 using ECafe.Application.DTOs.RestaurantContract;
 using ECafe.Application.Repositories.Restaurant;
 using ECafe.Application.Repositories.RestaurantContract;
+using ECafe.Application.Services.AuditLog.Abstract;
 using ECafe.Application.Services.MinIO.Abstracts;
 using ECafe.Application.Services.RestaurantContract.Abstract;
 using ECafe.Domain.Enums;
@@ -21,6 +23,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
         private readonly IRestaurantRepository _restaurantRepository;
         private readonly IMinioService _minioService;
         private readonly IContractDocumentGenerator _contractDocumentGenerator;
+        private readonly IAuditLogService _auditLogService;
 
         public RestaurantContractManager(
             IHttpContextAccessor httpContextAccessor,
@@ -29,13 +32,15 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             IRestaurantContractRepository contractRepository,
             IRestaurantRepository restaurantRepository,
             IMinioService minioService,
-            IContractDocumentGenerator contractDocumentGenerator)
+            IContractDocumentGenerator contractDocumentGenerator,
+            IAuditLogService auditLogService)
             : base(httpContextAccessor, mapper, configuration)
         {
             _contractRepository = contractRepository;
             _restaurantRepository = restaurantRepository;
             _minioService = minioService;
             _contractDocumentGenerator = contractDocumentGenerator;
+            _auditLogService = auditLogService;
         }
 
         public async Task<int> CreateAsync(int restaurantId, CreateRestaurantContractRequest request)
@@ -73,6 +78,24 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
 
             await _contractRepository.Add(contract);
             await _contractRepository.SaveChangesAsync();
+
+            await _auditLogService.RecordRestaurantActionAsync(
+                restaurantId,
+                AuditActions.ContractCreated,
+                new
+                {
+                    contractId = contract.Id,
+                    contract.ContractNumber,
+                    contract.StartDate,
+                    contract.EndDate,
+                    contract.CommissionPercent,
+                    contract.StaffSettlementPeriod,
+                    contract.PaymentPolicyId,
+                    contract.FileId
+                },
+                AuditEntityTypes.Contract,
+                contract.Id,
+                contract.ContractNumber);
 
             return contract.Id;
         }
@@ -115,6 +138,20 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
 
             await _contractRepository.Update(contract);
             await _contractRepository.SaveChangesAsync();
+
+            await _auditLogService.RecordRestaurantActionAsync(
+                restaurantId,
+                AuditActions.ContractActivated,
+                new
+                {
+                    contractId = contract.Id,
+                    contract.ContractNumber,
+                    contract.SignedAt,
+                    contract.SignedByUserId
+                },
+                AuditEntityTypes.Contract,
+                contract.Id,
+                contract.ContractNumber);
         }
 
         public async Task TerminateAsync(int restaurantId, int contractId)
@@ -124,6 +161,19 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
 
             await _contractRepository.Update(contract);
             await _contractRepository.SaveChangesAsync();
+
+            await _auditLogService.RecordRestaurantActionAsync(
+                restaurantId,
+                AuditActions.ContractTerminated,
+                new
+                {
+                    contractId = contract.Id,
+                    contract.ContractNumber,
+                    contract.StatusId
+                },
+                AuditEntityTypes.Contract,
+                contract.Id,
+                contract.ContractNumber);
         }
 
         public async Task EnsureRestaurantHasActiveContractAsync(int restaurantId)

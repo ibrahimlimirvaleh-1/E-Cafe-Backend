@@ -1,10 +1,12 @@
 using AutoMapper;
 using AutoMapper.QueryableExtensions;
+using ECafe.Application.Common.Audit;
 using ECafe.Application.DTOs.Item;
 using ECafe.Application.Repositories.Category;
 using ECafe.Application.Repositories.File;
 using ECafe.Application.Repositories.Item;
 using ECafe.Application.Repositories.Restaurant;
+using ECafe.Application.Services.AuditLog.Abstract;
 using ECafe.Application.Services.Item.Abstract;
 using ECafe.Application.Services.RestaurantContract.Abstract;
 using ECafe.Domain.Exceptions;
@@ -23,6 +25,7 @@ namespace ECafe.Application.Services.Item.Concrete
         private readonly IFileRepository _fileRepository;
         private readonly IValidator<CreateItemRequest> _validator;
         private readonly IRestaurantContractService _restaurantContractService;
+        private readonly IAuditLogService _auditLogService;
 
         public ItemManager(IHttpContextAccessor httpContextAccessor,
                            IMapper mapper,
@@ -32,7 +35,8 @@ namespace ECafe.Application.Services.Item.Concrete
                            IItemRepository itemRepository,
                            IFileRepository fileRepository,
                            IValidator<CreateItemRequest> validator,
-                           IRestaurantContractService restaurantContractService)
+                           IRestaurantContractService restaurantContractService,
+                           IAuditLogService auditLogService)
                            : base(httpContextAccessor, mapper, configuration)
         {
             _categoryRepository = categoryRepository;
@@ -41,6 +45,7 @@ namespace ECafe.Application.Services.Item.Concrete
             _fileRepository = fileRepository;
             _validator = validator;
             _restaurantContractService = restaurantContractService;
+            _auditLogService = auditLogService;
         }
 
         public async Task<int> CreateAsync(CreateItemRequest request)
@@ -63,6 +68,22 @@ namespace ECafe.Application.Services.Item.Concrete
 
             await _itemRepository.Add(item);
             await _itemRepository.SaveChangesAsync();
+
+            await _auditLogService.RecordRestaurantActionAsync(
+                request.RestaurantId,
+                AuditActions.ItemCreated,
+                new
+                {
+                    itemId = item.Id,
+                    item.Name,
+                    item.CategoryId,
+                    item.BasePrice,
+                    item.StatusId,
+                    item.FileId
+                },
+                AuditEntityTypes.Item,
+                item.Id,
+                item.Name);
 
             return item.Id;
         }

@@ -1,9 +1,9 @@
-﻿using ECafe.Domain.Entities.Base;
-
-namespace ECafe.Domain.Entities
+namespace ECafe.Application.DTOs.AuditLog
 {
-    public class AuditLog : AuditableSoftDeletableEntity<long>
+    public class AuditLogResponse
     {
+        public long Id { get; set; }
+
         public Guid? EventId { get; set; }
 
         public int? RestaurantId { get; set; }
@@ -18,8 +18,6 @@ namespace ECafe.Domain.Entities
 
         public string Action { get; set; } = null!;
 
-        public string? OldValues { get; set; }
-
         public string? NewValues { get; set; }
 
         public string? Metadata { get; set; }
@@ -32,6 +30,6 @@ namespace ECafe.Domain.Entities
 
         public DateTime? OccurredAt { get; set; }
 
-        public virtual User? User { get; set; }
+        public DateTime CreatedAt { get; set; }
     }
 }

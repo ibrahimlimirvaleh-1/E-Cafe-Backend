@@ -1,8 +1,10 @@
 ﻿using AutoMapper;
+using ECafe.Application.Common.Audit;
 using ECafe.Application.DTOs.Category;
 using ECafe.Application.Repositories.Category;
 using ECafe.Application.Repositories.Restaurant;
 using ECafe.Application.Services;
+using ECafe.Application.Services.AuditLog.Abstract;
 using ECafe.Application.Services.Category.Abstract;
 using ECafe.Application.Services.RestaurantContract.Abstract;
 using ECafe.Domain.Entities;
@@ -15,6 +17,7 @@ public class CategoryManager : BaseManager, ICategoryService
     private readonly ICategoryRepository _categoryRepository;
     private readonly IRestaurantRepository _restaurantRepository;
     private readonly IRestaurantContractService _restaurantContractService;
+    private readonly IAuditLogService _auditLogService;
 
     public CategoryManager(
         IHttpContextAccessor httpContextAccessor,
@@ -22,12 +25,14 @@ public class CategoryManager : BaseManager, ICategoryService
         IConfiguration configuration,
         ICategoryRepository categoryRepository,
         IRestaurantRepository restaurantRepository,
-        IRestaurantContractService restaurantContractService)
+        IRestaurantContractService restaurantContractService,
+        IAuditLogService auditLogService)
         : base(httpContextAccessor, mapper, configuration)
     {
         _categoryRepository = categoryRepository;
         _restaurantRepository = restaurantRepository;
         _restaurantContractService = restaurantContractService;
+        _auditLogService = auditLogService;
     }
 
     public async Task<int> CreateCategoryAsync(CreateCategoryRequest request)
@@ -49,6 +54,20 @@ public class CategoryManager : BaseManager, ICategoryService
 
         await _categoryRepository.Add(category);
         await _categoryRepository.SaveChangesAsync();
+
+        await _auditLogService.RecordRestaurantActionAsync(
+            request.RestaurantId,
+            AuditActions.CategoryCreated,
+            new
+            {
+                categoryId = category.Id,
+                category.Name,
+                category.Slug,
+                category.SortOrder
+            },
+            AuditEntityTypes.Category,
+            category.Id,
+            category.Name);
 
         return category.Id;
     }

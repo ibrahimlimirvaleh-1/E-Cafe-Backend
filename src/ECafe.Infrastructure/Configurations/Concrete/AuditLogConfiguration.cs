@@ -16,14 +16,23 @@ namespace ECafe.Infrastructure.Configurations.Concrete
             builder.Property(x => x.EntityName)
                 .HasMaxLength(100);
 
+            builder.Property(x => x.EntityDisplayName)
+                .HasMaxLength(200);
+
             builder.Property(x => x.Action)
-                .HasMaxLength(50);
+                .HasMaxLength(100);
 
             builder.Property(x => x.OldValues)
                 .HasColumnType("text");
 
             builder.Property(x => x.NewValues)
                 .HasColumnType("text");
+
+            builder.Property(x => x.Metadata)
+                .HasColumnType("jsonb");
+
+            builder.Property(x => x.CorrelationId)
+                .HasMaxLength(100);
 
             builder.Property(x => x.IpAddress)
                 .HasMaxLength(50);
@@ -35,6 +44,14 @@ namespace ECafe.Infrastructure.Configurations.Concrete
                 .WithMany()
                 .HasForeignKey(x => x.UserId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            builder.HasIndex(x => x.EventId)
+                .IsUnique()
+                .HasFilter("\"EventId\" IS NOT NULL");
+
+            builder.HasIndex(x => new { x.RestaurantId, x.OccurredAt });
+
+            builder.HasIndex(x => new { x.EntityName, x.EntityId });
         }
     }
 }

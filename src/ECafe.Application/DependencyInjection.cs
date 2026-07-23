@@ -1,5 +1,7 @@
 ﻿using ECafe.Application.Mappings;
 using ECafe.Application.Services;
+using ECafe.Application.Services.AuditLog.Abstract;
+using ECafe.Application.Services.AuditLog.Concrete;
 using ECafe.Application.Services.Auth.Abstract;
 using ECafe.Application.Services.Auth.Concrete;
 using ECafe.Application.Services.Category.Abstract;
@@ -38,6 +40,9 @@ namespace ECafe.Application
             services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
 
             services.AddScoped<IMinioService, MinioManager>();
+            services.AddScoped<AuditLogManager>();
+            services.AddScoped<IAuditLogService>(provider => provider.GetRequiredService<AuditLogManager>());
+            services.AddScoped<IAuditOutboxProcessor>(provider => provider.GetRequiredService<AuditLogManager>());
             services.AddScoped<IAuthService, AuthManager>();
             services.AddScoped<IEmailService, EmailManager>();
             services.AddScoped<IRestaurantService, RestaurantManager>();
