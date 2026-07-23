@@ -10,6 +10,8 @@ namespace ECafe.Application.Repositories.User
 
         Task<List<Domain.Entities.User>> GetByRestaurantIdAsync(int restaurantId);
 
+        Task<List<Domain.Entities.User>> GetActiveUsersByRoleAsync(int roleId);
+
         IQueryable<Domain.Entities.User> GetUsersForList(int? restaurantId);
 
         Task<Domain.Entities.User?> GetProfileByIdAsync(int userId);

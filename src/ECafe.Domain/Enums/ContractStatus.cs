@@ -17,6 +17,9 @@ namespace ECafe.Domain.Enums
         Expired,
 
         [Description("Ləğv edilib")]
-        Terminated
+        Terminated,
+
+        [Description("Owner təsdiqlədi")]
+        OwnerApproved
     }
 }

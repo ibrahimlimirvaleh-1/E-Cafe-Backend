@@ -22,5 +22,14 @@ namespace ECafe.Infrastructure.Repositories.UserRestaurant
                 ur.User.RoleId != (int)RoleCode.Customer)
                 .ToListAsync();
         }
+
+        public Task<Domain.Entities.UserRestaurant?> GetActiveOwnerByRestaurantAsync(int restaurantId)
+            => Query(x =>
+                    x.RestaurantId == restaurantId &&
+                    x.IsActive &&
+                    x.User.IsActive &&
+                    x.User.RoleId == (int)RoleCode.Owner)
+                .Include(x => x.User)
+                .FirstOrDefaultAsync();
     }
 }

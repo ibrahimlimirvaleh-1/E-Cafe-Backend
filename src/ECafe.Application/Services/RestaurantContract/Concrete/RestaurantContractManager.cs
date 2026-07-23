@@ -5,6 +5,9 @@ using ECafe.Application.DTOs.File;
 using ECafe.Application.DTOs.RestaurantContract;
 using ECafe.Application.Repositories.Restaurant;
 using ECafe.Application.Repositories.RestaurantContract;
+using ECafe.Application.Repositories.User;
+using ECafe.Application.Repositories.UserRestaurant;
+using ECafe.Application.Repository;
 using ECafe.Application.Services.AuditLog.Abstract;
 using ECafe.Application.Services.MinIO.Abstracts;
 using ECafe.Application.Services.RestaurantContract.Abstract;
@@ -24,6 +27,10 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
         private readonly IMinioService _minioService;
         private readonly IContractDocumentGenerator _contractDocumentGenerator;
         private readonly IAuditLogService _auditLogService;
+        private readonly IUserRestaurantRepository _userRestaurantRepository;
+        private readonly IUserRepository _userRepository;
+        private readonly IBaseRepository<Domain.Entities.Notification> _notificationRepository;
+        private readonly IEmailService _emailService;
 
         public RestaurantContractManager(
             IHttpContextAccessor httpContextAccessor,
@@ -33,7 +40,11 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             IRestaurantRepository restaurantRepository,
             IMinioService minioService,
             IContractDocumentGenerator contractDocumentGenerator,
-            IAuditLogService auditLogService)
+            IAuditLogService auditLogService,
+            IUserRestaurantRepository userRestaurantRepository,
+            IUserRepository userRepository,
+            IBaseRepository<Domain.Entities.Notification> notificationRepository,
+            IEmailService emailService)
             : base(httpContextAccessor, mapper, configuration)
         {
             _contractRepository = contractRepository;
@@ -41,6 +52,10 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             _minioService = minioService;
             _contractDocumentGenerator = contractDocumentGenerator;
             _auditLogService = auditLogService;
+            _userRestaurantRepository = userRestaurantRepository;
+            _userRepository = userRepository;
+            _notificationRepository = notificationRepository;
+            _emailService = emailService;
         }
 
         public async Task<int> CreateAsync(int restaurantId, CreateRestaurantContractRequest request)
@@ -124,11 +139,14 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
 
             ValidateContractDates(contract.StartDate, contract.EndDate);
             EnsureContractHasNotExpired(contract.EndDate);
+            EnsureContractStatus(contract, ContractStatus.OwnerApproved, "Only owner-approved contracts can be activated.");
 
+            var nowUtc = DateTime.UtcNow;
             var hasOtherActive = await _contractRepository.CheckExistAsync(x =>
                 x.RestaurantId == restaurantId &&
                 x.Id != contractId &&
-                x.StatusId == ContractStatusId(ContractStatus.Active));
+                x.StatusId == ContractStatusId(ContractStatus.Active) &&
+                (!x.EndDate.HasValue || x.EndDate >= nowUtc));
 
             if (hasOtherActive)
                 throw new BusinessRuleException("Restaurant already has an active contract!");
@@ -140,6 +158,9 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             await _contractRepository.Update(contract);
             await _contractRepository.SaveChangesAsync();
 
+            var owner = await GetRestaurantOwnerAsync(restaurantId);
+            await SendContractActivatedEmailAsync(owner.User, contract);
+
             await _auditLogService.RecordRestaurantActionAsync(
                 restaurantId,
                 AuditActions.ContractActivated,
@@ -149,6 +170,81 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
                     contract.ContractNumber,
                     contract.SignedAt,
                     contract.SignedByUserId
+                },
+                AuditEntityTypes.Contract,
+                contract.Id,
+                contract.ContractNumber);
+        }
+
+        public async Task SendForSignatureAsync(int restaurantId, int contractId)
+        {
+            EnsureCurrentUserCanAccessRestaurant(restaurantId);
+
+            var contract = await GetTrackedContractAsync(restaurantId, contractId);
+            ValidateContractDates(contract.StartDate, contract.EndDate);
+            EnsureContractHasNotExpired(contract.EndDate);
+            EnsureContractStatus(contract, ContractStatus.Draft, "Only draft contracts can be sent for signature.");
+
+            var owner = await GetRestaurantOwnerAsync(restaurantId);
+
+            contract.StatusId = ContractStatusId(ContractStatus.PendingSignature);
+
+            await _contractRepository.Update(contract);
+            await _contractRepository.SaveChangesAsync();
+
+            await SendContractSignatureEmailAsync(owner.User, contract);
+
+            await _auditLogService.RecordRestaurantActionAsync(
+                restaurantId,
+                AuditActions.ContractSentForSignature,
+                new
+                {
+                    contractId = contract.Id,
+                    contract.ContractNumber,
+                    ownerUserId = owner.UserId
+                },
+                AuditEntityTypes.Contract,
+                contract.Id,
+                contract.ContractNumber);
+        }
+
+        public async Task ApproveAsync(
+            int restaurantId,
+            int contractId,
+            bool hasAcceptedContractTerms,
+            string? acceptanceText)
+        {
+            EnsureOwnerAcceptedContractTerms(hasAcceptedContractTerms, acceptanceText);
+
+            var contract = await GetTrackedContractAsync(restaurantId, contractId);
+            ValidateContractDates(contract.StartDate, contract.EndDate);
+            EnsureContractHasNotExpired(contract.EndDate);
+            EnsureContractStatus(contract, ContractStatus.PendingSignature, "Only contracts waiting for signature can be approved.");
+
+            var owner = await GetRestaurantOwnerAsync(restaurantId);
+            var currentUserId = GetCurrentUserId();
+            if (owner.UserId != currentUserId)
+                throw new BusinessRuleException("Only the restaurant owner can approve this contract.");
+
+            contract.StatusId = ContractStatusId(ContractStatus.OwnerApproved);
+            contract.SignedAt = DateTime.UtcNow;
+            contract.SignedByUserId = currentUserId;
+
+            await _contractRepository.Update(contract);
+            await _contractRepository.SaveChangesAsync();
+
+            await NotifyAdminsContractOwnerApprovedAsync(contract, owner.User, acceptanceText!);
+
+            await _auditLogService.RecordRestaurantActionAsync(
+                restaurantId,
+                AuditActions.ContractOwnerApproved,
+                new
+                {
+                    contractId = contract.Id,
+                    contract.ContractNumber,
+                    contract.SignedAt,
+                    contract.SignedByUserId,
+                    acceptanceText
                 },
                 AuditEntityTypes.Contract,
                 contract.Id,
@@ -267,6 +363,88 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
 
         private static int ContractStatusId(ContractStatus status)
             => ((int)StatusType.Contract * 1000) + (int)status;
+
+        private static void EnsureContractStatus(
+            Domain.Entities.RestaurantContract contract,
+            ContractStatus expectedStatus,
+            string message)
+        {
+            if (contract.StatusId != ContractStatusId(expectedStatus))
+                throw new BusinessRuleException(message);
+        }
+
+        private static void EnsureOwnerAcceptedContractTerms(bool hasAcceptedContractTerms, string? acceptanceText)
+        {
+            if (!hasAcceptedContractTerms)
+                throw new BusinessRuleException("Contract terms must be accepted.");
+
+            if (string.IsNullOrWhiteSpace(acceptanceText))
+                throw new BusinessRuleException("Contract acceptance text is required.");
+        }
+
+        private async Task<Domain.Entities.UserRestaurant> GetRestaurantOwnerAsync(int restaurantId)
+        {
+            var owner = await _userRestaurantRepository.GetActiveOwnerByRestaurantAsync(restaurantId);
+            if (owner is null)
+                throw new BusinessRuleException("Restaurant owner is not assigned.");
+
+            return owner;
+        }
+
+        private Task SendContractSignatureEmailAsync(
+            Domain.Entities.User owner,
+            Domain.Entities.RestaurantContract contract)
+            => _emailService.SendContractNotificationAsync(
+                owner.Email,
+                owner.Name,
+                "Müqavilə təsdiqi gözləyir",
+                $"Restoranınız üçün {contract.ContractNumber} nömrəli müqavilə hazırlanıb. Zəhmət olmasa sistemə daxil olub müqaviləni oxuyun və təsdiqləyin.");
+
+        private Task SendContractActivatedEmailAsync(
+            Domain.Entities.User owner,
+            Domain.Entities.RestaurantContract contract)
+            => _emailService.SendContractNotificationAsync(
+                owner.Email,
+                owner.Name,
+                "Müqavilə aktivləşdirildi",
+                $"{contract.ContractNumber} nömrəli müqaviləniz aktivləşdirildi.");
+
+        private async Task NotifyAdminsContractOwnerApprovedAsync(
+            Domain.Entities.RestaurantContract contract,
+            Domain.Entities.User owner,
+            string acceptanceText)
+        {
+            var admins = await _userRepository.GetActiveUsersByRoleAsync((int)RoleCode.SuperAdmin);
+            if (admins.Count == 0)
+                return;
+
+            var title = "Müqavilə owner tərəfindən təsdiqləndi";
+            var message = LimitNotificationMessage(
+                $"{contract.ContractNumber} nömrəli müqavilə {owner.Name} {owner.Surname} tərəfindən təsdiqləndi. Təsdiq mətni: {acceptanceText}");
+
+            var notifications = admins.Select(admin => new Domain.Entities.Notification
+            {
+                UserId = admin.Id,
+                Title = title,
+                Message = message,
+                IsRead = false
+            }).ToList();
+
+            await _notificationRepository.AddRangeAsync(notifications);
+            await _notificationRepository.SaveChangesAsync();
+
+            foreach (var admin in admins)
+            {
+                await _emailService.SendContractNotificationAsync(
+                    admin.Email,
+                    admin.Name,
+                    title,
+                    message);
+            }
+        }
+
+        private static string LimitNotificationMessage(string message)
+            => message.Length <= 1000 ? message : message[..1000];
 
         private async Task<string> GenerateContractNumberAsync(int restaurantId, DateTime startDate)
         {

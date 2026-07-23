@@ -37,6 +37,10 @@ namespace ECafe.Infrastructure.Repositories.User
                 .ToListAsync();
         }
 
+        public Task<List<Domain.Entities.User>> GetActiveUsersByRoleAsync(int roleId)
+            => Query(x => x.RoleId == roleId && x.IsActive)
+                .ToListAsync();
+
         public IQueryable<Domain.Entities.User> GetUsersForList(int? restaurantId)
         {
             var query = Query()

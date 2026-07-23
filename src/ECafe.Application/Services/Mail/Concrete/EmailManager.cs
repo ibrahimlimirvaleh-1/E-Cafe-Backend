@@ -94,5 +94,32 @@ namespace ECafe.Application.Services
 
             await client.SendMailAsync(mail);
         }
+
+        public async Task SendContractNotificationAsync(string toEmail, string name, string subject, string body)
+        {
+            var smtpHost = _configuration["Email:SmtpHost"];
+            var smtpPort = int.Parse(_configuration["Email:SmtpPort"]!);
+            var smtpUser = _configuration["Email:Username"];
+            var smtpPass = _configuration["Email:Password"];
+            var fromEmail = _configuration["Email:From"];
+
+            using var client = new SmtpClient(smtpHost, smtpPort)
+            {
+                Credentials = new NetworkCredential(smtpUser, smtpPass),
+                EnableSsl = true
+            };
+
+            var mail = new MailMessage
+            {
+                From = new MailAddress(fromEmail!),
+                Subject = subject,
+                Body = $"Salam {name},\n\n{body}",
+                IsBodyHtml = false
+            };
+
+            mail.To.Add(toEmail);
+
+            await client.SendMailAsync(mail);
+        }
     }
 }
