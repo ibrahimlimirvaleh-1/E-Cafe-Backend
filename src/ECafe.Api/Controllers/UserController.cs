@@ -17,7 +17,7 @@ namespace ECafe.Api.Controllers
     public class UserController : BaseController
     {
         [HasPermission(Domain.Enums.PermissionCode.ManageStaff)]
-        [HttpPost("api/v1/admin/user/create")]
+        [HttpPost("api/v1/users")]
         public async Task<IActionResult> Create([FromForm] CreateUserCommand command)
         {
             await Mediator.Send(command);
@@ -26,23 +26,29 @@ namespace ECafe.Api.Controllers
 
 
         [HasPermission(Domain.Enums.PermissionCode.ManageStaff)]
-        [HttpDelete("api/v1/admin/user/delete")]
-        public async Task<IActionResult> Delete([FromQuery] DeleteUserCommand command)
+        [HttpDelete("api/v1/users/{userId:int}")]
+        public async Task<IActionResult> Delete(int userId)
         {
+            var command = new DeleteUserCommand { Id = userId };
             await Mediator.Send(command);
             return Ok();
         }
 
         [HasPermission(Domain.Enums.PermissionCode.ManageStaff)]
-        [HttpPatch("api/v1/admin/user/role/update")]
-        public async Task<IActionResult> UpdateRole([FromQuery] UpdateRoleCommand command)
+        [HttpPatch("api/v1/users/{userId:int}/role")]
+        public async Task<IActionResult> UpdateRole(int userId, [FromQuery] int roleId)
         {
+            var command = new UpdateRoleCommand
+            {
+                UserId = userId,
+                RoleId = roleId
+            };
             await Mediator.Send(command);
             return Ok();
         }
 
         [HasPermission(Domain.Enums.PermissionCode.ManageUsers)]
-        [HttpGet("api/v1/users")]
+        [HttpGet("api/v1/admin/users")]
         public async Task<IActionResult> GetAll([FromQuery] GetAllUsersQuery query)
         {
             var result = await Mediator.Send(query);
@@ -50,7 +56,7 @@ namespace ECafe.Api.Controllers
         }
 
         [HasPermission(Domain.Enums.PermissionCode.ViewRestaurantInfo)]
-        [RequireActiveRestaurantContract]
+        //[RequireActiveRestaurantContract]
         [HttpGet("api/v1/staff/{restaurantId}")]
         public async Task<IActionResult> GetStaff(int restaurantId)
         {

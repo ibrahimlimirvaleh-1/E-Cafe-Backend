@@ -9,9 +9,12 @@ namespace ECafe.Api.Controllers
     public class ItemController : BaseController
     {
         [HasPermission(PermissionCode.ManageCatalog)]
-        [HttpPost("api/v1/admin/item/create")]
-        public async Task<IActionResult> Create([FromForm] CreateItemCommand command)
-        => Ok(await Mediator.Send(command));
+        [HttpPost("api/v1/restaurants/{restaurantId}/items")]
+        public async Task<IActionResult> Create(int restaurantId, [FromForm] CreateItemCommand command)
+        {
+            command.RestaurantId = restaurantId;
+            return Ok(await Mediator.Send(command));
+        }
 
         [HasPermission(PermissionCode.ViewRestaurantInfo)]
         [HttpGet("api/v1/items/getAll")]

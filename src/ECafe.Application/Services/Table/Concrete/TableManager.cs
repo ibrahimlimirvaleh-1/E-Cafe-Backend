@@ -6,6 +6,7 @@ using ECafe.Application.Services.RestaurantContract.Abstract;
 using ECafe.Application.Services.Table.Abstract;
 using ECafe.Domain.Exceptions;
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 
 namespace ECafe.Application.Services.Table.Concrete
@@ -48,6 +49,31 @@ namespace ECafe.Application.Services.Table.Concrete
             await _tableRepository.SaveChangesAsync();
 
             return table.Id;
+        }
+
+        public async Task<List<TableResponse>> GetByRestaurantAsync(int restaurantId)
+        {
+            if (restaurantId <= 0)
+                throw new BusinessRuleException("Invalid restaurant ID!");
+
+            EnsureCurrentUserCanAccessRestaurant(restaurantId);
+
+            var tables = await _tableRepository
+                .Query(x => x.RestaurantId == restaurantId && x.IsActive)
+                .OrderBy(x => x.TableNo)
+                .Select(x => new TableResponse
+                {
+                    Id = x.Id,
+                    RestaurantId = x.RestaurantId,
+                    TableNo = x.TableNo,
+                    Name = x.Name,
+                    Capacity = x.Capacity,
+                    IsActive = x.IsActive,
+                    IsEmpty = x.IsEmpty
+                })
+                .ToListAsync();
+
+            return tables;
         }
     }
 }

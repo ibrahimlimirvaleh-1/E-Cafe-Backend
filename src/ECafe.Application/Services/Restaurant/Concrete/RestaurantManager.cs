@@ -649,7 +649,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
                 throw new BusinessRuleException("Restaurant with this phone already exists!");
         }
 
-        private async Task<RestaurantGroup?> ResolveRestaurantGroupAsync(
+        private async Task<Domain.Entities.RestaurantGroup?> ResolveRestaurantGroupAsync(
             int? restaurantGroupId,
             string? restaurantGroupName,
             string? restaurantGroupLegalName)
@@ -685,7 +685,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             if (groupNameExists)
                 throw new BusinessRuleException("Restaurant group with this name already exists!");
 
-            return new RestaurantGroup
+            return new Domain.Entities.RestaurantGroup
             {
                 Name = groupName,
                 LegalName = string.IsNullOrWhiteSpace(restaurantGroupLegalName)

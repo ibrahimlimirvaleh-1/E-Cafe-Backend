@@ -20,6 +20,7 @@ namespace ECafe.Application.Mappings
                 .ForMember(dest => dest.UserRestaurant, opt => opt.MapFrom(src => new UserRestaurant
                 {
                     RestaurantId = src.RestaurantId,
+                    IsActive = true,
                     ServiceFeePercent = src.ServiceFeePercent
                 }));
 

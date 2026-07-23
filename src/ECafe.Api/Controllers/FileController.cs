@@ -1,11 +1,15 @@
-﻿using ECafe.Application.Features.Commands.File;
+using ECafe.Application.Features.Commands.File;
 using ECafe.Application.Features.Queries.File;
+using ECafe.Domain.Enums;
+using ECafe.Infrastructure.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ECafe.Api.Controllers
 {
     public class FileController : BaseController
     {
+        [HasPermission(PermissionCode.ViewRestaurantInfo)]
         [HttpPost("api/v1/file/upload")]
         [Consumes("multipart/form-data")]
         public async Task<IActionResult> Upload([FromForm] FileUploadCommand command)
@@ -14,6 +18,7 @@ namespace ECafe.Api.Controllers
             return Ok(file);
         }
 
+        [HasPermission(PermissionCode.ViewRestaurantInfo)]
         [HttpDelete("api/v1/file/{fileId:int}")]
         public async Task<IActionResult> Delete(int fileId)
         {
@@ -21,6 +26,7 @@ namespace ECafe.Api.Controllers
             return NoContent();
         }
 
+        [HasPermission(PermissionCode.ViewRestaurantInfo)]
         [HttpGet("api/v1/file/{fileId:int}")]
         public async Task<IActionResult> GetById(int fileId)
         {
@@ -28,6 +34,7 @@ namespace ECafe.Api.Controllers
             return Ok(file);
         }
 
+        [AllowAnonymous]
         [HttpGet("api/v1/file/getFile")]
         public async Task<IActionResult> GetFile([FromQuery] GetFileQuery query)
         {

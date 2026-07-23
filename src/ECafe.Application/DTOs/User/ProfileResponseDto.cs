@@ -9,6 +9,7 @@ namespace ECafe.Application.DTOs.User
         public string Phone { get; set; } = null!;
         public bool IsActive { get; set; }
         public decimal? Rating { get; set; }
+        public int RoleId { get; set; }
         public string Role { get; set; } = null!;
         public int? RestaurantId { get; set; }
         public string? FileUrl { get; set; }

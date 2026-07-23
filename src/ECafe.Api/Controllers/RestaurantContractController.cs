@@ -8,7 +8,7 @@ namespace ECafe.Api.Controllers
     public class RestaurantContractController : BaseController
     {
         [HasPermission(Domain.Enums.PermissionCode.ManageRestaurantContracts)]
-        [HttpPost("api/v1/restaurants/{restaurantId}/contracts")]
+        [HttpPost("api/v1/admin/restaurants/{restaurantId}/contracts")]
         public async Task<IActionResult> Create(int restaurantId, [FromBody] CreateRestaurantContractCommand command)
         {
             command.RestaurantId = restaurantId;
@@ -26,7 +26,7 @@ namespace ECafe.Api.Controllers
             => Ok(await Mediator.Send(new GetActiveRestaurantContractQuery(restaurantId)));
 
         [HasPermission(Domain.Enums.PermissionCode.ManageRestaurantContracts)]
-        [HttpPost("api/v1/restaurants/{restaurantId}/contracts/{contractId}/send-for-signature")]
+        [HttpPost("api/v1/admin/restaurants/{restaurantId}/contracts/{contractId}/send-for-signature")]
         public async Task<IActionResult> SendForSignature(int restaurantId, int contractId)
         {
             await Mediator.Send(new SendRestaurantContractForSignatureCommand
@@ -54,7 +54,7 @@ namespace ECafe.Api.Controllers
         }
 
         [HasPermission(Domain.Enums.PermissionCode.ManageRestaurantContracts)]
-        [HttpPost("api/v1/restaurants/{restaurantId}/contracts/{contractId}/activate")]
+        [HttpPost("api/v1/admin/restaurants/{restaurantId}/contracts/{contractId}/activate")]
         public async Task<IActionResult> Activate(int restaurantId, int contractId)
         {
             await Mediator.Send(new ActivateRestaurantContractCommand
@@ -68,7 +68,7 @@ namespace ECafe.Api.Controllers
 
 
         [HasPermission(Domain.Enums.PermissionCode.ManageRestaurantContracts)]
-        [HttpPost("api/v1/restaurants/{restaurantId}/contracts/{contractId}/terminate")]
+        [HttpPost("api/v1/admin/restaurants/{restaurantId}/contracts/{contractId}/terminate")]
         public async Task<IActionResult> Terminate(int restaurantId, int contractId)
         {
             await Mediator.Send(new TerminateRestaurantContractCommand

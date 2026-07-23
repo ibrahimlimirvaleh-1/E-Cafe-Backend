@@ -28,6 +28,7 @@ namespace ECafe.Infrastructure.Seeders
                 PermissionCode.ManageOrders,
                 PermissionCode.ManagePayments,
                 PermissionCode.ViewReports,
+                PermissionCode.ViewAuditLogs,
                 PermissionCode.ViewRestaurantInfo,
                 PermissionCode.ManageRestaurantContracts,
                 PermissionCode.ViewRestaurantContracts,
