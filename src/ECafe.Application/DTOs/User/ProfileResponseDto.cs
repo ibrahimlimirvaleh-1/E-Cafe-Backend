@@ -12,6 +12,7 @@ namespace ECafe.Application.DTOs.User
         public int RoleId { get; set; }
         public string Role { get; set; } = null!;
         public int? RestaurantId { get; set; }
+        public string? RestaurantName { get; set; }
         public string? FileUrl { get; set; }
     }
 }

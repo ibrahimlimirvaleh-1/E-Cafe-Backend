@@ -15,6 +15,8 @@ namespace ECafe.Infrastructure.Repositories.User
         {
             return await Query()
                 .Include(u => u.Role)
+                .ThenInclude(r => r.RolePermissions)
+                .ThenInclude(rp => rp.Permission)
                 .Include(u => u.UserRestaurant!)
                 .ThenInclude(ur => ur.Restaurant)
                 .Where(u => u.Email == email).FirstOrDefaultAsync();
@@ -102,13 +104,16 @@ namespace ECafe.Infrastructure.Repositories.User
             return Query()
                 .Include(u => u.Role)
                 .Include(u => u.File)
-                .Include(u => u.UserRestaurant);
+                .Include(u => u.UserRestaurant!)
+                .ThenInclude(ur => ur.Restaurant);
         }
 
         private IQueryable<Domain.Entities.User> UserWithAuthDetailsTrackedQuery()
         {
             return QueryTracked()
                 .Include(u => u.Role)
+                .ThenInclude(r => r.RolePermissions)
+                .ThenInclude(rp => rp.Permission)
                 .Include(u => u.File)
                 .Include(u => u.UserRestaurant!)
                 .ThenInclude(ur => ur.Restaurant);

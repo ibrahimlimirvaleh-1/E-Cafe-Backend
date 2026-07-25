@@ -6,6 +6,8 @@ namespace ECafe.Application.Repositories.UserRestaurant
     {
         public Task<List<Domain.Entities.UserRestaurant>> GetRestaurantStaffAsync(int restaurantId);
 
+        public Task<Domain.Entities.UserRestaurant?> GetActiveByUserIdAsync(int userId);
+
         public Task<Domain.Entities.UserRestaurant?> GetActiveOwnerByRestaurantAsync(int restaurantId);
     }
 }

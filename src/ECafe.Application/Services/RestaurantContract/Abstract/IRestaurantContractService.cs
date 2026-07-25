@@ -7,6 +7,8 @@ namespace ECafe.Application.Services.RestaurantContract.Abstract
     {
         Task<int> CreateAsync(int restaurantId, CreateRestaurantContractRequest request);
 
+        Task UpdateAsync(int restaurantId, int contractId, UpdateRestaurantContractRequest request);
+
         Task<List<RestaurantContractResponse>> GetByRestaurantAsync(int restaurantId);
 
         Task<RestaurantContractResponse> GetActiveAsync(int restaurantId);

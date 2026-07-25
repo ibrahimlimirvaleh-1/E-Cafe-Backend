@@ -15,6 +15,16 @@ namespace ECafe.Api.Controllers
             return Ok(await Mediator.Send(command));
         }
 
+        [HasPermission(Domain.Enums.PermissionCode.ManageRestaurantContracts)]
+        [HttpPut("api/v1/admin/restaurants/{restaurantId}/contracts/{contractId}")]
+        public async Task<IActionResult> Update(int restaurantId, int contractId, [FromBody] UpdateRestaurantContractCommand command)
+        {
+            command.RestaurantId = restaurantId;
+            command.ContractId = contractId;
+            await Mediator.Send(command);
+            return Ok();
+        }
+
         [HasPermission(Domain.Enums.PermissionCode.ViewRestaurantContracts)]
         [HttpGet("api/v1/restaurants/{restaurantId}/contracts")]
         public async Task<IActionResult> GetByRestaurant(int restaurantId)

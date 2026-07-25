@@ -23,6 +23,14 @@ namespace ECafe.Infrastructure.Repositories.UserRestaurant
                 .ToListAsync();
         }
 
+        public Task<Domain.Entities.UserRestaurant?> GetActiveByUserIdAsync(int userId)
+            => Query(x =>
+                    x.UserId == userId &&
+                    x.IsActive &&
+                    x.Restaurant.IsActive)
+                .Include(x => x.Restaurant)
+                .FirstOrDefaultAsync();
+
         public Task<Domain.Entities.UserRestaurant?> GetActiveOwnerByRestaurantAsync(int restaurantId)
             => Query(x =>
                     x.RestaurantId == restaurantId &&

@@ -9,6 +9,7 @@ using ECafe.Application.Repositories.Restaurant;
 using ECafe.Application.Repositories.Role;
 using ECafe.Application.Repositories.User;
 using ECafe.Application.Repositories.UserRefreshToken;
+using ECafe.Application.Repositories.UserRestaurant;
 using ECafe.Application.Services.MinIO.Abstracts;
 using ECafe.Application.Services.User.Abstract;
 using ECafe.Domain.Enums;
@@ -33,6 +34,7 @@ namespace ECafe.Application.Services.User.Concrete
         private readonly IEmailService _emailService;
         private readonly IJwtService _jwtService;
         private readonly IUserRefreshTokenRepository _refreshTokenRepository;
+        private readonly IUserRestaurantRepository _userRestaurantRepository;
 
         public UserManager(
             IHttpContextAccessor httpContextAccessor,
@@ -45,7 +47,8 @@ namespace ECafe.Application.Services.User.Concrete
             IUserRepository userRepository,
             IEmailService emailService,
             IJwtService jwtService,
-            IUserRefreshTokenRepository refreshTokenRepository)
+            IUserRefreshTokenRepository refreshTokenRepository,
+            IUserRestaurantRepository userRestaurantRepository)
             : base(httpContextAccessor, mapper, configuration)
         {
             _restaurantRepository = restaurantRepository;
@@ -56,6 +59,7 @@ namespace ECafe.Application.Services.User.Concrete
             _emailService = emailService;
             _jwtService = jwtService;
             _refreshTokenRepository = refreshTokenRepository;
+            _userRestaurantRepository = userRestaurantRepository;
         }
 
         public async Task CreateUserAsync(CreateUserRequest request)
@@ -118,6 +122,8 @@ namespace ECafe.Application.Services.User.Concrete
             var role = await _roleRepository.GetByIdAsync(roleId);
             if (role is null)
                 throw new BusinessRuleException("Role not found");
+
+            await EnsureRestaurantScopedRoleHasRestaurantAsync(userId, roleId);
 
             var user = await _userRepository.GetByIdAsync(userId);
             if (user is null)
@@ -299,6 +305,22 @@ namespace ECafe.Application.Services.User.Concrete
 
             return ((RoleCode)roleId).GetDescription();
         }
+
+        private async Task EnsureRestaurantScopedRoleHasRestaurantAsync(int userId, int roleId)
+        {
+            if (!IsRestaurantScopedRole(roleId))
+                return;
+
+            var userRestaurant = await _userRestaurantRepository.GetActiveByUserIdAsync(userId);
+            if (userRestaurant is null)
+                throw new BusinessRuleException("Restaurant-scoped role requires an active restaurant assignment.");
+        }
+
+        private static bool IsRestaurantScopedRole(int roleId)
+            => roleId is (int)RoleCode.Owner or
+                (int)RoleCode.Manager or
+                (int)RoleCode.Waiter or
+                (int)RoleCode.Kitchen;
 
         private async Task<ProfileResponseDto> MapToProfileResponseAsync(Domain.Entities.User user)
         {

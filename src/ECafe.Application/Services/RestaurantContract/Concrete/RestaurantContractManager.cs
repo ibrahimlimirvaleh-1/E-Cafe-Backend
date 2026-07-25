@@ -121,6 +121,65 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             return contract.Id;
         }
 
+        public async Task UpdateAsync(int restaurantId, int contractId, UpdateRestaurantContractRequest request)
+        {
+            if (restaurantId <= 0)
+                throw new BusinessRuleException("Invalid restaurant ID!");
+
+            if (contractId <= 0)
+                throw new BusinessRuleException("Invalid contract ID!");
+
+            if (request is null)
+                throw new BusinessRuleException("Contract request is required!");
+
+            EnsureCurrentUserCanAccessRestaurant(restaurantId);
+            ValidateContractDates(request.StartDate, request.EndDate);
+            ValidatePercent(request.CommissionPercent, nameof(request.CommissionPercent));
+
+            var contract = await GetTrackedContractAsync(restaurantId, contractId);
+            if (contract.StatusId is var statusId &&
+                (statusId == ContractStatusId(ContractStatus.Active) ||
+                 statusId == ContractStatusId(ContractStatus.Expired) ||
+                 statusId == ContractStatusId(ContractStatus.Terminated)))
+            {
+                throw new BusinessRuleException("Only non-active contracts can be edited.");
+            }
+
+            var restaurant = await _restaurantRepository.Query(x => x.Id == restaurantId)
+                .Include(x => x.RestaurantGroup)
+                .FirstOrDefaultAsync();
+            if (restaurant is null)
+                throw new BusinessRuleException("Restaurant not found!");
+
+            contract.StartDate = request.StartDate;
+            contract.EndDate = request.EndDate;
+            contract.CommissionPercent = request.CommissionPercent;
+            contract.StaffSettlementPeriod = request.StaffSettlementPeriod;
+            contract.PaymentPolicyId = request.PaymentPolicyId;
+            contract.File = await ResolveContractFileAsync(restaurant, contract.ContractNumber, request);
+
+            await _contractRepository.Update(contract);
+            await _contractRepository.SaveChangesAsync();
+
+            await _auditLogService.RecordRestaurantActionAsync(
+                restaurantId,
+                AuditActions.ContractUpdated,
+                new
+                {
+                    contractId = contract.Id,
+                    contract.ContractNumber,
+                    contract.StartDate,
+                    contract.EndDate,
+                    contract.CommissionPercent,
+                    contract.StaffSettlementPeriod,
+                    contract.PaymentPolicyId,
+                    contract.FileId
+                },
+                AuditEntityTypes.Contract,
+                contract.Id,
+                contract.ContractNumber);
+        }
+
         public async Task<List<RestaurantContractResponse>> GetByRestaurantAsync(int restaurantId)
         {
             if (restaurantId <= 0)

@@ -7,6 +7,7 @@ namespace ECafe.Application.Common.Audit
         public const string RestaurantDeactivated = "RestaurantDeactivated";
 
         public const string ContractCreated = "ContractCreated";
+        public const string ContractUpdated = "ContractUpdated";
         public const string ContractSentForSignature = "ContractSentForSignature";
         public const string ContractOwnerApproved = "ContractOwnerApproved";
         public const string ContractActivated = "ContractActivated";

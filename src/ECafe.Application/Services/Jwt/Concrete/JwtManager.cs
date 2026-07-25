@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using AutoMapper;
 using ECafe.Domain.Enums;
+using ECafe.Domain.Exceptions;
 using ECafe.Shared.Extensions;
 using ECafe.Shared.Services.Jwt.Abstract;
 using Microsoft.AspNetCore.Http;
@@ -41,11 +42,24 @@ namespace ECafe.Application.Services.Jwt.Concrete
             if (fileUrl != null)
                 claims.Add(new Claim("fileUrl", fileUrl));
 
-            if (user.RoleId != 1 && user.RoleId != 5)
-                claims.Add(new Claim("restaurantId", user.UserRestaurant?.Restaurant.Id.ToString() ?? string.Empty));
+            var assignedRestaurantId = user.UserRestaurant is { RestaurantId: > 0 }
+                ? user.UserRestaurant.RestaurantId
+                : (int?)null;
+
+            if (RequiresActiveRestaurantAssignment(user.RoleId))
+            {
+                if (user.UserRestaurant is not { IsActive: true, RestaurantId: > 0 })
+                    throw new BusinessRuleException("Restaurant-scoped role requires an active restaurant assignment.");
+            }
+
+            if (assignedRestaurantId.HasValue)
+                claims.Add(new Claim("restaurantId", assignedRestaurantId.Value.ToString()));
 
             claims.Add(new Claim(ClaimTypes.Role, user.RoleId.ToString()));
             claims.Add(new Claim("roleName", EnumExtensions.GetDescription((RoleCode)user.RoleId)));
+
+            foreach (var permission in GetPermissionClaims(user))
+                claims.Add(new Claim("permission", permission));
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]!));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
@@ -59,6 +73,22 @@ namespace ECafe.Application.Services.Jwt.Concrete
             );
 
             return new JwtSecurityTokenHandler().WriteToken(token);
+        }
+
+        private static bool RequiresActiveRestaurantAssignment(int roleId)
+            => roleId is (int)RoleCode.Manager or
+                (int)RoleCode.Waiter or
+                (int)RoleCode.Kitchen;
+
+        private static IEnumerable<string> GetPermissionClaims(Domain.Entities.User user)
+        {
+            return user.Role.RolePermissions
+                .Where(rolePermission => !rolePermission.IsDeleted &&
+                                         !rolePermission.Permission.IsDeleted &&
+                                         Enum.IsDefined(typeof(PermissionCode), rolePermission.PermissionId))
+                .Select(rolePermission => ((PermissionCode)rolePermission.PermissionId).ToString())
+                .Distinct()
+                .OrderBy(permission => permission);
         }
     }
 }
