@@ -1,3 +1,4 @@
+using ECafe.Application.DTOs.Auth;
 using ECafe.Application.DTOs.User;
 using ECafe.Application.DTOs.User.Staff;
 using ECafe.Shared.DTOs;
@@ -10,7 +11,7 @@ namespace ECafe.Application.Services.User.Abstract
 
         public Task DeleteAsync(int userId);
 
-        public Task UpdateRoleAsync(int userId, int roleId);
+        public Task<AuthResponseDto> UpdateRoleAsync(int userId, int roleId);
 
         public Task<PaginatedList<GetAllUserResponseDto>> GetAllAsync(int? restaurantId, PaginationFilter filter);
 

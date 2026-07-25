@@ -63,7 +63,7 @@ public abstract class BaseManager
         => HttpContextAccessor.HttpContext?.User
            ?? throw new ForbiddenException("Authenticated user context is required.");
 
-    private int GetCurrentRoleId()
+    protected int GetCurrentRoleId()
     {
         var roleClaim = CurrentUser.FindFirst(ClaimTypes.Role)?.Value;
         if (!int.TryParse(roleClaim, out var roleId))

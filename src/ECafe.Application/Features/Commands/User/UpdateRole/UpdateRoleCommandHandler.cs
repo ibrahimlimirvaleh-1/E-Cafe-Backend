@@ -1,9 +1,10 @@
-﻿using ECafe.Application.Services.User.Abstract;
+using ECafe.Application.DTOs.Auth;
+using ECafe.Application.Services.User.Abstract;
 using MediatR;
 
 namespace ECafe.Application.Features.Commands.User.UpdateRole
 {
-    public class UpdateRoleCommandHandler : IRequestHandler<UpdateRoleCommand>
+    public class UpdateRoleCommandHandler : IRequestHandler<UpdateRoleCommand, AuthResponseDto>
     {
         private readonly IUserService _userService;
 
@@ -12,9 +13,7 @@ namespace ECafe.Application.Features.Commands.User.UpdateRole
             _userService = userService;
         }
 
-        public async Task Handle(UpdateRoleCommand request, CancellationToken cancellationToken)
-        {
-            await _userService.UpdateRoleAsync(request.UserId, request.RoleId);
-        }
+        public Task<AuthResponseDto> Handle(UpdateRoleCommand request, CancellationToken cancellationToken)
+            => _userService.UpdateRoleAsync(request.UserId, request.RoleId);
     }
 }

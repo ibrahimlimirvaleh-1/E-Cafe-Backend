@@ -3,6 +3,7 @@ using ECafe.Application.Common.Audit;
 using ECafe.Application.DTOs.Auth;
 using ECafe.Application.DTOs.File;
 using ECafe.Application.DTOs.RestaurantContract;
+using ECafe.Application.DTOs.Workflow;
 using ECafe.Application.Repositories.Restaurant;
 using ECafe.Application.Repositories.RestaurantContract;
 using ECafe.Application.Repositories.User;
@@ -30,6 +31,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
         private readonly IUserRestaurantRepository _userRestaurantRepository;
         private readonly IUserRepository _userRepository;
         private readonly IBaseRepository<Domain.Entities.Notification> _notificationRepository;
+        private readonly IBaseRepository<Domain.Entities.WorkflowActionRule> _workflowActionRuleRepository;
         private readonly IEmailService _emailService;
 
         public RestaurantContractManager(
@@ -44,6 +46,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             IUserRestaurantRepository userRestaurantRepository,
             IUserRepository userRepository,
             IBaseRepository<Domain.Entities.Notification> notificationRepository,
+            IBaseRepository<Domain.Entities.WorkflowActionRule> workflowActionRuleRepository,
             IEmailService emailService)
             : base(httpContextAccessor, mapper, configuration)
         {
@@ -55,6 +58,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             _userRestaurantRepository = userRestaurantRepository;
             _userRepository = userRepository;
             _notificationRepository = notificationRepository;
+            _workflowActionRuleRepository = workflowActionRuleRepository;
             _emailService = emailService;
         }
 
@@ -137,6 +141,14 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
                 throw new BusinessRuleException("Restaurant does not have an active contract!");
 
             return await MapToResponseAsync(contract);
+        }
+
+        public async Task<List<WorkflowActionResponse>> GetAvailableActionsAsync(int restaurantId, int contractId)
+        {
+            EnsureCurrentUserCanAccessRestaurant(restaurantId);
+
+            var contract = await GetTrackedContractAsync(restaurantId, contractId);
+            return await ResolveAvailableActionsAsync(contract);
         }
 
         public async Task ActivateAsync(int restaurantId, int contractId)
@@ -368,9 +380,52 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
                 SignedByUserId = contract.SignedByUserId,
                 SignedByUserName = contract.SignedByUser is null
                     ? null
-                    : $"{contract.SignedByUser.Name} {contract.SignedByUser.Surname}".Trim()
+                    : $"{contract.SignedByUser.Name} {contract.SignedByUser.Surname}".Trim(),
+                AvailableActions = await ResolveAvailableActionsAsync(contract)
             };
         }
+
+        private async Task<List<WorkflowActionResponse>> ResolveAvailableActionsAsync(Domain.Entities.RestaurantContract contract)
+        {
+            var roleId = GetCurrentRoleId();
+            var rules = await _workflowActionRuleRepository.Query(rule =>
+                    rule.FlowCode == "contract" &&
+                    rule.StatusId == contract.StatusId &&
+                    rule.RoleId == roleId &&
+                    rule.IsEnabled)
+                .OrderBy(rule => rule.SortOrder)
+                .ThenBy(rule => rule.Id)
+                .ToListAsync();
+
+            if (rules.Count == 0)
+                return [];
+
+            if (roleId == (int)RoleCode.Owner && !await IsCurrentUserRestaurantOwnerAsync(contract.RestaurantId))
+                return [];
+
+            return rules
+                .Select(rule => new WorkflowActionResponse
+                {
+                    Code = rule.ActionCode,
+                    Label = rule.Label,
+                    HttpMethod = rule.HttpMethod,
+                    Endpoint = BuildActionEndpoint(rule.EndpointTemplate, contract.RestaurantId, contract.Id),
+                    RequiresConfirmation = rule.RequiresConfirmation,
+                    SortOrder = rule.SortOrder
+                })
+                .ToList();
+        }
+
+        private async Task<bool> IsCurrentUserRestaurantOwnerAsync(int restaurantId)
+        {
+            var owner = await _userRestaurantRepository.GetActiveOwnerByRestaurantAsync(restaurantId);
+            return owner?.UserId == GetCurrentUserId();
+        }
+
+        private static string BuildActionEndpoint(string template, int restaurantId, int contractId)
+            => template
+                .Replace("{restaurantId}", restaurantId.ToString())
+                .Replace("{contractId}", contractId.ToString());
 
         private static int ContractStatusId(ContractStatus status)
             => ((int)StatusType.Contract * 1000) + (int)status;

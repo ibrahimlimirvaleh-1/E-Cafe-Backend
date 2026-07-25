@@ -1,20 +1,25 @@
 using AutoMapper;
 using AutoMapper.QueryableExtensions;
 using ECafe.Application.Common.Exceptions;
+using ECafe.Application.DTOs.Auth;
 using ECafe.Application.DTOs.User;
 using ECafe.Application.DTOs.User.Staff;
 using ECafe.Application.Repositories.File;
 using ECafe.Application.Repositories.Restaurant;
 using ECafe.Application.Repositories.Role;
 using ECafe.Application.Repositories.User;
+using ECafe.Application.Repositories.UserRefreshToken;
 using ECafe.Application.Services.MinIO.Abstracts;
 using ECafe.Application.Services.User.Abstract;
 using ECafe.Domain.Enums;
 using ECafe.Domain.Exceptions;
 using ECafe.Shared.DTOs;
 using ECafe.Shared.Extensions;
+using ECafe.Shared.Services.Jwt.Abstract;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace ECafe.Application.Services.User.Concrete
 {
@@ -26,6 +31,8 @@ namespace ECafe.Application.Services.User.Concrete
         private readonly IMinioService _minioService;
         private readonly IFileRepository _fileRepository;
         private readonly IEmailService _emailService;
+        private readonly IJwtService _jwtService;
+        private readonly IUserRefreshTokenRepository _refreshTokenRepository;
 
         public UserManager(
             IHttpContextAccessor httpContextAccessor,
@@ -36,7 +43,9 @@ namespace ECafe.Application.Services.User.Concrete
             IMinioService minioService,
             IFileRepository fileRepository,
             IUserRepository userRepository,
-            IEmailService emailService)
+            IEmailService emailService,
+            IJwtService jwtService,
+            IUserRefreshTokenRepository refreshTokenRepository)
             : base(httpContextAccessor, mapper, configuration)
         {
             _restaurantRepository = restaurantRepository;
@@ -45,6 +54,8 @@ namespace ECafe.Application.Services.User.Concrete
             _fileRepository = fileRepository;
             _userRepository = userRepository;
             _emailService = emailService;
+            _jwtService = jwtService;
+            _refreshTokenRepository = refreshTokenRepository;
         }
 
         public async Task CreateUserAsync(CreateUserRequest request)
@@ -90,7 +101,7 @@ namespace ECafe.Application.Services.User.Concrete
             await _userRepository.SaveChangesAsync();
         }
 
-        public async Task UpdateRoleAsync(int userId, int roleId)
+        public async Task<AuthResponseDto> UpdateRoleAsync(int userId, int roleId)
         {
             if (userId <= 0)
                 throw new BusinessRuleException("Invalid user id");
@@ -119,6 +130,21 @@ namespace ECafe.Application.Services.User.Concrete
             await _userRepository.SaveChangesAsync();
 
             await _emailService.SendMailAsync(user.Email, user.Name, user.Surname, roleName);
+
+            if (userId != GetCurrentUserId())
+            {
+                return Mapper.Map<AuthResponseDto>(new AuthTokenMapData
+                {
+                    AccessToken = string.Empty,
+                    RefreshToken = string.Empty
+                });
+            }
+
+            var tokenUser = await _userRepository.GetByIdWithAuthDetailsTrackedAsync(userId);
+            if (tokenUser is null)
+                throw new BusinessRuleException("User not found");
+
+            return await CreateAndStoreTokenResponseAsync(tokenUser);
         }
 
         public Task<PaginatedList<GetAllUserResponseDto>> GetAllAsync(int? restaurantId, PaginationFilter filter)
@@ -294,6 +320,34 @@ namespace ECafe.Application.Services.User.Concrete
                 return null;
 
             return await _minioService.GenerateFileUrl(file.Token);
+        }
+
+        private async Task<AuthResponseDto> CreateAndStoreTokenResponseAsync(Domain.Entities.User user)
+        {
+            var fileUrl = await GenerateFileUrlAsync(user.File);
+            var refreshToken = _jwtService.GenerateRefreshToken();
+
+            await _refreshTokenRepository.Add(Mapper.Map<Domain.Entities.UserRefreshToken>(new RefreshTokenMapData
+            {
+                UserId = user.Id,
+                TokenHash = HashRefreshToken(refreshToken),
+                ExpiresAt = DateTime.UtcNow.AddDays(7),
+                CreatedByIp = HttpContextAccessor.HttpContext?.Connection.RemoteIpAddress?.ToString(),
+                UserAgent = HttpContextAccessor.HttpContext?.Request.Headers["User-Agent"].ToString()
+            }));
+            await _refreshTokenRepository.SaveChangesAsync();
+
+            return Mapper.Map<AuthResponseDto>(new AuthTokenMapData
+            {
+                AccessToken = _jwtService.GenerateToken(user, fileUrl),
+                RefreshToken = refreshToken
+            });
+        }
+
+        private static string HashRefreshToken(string refreshToken)
+        {
+            var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(refreshToken));
+            return Convert.ToHexString(bytes);
         }
     }
 }

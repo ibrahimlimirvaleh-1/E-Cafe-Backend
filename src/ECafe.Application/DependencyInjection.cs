@@ -18,6 +18,8 @@ using ECafe.Application.Services.Table.Abstract;
 using ECafe.Application.Services.Table.Concrete;
 using ECafe.Application.Services.User.Abstract;
 using ECafe.Application.Services.User.Concrete;
+using ECafe.Application.Services.Workflow.Abstract;
+using ECafe.Application.Services.Workflow.Concrete;
 using ECafe.Application.Validation;
 using ECafe.Infrastructure.Services.MinIO;
 using FluentValidation;
@@ -55,6 +57,7 @@ namespace ECafe.Application
             services.AddScoped<ITableService, TableManager>();
             services.AddScoped<ICategoryService, CategoryManager>();
             services.AddScoped<IItemService, ItemManager>();
+            services.AddScoped<IWorkflowActionService, WorkflowActionManager>();
 
             return services;
         }

@@ -43,6 +43,9 @@ public partial class ECafeDbContext : DbContext
     public DbSet<Review> Reviews { get; set; } = null!;
 
     public DbSet<RestaurantContract> RestaurantContracts { get; set; } = null!;
+
+    public DbSet<WorkflowActionRule> WorkflowActionRules { get; set; } = null!;
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -55,6 +58,7 @@ public partial class ECafeDbContext : DbContext
         PermissionSeeder.Seed(modelBuilder);
         RoleSeeder.Seed(modelBuilder);
         RolePermissionSeeder.Seed(modelBuilder);
+        WorkflowActionRuleSeeder.Seed(modelBuilder);
 
         ApplySoftDeleteQueryFilters(modelBuilder);
 

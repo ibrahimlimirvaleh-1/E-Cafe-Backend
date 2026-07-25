@@ -25,6 +25,11 @@ namespace ECafe.Api.Controllers
         public async Task<IActionResult> GetActive(int restaurantId)
             => Ok(await Mediator.Send(new GetActiveRestaurantContractQuery(restaurantId)));
 
+        [HasPermission(Domain.Enums.PermissionCode.ViewRestaurantContracts)]
+        [HttpGet("api/v1/restaurants/{restaurantId}/contracts/{contractId}/actions")]
+        public async Task<IActionResult> GetActions(int restaurantId, int contractId)
+            => Ok(await Mediator.Send(new GetRestaurantContractActionsQuery(restaurantId, contractId)));
+
         [HasPermission(Domain.Enums.PermissionCode.ManageRestaurantContracts)]
         [HttpPost("api/v1/admin/restaurants/{restaurantId}/contracts/{contractId}/send-for-signature")]
         public async Task<IActionResult> SendForSignature(int restaurantId, int contractId)

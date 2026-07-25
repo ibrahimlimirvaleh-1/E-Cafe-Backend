@@ -1,4 +1,5 @@
 using ECafe.Application.DTOs.RestaurantContract;
+using ECafe.Application.DTOs.Workflow;
 
 namespace ECafe.Application.Services.RestaurantContract.Abstract
 {
@@ -9,6 +10,8 @@ namespace ECafe.Application.Services.RestaurantContract.Abstract
         Task<List<RestaurantContractResponse>> GetByRestaurantAsync(int restaurantId);
 
         Task<RestaurantContractResponse> GetActiveAsync(int restaurantId);
+
+        Task<List<WorkflowActionResponse>> GetAvailableActionsAsync(int restaurantId, int contractId);
 
         Task SendForSignatureAsync(int restaurantId, int contractId);
 

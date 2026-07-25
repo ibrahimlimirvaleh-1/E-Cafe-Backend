@@ -26,6 +26,12 @@ namespace ECafe.Infrastructure.Repositories.User
                 .FirstOrDefaultAsync(u => u.Email == email);
         }
 
+        public Task<Domain.Entities.User?> GetByIdWithAuthDetailsTrackedAsync(int userId)
+        {
+            return UserWithAuthDetailsTrackedQuery()
+                .FirstOrDefaultAsync(u => u.Id == userId);
+        }
+
         public async Task<List<Domain.Entities.User>> GetByRestaurantIdAsync(int restaurantId)
         {
             return await Query()

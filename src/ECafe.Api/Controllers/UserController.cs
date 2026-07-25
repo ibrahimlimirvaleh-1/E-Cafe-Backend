@@ -44,8 +44,7 @@ namespace ECafe.Api.Controllers
                 UserId = userId,
                 RoleId = roleId
             };
-            await Mediator.Send(command);
-            return Ok();
+            return Ok(await Mediator.Send(command));
         }
 
         [HasPermission(Domain.Enums.PermissionCode.ManageUsers)]

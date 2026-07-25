@@ -8,6 +8,8 @@ namespace ECafe.Application.Repositories.User
 
         Task<Domain.Entities.User?> GetByEmailTrackedAsync(string email);
 
+        Task<Domain.Entities.User?> GetByIdWithAuthDetailsTrackedAsync(int userId);
+
         Task<List<Domain.Entities.User>> GetByRestaurantIdAsync(int restaurantId);
 
         Task<List<Domain.Entities.User>> GetActiveUsersByRoleAsync(int roleId);

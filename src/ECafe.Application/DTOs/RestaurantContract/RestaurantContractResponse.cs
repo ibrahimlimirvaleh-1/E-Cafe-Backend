@@ -1,3 +1,5 @@
+using ECafe.Application.DTOs.Workflow;
+
 namespace ECafe.Application.DTOs.RestaurantContract
 {
     public class RestaurantContractResponse
@@ -31,5 +33,7 @@ namespace ECafe.Application.DTOs.RestaurantContract
         public int? SignedByUserId { get; set; }
 
         public string? SignedByUserName { get; set; }
+
+        public List<WorkflowActionResponse> AvailableActions { get; set; } = [];
     }
 }
