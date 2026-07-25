@@ -1,5 +1,6 @@
 using AutoMapper;
 using ECafe.Application.Common.Audit;
+using ECafe.Application.Common.Pagination;
 using ECafe.Application.DTOs.AuditLog;
 using ECafe.Application.Repository;
 using ECafe.Application.Services.AuditLog.Abstract;
@@ -144,10 +145,8 @@ namespace ECafe.Application.Services.AuditLog.Concrete
             EnsureCurrentUserCanAccessRestaurant(restaurantId);
 
             filter ??= new AuditLogFilterRequest();
-            if (filter.PageNumber <= 0)
-                filter.PageNumber = 1;
-            if (filter.PageSize <= 0)
-                filter.PageSize = 20;
+            filter.PageNumber = PaginationFilterNormalizer.NormalizePageNumber(filter.PageNumber);
+            filter.PageSize = PaginationFilterNormalizer.NormalizePageSize(filter.PageSize, defaultPageSize: 20);
 
             var query = _auditLogRepository.Query(x =>
                 x.RestaurantId == restaurantId ||

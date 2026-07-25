@@ -206,7 +206,7 @@ namespace ECafe.Infrastructure.Services.MinIO
 
             var status = await _minioClient.StatObjectAsync(statObjectArgs);
             if (status == null)
-                throw new Exception("File not found or deleted");
+                throw new BusinessRuleException("File not found or deleted");
 
             return status.ContentType;
         }

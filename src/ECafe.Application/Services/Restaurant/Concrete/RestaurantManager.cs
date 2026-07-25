@@ -1,5 +1,6 @@
 using AutoMapper;
 using ECafe.Application.Common.Audit;
+using ECafe.Application.Common.Pagination;
 using ECafe.Application.DTOs.Restaurant;
 using ECafe.Application.DTOs.Restaurant.Public;
 using ECafe.Application.DTOs.User.Staff;
@@ -59,16 +60,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             string? location,
             string? cuisine)
         {
-            filter ??= new PaginationFilter();
-
-            if (filter.PageNumber <= 0)
-                filter.PageNumber = 1;
-
-            if (filter.PageSize <= 0)
-                filter.PageSize = 5;
-
-            if (filter.PageSize > 100)
-                filter.PageSize = 100;
+            filter = PaginationFilterNormalizer.Normalize(filter);
 
             var activeContractStatusId = ((int)ECafe.Domain.Enums.StatusType.Contract * 1000) + (int)ContractStatus.Active;
             var restaurantsQuery = _restaurantRepository.GetRestaurantsForList();
@@ -153,7 +145,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             PaginationFilter filter,
             string? search)
         {
-            NormalizePaginationFilter(filter, defaultPageSize: 10);
+            filter = PaginationFilterNormalizer.Normalize(filter, defaultPageSize: 10);
 
             var restaurantsQuery = _restaurantRepository.GetActiveRestaurants();
 
@@ -402,18 +394,6 @@ namespace ECafe.Application.Services.Restaurant.Concrete
         {
             var normalized = value?.Trim();
             return string.IsNullOrWhiteSpace(normalized) ? null : normalized;
-        }
-
-        private static void NormalizePaginationFilter(PaginationFilter filter, int defaultPageSize)
-        {
-            if (filter.PageNumber <= 0)
-                filter.PageNumber = 1;
-
-            if (filter.PageSize <= 0)
-                filter.PageSize = defaultPageSize;
-
-            if (filter.PageSize > 100)
-                filter.PageSize = 100;
         }
 
         private async Task AttachRestaurantFilesAsync(

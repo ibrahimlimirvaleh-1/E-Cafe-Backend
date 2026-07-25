@@ -1,6 +1,7 @@
 using AutoMapper;
 using AutoMapper.QueryableExtensions;
 using ECafe.Application.Common.Exceptions;
+using ECafe.Application.Common.Pagination;
 using ECafe.Application.DTOs.Auth;
 using ECafe.Application.DTOs.User;
 using ECafe.Application.DTOs.User.Staff;
@@ -155,13 +156,7 @@ namespace ECafe.Application.Services.User.Concrete
 
         public Task<PaginatedList<GetAllUserResponseDto>> GetAllAsync(int? restaurantId, PaginationFilter filter)
         {
-            filter ??= new PaginationFilter();
-
-            if (filter.PageNumber <= 0)
-                filter.PageNumber = 1;
-
-            if (filter.PageSize <= 0)
-                filter.PageSize = 5;
+            filter = PaginationFilterNormalizer.Normalize(filter);
 
             if (IsCurrentUserSuperAdmin())
             {

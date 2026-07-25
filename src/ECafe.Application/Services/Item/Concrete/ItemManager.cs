@@ -1,5 +1,6 @@
 using AutoMapper;
 using ECafe.Application.Common.Audit;
+using ECafe.Application.Common.Pagination;
 using ECafe.Application.DTOs.Item;
 using ECafe.Application.Repositories.Category;
 using ECafe.Application.Repositories.File;
@@ -165,17 +166,7 @@ namespace ECafe.Application.Services.Item.Concrete
         }
 
         private static PaginationFilter NormalizeFilter(PaginationFilter? filter)
-        {
-            filter ??= new PaginationFilter();
-
-            if (filter.PageNumber <= 0)
-                filter.PageNumber = 1;
-
-            if (filter.PageSize <= 0)
-                filter.PageSize = 5;
-
-            return filter;
-        }
+            => PaginationFilterNormalizer.Normalize(filter);
 
         private async Task PopulateItemFileUrlsAsync(
             IReadOnlyList<ItemDto> itemDtos,
