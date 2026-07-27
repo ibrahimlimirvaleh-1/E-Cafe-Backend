@@ -2,6 +2,7 @@ using AutoMapper;
 using ECafe.Application.Common.Audit;
 using ECafe.Application.DTOs.Auth;
 using ECafe.Application.DTOs.File;
+using ECafe.Application.DTOs.Notification;
 using ECafe.Application.DTOs.RestaurantContract;
 using ECafe.Application.DTOs.Workflow;
 using ECafe.Application.Repositories.Restaurant;
@@ -11,18 +12,22 @@ using ECafe.Application.Repositories.UserRestaurant;
 using ECafe.Application.Repository;
 using ECafe.Application.Services.AuditLog.Abstract;
 using ECafe.Application.Services.MinIO.Abstracts;
+using ECafe.Application.Services.Notification.Abstract;
 using ECafe.Application.Services.RestaurantContract.Abstract;
 using ECafe.Domain.Enums;
 using ECafe.Domain.Exceptions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using System.Text.Json;
 using File = ECafe.Domain.Entities.File;
 
 namespace ECafe.Application.Services.RestaurantContract.Concrete
 {
     public class RestaurantContractManager : BaseManager, IRestaurantContractService
     {
+        private static readonly JsonSerializerOptions NotificationJsonOptions = new(JsonSerializerDefaults.Web);
+
         private readonly IRestaurantContractRepository _contractRepository;
         private readonly IRestaurantRepository _restaurantRepository;
         private readonly IMinioService _minioService;
@@ -30,9 +35,9 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
         private readonly IAuditLogService _auditLogService;
         private readonly IUserRestaurantRepository _userRestaurantRepository;
         private readonly IUserRepository _userRepository;
-        private readonly IBaseRepository<Domain.Entities.Notification> _notificationRepository;
+        private readonly INotificationService _notificationService;
         private readonly IBaseRepository<Domain.Entities.WorkflowActionRule> _workflowActionRuleRepository;
-        private readonly IEmailService _emailService;
+        private readonly IEmailOutboxService _emailOutboxService;
 
         public RestaurantContractManager(
             IHttpContextAccessor httpContextAccessor,
@@ -45,9 +50,9 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             IAuditLogService auditLogService,
             IUserRestaurantRepository userRestaurantRepository,
             IUserRepository userRepository,
-            IBaseRepository<Domain.Entities.Notification> notificationRepository,
+            INotificationService notificationService,
             IBaseRepository<Domain.Entities.WorkflowActionRule> workflowActionRuleRepository,
-            IEmailService emailService)
+            IEmailOutboxService emailOutboxService)
             : base(httpContextAccessor, mapper, configuration)
         {
             _contractRepository = contractRepository;
@@ -57,9 +62,9 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             _auditLogService = auditLogService;
             _userRestaurantRepository = userRestaurantRepository;
             _userRepository = userRepository;
-            _notificationRepository = notificationRepository;
+            _notificationService = notificationService;
             _workflowActionRuleRepository = workflowActionRuleRepository;
-            _emailService = emailService;
+            _emailOutboxService = emailOutboxService;
         }
 
         public async Task<int> CreateAsync(int restaurantId, CreateRestaurantContractRequest request)
@@ -238,7 +243,8 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             await _contractRepository.SaveChangesAsync();
 
             var owner = await GetRestaurantOwnerAsync(restaurantId);
-            await SendContractActivatedEmailAsync(owner.User, contract);
+            await EnqueueContractActivatedEmailAsync(owner.User, contract);
+            await NotifyOwnerContractActivatedAsync(contract, owner.UserId);
 
             await _auditLogService.RecordRestaurantActionAsync(
                 restaurantId,
@@ -271,7 +277,8 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             await _contractRepository.Update(contract);
             await _contractRepository.SaveChangesAsync();
 
-            await SendContractSignatureEmailAsync(owner.User, contract);
+            await EnqueueContractSignatureEmailAsync(owner.User, contract);
+            await NotifyOwnerContractPendingApprovalAsync(contract, owner.UserId);
 
             await _auditLogService.RecordRestaurantActionAsync(
                 restaurantId,
@@ -336,10 +343,14 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             EnsureCurrentUserCanAccessRestaurant(restaurantId);
 
             var contract = await GetTrackedContractAsync(restaurantId, contractId);
+            var owner = await GetRestaurantOwnerAsync(restaurantId);
+
             contract.StatusId = ContractStatusId(ContractStatus.Terminated);
 
             await _contractRepository.Update(contract);
             await _contractRepository.SaveChangesAsync();
+
+            await NotifyOwnerContractTerminatedAsync(contract, owner.UserId);
 
             await _auditLogService.RecordRestaurantActionAsync(
                 restaurantId,
@@ -382,6 +393,8 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
 
             foreach (var contract in expiredContracts)
             {
+                await NotifyOwnerContractExpiredAsync(contract);
+
                 await _auditLogService.RecordRestaurantActionAsync(
                     contract.RestaurantId,
                     AuditActions.ContractExpired,
@@ -516,10 +529,42 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             return owner;
         }
 
+        private Task EnqueueContractSignatureEmailAsync(
+            Domain.Entities.User owner,
+            Domain.Entities.RestaurantContract contract)
+            => _emailOutboxService.EnqueueContractNotificationAsync(
+                owner.Email,
+                owner.Name,
+                "Müqavilə təsdiqi gözləyir",
+                $"Restoranınız üçün {contract.ContractNumber} nömrəli müqavilə hazırlanıb. Zəhmət olmasa sistemə daxil olub müqaviləni oxuyun və təsdiqləyin.",
+                contract.Id);
+
+        private Task EnqueueContractActivatedEmailAsync(
+            Domain.Entities.User owner,
+            Domain.Entities.RestaurantContract contract)
+            => _emailOutboxService.EnqueueContractNotificationAsync(
+                owner.Email,
+                owner.Name,
+                "Müqavilə aktivləşdirildi",
+                $"{contract.ContractNumber} nömrəli müqaviləniz aktivləşdirildi.",
+                contract.Id);
+
+        private Task EnqueueContractOwnerApprovedEmailAsync(
+            Domain.Entities.User admin,
+            Domain.Entities.RestaurantContract contract,
+            string subject,
+            string body)
+            => _emailOutboxService.EnqueueContractNotificationAsync(
+                admin.Email,
+                admin.Name,
+                subject,
+                body,
+                contract.Id);
+
         private Task SendContractSignatureEmailAsync(
             Domain.Entities.User owner,
             Domain.Entities.RestaurantContract contract)
-            => _emailService.SendContractNotificationAsync(
+            => _emailOutboxService.EnqueueContractNotificationAsync(
                 owner.Email,
                 owner.Name,
                 "Müqavilə təsdiqi gözləyir",
@@ -528,11 +573,55 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
         private Task SendContractActivatedEmailAsync(
             Domain.Entities.User owner,
             Domain.Entities.RestaurantContract contract)
-            => _emailService.SendContractNotificationAsync(
+            => _emailOutboxService.EnqueueContractNotificationAsync(
                 owner.Email,
                 owner.Name,
                 "Müqavilə aktivləşdirildi",
                 $"{contract.ContractNumber} nömrəli müqaviləniz aktivləşdirildi.");
+
+        private Task NotifyOwnerContractPendingApprovalAsync(
+            Domain.Entities.RestaurantContract contract,
+            int ownerUserId)
+            => CreateContractNotificationAsync(
+                ownerUserId,
+                contract,
+                NotificationType.ContractPendingApproval,
+                "Müqavilə təsdiqinizi gözləyir",
+                $"{contract.ContractNumber} nömrəli müqavilə təsdiq üçün sizə göndərildi.");
+
+        private Task NotifyOwnerContractActivatedAsync(
+            Domain.Entities.RestaurantContract contract,
+            int ownerUserId)
+            => CreateContractNotificationAsync(
+                ownerUserId,
+                contract,
+                NotificationType.ContractActivated,
+                "Müqavilə aktivləşdirildi",
+                $"{contract.ContractNumber} nömrəli müqaviləniz aktivləşdirildi.");
+
+        private Task NotifyOwnerContractTerminatedAsync(
+            Domain.Entities.RestaurantContract contract,
+            int ownerUserId)
+            => CreateContractNotificationAsync(
+                ownerUserId,
+                contract,
+                NotificationType.ContractTerminated,
+                "Müqavilə ləğv edildi",
+                $"{contract.ContractNumber} nömrəli müqaviləniz ləğv edildi.");
+
+        private async Task NotifyOwnerContractExpiredAsync(Domain.Entities.RestaurantContract contract)
+        {
+            var owner = await _userRestaurantRepository.GetActiveOwnerByRestaurantAsync(contract.RestaurantId);
+            if (owner is null)
+                return;
+
+            await CreateContractNotificationAsync(
+                owner.UserId,
+                contract,
+                NotificationType.ContractExpired,
+                "Müqavilənin müddəti bitdi",
+                $"{contract.ContractNumber} nömrəli müqavilənizin müddəti bitdi.");
+        }
 
         private async Task NotifyAdminsContractOwnerApprovedAsync(
             Domain.Entities.RestaurantContract contract,
@@ -547,26 +636,53 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             var message = LimitNotificationMessage(
                 $"{contract.ContractNumber} nömrəli müqavilə {owner.Name} {owner.Surname} tərəfindən təsdiqləndi. Təsdiq mətni: {acceptanceText}");
 
-            var notifications = admins.Select(admin => new Domain.Entities.Notification
-            {
-                UserId = admin.Id,
-                Title = title,
-                Message = message,
-                IsRead = false
-            }).ToList();
-
-            await _notificationRepository.AddRangeAsync(notifications);
-            await _notificationRepository.SaveChangesAsync();
+            title = "Müqavilə sahibkar tərəfindən təsdiqləndi";
+            message = LimitNotificationMessage(
+                $"{contract.ContractNumber} nömrəli müqavilə {owner.Name} {owner.Surname} tərəfindən təsdiqləndi. Təsdiq mətni: {acceptanceText}");
 
             foreach (var admin in admins)
             {
-                await _emailService.SendContractNotificationAsync(
-                    admin.Email,
-                    admin.Name,
+                await CreateContractNotificationAsync(
+                    admin.Id,
+                    contract,
+                    NotificationType.ContractOwnerApproved,
+                    title,
+                    message);
+
+                await EnqueueContractOwnerApprovedEmailAsync(
+                    admin,
+                    contract,
                     title,
                     message);
             }
         }
+
+        private Task CreateContractNotificationAsync(
+            int userId,
+            Domain.Entities.RestaurantContract contract,
+            NotificationType type,
+            string title,
+            string message)
+            => _notificationService.CreateAsync(new CreateNotificationRequest
+            {
+                UserId = userId,
+                RestaurantId = contract.RestaurantId,
+                Title = title,
+                Message = LimitNotificationMessage(message),
+                TypeId = (int)type,
+                ChannelId = (int)NotificationChannel.InApp,
+                PayloadJson = BuildContractNotificationPayload(contract),
+                RelatedEntityType = AuditEntityTypes.Contract,
+                RelatedEntityId = contract.Id
+            });
+
+        private static string BuildContractNotificationPayload(Domain.Entities.RestaurantContract contract)
+            => JsonSerializer.Serialize(new
+            {
+                restaurantId = contract.RestaurantId,
+                contractId = contract.Id,
+                contractNumber = contract.ContractNumber
+            }, NotificationJsonOptions);
 
         private static string LimitNotificationMessage(string message)
             => message.Length <= 1000 ? message : message[..1000];

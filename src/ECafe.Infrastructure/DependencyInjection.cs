@@ -27,6 +27,8 @@ using ECafe.Infrastructure.Repositories.UserRestaurant;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using ECafe.Application.Repositories.Notification;
+using ECafe.Infrastructure.Repositories.Notification;
 namespace ECafe.Infrastructure
 {
     public static class DependencyInjection
@@ -58,6 +60,7 @@ namespace ECafe.Infrastructure
             services.AddScoped<ICategoryRepository, CategoryRepository>();
             services.AddScoped<IItemRepository, ItemRepository>();
             services.AddScoped<IFileRepository, FileRepository>();
+            services.AddScoped<INotificationRepository, NotificationRepository>();
             return services;
         }
     }

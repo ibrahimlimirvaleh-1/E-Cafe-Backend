@@ -25,6 +25,8 @@ using ECafe.Infrastructure.Services.MinIO;
 using FluentValidation;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
+using ECafe.Application.Services.Notification.Abstract;
+using ECafe.Application.Services.Notification.Concrete;
 
 namespace ECafe.Application
 {
@@ -49,6 +51,9 @@ namespace ECafe.Application
             services.AddScoped<IAuditOutboxProcessor>(provider => provider.GetRequiredService<AuditLogManager>());
             services.AddScoped<IAuthService, AuthManager>();
             services.AddScoped<IEmailService, EmailManager>();
+            services.AddScoped<EmailOutboxManager>();
+            services.AddScoped<IEmailOutboxService>(provider => provider.GetRequiredService<EmailOutboxManager>());
+            services.AddScoped<IEmailOutboxProcessor>(provider => provider.GetRequiredService<EmailOutboxManager>());
             services.AddScoped<IRestaurantService, RestaurantManager>();
             services.AddScoped<IRestaurantGroupService, RestaurantGroupManager>();
             services.AddScoped<IContractDocumentGenerator, ContractDocumentGenerator>();
@@ -58,6 +63,7 @@ namespace ECafe.Application
             services.AddScoped<ICategoryService, CategoryManager>();
             services.AddScoped<IItemService, ItemManager>();
             services.AddScoped<IWorkflowActionService, WorkflowActionManager>();
+            services.AddScoped<INotificationService, NotificationManager>();
 
             return services;
         }

@@ -23,6 +23,16 @@ namespace ECafe.Infrastructure.Configurations.Concrete
                 .WithMany(x => x.Notifications)
                 .HasForeignKey(x => x.UserId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Property(x => x.PayloadJson)
+            .HasColumnType("jsonb");
+
+            builder.Property(x => x.RelatedEntityType)
+                .HasMaxLength(100);
+
+            builder.HasIndex(x => new { x.UserId, x.IsRead, x.CreatedAt });
+            builder.HasIndex(x => new { x.RestaurantId, x.CreatedAt });
+            builder.HasIndex(x => new { x.RelatedEntityType, x.RelatedEntityId });
         }
     }
 }

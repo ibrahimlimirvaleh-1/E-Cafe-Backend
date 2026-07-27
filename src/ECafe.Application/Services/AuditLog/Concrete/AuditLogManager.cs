@@ -1,5 +1,6 @@
 using AutoMapper;
 using ECafe.Application.Common.Audit;
+using ECafe.Application.Common.Outbox;
 using ECafe.Application.Common.Pagination;
 using ECafe.Application.DTOs.AuditLog;
 using ECafe.Application.Repository;
@@ -16,8 +17,6 @@ namespace ECafe.Application.Services.AuditLog.Concrete
     public class AuditLogManager : BaseManager, IAuditLogService, IAuditOutboxProcessor
     {
         private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
-        private const string AuditEventType = "AuditLogRequested";
-        private const string RestaurantAggregateType = "Restaurant";
         private static readonly TimeSpan LockDuration = TimeSpan.FromMinutes(5);
         private const int MaxRetryCount = 5;
 
@@ -74,8 +73,8 @@ namespace ECafe.Application.Services.AuditLog.Concrete
             var outboxEvent = new Domain.Entities.OutboxEvent
             {
                 Id = Guid.NewGuid(),
-                EventType = AuditEventType,
-                AggregateType = RestaurantAggregateType,
+                EventType = OutboxEventTypes.AuditLogRequested,
+                AggregateType = OutboxAggregateTypes.Restaurant,
                 AggregateId = restaurantId,
                 Payload = JsonSerializer.Serialize(payload, JsonOptions),
                 OccurredAt = now
@@ -92,6 +91,7 @@ namespace ECafe.Application.Services.AuditLog.Concrete
 
             var now = DateTime.UtcNow;
             var outboxEvents = await _outboxRepository.QueryTracked(x =>
+                    x.EventType == OutboxEventTypes.AuditLogRequested &&
                     x.ProcessedAt == null &&
                     x.RetryCount < MaxRetryCount &&
                     (x.LockedUntil == null || x.LockedUntil <= now))
@@ -199,7 +199,7 @@ namespace ECafe.Application.Services.AuditLog.Concrete
 
         private async Task ProcessOutboxEventAsync(Domain.Entities.OutboxEvent outboxEvent)
         {
-            if (outboxEvent.EventType != AuditEventType)
+            if (outboxEvent.EventType != OutboxEventTypes.AuditLogRequested)
                 throw new BusinessRuleException($"Unsupported outbox event type: {outboxEvent.EventType}");
 
             var exists = await _auditLogRepository.CheckExistAsync(x => x.EventId == outboxEvent.Id);
