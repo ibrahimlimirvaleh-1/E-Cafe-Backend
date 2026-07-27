@@ -32,6 +32,10 @@ namespace ECafe.Infrastructure.Seeders
                 PermissionCode.ViewRestaurantInfo,
                 PermissionCode.ManageRestaurantContracts,
                 PermissionCode.ViewRestaurantContracts,
+                PermissionCode.ViewInventory,
+                PermissionCode.ManageInventory,
+                PermissionCode.ViewRecipes,
+                PermissionCode.ManageRecipes,
                 PermissionCode.AssignRoles,
             });
 
@@ -42,7 +46,9 @@ namespace ECafe.Infrastructure.Seeders
                 PermissionCode.ManageStaff,
                 PermissionCode.ViewReports,
                 PermissionCode.ViewRestaurantInfo,
-                PermissionCode.ViewRestaurantContracts
+                PermissionCode.ViewRestaurantContracts,
+                PermissionCode.ViewInventory,
+                PermissionCode.ViewRecipes
 
             });
             // Manager
@@ -56,7 +62,10 @@ namespace ECafe.Infrastructure.Seeders
                 PermissionCode.ManagePayments,
                 PermissionCode.ViewReports,
                 PermissionCode.ViewRestaurantInfo,
-                PermissionCode.ViewRestaurantContracts
+                PermissionCode.ViewRestaurantContracts,
+                PermissionCode.ViewInventory,
+                PermissionCode.ManageInventory,
+                PermissionCode.ViewRecipes
 
             });
 
@@ -74,7 +83,10 @@ namespace ECafe.Infrastructure.Seeders
             AddPermissions(rolePermissions, RoleCode.Kitchen, new[]
             {
                 PermissionCode.ViewRestaurantInfo,
-                PermissionCode.ManageKitchenOrders
+                PermissionCode.ManageKitchenOrders,
+                PermissionCode.ViewInventory,
+                PermissionCode.ViewRecipes,
+                PermissionCode.ManageRecipes
             });
 
             modelBuilder.Entity<RolePermission>().HasData(rolePermissions);

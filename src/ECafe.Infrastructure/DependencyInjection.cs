@@ -29,6 +29,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using ECafe.Application.Repositories.Notification;
 using ECafe.Infrastructure.Repositories.Notification;
+using ECafe.Application.Repositories.InventoryItem;
+using ECafe.Infrastructure.Repositories.InventoryItem;
 namespace ECafe.Infrastructure
 {
     public static class DependencyInjection
@@ -61,6 +63,7 @@ namespace ECafe.Infrastructure
             services.AddScoped<IItemRepository, ItemRepository>();
             services.AddScoped<IFileRepository, FileRepository>();
             services.AddScoped<INotificationRepository, NotificationRepository>();
+            services.AddScoped<IInventoryItemRepository, InventoryItemRepository>();
             return services;
         }
     }

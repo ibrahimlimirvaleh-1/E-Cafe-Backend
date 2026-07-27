@@ -66,5 +66,17 @@ namespace ECafe.Domain.Enums
 
         [Description("Restoran müqavilələrinə baxmaq")]
         ViewRestaurantContracts,
+
+        [Description("Stoka baxmaq")]
+        ViewInventory,
+
+        [Description("Stoku idarə etmək")]
+        ManageInventory,
+
+        [Description("Reseptlərə baxmaq")]
+        ViewRecipes,
+
+        [Description("Reseptləri idarə etmək")]
+        ManageRecipes
     }
 }

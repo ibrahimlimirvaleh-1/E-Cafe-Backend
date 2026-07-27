@@ -46,6 +46,14 @@ public partial class ECafeDbContext : DbContext
 
     public DbSet<WorkflowActionRule> WorkflowActionRules { get; set; } = null!;
 
+    public DbSet<InventoryItem> InventoryItems { get; set; } = null!;
+
+    public DbSet<Unit> Units { get; set; } = null!;
+
+    public DbSet<Recipe> Recipes { get; set; } = null!;
+
+    public DbSet<InventoryMovement> InventoryMovements { get; set; } = null!;
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -53,6 +61,7 @@ public partial class ECafeDbContext : DbContext
         // Automatically discovers all IEntityTypeConfiguration<T> configurations.
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(ECafeDbContext).Assembly);
 
+        UnitSeeder.Seed(modelBuilder);
         StatusTypeSeeder.Seed(modelBuilder);
         StatusSeeder.Seed(modelBuilder);
         PermissionSeeder.Seed(modelBuilder);

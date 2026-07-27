@@ -27,6 +27,8 @@ using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 using ECafe.Application.Services.Notification.Abstract;
 using ECafe.Application.Services.Notification.Concrete;
+using ECafe.Application.Services.InventoryItem.Abstract;
+using ECafe.Application.Services.InventoryItem.Concrete;
 
 namespace ECafe.Application
 {
@@ -64,6 +66,7 @@ namespace ECafe.Application
             services.AddScoped<IItemService, ItemManager>();
             services.AddScoped<IWorkflowActionService, WorkflowActionManager>();
             services.AddScoped<INotificationService, NotificationManager>();
+            services.AddScoped<IInventoryItemService, InventoryItemManager>();
 
             return services;
         }

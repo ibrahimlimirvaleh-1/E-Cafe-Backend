@@ -392,7 +392,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
 
         private static string? NormalizeFilter(string? value)
         {
-            var normalized = value?.Trim();
+            var normalized = value?.ToLower().Trim();
             return string.IsNullOrWhiteSpace(normalized) ? null : normalized;
         }
 

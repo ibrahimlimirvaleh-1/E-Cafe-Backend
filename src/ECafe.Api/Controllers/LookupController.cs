@@ -25,6 +25,10 @@ namespace ECafe.Api.Controllers
         public IActionResult GetPaymentPolicies()
             => Ok(MapEnum<ContractPaymentPolicy>());
 
+        [HttpGet("api/v1/lookups/units")]
+        public IActionResult GetUnits()
+            => Ok(MapEnum<UnitCode>());
+
         private static List<LookupItemResponse> MapEnum<TEnum>()
             where TEnum : struct, Enum
             => Enum.GetValues<TEnum>()
@@ -50,5 +54,7 @@ namespace ECafe.Api.Controllers
                 })
                 .ToList();
         }
+
+       
     }
 }

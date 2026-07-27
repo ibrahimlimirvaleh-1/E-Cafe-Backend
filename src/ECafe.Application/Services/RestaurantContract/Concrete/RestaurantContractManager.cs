@@ -193,7 +193,14 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             EnsureCurrentUserCanAccessRestaurant(restaurantId);
 
             var contracts = await _contractRepository.GetByRestaurantAsync(restaurantId);
-            return (await Task.WhenAll(contracts.Select(MapToResponseAsync))).ToList();
+            var response = new List<RestaurantContractResponse>(contracts.Count);
+
+            foreach (var contract in contracts)
+            {
+                response.Add(await MapToResponseAsync(contract));
+            }
+
+            return response;
         }
 
         public async Task<RestaurantContractResponse> GetActiveAsync(int restaurantId)
