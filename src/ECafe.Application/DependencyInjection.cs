@@ -29,6 +29,8 @@ using ECafe.Application.Services.Notification.Abstract;
 using ECafe.Application.Services.Notification.Concrete;
 using ECafe.Application.Services.InventoryItem.Abstract;
 using ECafe.Application.Services.InventoryItem.Concrete;
+using ECafe.Application.Common.Errors;
+using ECafe.Domain.Exceptions;
 
 namespace ECafe.Application
 {
@@ -47,6 +49,7 @@ namespace ECafe.Application
 
             services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
 
+            services.AddSingleton<IErrorMessageProvider, ErrorMessageProvider>();
             services.AddScoped<IMinioService, MinioManager>();
             services.AddScoped<AuditLogManager>();
             services.AddScoped<IAuditLogService>(provider => provider.GetRequiredService<AuditLogManager>());

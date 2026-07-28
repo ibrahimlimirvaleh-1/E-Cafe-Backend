@@ -1,0 +1,67 @@
+using System.Reflection;
+using ECafe.Domain.Exceptions;
+
+namespace ECafe.Application.Common.Errors;
+
+public sealed class ErrorMessageProvider : IErrorMessageProvider
+{
+    private static readonly IReadOnlyDictionary<ErrorCode, string> Messages = new Dictionary<ErrorCode, string>
+    {
+        [ErrorCode.BusinessRuleViolation] = "Business rule violation.",
+        [ErrorCode.ValidationFailed] = "Validation failed.",
+        [ErrorCode.BadRequest] = "Bad request.",
+        [ErrorCode.Forbidden] = "Access denied.",
+        [ErrorCode.NotFound] = "Resource not found.",
+        [ErrorCode.InternalServerError] = "Internal server error.",
+
+        [ErrorCode.RequestCannotBeNull] = "Request cannot be null.",
+        [ErrorCode.InvalidRestaurantId] = "Invalid restaurant ID.",
+        [ErrorCode.InvalidInventoryItemId] = "Invalid inventory item ID.",
+        [ErrorCode.RestaurantContextRequired] = "Restaurant context is required.",
+        [ErrorCode.AccessDenied] = "You do not have access to this resource.",
+
+        [ErrorCode.RestaurantNotFound] = "Restaurant not found.",
+        [ErrorCode.UnitNotFound] = "Unit not found.",
+        [ErrorCode.InventoryItemNotFound] = "Inventory item not found.",
+        [ErrorCode.InventoryItemAlreadyExists] = "Inventory item '{name}' already exists in this restaurant."
+    };
+
+    public string GetMessage(BaseException exception)
+    {
+        if (!exception.UsesDynamicMessage)
+            return exception.Message;
+
+        return GetMessage(exception.Code, exception.Parameters, exception.Message);
+    }
+
+    public string GetMessage(ErrorCode code, object? parameters = null, string? fallbackMessage = null)
+    {
+        var template = Messages.GetValueOrDefault(code, fallbackMessage ?? code.ToString());
+        return ApplyParameters(template, parameters);
+    }
+
+    private static string ApplyParameters(string template, object? parameters)
+    {
+        if (parameters is null)
+            return template;
+
+        foreach (var parameter in ToParameters(parameters))
+            template = template.Replace($"{{{parameter.Key}}}", parameter.Value, StringComparison.OrdinalIgnoreCase);
+
+        return template;
+    }
+
+    private static IEnumerable<KeyValuePair<string, string>> ToParameters(object parameters)
+    {
+        if (parameters is IReadOnlyDictionary<string, object?> readOnlyDictionary)
+            return readOnlyDictionary.Select(x => new KeyValuePair<string, string>(x.Key, x.Value?.ToString() ?? string.Empty));
+
+        if (parameters is IDictionary<string, object?> dictionary)
+            return dictionary.Select(x => new KeyValuePair<string, string>(x.Key, x.Value?.ToString() ?? string.Empty));
+
+        return parameters
+            .GetType()
+            .GetProperties(BindingFlags.Instance | BindingFlags.Public)
+            .Select(x => new KeyValuePair<string, string>(x.Name, x.GetValue(parameters)?.ToString() ?? string.Empty));
+    }
+}

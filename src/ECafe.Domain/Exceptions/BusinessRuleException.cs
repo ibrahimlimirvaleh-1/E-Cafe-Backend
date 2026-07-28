@@ -1,6 +1,16 @@
-﻿namespace ECafe.Domain.Exceptions;
+using System.Net;
 
-public sealed class BusinessRuleException : Exception
+namespace ECafe.Domain.Exceptions;
+
+public sealed class BusinessRuleException : BaseException
 {
-    public BusinessRuleException(string message) : base(message) { }
+    public BusinessRuleException(string message)
+        : base(message, (int)HttpStatusCode.Conflict)
+    {
+    }
+
+    public BusinessRuleException(ErrorCode code, object? parameters = null)
+        : base(code, (int)HttpStatusCode.Conflict, parameters)
+    {
+    }
 }

@@ -50,6 +50,8 @@ public partial class ECafeDbContext : DbContext
 
     public DbSet<Unit> Units { get; set; } = null!;
 
+    public DbSet<InventoryMovementType> InventoryMovementTypes { get; set; } = null!;
+
     public DbSet<Recipe> Recipes { get; set; } = null!;
 
     public DbSet<InventoryMovement> InventoryMovements { get; set; } = null!;
@@ -62,6 +64,7 @@ public partial class ECafeDbContext : DbContext
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(ECafeDbContext).Assembly);
 
         UnitSeeder.Seed(modelBuilder);
+        InventoryMovementTypeSeeder.Seed(modelBuilder);
         StatusTypeSeeder.Seed(modelBuilder);
         StatusSeeder.Seed(modelBuilder);
         PermissionSeeder.Seed(modelBuilder);

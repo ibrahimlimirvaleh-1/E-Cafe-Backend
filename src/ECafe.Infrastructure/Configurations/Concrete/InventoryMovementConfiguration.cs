@@ -14,6 +14,7 @@ namespace ECafe.Infrastructure.Configurations.Concrete
 
             builder.HasIndex(e => new { e.RestaurantId, e.InventoryItemId, e.CreatedAt }, "inventory_movements_restaurant_item_created_at_idx");
             builder.HasIndex(e => e.RelatedOrderId, "inventory_movements_related_order_id_idx");
+            builder.HasIndex(e => e.MovementTypeId, "inventory_movements_movement_type_id_idx");
 
             builder.Property(e => e.Id).HasColumnName("id");
             builder.Property(e => e.RestaurantId).HasColumnName("restaurant_id");
@@ -22,9 +23,7 @@ namespace ECafe.Infrastructure.Configurations.Concrete
                 .HasPrecision(18, 6)
                 .HasColumnName("quantity_change");
             builder.Property(e => e.UnitId).HasColumnName("unit_id");
-            builder.Property(e => e.MovementType)
-                .HasMaxLength(50)
-                .HasColumnName("movement_type");
+            builder.Property(e => e.MovementTypeId).HasColumnName("movement_type_id");
             builder.Property(e => e.Reason)
                 .HasMaxLength(500)
                 .HasColumnName("reason");
@@ -47,6 +46,12 @@ namespace ECafe.Infrastructure.Configurations.Concrete
                 .HasForeignKey(e => e.UnitId)
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("inventory_movements_unit_id_fkey");
+
+            builder.HasOne(e => e.MovementType)
+                .WithMany()
+                .HasForeignKey(e => e.MovementTypeId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("inventory_movements_movement_type_id_fkey");
 
             builder.HasOne<Order>()
                 .WithMany()

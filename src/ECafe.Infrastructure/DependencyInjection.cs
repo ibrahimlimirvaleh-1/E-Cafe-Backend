@@ -1,36 +1,38 @@
 using ECafe.Application.Repositories.Category;
 using ECafe.Application.Repositories.File;
+using ECafe.Application.Repositories.InventoryItem;
 using ECafe.Application.Repositories.Item;
+using ECafe.Application.Repositories.Notification;
 using ECafe.Application.Repositories.Restaurant;
-using ECafe.Application.Repositories.RestaurantGroup;
 using ECafe.Application.Repositories.RestaurantContract;
+using ECafe.Application.Repositories.RestaurantGroup;
 using ECafe.Application.Repositories.Role;
 using ECafe.Application.Repositories.Table;
+using ECafe.Application.Repositories.Unit;
 using ECafe.Application.Repositories.User;
 using ECafe.Application.Repositories.UserRefreshToken;
 using ECafe.Application.Repositories.UserRestaurant;
 using ECafe.Application.Repository;
-using ECafe.Infrastructure.Context;
 using ECafe.Infrastructure.Authorization;
+using ECafe.Infrastructure.Context;
 using ECafe.Infrastructure.Repositories;
 using ECafe.Infrastructure.Repositories.Category;
 using ECafe.Infrastructure.Repositories.File;
+using ECafe.Infrastructure.Repositories.InventoryItem;
 using ECafe.Infrastructure.Repositories.Item;
+using ECafe.Infrastructure.Repositories.Notification;
 using ECafe.Infrastructure.Repositories.Restaurant;
-using ECafe.Infrastructure.Repositories.RestaurantGroup;
 using ECafe.Infrastructure.Repositories.RestaurantContract;
+using ECafe.Infrastructure.Repositories.RestaurantGroup;
 using ECafe.Infrastructure.Repositories.Role;
 using ECafe.Infrastructure.Repositories.Table;
+using ECafe.Infrastructure.Repositories.Unit;
 using ECafe.Infrastructure.Repositories.User;
 using ECafe.Infrastructure.Repositories.UserRefreshToken;
 using ECafe.Infrastructure.Repositories.UserRestaurant;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using ECafe.Application.Repositories.Notification;
-using ECafe.Infrastructure.Repositories.Notification;
-using ECafe.Application.Repositories.InventoryItem;
-using ECafe.Infrastructure.Repositories.InventoryItem;
 namespace ECafe.Infrastructure
 {
     public static class DependencyInjection
@@ -64,6 +66,7 @@ namespace ECafe.Infrastructure
             services.AddScoped<IFileRepository, FileRepository>();
             services.AddScoped<INotificationRepository, NotificationRepository>();
             services.AddScoped<IInventoryItemRepository, InventoryItemRepository>();
+            services.AddScoped<IUnitRepository, UnitRepository>(); 
             return services;
         }
     }

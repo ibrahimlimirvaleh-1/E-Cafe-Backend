@@ -11,7 +11,7 @@ namespace ECafe.Infrastructure.Repositories.Notification
         {
         }
 
-        public Task<List<Domain.Entities.Notification>> GetByUserAsync(int userId)
+        public Task<List<Domain.Entities.Notification>> GetByUserAsync(int userId)  
             => Query(x => x.UserId == userId)
                 .OrderByDescending(x => x.CreatedAt)
                 .ToListAsync();
