@@ -23,7 +23,12 @@ public sealed class ErrorMessageProvider : IErrorMessageProvider
         [ErrorCode.RestaurantNotFound] = "Restaurant not found.",
         [ErrorCode.UnitNotFound] = "Unit not found.",
         [ErrorCode.InventoryItemNotFound] = "Inventory item not found.",
-        [ErrorCode.InventoryItemAlreadyExists] = "Inventory item '{name}' already exists in this restaurant."
+        [ErrorCode.InventoryItemAlreadyExists] = "Inventory item '{name}' already exists in this restaurant.",
+        [ErrorCode.InventoryMovementTypeNotFound] = "Inventory movement type not found.",
+        [ErrorCode.InvalidInventoryMovementType] = "Invalid inventory movement type.",
+        [ErrorCode.InventoryMovementQuantityMustBeGreaterThanZero] = "Quantity must be greater than zero.",
+        [ErrorCode.InventoryStockCannotBeNegative] = "Stock cannot be negative.",
+        [ErrorCode.InventoryUnitConversionNotAllowed] = "Unit conversion is not allowed between different unit groups."
     };
 
     public string GetMessage(BaseException exception)

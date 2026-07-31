@@ -39,5 +39,18 @@ namespace ECafe.Infrastructure.Repositories.UserRestaurant
                     x.User.RoleId == (int)RoleCode.Owner)
                 .Include(x => x.User)
                 .FirstOrDefaultAsync();
+
+        public Task<List<Domain.Entities.UserRestaurant>> GetActiveByRestaurantAndRolesAsync(
+            int restaurantId,
+            IReadOnlyCollection<int> roleIds)
+        {
+            return Query(x =>
+                    x.RestaurantId == restaurantId &&
+                    x.IsActive &&
+                    x.User.IsActive &&
+                    roleIds.Contains(x.User.RoleId))
+                .Include(x => x.User)
+                .ToListAsync();
+        }
     }
 }

@@ -160,7 +160,48 @@ namespace ECafe.Application.Services.InventoryItem.Concrete
             return Mapper.Map<InventoryItemDto>(inventoryItem);
         }
 
+        public async Task<DeleteOrDeactivateResponse> DeleteAsync(int restaurantId, int inventoryItemId)
+        {
+            var inventoryItem = await GetInventoryItemForMutationAsync(restaurantId, inventoryItemId);
+
+            inventoryItem.IsActive = false;
+            await _inventoryItemRepository.Delete(inventoryItem);
+            await _inventoryItemRepository.SaveChangesAsync();
+
+            return Mapper.Map<DeleteOrDeactivateResponse>(inventoryItem);
+        }
+
+        public async Task<DeleteOrDeactivateResponse> DeActivateAsync(int restaurantId, int inventoryItemId)
+        {
+            var inventoryItem = await GetInventoryItemForMutationAsync(restaurantId, inventoryItemId);
+
+            inventoryItem.IsActive = false;
+            await _inventoryItemRepository.SaveChangesAsync();
+
+            return Mapper.Map<DeleteOrDeactivateResponse>(inventoryItem);
+        }
+
         private static string? NormalizeSearch(string? search)
             => string.IsNullOrWhiteSpace(search) ? null : search.Trim().ToLower();
+
+        private async Task<Domain.Entities.InventoryItem> GetInventoryItemForMutationAsync(
+            int restaurantId,
+            int inventoryItemId)
+        {
+            if (restaurantId <= 0)
+                throw new BusinessRuleException(ErrorCode.InvalidRestaurantId);
+
+            if (inventoryItemId <= 0)
+                throw new BusinessRuleException(ErrorCode.InvalidInventoryItemId);
+
+            var restaurant = await _restaurantRepository.GetRestaurantInfoAsync(restaurantId);
+            if (restaurant is null)
+                throw new NotFoundException(ErrorCode.RestaurantNotFound);
+
+            EnsureCurrentUserCanAccessRestaurant(restaurantId);
+
+            var inventoryItem = await _inventoryItemRepository.GetInventoryByRestaurantIdAsync(inventoryItemId, restaurantId);
+            return inventoryItem ?? throw new NotFoundException(ErrorCode.InventoryItemNotFound);
+        }
     }
 }

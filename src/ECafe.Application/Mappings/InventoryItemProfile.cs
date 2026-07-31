@@ -21,6 +21,8 @@ namespace ECafe.Application.Mappings
                 .ForMember(dest => dest.UnitCode, opt => opt.MapFrom(src => src.Unit.Code))
                 .ForMember(dest => dest.IsLowStock, opt => opt.MapFrom(src => src.QuantityOnHand <= src.LowStockThreshold));
 
+            CreateMap<Domain.Entities.InventoryItem, DeleteOrDeactivateResponse>();
+
             CreateMap<UpdateInventoryItemRequest, Domain.Entities.InventoryItem>()
                 .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Name.Trim()))
                 .ForMember(dest => dest.IsActive, opt => opt.MapFrom(src => src.IsActive))

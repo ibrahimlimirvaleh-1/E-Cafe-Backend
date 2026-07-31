@@ -1,8 +1,11 @@
 using ECafe.Application.Repositories.Category;
 using ECafe.Application.Repositories.File;
 using ECafe.Application.Repositories.InventoryItem;
+using ECafe.Application.Repositories.InventoryMovement;
+using ECafe.Application.Repositories.InventoryMovementType;
 using ECafe.Application.Repositories.Item;
 using ECafe.Application.Repositories.Notification;
+using ECafe.Application.Repositories.Recipe;
 using ECafe.Application.Repositories.Restaurant;
 using ECafe.Application.Repositories.RestaurantContract;
 using ECafe.Application.Repositories.RestaurantGroup;
@@ -19,8 +22,11 @@ using ECafe.Infrastructure.Repositories;
 using ECafe.Infrastructure.Repositories.Category;
 using ECafe.Infrastructure.Repositories.File;
 using ECafe.Infrastructure.Repositories.InventoryItem;
+using ECafe.Infrastructure.Repositories.InventoryMovement;
+using ECafe.Infrastructure.Repositories.InventoryMovementType;
 using ECafe.Infrastructure.Repositories.Item;
 using ECafe.Infrastructure.Repositories.Notification;
+using ECafe.Infrastructure.Repositories.Recipe;
 using ECafe.Infrastructure.Repositories.Restaurant;
 using ECafe.Infrastructure.Repositories.RestaurantContract;
 using ECafe.Infrastructure.Repositories.RestaurantGroup;
@@ -66,7 +72,10 @@ namespace ECafe.Infrastructure
             services.AddScoped<IFileRepository, FileRepository>();
             services.AddScoped<INotificationRepository, NotificationRepository>();
             services.AddScoped<IInventoryItemRepository, InventoryItemRepository>();
-            services.AddScoped<IUnitRepository, UnitRepository>(); 
+            services.AddScoped<IInventoryMovementRepository, InventoryMovementRepository>();
+            services.AddScoped<IInventoryMovementTypeRepository, InventoryMovementTypeRepository>();
+            services.AddScoped<IRecipeRepository, RecipeRepository>();
+            services.AddScoped<IUnitRepository, UnitRepository>();
             return services;
         }
     }

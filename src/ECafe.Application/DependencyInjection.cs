@@ -29,6 +29,8 @@ using ECafe.Application.Services.Notification.Abstract;
 using ECafe.Application.Services.Notification.Concrete;
 using ECafe.Application.Services.InventoryItem.Abstract;
 using ECafe.Application.Services.InventoryItem.Concrete;
+using ECafe.Application.Services.InventoryMovement.Abstract;
+using ECafe.Application.Services.InventoryMovement.Concrete;
 using ECafe.Application.Common.Errors;
 using ECafe.Domain.Exceptions;
 
@@ -70,6 +72,7 @@ namespace ECafe.Application
             services.AddScoped<IWorkflowActionService, WorkflowActionManager>();
             services.AddScoped<INotificationService, NotificationManager>();
             services.AddScoped<IInventoryItemService, InventoryItemManager>();
+            services.AddScoped<IInventoryMovementService, InventoryMovementManager>();
 
             return services;
         }

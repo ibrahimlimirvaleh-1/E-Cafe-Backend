@@ -18,5 +18,11 @@ public enum ErrorCode
     RestaurantNotFound = 2000,
     UnitNotFound = 2001,
     InventoryItemNotFound = 2002,
-    InventoryItemAlreadyExists = 2003
+    InventoryItemAlreadyExists = 2003,
+    InventoryMovementTypeNotFound = 2004,
+    InvalidInventoryMovementType = 2005,
+    InventoryMovementQuantityMustBeGreaterThanZero = 2006,
+    InventoryStockCannotBeNegative = 2007,
+    InventoryUnitConversionNotAllowed = 2008,
+    InventoryMovementNotFound = 2009
 }

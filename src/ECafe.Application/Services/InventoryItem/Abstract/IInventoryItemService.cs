@@ -9,5 +9,9 @@ namespace ECafe.Application.Services.InventoryItem.Abstract
         Task<PaginatedList<InventoryItemDto>> ListAsync(PaginationFilter paginationFilter, string? search, bool onlyLowStock, int restaurantId);
 
         Task<InventoryItemDto> UpdateAsync(UpdateInventoryItemRequest request, int restaurantId, int inventoryItemId);
+
+        Task<DeleteOrDeactivateResponse> DeleteAsync(int restaurantId, int inventoryItemId);
+
+        Task<DeleteOrDeactivateResponse> DeActivateAsync(int restaurantId, int inventoryItemId);
     }
 }
