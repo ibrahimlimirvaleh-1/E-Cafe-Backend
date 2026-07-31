@@ -113,6 +113,30 @@ namespace ECafe.Application.Services.InventoryItem.Concrete
                 normalizedFilter.PageSize);
         }
 
+        public async Task<InventoryItemDto> GetByIdAsync(int restaurantId, int inventoryItemId)
+        {
+            if (restaurantId <= 0)
+                throw new BusinessRuleException(ErrorCode.InvalidRestaurantId);
+
+            if (inventoryItemId <= 0)
+                throw new BusinessRuleException(ErrorCode.InvalidInventoryItemId);
+
+            var restaurant = await _restaurantRepository.GetRestaurantInfoAsync(restaurantId);
+            if (restaurant is null)
+                throw new NotFoundException(ErrorCode.RestaurantNotFound);
+
+            EnsureCurrentUserCanAccessRestaurant(restaurantId);
+
+            var inventoryItem = await _inventoryItemRepository
+                .Query(x => x.RestaurantId == restaurantId && x.Id == inventoryItemId)
+                .Include(x => x.Unit)
+                .FirstOrDefaultAsync();
+
+            return inventoryItem is null
+                ? throw new NotFoundException(ErrorCode.InventoryItemNotFound)
+                : Mapper.Map<InventoryItemDto>(inventoryItem);
+        }
+
         public async Task<InventoryItemDto> UpdateAsync(
             UpdateInventoryItemRequest request,
             int restaurantId,
@@ -166,6 +190,16 @@ namespace ECafe.Application.Services.InventoryItem.Concrete
 
             inventoryItem.IsActive = false;
             await _inventoryItemRepository.Delete(inventoryItem);
+            await _inventoryItemRepository.SaveChangesAsync();
+
+            return Mapper.Map<DeleteOrDeactivateResponse>(inventoryItem);
+        }
+
+        public async Task<DeleteOrDeactivateResponse> ActivateAsync(int restaurantId, int inventoryItemId)
+        {
+            var inventoryItem = await GetInventoryItemForMutationAsync(restaurantId, inventoryItemId);
+
+            inventoryItem.IsActive = true;
             await _inventoryItemRepository.SaveChangesAsync();
 
             return Mapper.Map<DeleteOrDeactivateResponse>(inventoryItem);

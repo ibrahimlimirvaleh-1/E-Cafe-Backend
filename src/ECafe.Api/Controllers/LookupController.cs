@@ -29,6 +29,13 @@ namespace ECafe.Api.Controllers
         public IActionResult GetUnits()
             => Ok(MapEnum<UnitCode>());
 
+
+
+        [HttpGet("api/v1/lookups/inventory-movement-types")]
+        [HttpGet("api/v1/lookups/getInventoryMovementTypes")]
+        public IActionResult GetInventoryMovementTypes()
+            => Ok(MapEnum<InventoryMovementTypeCode>());
+
         private static List<LookupItemResponse> MapEnum<TEnum>()
             where TEnum : struct, Enum
             => Enum.GetValues<TEnum>()

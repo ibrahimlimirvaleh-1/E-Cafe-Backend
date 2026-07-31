@@ -4,25 +4,25 @@ namespace ECafe.Domain.Enums
 {
     public enum InventoryMovementTypeCode
     {
-        [Description("Purchase")]
+        [Description("Alış")]
         Purchase = 1,
 
-        [Description("Manual increase")]
+        [Description("Manual artım")]
         ManualIncrease = 2,
 
-        [Description("Manual decrease")]
+        [Description("Manual azalma")]
         ManualDecrease = 3,
 
-        [Description("Order consumption")]
+        [Description("Sifariş sərfiyyatı")]
         OrderConsumption = 4,
 
-        [Description("Waste")]
+        [Description("İtki")]
         Waste = 5,
 
-        [Description("Stock return")]
+        [Description("Stoka qaytarma")]
         StockReturn = 6,
 
-        [Description("Correction")]
+        [Description("Düzəliş")]
         Correction = 7
     }
 }

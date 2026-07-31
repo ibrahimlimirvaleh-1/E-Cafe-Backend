@@ -1,11 +1,13 @@
 using ECafe.Application.DTOs.InventoryItem;
 using ECafe.Application.DTOs.InventoryMovement;
+using ECafe.Application.Features.Commands.InventoryItem.Activate;
 using ECafe.Application.Features.Commands.InventoryItem.Create;
 using ECafe.Application.Features.Commands.InventoryItem.Deactivate;
 using ECafe.Application.Features.Commands.InventoryItem.Delete;
 using ECafe.Application.Features.Commands.InventoryItem.Update;
 using ECafe.Application.Features.Commands.InventoryMovement.Create;
 using ECafe.Application.Features.Queries.InventoryItem.GetAll;
+using ECafe.Application.Features.Queries.InventoryItem.GetById;
 using ECafe.Application.Features.Queries.InventoryMovement.History;
 using ECafe.Domain.Enums;
 using ECafe.Infrastructure.Authorization;
@@ -47,6 +49,21 @@ namespace ECafe.Api.Controllers
             return Ok(await Mediator.Send(command));
         }
 
+        [HasPermission(PermissionCode.ViewInventory)]
+        [HttpGet("api/v1/restaurants/{restaurantId}/inventory/{inventoryItemId}")]
+        public async Task<IActionResult> GetById(
+            [FromRoute] int restaurantId,
+            [FromRoute] int inventoryItemId)
+        {
+            var query = new GetInventoryItemByIdQuery
+            {
+                RestaurantId = restaurantId,
+                InventoryItemId = inventoryItemId
+            };
+
+            return Ok(await Mediator.Send(query));
+        }
+
         [HasPermission(PermissionCode.ManageInventory)]
         [HttpPut("api/v1/restaurants/{restaurantId}/inventory/{inventoryItemId}")]
         public async Task<IActionResult> Update(
@@ -62,6 +79,21 @@ namespace ECafe.Api.Controllers
                 UnitId = request.UnitId,
                 LowStockThreshold = request.LowStockThreshold,
                 IsActive = request.IsActive
+            };
+
+            return Ok(await Mediator.Send(command));
+        }
+
+        [HasPermission(PermissionCode.ManageInventory)]
+        [HttpPatch("api/v1/restaurants/{restaurantId}/inventory/{inventoryItemId}/activate")]
+        public async Task<IActionResult> Activate(
+            [FromRoute] int restaurantId,
+            [FromRoute] int inventoryItemId)
+        {
+            var command = new ActivateInventoryItemCommand
+            {
+                RestaurantId = restaurantId,
+                InventoryItemId = inventoryItemId
             };
 
             return Ok(await Mediator.Send(command));
