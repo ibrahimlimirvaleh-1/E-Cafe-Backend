@@ -154,8 +154,8 @@ namespace ECafe.Api.Controllers
         public async Task<IActionResult> GetMovementHistory(
             [FromRoute] int restaurantId,
             [FromRoute] int inventoryItemId,
-            [FromQuery] int pageNumber = 1,
-            [FromQuery] int pageSize = 5)
+            [FromQuery] int pageNumber,
+            [FromQuery] int pageSize)
         {
             var query = new GetInventoryMovementHistoryQuery
             {

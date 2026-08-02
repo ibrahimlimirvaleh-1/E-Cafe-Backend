@@ -9,8 +9,8 @@ namespace ECafe.Application.Features.Queries.InventoryMovement.History
     {
         public int RestaurantId { get; set; }
         public int InventoryItemId { get; set; }
-        public int PageNumber { get; set; } = 1;
-        public int PageSize { get; set; } = 5;
+        public int PageNumber { get; set; }
+        public int PageSize { get; set; }
     }
 
     public class GetInventoryMovementHistoryQueryHandler
