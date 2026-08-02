@@ -1,6 +1,7 @@
 using AutoMapper;
 using AutoMapper.QueryableExtensions;
 using ECafe.Application.Common.Exceptions;
+using ECafe.Application.Common.Pagination;
 using ECafe.Application.DTOs.InventoryMovement;
 using ECafe.Application.DTOs.Notification;
 using ECafe.Application.Repositories.InventoryItem;
@@ -114,6 +115,8 @@ namespace ECafe.Application.Services.InventoryMovement.Concrete
             int restaurantId,
             PaginationFilter paginationFilter)
         {
+            var normalizedFilter = PaginationFilterNormalizer.Normalize(paginationFilter);
+
             if (restaurantId <= 0)
                 throw new BusinessRuleException(ErrorCode.InvalidRestaurantId);
 
@@ -141,8 +144,8 @@ namespace ECafe.Application.Services.InventoryMovement.Concrete
 
             return await PaginatedList<InventoryMovementHistoryResponse>.CreateAsync(
                 movements,
-                paginationFilter.PageNumber,
-                paginationFilter.PageSize);
+                normalizedFilter.PageNumber,
+                normalizedFilter.PageSize);
         }
 
 
