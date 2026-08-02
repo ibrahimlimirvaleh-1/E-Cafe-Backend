@@ -8,7 +8,7 @@ namespace ECafe.Application.Common.Pagination
 
         public static PaginationFilter Normalize(
             PaginationFilter? filter,
-            int defaultPageSize = 5,
+            int defaultPageSize = 20,
             int maxPageSize = DefaultMaxPageSize)
         {
             filter ??= new PaginationFilter();

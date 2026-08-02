@@ -145,7 +145,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             PaginationFilter filter,
             string? search)
         {
-            filter = PaginationFilterNormalizer.Normalize(filter, defaultPageSize: 10);
+            filter = PaginationFilterNormalizer.Normalize(filter);
 
             var restaurantsQuery = _restaurantRepository.GetActiveRestaurants();
 

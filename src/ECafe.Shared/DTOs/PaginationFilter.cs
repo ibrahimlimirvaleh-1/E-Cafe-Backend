@@ -4,6 +4,8 @@
     {
         public PaginationFilter()
         {
+            PageNumber = 1;
+            PageSize = 20;
         }
         public PaginationFilter(int pageNumber, int pageSize)
         {
