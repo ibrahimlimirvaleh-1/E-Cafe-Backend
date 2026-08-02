@@ -75,17 +75,17 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             if (search is not null)
             {
                 restaurantsQuery = restaurantsQuery.Where(r =>
-                    r.Name.Contains(search) ||
-                    r.Location.Contains(search) ||
-                    r.Phone.Contains(search) ||
-                    (r.BranchName != null && r.BranchName.Contains(search)) ||
-                    (r.RestaurantGroup != null && r.RestaurantGroup.Name.Contains(search)));
+                    r.Name.ToLower().Contains(search) ||
+                    r.Location.ToLower().Contains(search) ||
+                    r.Phone.ToLower().Contains(search) ||
+                    (r.BranchName != null && r.BranchName.ToLower().Contains(search)) ||
+                    (r.RestaurantGroup != null && r.RestaurantGroup.Name.ToLower().Contains(search)));
             }
 
             location = NormalizeFilter(location);
             if (location is not null)
             {
-                restaurantsQuery = restaurantsQuery.Where(r => r.Location.Contains(location));
+                restaurantsQuery = restaurantsQuery.Where(r => r.Location.ToLower().Contains(location));
             }
 
             cuisine = NormalizeFilter(cuisine);
@@ -94,13 +94,13 @@ namespace ECafe.Application.Services.Restaurant.Concrete
                 restaurantsQuery = restaurantsQuery.Where(r =>
                     r.Categories.Any(c =>
                         c.IsActive &&
-                        (c.Name.Contains(cuisine) ||
-                         c.Slug.Contains(cuisine) ||
+                        (c.Name.ToLower().Contains(cuisine) ||
+                         c.Slug.ToLower().Contains(cuisine) ||
                          c.Items.Any(i =>
                              i.IsActive &&
                              i.IsAvailable &&
-                             (i.Name.Contains(cuisine) ||
-                              (i.Description != null && i.Description.Contains(cuisine)))))));
+                             (i.Name.ToLower().Contains(cuisine) ||
+                              (i.Description != null && i.Description.ToLower().Contains(cuisine)))))));
             }
 
             var totalCount = await restaurantsQuery.CountAsync();
@@ -153,20 +153,20 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             if (search is not null)
             {
                 restaurantsQuery = restaurantsQuery.Where(r =>
-                    r.Name.Contains(search) ||
-                    r.Location.Contains(search) ||
-                    r.Phone.Contains(search) ||
-                    (r.BranchName != null && r.BranchName.Contains(search)) ||
-                    (r.RestaurantGroup != null && r.RestaurantGroup.Name.Contains(search)) ||
+                    r.Name.ToLower().Contains(search) ||
+                    r.Location.ToLower().Contains(search) ||
+                    r.Phone.ToLower().Contains(search) ||
+                    (r.BranchName != null && r.BranchName.ToLower().Contains(search)) ||
+                    (r.RestaurantGroup != null && r.RestaurantGroup.Name.ToLower().Contains(search)) ||
                     r.Categories.Any(c =>
                         c.IsActive &&
-                        (c.Name.Contains(search) ||
-                         c.Slug.Contains(search) ||
+                        (c.Name.ToLower().Contains(search) ||
+                         c.Slug.ToLower().Contains(search) ||
                          c.Items.Any(i =>
                              i.IsActive &&
                              i.IsAvailable &&
-                             (i.Name.Contains(search) ||
-                              (i.Description != null && i.Description.Contains(search)))))));
+                             (i.Name.ToLower().Contains(search) ||
+                              (i.Description != null && i.Description.ToLower().Contains(search)))))));
             }
 
             var totalCount = await restaurantsQuery.CountAsync();
@@ -392,7 +392,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
 
         private static string? NormalizeFilter(string? value)
         {
-            var normalized = value?.ToLower().Trim();
+            var normalized = value?.Trim().ToLower();
             return string.IsNullOrWhiteSpace(normalized) ? null : normalized;
         }
 
