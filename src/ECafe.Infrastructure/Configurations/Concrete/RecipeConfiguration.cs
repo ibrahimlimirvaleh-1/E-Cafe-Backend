@@ -24,6 +24,9 @@ namespace ECafe.Infrastructure.Configurations.Concrete
                 .HasPrecision(18, 6)
                 .HasColumnName("quantity");
             builder.Property(e => e.UnitId).HasColumnName("unit_id");
+            builder.Property(e => e.IsActive)
+                .HasDefaultValue(true)
+                .HasColumnName("is_active");
 
             builder.HasOne<Restaurant>()
                 .WithMany()

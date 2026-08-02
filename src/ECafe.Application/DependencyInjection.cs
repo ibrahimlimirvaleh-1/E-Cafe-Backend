@@ -33,6 +33,8 @@ using ECafe.Application.Services.InventoryMovement.Abstract;
 using ECafe.Application.Services.InventoryMovement.Concrete;
 using ECafe.Application.Common.Errors;
 using ECafe.Domain.Exceptions;
+using ECafe.Application.Services.Recipe.Abstract;
+using ECafe.Application.Services.Recipe.Concrete;
 
 namespace ECafe.Application
 {
@@ -73,6 +75,7 @@ namespace ECafe.Application
             services.AddScoped<INotificationService, NotificationManager>();
             services.AddScoped<IInventoryItemService, InventoryItemManager>();
             services.AddScoped<IInventoryMovementService, InventoryMovementManager>();
+            services.AddScoped<IRecipeService, RecipeManager>();
 
             return services;
         }

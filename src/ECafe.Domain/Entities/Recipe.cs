@@ -9,6 +9,7 @@ namespace ECafe.Domain.Entities
         public int InventoryItemId { get; set; }
         public decimal Quantity { get; set; }
         public int UnitId { get; set; }
+        public bool IsActive { get; set; }
 
         public Item Item { get; set; } = null!;
         public InventoryItem InventoryItem { get; set; } = null!;

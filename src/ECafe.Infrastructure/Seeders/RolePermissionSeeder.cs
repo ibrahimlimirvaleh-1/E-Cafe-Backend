@@ -65,7 +65,8 @@ namespace ECafe.Infrastructure.Seeders
                 PermissionCode.ViewRestaurantContracts,
                 PermissionCode.ViewInventory,
                 PermissionCode.ManageInventory,
-                PermissionCode.ViewRecipes
+                PermissionCode.ViewRecipes,
+                PermissionCode.ManageRecipes
 
             });
 

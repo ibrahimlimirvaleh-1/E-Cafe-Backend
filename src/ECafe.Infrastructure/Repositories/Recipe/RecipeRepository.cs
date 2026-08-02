@@ -10,31 +10,41 @@ namespace ECafe.Infrastructure.Repositories.Recipe
         {
         }
 
-        public Task<List<Domain.Entities.Recipe>> GetByItemAsync(
-            int restaurantId,
-            int itemId,
-            CancellationToken cancellationToken = default)
+        public Task<bool> ExistsAsync(int restaurantId, int itemId, int inventoryItemId, int? excludeRecipeId = null)
         {
-            return Query()
-                .Include(x => x.InventoryItem)
-                .Include(x => x.Unit)
-                .Where(x => x.RestaurantId == restaurantId && x.ItemId == itemId)
-                .OrderBy(x => x.InventoryItem.Name)
-                .ToListAsync(cancellationToken);
+            var query = Query(r =>
+                r.RestaurantId == restaurantId &&
+                r.ItemId == itemId &&
+                r.InventoryItemId == inventoryItemId);
+
+            if (excludeRecipeId.HasValue)
+                query = query.Where(r => r.Id != excludeRecipeId.Value);
+
+            return query.AnyAsync();
         }
 
-        public Task<Domain.Entities.Recipe?> GetByRestaurantItemAndInventoryItemAsync(
-            int restaurantId,
-            int itemId,
-            int inventoryItemId,
-            CancellationToken cancellationToken = default)
+        public Task<Domain.Entities.Recipe?> GetByIdForItemAsync(int restaurantId, int itemId, int recipeId)
         {
-            return QueryTracked()
-                .FirstOrDefaultAsync(
-                    x => x.RestaurantId == restaurantId &&
-                         x.ItemId == itemId &&
-                         x.InventoryItemId == inventoryItemId,
-                    cancellationToken);
+            return QueryTracked(r =>
+                    r.RestaurantId == restaurantId &&
+                    r.ItemId == itemId &&
+                    r.Id == recipeId)
+                .Include(r => r.Item)
+                .Include(r => r.InventoryItem)
+                .Include(r => r.Unit)
+                .FirstOrDefaultAsync();
+        }
+
+        public Task<List<Domain.Entities.Recipe>> GetByItemAsync(int restaurantId, int itemId)
+        {
+            return Query(r =>
+                    r.RestaurantId == restaurantId &&
+                    r.ItemId == itemId)
+                .Include(r => r.Item)
+                .Include(r => r.InventoryItem)
+                .Include(r => r.Unit)
+                .OrderBy(r => r.InventoryItem.Name)
+                .ToListAsync();
         }
     }
 }
