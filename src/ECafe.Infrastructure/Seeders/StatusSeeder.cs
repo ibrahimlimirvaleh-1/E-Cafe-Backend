@@ -17,6 +17,7 @@ namespace ECafe.Infrastructure.Seeders
             statuses.AddRange(CreatePaymentMethodStatuses());
             statuses.AddRange(CreateStatuses<ItemStatus>(Domain.Enums.StatusType.ItemStatus));
             statuses.AddRange(CreateStatuses<ContractStatus>(Domain.Enums.StatusType.Contract));
+            statuses.AddRange(CreateStatuses<TableSessionStatus>(Domain.Enums.StatusType.TableSession));
 
             modelBuilder.Entity<Domain.Entities.Status>().HasData(statuses);
         }

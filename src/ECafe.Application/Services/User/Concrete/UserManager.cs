@@ -258,7 +258,9 @@ namespace ECafe.Application.Services.User.Concrete
             if (IsCurrentUserSuperAdmin())
                 return;
 
-            var restaurantId = user.UserRestaurant?.RestaurantId;
+            var restaurantId = user.UserRestaurant is { IsActive: true }
+                ? (int?)user.UserRestaurant.RestaurantId
+                : null;
             if (!restaurantId.HasValue)
                 throw new ForbiddenException("Target user is not assigned to a restaurant.");
 

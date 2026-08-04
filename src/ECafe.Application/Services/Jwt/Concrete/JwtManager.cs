@@ -42,18 +42,18 @@ namespace ECafe.Application.Services.Jwt.Concrete
             if (fileUrl != null)
                 claims.Add(new Claim("fileUrl", fileUrl));
 
-            var assignedRestaurantId = user.UserRestaurant is { RestaurantId: > 0 }
+            var assignedRestaurantId = user.UserRestaurant is { IsActive: true }
                 ? user.UserRestaurant.RestaurantId
-                : (int?)null;
+                : 0;
 
             if (RequiresActiveRestaurantAssignment(user.RoleId))
             {
-                if (user.UserRestaurant is not { IsActive: true, RestaurantId: > 0 })
+                if (assignedRestaurantId <= 0)
                     throw new BusinessRuleException("Restaurant-scoped role requires an active restaurant assignment.");
             }
 
-            if (assignedRestaurantId.HasValue)
-                claims.Add(new Claim("restaurantId", assignedRestaurantId.Value.ToString()));
+            if (assignedRestaurantId > 0)
+                claims.Add(new Claim("restaurantId", assignedRestaurantId.ToString()));
 
             claims.Add(new Claim(ClaimTypes.Role, user.RoleId.ToString()));
             claims.Add(new Claim("roleName", EnumExtensions.GetDescription((RoleCode)user.RoleId)));

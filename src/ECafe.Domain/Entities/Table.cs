@@ -19,5 +19,7 @@ public partial class Table : AuditableSoftDeletableEntity<int>
 
     public virtual ICollection<Reservation> Reservations { get; set; } = new List<Reservation>();
 
+    public virtual ICollection<TableSession> TableSessions { get; set; } = new List<TableSession>();
+
     public virtual Restaurant Restaurant { get; set; } = null!;
 }

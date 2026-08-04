@@ -39,13 +39,31 @@ public partial class Reservation : AuditableSoftDeletableEntity<int>
 
     public DateTime? CompletedAt { get; set; }
 
+    public int? CheckedInByUserId { get; set; }
+
+    public int? CancelledByUserId { get; set; }
+
+    public int? NoShowByUserId { get; set; }
+
+    public int? CompletedByUserId { get; set; }
+
     public string? Note { get; set; }
+
+    public virtual User? CancelledByUser { get; set; }
+
+    public virtual User? CheckedInByUser { get; set; }
+
+    public virtual User? CompletedByUser { get; set; }
 
     public virtual User CustomerUser { get; set; } = null!;
 
     public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
 
     public virtual ICollection<Payment> Payments { get; set; } = new List<Payment>();
+
+    public virtual ICollection<TableSession> TableSessions { get; set; } = new List<TableSession>();
+
+    public virtual User? NoShowByUser { get; set; }
 
     public virtual Restaurant Restaurant { get; set; } = null!;
 

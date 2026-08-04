@@ -14,15 +14,19 @@ namespace ECafe.Infrastructure.Configurations.Concrete
 
             builder.Property(e => e.Id).HasColumnName("id");
             builder.Property(e => e.CompletedAt).HasColumnName("completed_at");
+            builder.Property(e => e.CompletedByUserId).HasColumnName("completed_by_user_id");
             builder.Property(e => e.CancelledAt).HasColumnName("cancelled_at");
+            builder.Property(e => e.CancelledByUserId).HasColumnName("cancelled_by_user_id");
             builder.Property(e => e.CancellationDeadline).HasColumnName("cancellation_deadline");
             builder.Property(e => e.CancellationWindowMinutes).HasColumnName("cancellation_window_minutes");
+            builder.Property(e => e.CheckedInByUserId).HasColumnName("checked_in_by_user_id");
             builder.Property(e => e.CustomerUserId).HasColumnName("customer_user_id");
             builder.Property(e => e.DepositAmount)
                 .HasPrecision(18, 2)
                 .HasColumnName("deposit_amount");
             builder.Property(e => e.Note).HasColumnName("note");
             builder.Property(e => e.NoShowAt).HasColumnName("no_show_at");
+            builder.Property(e => e.NoShowByUserId).HasColumnName("no_show_by_user_id");
             builder.Property(e => e.PaidAt).HasColumnName("paid_at");
             builder.Property(e => e.PeopleCount).HasColumnName("people_count");
             builder.Property(e => e.RefundEligible).HasColumnName("refund_eligible");
@@ -38,6 +42,26 @@ namespace ECafe.Infrastructure.Configurations.Concrete
                 .HasForeignKey(d => d.CustomerUserId)
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("reservations_customer_user_id_fkey");
+
+            builder.HasOne(d => d.CheckedInByUser).WithMany()
+                .HasForeignKey(d => d.CheckedInByUserId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("reservations_checked_in_by_user_id_fkey");
+
+            builder.HasOne(d => d.CancelledByUser).WithMany()
+                .HasForeignKey(d => d.CancelledByUserId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("reservations_cancelled_by_user_id_fkey");
+
+            builder.HasOne(d => d.NoShowByUser).WithMany()
+                .HasForeignKey(d => d.NoShowByUserId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("reservations_no_show_by_user_id_fkey");
+
+            builder.HasOne(d => d.CompletedByUser).WithMany()
+                .HasForeignKey(d => d.CompletedByUserId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("reservations_completed_by_user_id_fkey");
 
             builder.HasOne(d => d.Restaurant).WithMany(p => p.Reservations)
                 .HasForeignKey(d => d.RestaurantId)

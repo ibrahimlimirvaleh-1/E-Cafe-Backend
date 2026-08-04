@@ -12,7 +12,9 @@ namespace ECafe.Infrastructure.Configurations.Concrete
 
             builder.ToTable("user_restaurants", "auth");
 
-            builder.HasIndex(e => e.UserId, "user_restaurants_user_id_key").IsUnique();
+            builder.HasIndex(e => e.UserId, "user_restaurants_user_id_key")
+                .IsUnique();
+            builder.HasIndex(e => e.RestaurantId, "user_restaurants_restaurant_id_idx");
 
             builder.Property(e => e.UserId).HasColumnName("user_id");
             builder.Property(e => e.RestaurantId).HasColumnName("restaurant_id");

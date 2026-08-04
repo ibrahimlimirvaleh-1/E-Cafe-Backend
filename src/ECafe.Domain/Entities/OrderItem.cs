@@ -8,6 +8,8 @@ public partial class OrderItem : AuditableSoftDeletableEntity<int>
 
     public int ItemId { get; set; }
 
+    public int? StatusId { get; set; }
+
     public int Quantity { get; set; }
 
     public decimal UnitPrice { get; set; }
@@ -19,5 +21,7 @@ public partial class OrderItem : AuditableSoftDeletableEntity<int>
     public virtual Item Item { get; set; } = null!;
 
     public virtual Order Order { get; set; } = null!;
+
+    public virtual Status? Status { get; set; }
 
 }

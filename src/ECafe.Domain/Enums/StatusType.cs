@@ -20,7 +20,10 @@ namespace ECafe.Domain.Enums
         ItemStatus,
 
         [Description("Müqavilə statusları")]
-        Contract
+        Contract,
+
+        [Description("Masa sessiyası statusları")]
+        TableSession
     }
 
 

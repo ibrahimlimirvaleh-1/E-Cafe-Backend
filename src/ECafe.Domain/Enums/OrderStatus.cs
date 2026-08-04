@@ -8,21 +8,24 @@ namespace ECafe.Domain.Enums
         Created = 1,
 
         [Description("Sifariş mətbəx tərəfindən qəbul edilib")]
-        Accepted,
+        Accepted = 2,
 
         [Description("Sifariş hazırlanır")]
-        Preparing,
+        Preparing = 3,
 
         [Description("Sifariş hazırdır")]
-        Ready,
+        Ready = 4,
 
         [Description("Sifariş təqdim olunub")]
-        Served,
+        Served = 5,
 
-        [Description("Sifariş online ödənişlə bağlanıb")]
-        Closed,
+        [Description("Sifariş bağlanıb")]
+        Closed = 6,
 
         [Description("Sifariş ləğv edilib")]
-        Cancelled
+        Cancelled = 7,
+
+        [Description("Sifariş planlaşdırılıb")]
+        Scheduled = 8
     }
 }

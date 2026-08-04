@@ -3,6 +3,7 @@ using System;
 using ECafe.Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace ECafe.Infrastructure.Migrations
 {
     [DbContext(typeof(ECafeDbContext))]
-    partial class ECafeDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260804090404_AddTableSessionBestPracticeFlow")]
+    partial class AddTableSessionBestPracticeFlow
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -3429,8 +3432,7 @@ namespace ECafe.Infrastructure.Migrations
 
                     b.HasIndex(new[] { "RestaurantId" }, "user_restaurants_restaurant_id_idx");
 
-                    b.HasIndex(new[] { "UserId" }, "user_restaurants_user_id_key")
-                        .IsUnique();
+                    b.HasIndex(new[] { "UserId" }, "user_restaurants_user_id_idx");
 
                     b.ToTable("user_restaurants", "auth");
                 });
@@ -4735,8 +4737,8 @@ namespace ECafe.Infrastructure.Migrations
                         .HasConstraintName("user_restaurants_restaurant_id_fkey");
 
                     b.HasOne("ECafe.Domain.Entities.User", "User")
-                        .WithOne("UserRestaurant")
-                        .HasForeignKey("ECafe.Domain.Entities.UserRestaurant", "UserId")
+                        .WithMany("UserRestaurants")
+                        .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("user_restaurants_user_id_fkey");
@@ -4966,7 +4968,7 @@ namespace ECafe.Infrastructure.Migrations
 
                     b.Navigation("SignedRestaurantContracts");
 
-                    b.Navigation("UserRestaurant");
+                    b.Navigation("UserRestaurants");
 
                     b.Navigation("Wallet");
                 });

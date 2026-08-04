@@ -20,6 +20,7 @@ namespace ECafe.Infrastructure.Configurations.Concrete
             builder.Property(e => e.Note).HasColumnName("note");
             builder.Property(e => e.OrderId).HasColumnName("order_id");
             builder.Property(e => e.Quantity).HasColumnName("quantity");
+            builder.Property(e => e.StatusId).HasColumnName("status_id");
             builder.Property(e => e.UnitPrice)
                 .HasPrecision(10, 2)
                 .HasColumnName("unit_price");
@@ -32,6 +33,11 @@ namespace ECafe.Infrastructure.Configurations.Concrete
             builder.HasOne(d => d.Order).WithMany(p => p.OrderItems)
                 .HasForeignKey(d => d.OrderId)
                 .HasConstraintName("order_items_order_id_fkey");
+
+            builder.HasOne(d => d.Status).WithMany()
+                .HasForeignKey(d => d.StatusId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("order_items_status_id_fkey");
 
         }
     }

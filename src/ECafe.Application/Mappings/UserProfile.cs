@@ -38,8 +38,12 @@ namespace ECafe.Application.Mappings
 
             CreateMap<User, ProfileResponseDto>()
                 .ForMember(dest => dest.Role, opt => opt.MapFrom(src => src.Role.Name))
-                .ForMember(dest => dest.RestaurantId, opt => opt.MapFrom(src => src.UserRestaurant == null ? null : (int?)src.UserRestaurant.RestaurantId))
-                .ForMember(dest => dest.RestaurantName, opt => opt.MapFrom(src => src.UserRestaurant == null ? null : src.UserRestaurant.Restaurant.Name))
+                .ForMember(dest => dest.RestaurantId, opt => opt.MapFrom(src => src.UserRestaurant != null && src.UserRestaurant.IsActive
+                    ? (int?)src.UserRestaurant.RestaurantId
+                    : null))
+                .ForMember(dest => dest.RestaurantName, opt => opt.MapFrom(src => src.UserRestaurant != null && src.UserRestaurant.IsActive
+                    ? src.UserRestaurant.Restaurant.Name
+                    : null))
                 .ForMember(dest => dest.FileUrl, opt => opt.Ignore());
 
             CreateMap<User, StaffDetailResponseDto>()
