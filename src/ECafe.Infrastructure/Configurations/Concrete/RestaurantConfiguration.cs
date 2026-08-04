@@ -11,7 +11,9 @@ namespace ECafe.Infrastructure.Configurations.Concrete
         {
             builder.HasKey(e => e.Id).HasName("restaurants_pkey");
 
-            builder.ToTable("restaurants", "core");
+            builder.ToTable("restaurants", "core", t => t.HasCheckConstraint(
+                "ck_restaurants_default_waiter_table_limit_positive",
+                "default_waiter_table_limit IS NULL OR default_waiter_table_limit > 0"));
 
             builder.Property(e => e.Id).HasColumnName("id");
             builder.Property(e => e.IsActive)
@@ -55,6 +57,9 @@ namespace ECafe.Infrastructure.Configurations.Concrete
             builder.Property(e => e.StaffSettlementPeriod)
                 .HasDefaultValue((int)StaffSettlementPeriod.Weekly)
                 .HasColumnName("staff_settlement_period");
+            builder.Property(e => e.DefaultWaiterTableLimit)
+                .HasColumnName("default_waiter_table_limit")
+                .IsRequired(false);
 
             builder.HasIndex(e => e.Email).HasDatabaseName("restaurants_email_key").IsUnique();
 

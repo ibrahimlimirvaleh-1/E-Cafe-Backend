@@ -10,7 +10,9 @@ namespace ECafe.Infrastructure.Configurations.Concrete
         {
             builder.HasKey(e => new { e.UserId, e.RestaurantId }).HasName("user_restaurants_pkey");
 
-            builder.ToTable("user_restaurants", "auth");
+            builder.ToTable("user_restaurants", "auth", t => t.HasCheckConstraint(
+                "ck_user_restaurants_max_active_table_count_positive",
+                "max_active_table_count IS NULL OR max_active_table_count > 0"));
 
             builder.HasIndex(e => e.UserId, "user_restaurants_user_id_key")
                 .IsUnique();
@@ -25,6 +27,10 @@ namespace ECafe.Infrastructure.Configurations.Concrete
             builder.Property(e => e.ServiceFeePercent)
                 .HasPrecision(5, 2)
                 .HasColumnName("service_fee_percent")
+                .IsRequired(false);
+
+            builder.Property(e => e.MaxActiveTableCount)
+                .HasColumnName("max_active_table_count")
                 .IsRequired(false);
 
             builder.HasOne(d => d.Restaurant).WithMany(p => p.UserRestaurants)

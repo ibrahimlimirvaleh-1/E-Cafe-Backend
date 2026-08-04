@@ -7,6 +7,7 @@ using ECafe.Application.DTOs.User.Staff;
 using ECafe.Application.Repositories.File;
 using ECafe.Application.Repositories.Restaurant;
 using ECafe.Application.Repositories.RestaurantGroup;
+using ECafe.Application.Repositories.TableSession;
 using ECafe.Application.Repositories.UserRestaurant;
 using ECafe.Application.Services.AuditLog.Abstract;
 using ECafe.Application.Services.MinIO.Abstracts;
@@ -31,6 +32,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
         private readonly IMinioService _minioService;
         private readonly IFileRepository _fileRepository;
         private readonly IAuditLogService _auditLogService;
+        private readonly ITableSessionRepository _tableSessionRepository;
 
         public RestaurantManager(
             IHttpContextAccessor httpContextAccessor,
@@ -42,7 +44,8 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             IMinioService minioService,
             IUserRestaurantRepository userRestaurantRepository,
             IFileRepository fileRepository,
-            IAuditLogService auditLogService)
+            IAuditLogService auditLogService,
+            ITableSessionRepository tableSessionRepository)
             : base(httpContextAccessor, mapper, configuration)
         {
             _restaurantRepository = restaurantRepository;
@@ -52,6 +55,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             _userRestaurantRepository = userRestaurantRepository;
             _fileRepository = fileRepository;
             _auditLogService = auditLogService;
+            _tableSessionRepository = tableSessionRepository;
         }
 
         public async Task<PaginatedList<GetAllRestaurantsResponse>> GetAllRestaurantsAsync(
@@ -220,14 +224,16 @@ namespace ECafe.Application.Services.Restaurant.Concrete
         public async Task<List<StaffPublicResponseDto>> GetRestaurantPublicStaffAsync(int restaurantId)
         {
             var staffs = await GetRestaurantStaffEntitiesAsync(restaurantId);
-            var tasks = staffs.Select(MapToPublicDtoAsync);
+            var activeCounts = await GetActiveTableSessionCountsAsync(restaurantId, staffs);
+            var tasks = staffs.Select(staff => MapToPublicDtoAsync(staff, activeCounts.GetValueOrDefault(staff.UserId)));
             return (await Task.WhenAll(tasks)).ToList();
         }
 
         public async Task<List<StaffDetailResponseDto>> GetRestaurantStaffAsync(int restaurantId)
         {
             var staffs = await GetRestaurantStaffEntitiesAsync(restaurantId);
-            var tasks = staffs.Select(MapToDetailDtoAsync);
+            var activeCounts = await GetActiveTableSessionCountsAsync(restaurantId, staffs);
+            var tasks = staffs.Select(staff => MapToDetailDtoAsync(staff, activeCounts.GetValueOrDefault(staff.UserId)));
             return (await Task.WhenAll(tasks)).ToList();
         }
 
@@ -320,6 +326,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             restaurant.CancellationWindowMinutes = request.CancellationWindowMinutes;
             restaurant.ServiceFeePercent = request.ServiceFeePercent;
             restaurant.StaffSettlementPeriod = request.StaffSettlementPeriod;
+            restaurant.DefaultWaiterTableLimit = request.DefaultWaiterTableLimit;
 
             if (request.FileIds is not null)
                 await ReplaceRestaurantFilesAsync(restaurant, request.FileIds);
@@ -342,6 +349,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
                     restaurant.CancellationWindowMinutes,
                     restaurant.ServiceFeePercent,
                     restaurant.StaffSettlementPeriod,
+                    restaurant.DefaultWaiterTableLimit,
                     restaurant.RestaurantGroupId
                 },
                 AuditEntityTypes.Restaurant,
@@ -550,20 +558,24 @@ namespace ECafe.Application.Services.Restaurant.Concrete
 
         private async Task<List<PublicStaffDto>> MapToPublicStaffAsync(Domain.Entities.Restaurant restaurant)
         {
-            var staffTasks = restaurant.UserRestaurants
+            var staffs = restaurant.UserRestaurants
                 .Where(staff =>
                     staff.IsActive &&
                     staff.User.IsActive &&
                     staff.User.RoleId == (int)RoleCode.Waiter)
                 .OrderBy(staff => staff.User.Name)
                 .ThenBy(staff => staff.User.Surname)
-                .Select(async staff =>
-                {
-                    var response = Mapper.Map<PublicStaffDto>(staff);
-                    response.FileUrl = await GenerateFileUrlAsync(staff.User.File);
+                .ToList();
 
-                    return response;
-                });
+            var activeCounts = await GetActiveTableSessionCountsAsync(restaurant.Id, staffs);
+            var staffTasks = staffs.Select(async staff =>
+            {
+                var response = Mapper.Map<PublicStaffDto>(staff);
+                response.FileUrl = await GenerateFileUrlAsync(staff.User.File);
+                ApplyTableCapacity(response, staff, activeCounts.GetValueOrDefault(staff.UserId));
+
+                return response;
+            });
 
             return (await Task.WhenAll(staffTasks)).ToList();
         }
@@ -703,18 +715,67 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             return hasRestaurantGroup ? fallbackName.Trim() : null;
         }
 
-        private async Task<StaffPublicResponseDto> MapToPublicDtoAsync(UserRestaurant staff)
+        private async Task<StaffPublicResponseDto> MapToPublicDtoAsync(UserRestaurant staff, int activeTableSessionCount)
         {
             var response = Mapper.Map<StaffPublicResponseDto>(staff);
             response.FileUrl = await GenerateFileUrlAsync(staff.User.File);
+            ApplyTableCapacity(response, staff, activeTableSessionCount);
             return response;
         }
 
-        private async Task<StaffDetailResponseDto> MapToDetailDtoAsync(UserRestaurant staff)
+        private async Task<StaffDetailResponseDto> MapToDetailDtoAsync(UserRestaurant staff, int activeTableSessionCount)
         {
             var response = Mapper.Map<StaffDetailResponseDto>(staff);
             response.FileUrl = await GenerateFileUrlAsync(staff.User.File);
+            ApplyTableCapacity(response, staff, activeTableSessionCount);
             return response;
+        }
+
+        private async Task<Dictionary<int, int>> GetActiveTableSessionCountsAsync(
+            int restaurantId,
+            IReadOnlyCollection<UserRestaurant> staffs)
+        {
+            var waiterUserIds = staffs
+                .Where(staff => staff.User.RoleId == (int)RoleCode.Waiter)
+                .Select(staff => staff.UserId)
+                .Distinct()
+                .ToList();
+
+            return await _tableSessionRepository.GetOpenSessionCountsByWaitersAsync(restaurantId, waiterUserIds);
+        }
+
+        private static void ApplyTableCapacity(PublicStaffDto response, UserRestaurant staff, int activeTableSessionCount)
+        {
+            if (staff.User.RoleId != (int)RoleCode.Waiter)
+            {
+                response.ActiveTableSessionCount = 0;
+                response.EffectiveMaxActiveTableCount = null;
+                response.CanAcceptMoreTables = false;
+                return;
+            }
+
+            var effectiveLimit = staff.MaxActiveTableCount ?? staff.Restaurant.DefaultWaiterTableLimit;
+
+            response.ActiveTableSessionCount = activeTableSessionCount;
+            response.EffectiveMaxActiveTableCount = effectiveLimit;
+            response.CanAcceptMoreTables = !effectiveLimit.HasValue || activeTableSessionCount < effectiveLimit.Value;
+        }
+
+        private static void ApplyTableCapacity(StaffBaseDto response, UserRestaurant staff, int activeTableSessionCount)
+        {
+            if (staff.User.RoleId != (int)RoleCode.Waiter)
+            {
+                response.ActiveTableSessionCount = 0;
+                response.EffectiveMaxActiveTableCount = null;
+                response.CanAcceptMoreTables = false;
+                return;
+            }
+
+            var effectiveLimit = staff.MaxActiveTableCount ?? staff.Restaurant.DefaultWaiterTableLimit;
+
+            response.ActiveTableSessionCount = activeTableSessionCount;
+            response.EffectiveMaxActiveTableCount = effectiveLimit;
+            response.CanAcceptMoreTables = !effectiveLimit.HasValue || activeTableSessionCount < effectiveLimit.Value;
         }
 
         private async Task<string?> GenerateFileUrlAsync(File? file)

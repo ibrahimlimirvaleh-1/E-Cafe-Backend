@@ -13,6 +13,7 @@ namespace ECafe.Infrastructure.Repositories.UserRestaurant
         public async Task<List<Domain.Entities.UserRestaurant>> GetRestaurantStaffAsync(int restaurantId)
         {
             return await Query()
+                .Include(ur => ur.Restaurant)
                 .Include(ur => ur.User)
                 .ThenInclude(u => u.Role)
                 .Include(ur => ur.User)

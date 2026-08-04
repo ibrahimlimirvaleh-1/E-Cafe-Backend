@@ -12,6 +12,8 @@ public partial class UserRestaurant : AuditableSoftDeletableEntity<int>
 
     public decimal? ServiceFeePercent { get; set; }
 
+    public int? MaxActiveTableCount { get; set; }
+
     public virtual Restaurant Restaurant { get; set; } = null!;
 
     public virtual User User { get; set; } = null!;

@@ -25,6 +25,8 @@
 
         public decimal ServiceFeePercent { get; set; }
 
+        public int? DefaultWaiterTableLimit { get; set; }
+
         public List<string>? ImageUrls { get; set; }
     }
 }

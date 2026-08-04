@@ -27,6 +27,8 @@ public partial class Restaurant : AuditableSoftDeletableEntity<int>
 
     public int StaffSettlementPeriod { get; set; }
 
+    public int? DefaultWaiterTableLimit { get; set; }
+
     public bool IsActive { get; set; }
 
     public virtual List<File>? Files { get; set; }

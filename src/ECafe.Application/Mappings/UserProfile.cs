@@ -21,7 +21,8 @@ namespace ECafe.Application.Mappings
                 {
                     RestaurantId = src.RestaurantId,
                     IsActive = true,
-                    ServiceFeePercent = src.ServiceFeePercent
+                    ServiceFeePercent = src.ServiceFeePercent,
+                    MaxActiveTableCount = src.MaxActiveTableCount
                 }));
 
             CreateMap<UpdateProfileRequest, User>()
@@ -57,6 +58,11 @@ namespace ECafe.Application.Mappings
                 .ForMember(dest => dest.Rating, opt => opt.MapFrom(src => src.User.Rating))
                 .ForMember(dest => dest.Role, opt => opt.MapFrom(src => src.User.Role.Name))
                 .ForMember(dest => dest.ServiceFeePercent, opt => opt.MapFrom(src => src.ServiceFeePercent))
+                .ForMember(dest => dest.MaxActiveTableCount, opt => opt.MapFrom(src => src.MaxActiveTableCount))
+                .ForMember(dest => dest.EffectiveMaxActiveTableCount, opt => opt.MapFrom(src =>
+                    src.MaxActiveTableCount ?? src.Restaurant.DefaultWaiterTableLimit))
+                .ForMember(dest => dest.CanAcceptMoreTables, opt => opt.MapFrom(src =>
+                    !(src.MaxActiveTableCount ?? src.Restaurant.DefaultWaiterTableLimit).HasValue))
                 .ForMember(dest => dest.FileUrl, opt => opt.Ignore());
 
             CreateMap<UserRestaurant, StaffDetailResponseDto>()
@@ -69,6 +75,11 @@ namespace ECafe.Application.Mappings
                 .ForMember(dest => dest.Phone, opt => opt.MapFrom(src => src.User.Phone))
                 .ForMember(dest => dest.IsActive, opt => opt.MapFrom(src => src.User.IsActive))
                 .ForMember(dest => dest.ServiceFeePercent, opt => opt.MapFrom(src => src.ServiceFeePercent))
+                .ForMember(dest => dest.MaxActiveTableCount, opt => opt.MapFrom(src => src.MaxActiveTableCount))
+                .ForMember(dest => dest.EffectiveMaxActiveTableCount, opt => opt.MapFrom(src =>
+                    src.MaxActiveTableCount ?? src.Restaurant.DefaultWaiterTableLimit))
+                .ForMember(dest => dest.CanAcceptMoreTables, opt => opt.MapFrom(src =>
+                    !(src.MaxActiveTableCount ?? src.Restaurant.DefaultWaiterTableLimit).HasValue))
                 .ForMember(dest => dest.FileUrl, opt => opt.Ignore());
         }
     }
