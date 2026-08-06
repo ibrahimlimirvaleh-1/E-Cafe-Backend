@@ -1,7 +1,6 @@
 using AutoMapper;
 using ECafe.Application.Common.Audit;
 using ECafe.Application.DTOs.Auth;
-using ECafe.Application.DTOs.File;
 using ECafe.Application.DTOs.Notification;
 using ECafe.Application.DTOs.RestaurantContract;
 using ECafe.Application.DTOs.Workflow;
@@ -11,7 +10,6 @@ using ECafe.Application.Repositories.User;
 using ECafe.Application.Repositories.UserRestaurant;
 using ECafe.Application.Repository;
 using ECafe.Application.Services.AuditLog.Abstract;
-using ECafe.Application.Services.MinIO.Abstracts;
 using ECafe.Application.Services.Notification.Abstract;
 using ECafe.Application.Services.RestaurantContract.Abstract;
 using ECafe.Domain.Enums;
@@ -20,7 +18,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using System.Text.Json;
-using File = ECafe.Domain.Entities.File;
 
 namespace ECafe.Application.Services.RestaurantContract.Concrete
 {
@@ -30,8 +27,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
 
         private readonly IRestaurantContractRepository _contractRepository;
         private readonly IRestaurantRepository _restaurantRepository;
-        private readonly IMinioService _minioService;
-        private readonly IContractDocumentGenerator _contractDocumentGenerator;
+        private readonly IContractFileService _contractFileService;
         private readonly IAuditLogService _auditLogService;
         private readonly IUserRestaurantRepository _userRestaurantRepository;
         private readonly IUserRepository _userRepository;
@@ -45,8 +41,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             IConfiguration configuration,
             IRestaurantContractRepository contractRepository,
             IRestaurantRepository restaurantRepository,
-            IMinioService minioService,
-            IContractDocumentGenerator contractDocumentGenerator,
+            IContractFileService contractFileService,
             IAuditLogService auditLogService,
             IUserRestaurantRepository userRestaurantRepository,
             IUserRepository userRepository,
@@ -57,8 +52,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
         {
             _contractRepository = contractRepository;
             _restaurantRepository = restaurantRepository;
-            _minioService = minioService;
-            _contractDocumentGenerator = contractDocumentGenerator;
+            _contractFileService = contractFileService;
             _auditLogService = auditLogService;
             _userRestaurantRepository = userRestaurantRepository;
             _userRepository = userRepository;
@@ -87,7 +81,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
                 throw new BusinessRuleException("Restaurant not found!");
 
             var contractNumber = await GenerateContractNumberAsync(restaurantId, request.StartDate);
-            var generatedFile = await ResolveContractFileAsync(restaurant, contractNumber, request);
+            var generatedFile = await _contractFileService.GenerateAndUploadAsync(restaurant, contractNumber, request);
 
             var contract = new Domain.Entities.RestaurantContract
             {
@@ -161,7 +155,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             contract.CommissionPercent = request.CommissionPercent;
             contract.StaffSettlementPeriod = request.StaffSettlementPeriod;
             contract.PaymentPolicyId = request.PaymentPolicyId;
-            contract.File = await ResolveContractFileAsync(restaurant, contract.ContractNumber, request);
+            contract.File = await _contractFileService.GenerateAndUploadAsync(restaurant, contract.ContractNumber, request);
 
             await _contractRepository.Update(contract);
             await _contractRepository.SaveChangesAsync();
@@ -437,9 +431,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
 
         private async Task<RestaurantContractResponse> MapToResponseAsync(Domain.Entities.RestaurantContract contract)
         {
-            var fileUrl = contract.File is null
-                ? null
-                : await _minioService.GenerateFileUrl(contract.File.Token);
+            var fileUrl = await _contractFileService.GenerateFileUrlAsync(contract.File);
 
             return new RestaurantContractResponse
             {
@@ -730,59 +722,5 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
                 throw new BusinessRuleException($"{fieldName} must be between 0 and 100!");
         }
 
-        private async Task<File> ResolveContractFileAsync(
-            Domain.Entities.Restaurant restaurant,
-            string contractNumber,
-            CreateRestaurantContractRequest request)
-        {
-            var document = _contractDocumentGenerator.Generate(BuildContractDocumentData(
-                restaurant,
-                contractNumber,
-                request));
-
-            var token = await _minioService.UploadFileAsync(new UploadGeneratedFileDto
-            {
-                Bytes = document.Bytes,
-                FileName = document.FileName,
-                ContentType = document.ContentType
-            });
-
-            return Mapper.Map<File>(new FileMapData
-            {
-                Token = token,
-                FileName = document.FileName,
-                Size = document.Bytes.LongLength,
-                Url = await _minioService.GenerateFileUrl(token)
-            });
-        }
-
-        private static RestaurantContractDocumentData BuildContractDocumentData(
-            Domain.Entities.Restaurant restaurant,
-            string contractNumber,
-            CreateRestaurantContractRequest request)
-        {
-            var legalName = string.IsNullOrWhiteSpace(restaurant.RestaurantGroup?.LegalName)
-                ? restaurant.Name
-                : restaurant.RestaurantGroup.LegalName;
-            var branchName = string.IsNullOrWhiteSpace(restaurant.BranchName)
-                ? restaurant.Name
-                : restaurant.BranchName;
-
-            return new RestaurantContractDocumentData
-            {
-                ContractNumber = contractNumber,
-                RestaurantName = restaurant.Name,
-                LegalName = legalName,
-                BranchName = branchName,
-                Location = restaurant.Location,
-                Phone = restaurant.Phone,
-                Email = restaurant.Email,
-                StartDate = request.StartDate,
-                EndDate = request.EndDate,
-                CommissionPercent = request.CommissionPercent,
-                StaffSettlementPeriod = request.StaffSettlementPeriod,
-                PaymentPolicyId = request.PaymentPolicyId
-            };
-        }
     }
 }
