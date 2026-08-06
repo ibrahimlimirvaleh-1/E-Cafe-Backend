@@ -52,6 +52,8 @@ services:
       dockerfile: deploy/sentry-minio/Dockerfile
     container_name: ecafe-api
     restart: unless-stopped
+    env_file:
+      - .env.local
     depends_on:
       ecafe-db:
         condition: service_healthy
@@ -80,6 +82,12 @@ services:
       Jwt__Audience: ${ECAFE_JWT_AUDIENCE:-ecafe-users}
 
       # Redis (əlavə istifadə edəcəksənsə)
+      Email__SmtpHost: ${ECAFE_EMAIL_SMTP_HOST:-smtp.gmail.com}
+      Email__SmtpPort: ${ECAFE_EMAIL_SMTP_PORT:-587}
+      Email__Username: ${ECAFE_EMAIL_USERNAME:?Set ECAFE_EMAIL_USERNAME in deploy/sentry-minio/.env}
+      Email__From: ${ECAFE_EMAIL_FROM:-${ECAFE_EMAIL_USERNAME}}
+      Email__FromName: ${ECAFE_EMAIL_FROM_NAME:-E-Cafe Admin}
+
       Redis__Connection: ecafe-redis:6379
 
     ports:

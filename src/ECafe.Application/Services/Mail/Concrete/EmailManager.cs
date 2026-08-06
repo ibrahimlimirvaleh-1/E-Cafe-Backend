@@ -16,92 +16,44 @@ namespace ECafe.Application.Services
 
         public async Task SendMailAsync(string toEmail, string name)
         {
-            var smtpHost = _configuration["Email:SmtpHost"];
-            var smtpPort = int.Parse(_configuration["Email:SmtpPort"]!);
-            var smtpUser = _configuration["Email:Username"];
-            var smtpPass = _configuration["Email:Password"];
-            var fromEmail = _configuration["Email:From"];
-
-            using var client = new SmtpClient(smtpHost, smtpPort)
-            {
-                Credentials = new NetworkCredential(smtpUser, smtpPass),
-                EnableSsl = true
-            };
-
-            var mail = new MailMessage
-            {
-                From = new MailAddress(fromEmail!),
-                Subject = "Restoran qeydiyyatı tamamlandı",
-                Body = $"{name} uğurla qeydiyyatdan keçdi.",
-                IsBodyHtml = false
-            };
-
-            mail.To.Add(toEmail);
-
-            await client.SendMailAsync(mail);
+            await SendAsync(
+                toEmail,
+                "Restoran qeydiyyatı tamamlandı",
+                $"{name} uğurla qeydiyyatdan keçdi.");
         }
 
         public async Task SendMailAsync(string toEmail, string name, string surname, string password, string role)
         {
-            var smtpHost = _configuration["Email:SmtpHost"];
-            var smtpPort = int.Parse(_configuration["Email:SmtpPort"]!);
-            var smtpUser = _configuration["Email:Username"];
-            var smtpPass = _configuration["Email:Password"];
-            var fromEmail = _configuration["Email:From"];
-
-            using var client = new SmtpClient(smtpHost, smtpPort)
-            {
-                Credentials = new NetworkCredential(smtpUser, smtpPass),
-                EnableSsl = true
-            };
-
-            var mail = new MailMessage
-            {
-                From = new MailAddress(fromEmail!),
-                Subject = "İstifadəçi qeydiyyatı tamamlandı",
-                Body = $"{name} {surname} {role} rolu ilə uğurla qeydiyyatdan keçdi.Şifrəniz : {password}",
-                IsBodyHtml = false
-            };
-
-            mail.To.Add(toEmail);
-
-            await client.SendMailAsync(mail);
+            await SendAsync(
+                toEmail,
+                "İstifadəçi qeydiyyatı tamamlandı",
+                $"{name} {surname} {role} rolu ilə uğurla qeydiyyatdan keçdi.Şifrəniz : {password}");
         }
 
         public async Task SendMailAsync(string toEmail, string name, string surName, string role)
         {
-            var smtpHost = _configuration["Email:SmtpHost"];
-            var smtpPort = int.Parse(_configuration["Email:SmtpPort"]!);
-            var smtpUser = _configuration["Email:Username"];
-            var smtpPass = _configuration["Email:Password"];
-            var fromEmail = _configuration["Email:From"];
-
-            using var client = new SmtpClient(smtpHost, smtpPort)
-            {
-                Credentials = new NetworkCredential(smtpUser, smtpPass),
-                EnableSsl = true
-            };
-
-            var mail = new MailMessage
-            {
-                From = new MailAddress(fromEmail!),
-                Subject = "İstifadəçi qeydiyyatı tamamlandı",
-                Body = $"{name} {surName} rolunuz dəyişdirildi.Yeni rolunuz : {role}",
-                IsBodyHtml = false
-            };
-
-            mail.To.Add(toEmail);
-
-            await client.SendMailAsync(mail);
+            await SendAsync(
+                toEmail,
+                "İstifadəçi qeydiyyatı tamamlandı",
+                $"{name} {surName} rolunuz dəyişdirildi.Yeni rolunuz : {role}");
         }
 
         public async Task SendContractNotificationAsync(string toEmail, string name, string subject, string body)
+        {
+            await SendAsync(
+                toEmail,
+                subject,
+                $"Salam {name},\n\n{body}");
+        }
+
+        private async Task SendAsync(string toEmail, string subject, string body)
         {
             var smtpHost = _configuration["Email:SmtpHost"];
             var smtpPort = int.Parse(_configuration["Email:SmtpPort"]!);
             var smtpUser = _configuration["Email:Username"];
             var smtpPass = _configuration["Email:Password"];
-            var fromEmail = _configuration["Email:From"];
+            var fromEmail = _configuration["Email:From"] ?? smtpUser;
+            var fromName = _configuration["Email:FromName"] ?? "E-Cafe Admin";
 
             using var client = new SmtpClient(smtpHost, smtpPort)
             {
@@ -111,9 +63,9 @@ namespace ECafe.Application.Services
 
             var mail = new MailMessage
             {
-                From = new MailAddress(fromEmail!),
+                From = new MailAddress(fromEmail!, fromName),
                 Subject = subject,
-                Body = $"Salam {name},\n\n{body}",
+                Body = body,
                 IsBodyHtml = false
             };
 

@@ -13,6 +13,9 @@ namespace ECafe.Infrastructure.Configurations.Concrete
             builder.ToTable("table_sessions", "ops");
 
             builder.HasIndex(e => new { e.RestaurantId, e.TableId, e.StatusId }, "table_sessions_restaurant_table_status_idx");
+            builder.HasIndex(e => new { e.RestaurantId, e.TableId }, "ux_table_sessions_open_table")
+                .IsUnique()
+                .HasFilter("status_id = 7001 AND \"IsDeleted\" = false");
             builder.HasIndex(e => e.ReservationId, "table_sessions_reservation_id_idx");
             builder.HasIndex(e => e.WaiterUserId, "table_sessions_waiter_user_id_idx");
             builder.HasIndex(e => e.CustomerUserId, "table_sessions_customer_user_id_idx");
