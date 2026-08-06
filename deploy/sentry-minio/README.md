@@ -1,130 +1,59 @@
-# Sentry + MinIO + ECafe API (Docker Compose)
+# ECafe local Docker stack
 
-Bu qovluq lokal/dev mühitdə **Sentry**, **MinIO** və **ECafe API** servislərini birlikdə qaldırmaq üçündür.
+Bu qovluq lokal development üçün ECafe API, frontend, PostgreSQL, Redis və MinIO servislərini qaldırır.
 
-> Qeyd: `redis` servisi yalnız **Sentry** üçündür. ECafe API bu compose daxilində Redis istifadə etmir.
+## Env faylları
 
-## Docker Compose faylını harada yaratmalı?
+- `.env.example` repo-da qalır və nümunə dəyərlər üçündür.
+- `.env` lokal işlətmə üçündür və Git-ə düşməməlidir.
+- `.env.local` lokal işlətmə üçündür və Git-ə düşməməlidir.
 
-Bu repo daxilində burada saxlanılır:
-
-- `deploy/sentry-minio/docker-compose.yml`
-
-Komandaları da bu qovluqda işlə:
+Əgər köhnə flow ilə işləyirsinizsə, `.env` faylını saxlayıb adi compose komandası işlədə bilərsiniz:
 
 ```bash
-cd deploy/sentry-minio
+docker compose up -d --build
 ```
 
-## Tez başlat (app + minio + sentry)
+Daha təhlükəsiz flow üçün `.env.local` istifadə edin:
+
+```bash
+cp .env.example .env.local
+docker compose --env-file .env.local up -d --build
+```
+
+`start-stack.sh` avtomatik olaraq əvvəl `.env.local`, sonra `.env` axtarır. Heç biri yoxdursa `.env.example`-dan `.env.local` yaradır.
 
 ```bash
 ./start-stack.sh
 ```
 
-Bu script ardıcıllıq məcburiyyəti olmadan bütün servisləri bir komanda ilə qaldırır.
+## Vacib dəyişənlər
 
-## 1) Hazırlıq
+Bu dəyərlər lokal faylda doldurulmalıdır:
 
-```bash
-cp .env.example .env
-```
-
-`.env` faylında ən azı bunları dəyişin:
-
-- `SENTRY_SECRET_KEY` (mütləq uzun random dəyər)
-- `POSTGRES_PASSWORD`
 - `ECAFE_DB_PASSWORD`
 - `MINIO_ROOT_PASSWORD`
+- `ECAFE_JWT_KEY`
+- `ECAFE_EMAIL_USERNAME`
+- `ECAFE_EMAIL_PASSWORD`
+- `ECAFE_EMAIL_FROM`
 
-Secret key yaratmaq üçün:
+## URL-lər
 
-```bash
-openssl rand -hex 32
-```
-
-
-Əgər image pull zamanı `not found` xətası alsanız, `.env` içində tag-ları yoxlayın:
-
-- `MINIO_IMAGE_TAG=latest`
-- `SENTRY_IMAGE_TAG=latest`
-
-
-Port konflikti (məs. `9001 already in use`) olarsa, `.env` içində host portları dəyişin:
-
-- `MINIO_CONSOLE_PORT=9012`
-- `MINIO_API_PORT=9005`
-- `SENTRY_PORT=9003`
-- `ECAFE_API_PORT=8081`
-
-Sonra yenidən:
-
-```bash
-docker compose down
-docker compose up -d --build
-```
-
-## 2) Bütün servisləri qaldır (app daxil)
-
-```bash
-docker compose up -d --build
-```
-
-Bu komanda aşağıdakı servisləri qaldırır:
-
-- `ecafe-api`
-- `ecafe-frontend`
-- `ecafe-db`
-- `sentry-web`, `sentry-worker`, `sentry-cron`, `sentry-init`
-- `postgres` (sentry üçün)
-- `redis` (yalnız sentry queue/cache üçün)
-- `minio`
-
-
-Əgər yalnız app + db + minio qaldırmaq istəyirsənsə (Sentry-siz), bu komandadan istifadə et:
-
-```bash
-docker compose up -d --build ecafe-db ecafe-api minio
-```
-
-## 3) Sentry üçün ilk admin user yarat
-
-`upgrade --noinput` migration-ları edir, amma user yaratmır:
-
-```bash
-docker compose exec sentry-web sentry createuser \
-  --superuser \
-  --email admin@example.com \
-  --password StrongAdminPass123
-```
-
-## 4) URL-lər
-
-- ECafe API: http://localhost:${ECAFE_API_PORT} (default 8080)
-- ECafe Frontend: http://localhost:${ECAFE_FRONTEND_PORT} (default 5173)
-- Sentry: http://localhost:${SENTRY_PORT} (default 9002)
-- MinIO API: http://localhost:${MINIO_API_PORT} (default 9000)
-- MinIO Console: http://localhost:${MINIO_CONSOLE_PORT} (default 9011)
-
-## 5) ECafe API-ni Sentry-yə bağlamaq (optional)
-
-1. Sentry UI-dan bir project yaradın.
-2. Project DSN-ni götürüb `.env` faylında `ECAFE_SENTRY_DSN` dəyərinə yazın.
-3. Servisi restart edin:
-
-```bash
-docker compose up -d ecafe-api
-```
+- ECafe API: `http://localhost:8080`
+- ECafe Frontend: `http://localhost:5173`
+- MinIO API: `http://localhost:9000`
+- MinIO Console: `http://localhost:9011`
 
 ## Faydalı komandalar
 
 Loglar:
 
 ```bash
-docker compose logs -f ecafe-api sentry-web sentry-worker sentry-cron minio
+docker compose logs -f ecafe-api ecafe-db minio
 ```
 
-Servisləri söndürmək:
+Söndürmək:
 
 ```bash
 docker compose down
@@ -135,3 +64,5 @@ Volume-larla birlikdə silmək:
 ```bash
 docker compose down -v
 ```
+
+`down -v` database və MinIO datalarını silir. Demo data lazımdırsa bu komandadan ehtiyatla istifadə edin.

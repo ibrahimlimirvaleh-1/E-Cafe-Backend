@@ -8,21 +8,33 @@ if ! command -v docker >/dev/null 2>&1; then
   exit 1
 fi
 
-if [ ! -f .env ]; then
-  cp .env.example .env
-  echo ".env yaradıldı (.env.example-dan). Zəhmət olmasa şifrələri dəyişin." >&2
+ENV_FILE=".env.local"
+
+if [ ! -f "$ENV_FILE" ] && [ -f .env ]; then
+  ENV_FILE=".env"
 fi
 
-# Ardıcıllıq olmadan bütün stack-i qaldır
-docker compose up -d --build
+if [ ! -f "$ENV_FILE" ]; then
+  cp .env.example .env.local
+  ENV_FILE=".env.local"
+  echo ".env.local yaradıldı (.env.example-dan)." >&2
+  echo "Zəhmət olmasa lokal DB, MinIO, JWT və email dəyərlərini .env.local faylında dəyişin." >&2
+fi
+
+docker compose --env-file "$ENV_FILE" up -d --build
+
+set -a
+# shellcheck disable=SC1091
+. "./$ENV_FILE"
+set +a
 
 ECAFE_API_PORT="${ECAFE_API_PORT:-8080}"
-SENTRY_PORT="${SENTRY_PORT:-9002}"
 MINIO_API_PORT="${MINIO_API_PORT:-9000}"
 MINIO_CONSOLE_PORT="${MINIO_CONSOLE_PORT:-9011}"
+ECAFE_FRONTEND_PORT="${ECAFE_FRONTEND_PORT:-5173}"
 
-echo "Bütün servislər qaldırıldı:"
-echo "- ECafe API:   http://localhost:${ECAFE_API_PORT}"
-echo "- Sentry:      http://localhost:${SENTRY_PORT}"
-echo "- MinIO API:   http://localhost:${MINIO_API_PORT}"
-echo "- MinIO UI:    http://localhost:${MINIO_CONSOLE_PORT}"
+echo "Servislər qaldırıldı:"
+echo "- ECafe API:      http://localhost:${ECAFE_API_PORT}"
+echo "- ECafe Frontend: http://localhost:${ECAFE_FRONTEND_PORT}"
+echo "- MinIO API:      http://localhost:${MINIO_API_PORT}"
+echo "- MinIO UI:       http://localhost:${MINIO_CONSOLE_PORT}"
