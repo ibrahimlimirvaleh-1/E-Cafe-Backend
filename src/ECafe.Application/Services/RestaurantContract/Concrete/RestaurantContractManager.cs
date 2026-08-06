@@ -639,12 +639,8 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             if (admins.Count == 0)
                 return;
 
-            var title = "Müqavilə owner tərəfindən təsdiqləndi";
+            var title = "Müqavilə sahibkar tərəfindən təsdiqləndi";
             var message = LimitNotificationMessage(
-                $"{contract.ContractNumber} nömrəli müqavilə {owner.Name} {owner.Surname} tərəfindən təsdiqləndi. Təsdiq mətni: {acceptanceText}");
-
-            title = "Müqavilə sahibkar tərəfindən təsdiqləndi";
-            message = LimitNotificationMessage(
                 $"{contract.ContractNumber} nömrəli müqavilə {owner.Name} {owner.Surname} tərəfindən təsdiqləndi. Təsdiq mətni: {acceptanceText}");
 
             foreach (var admin in admins)
