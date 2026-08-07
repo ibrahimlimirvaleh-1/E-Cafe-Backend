@@ -7,7 +7,7 @@ services:
     environment:
       POSTGRES_DB: ${ECAFE_DB_NAME:-ECafe}
       POSTGRES_USER: ${ECAFE_DB_USER:-ecafe_user}
-      POSTGRES_PASSWORD: ${ECAFE_DB_PASSWORD:?Set ECAFE_DB_PASSWORD in deploy/sentry-minio/.env}
+      POSTGRES_PASSWORD: ${ECAFE_DB_PASSWORD:-replace-with-local-db-password}
     ports:
       - "${ECAFE_DB_PORT:-5433}:5432"
     volumes:
@@ -38,7 +38,7 @@ services:
     restart: unless-stopped
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?Set MINIO_ROOT_PASSWORD in deploy/sentry-minio/.env}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-replace-with-local-minio-password}
     command: server /data --console-address ":9001"
     ports:
       - "${MINIO_API_PORT:-9000}:9000"
@@ -60,33 +60,36 @@ services:
       ASPNETCORE_URLS: http://+:8080
 
       # PostgreSQL connection
-      ConnectionStrings__ECafeDb: Host=ecafe-db;Port=5432;Database=${ECAFE_DB_NAME:-ECafe};Username=${ECAFE_DB_USER:-ecafe_user};Password=${ECAFE_DB_PASSWORD:?Set ECAFE_DB_PASSWORD in deploy/sentry-minio/.env}
+      ConnectionStrings__ECafeDb: Host=ecafe-db;Port=5432;Database=${ECAFE_DB_NAME:-ECafe};Username=${ECAFE_DB_USER:-ecafe_user};Password=${ECAFE_DB_PASSWORD:-replace-with-local-db-password}
 
       # Sentry deaktiv (lokalda özün run edəcəksən)
       Sentry__Dsn: ${ECAFE_SENTRY_DSN:-}
+      Sentry__Debug: ${ECAFE_SENTRY_DEBUG:-false}
+      Sentry__EnableLogs: ${ECAFE_SENTRY_ENABLE_LOGS:-false}
       Sentry__TracesSampleRate: ${ECAFE_SENTRY_TRACES_SAMPLE_RATE:-0.1}
 
       # MinIO
       MinIO__Endpoint: ecafe-minio:9000
       MinIO__AccessKey: ${MINIO_ROOT_USER:-minioadmin}
-      MinIO__SecretKey: ${MINIO_ROOT_PASSWORD:?Set MINIO_ROOT_PASSWORD in deploy/sentry-minio/.env}
+      MinIO__SecretKey: ${MINIO_ROOT_PASSWORD:-replace-with-local-minio-password}
       MinIO__BucketName: ${MINIO_BUCKET_NAME:-ecafefiles}
       MinIO__UseSSL: "false"
       FileStorage__PublicBaseUrl: ${ECAFE_PUBLIC_API_BASE_URL:-http://localhost:8080}
 
       # JWT
-      Jwt__Key: ${ECAFE_JWT_KEY:?Set ECAFE_JWT_KEY in deploy/sentry-minio/.env}
+      Jwt__Key: ${ECAFE_JWT_KEY:-replace-with-long-random-jwt-key}
       Jwt__Issuer: ${ECAFE_JWT_ISSUER:-ecafe}
       Jwt__Audience: ${ECAFE_JWT_AUDIENCE:-ecafe-users}
 
-      # Redis (əlavə istifadə edəcəksənsə)
+      # Email
       Email__SmtpHost: ${ECAFE_EMAIL_SMTP_HOST:-smtp.gmail.com}
       Email__SmtpPort: ${ECAFE_EMAIL_SMTP_PORT:-587}
-      Email__Username: ${ECAFE_EMAIL_USERNAME:?Set ECAFE_EMAIL_USERNAME in deploy/sentry-minio/.env}
+      Email__Username: ${ECAFE_EMAIL_USERNAME:-}
       Email__Password: ${ECAFE_EMAIL_PASSWORD:-}
-      Email__From: ${ECAFE_EMAIL_FROM:-${ECAFE_EMAIL_USERNAME}}
+      Email__From: ${ECAFE_EMAIL_FROM:-}
       Email__FromName: ${ECAFE_EMAIL_FROM_NAME:-E-Cafe Admin}
 
+      # Redis
       Redis__Connection: ecafe-redis:6379
 
     ports:
