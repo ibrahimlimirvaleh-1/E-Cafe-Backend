@@ -1,5 +1,6 @@
 using AutoMapper;
 using ECafe.Application.Common.Audit;
+using ECafe.Application.Common.Outbox;
 using ECafe.Application.Common.Pagination;
 using ECafe.Application.DTOs.Restaurant;
 using ECafe.Application.DTOs.Restaurant.Public;
@@ -28,7 +29,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
         private readonly IRestaurantRepository _restaurantRepository;
         private readonly IRestaurantGroupRepository _restaurantGroupRepository;
         private readonly IUserRestaurantRepository _userRestaurantRepository;
-        private readonly IEmailService _emailService;
+        private readonly IEmailOutboxService _emailOutboxService;
         private readonly IMinioService _minioService;
         private readonly IFileRepository _fileRepository;
         private readonly IAuditLogService _auditLogService;
@@ -40,7 +41,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             IConfiguration configuration,
             IRestaurantRepository restaurantRepository,
             IRestaurantGroupRepository restaurantGroupRepository,
-            IEmailService emailService,
+            IEmailOutboxService emailOutboxService,
             IMinioService minioService,
             IUserRestaurantRepository userRestaurantRepository,
             IFileRepository fileRepository,
@@ -50,7 +51,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
         {
             _restaurantRepository = restaurantRepository;
             _restaurantGroupRepository = restaurantGroupRepository;
-            _emailService = emailService;
+            _emailOutboxService = emailOutboxService;
             _minioService = minioService;
             _userRestaurantRepository = userRestaurantRepository;
             _fileRepository = fileRepository;
@@ -277,7 +278,15 @@ namespace ECafe.Application.Services.Restaurant.Concrete
                 restaurant.Id,
                 restaurant.Name);
 
-            await _emailService.SendMailAsync(restaurant.Email, restaurant.Name);
+            await _emailOutboxService.EnqueueEmailAsync(
+                restaurant.Email,
+                restaurant.Name,
+                "Restoran qeydiyyatı tamamlandı",
+                $"{restaurant.Name} uğurla qeydiyyatdan keçdi.",
+                OutboxAggregateTypes.Restaurant,
+                restaurant.Id,
+                AuditEntityTypes.Restaurant,
+                restaurant.Id);
 
             return restaurant.Id;
         }

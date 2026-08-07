@@ -4,6 +4,7 @@ namespace ECafe.Application.Common.Audit
     {
         public const string Restaurant = "Restaurant";
         public const string Contract = "Contract";
+        public const string User = "User";
         public const string Category = "Category";
         public const string Item = "Item";
         public const string Reservation = "Reservation";

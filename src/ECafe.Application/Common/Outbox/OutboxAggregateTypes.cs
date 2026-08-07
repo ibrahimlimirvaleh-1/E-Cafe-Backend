@@ -4,5 +4,6 @@ namespace ECafe.Application.Common.Outbox
     {
         public const string Restaurant = "Restaurant";
         public const string Contract = "Contract";
+        public const string User = "User";
     }
 }

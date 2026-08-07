@@ -1,6 +1,8 @@
 using AutoMapper;
 using AutoMapper.QueryableExtensions;
+using ECafe.Application.Common.Audit;
 using ECafe.Application.Common.Exceptions;
+using ECafe.Application.Common.Outbox;
 using ECafe.Application.Common.Pagination;
 using ECafe.Application.DTOs.Auth;
 using ECafe.Application.DTOs.User;
@@ -32,7 +34,7 @@ namespace ECafe.Application.Services.User.Concrete
         private readonly IUserRepository _userRepository;
         private readonly IMinioService _minioService;
         private readonly IFileRepository _fileRepository;
-        private readonly IEmailService _emailService;
+        private readonly IEmailOutboxService _emailOutboxService;
         private readonly IJwtService _jwtService;
         private readonly IUserRefreshTokenRepository _refreshTokenRepository;
         private readonly IUserRestaurantRepository _userRestaurantRepository;
@@ -46,7 +48,7 @@ namespace ECafe.Application.Services.User.Concrete
             IMinioService minioService,
             IFileRepository fileRepository,
             IUserRepository userRepository,
-            IEmailService emailService,
+            IEmailOutboxService emailOutboxService,
             IJwtService jwtService,
             IUserRefreshTokenRepository refreshTokenRepository,
             IUserRestaurantRepository userRestaurantRepository)
@@ -57,7 +59,7 @@ namespace ECafe.Application.Services.User.Concrete
             _minioService = minioService;
             _fileRepository = fileRepository;
             _userRepository = userRepository;
-            _emailService = emailService;
+            _emailOutboxService = emailOutboxService;
             _jwtService = jwtService;
             _refreshTokenRepository = refreshTokenRepository;
             _userRestaurantRepository = userRestaurantRepository;
@@ -83,7 +85,15 @@ namespace ECafe.Application.Services.User.Concrete
 
             var roleName = GetRoleDescription(request.RoleId);
 
-            await _emailService.SendMailAsync(user.Email, user.Name, user.Surname, request.Password, roleName);
+            await _emailOutboxService.EnqueueEmailAsync(
+                user.Email,
+                $"{user.Name} {user.Surname}",
+                "İstifadəçi qeydiyyatı tamamlandı",
+                $"{user.Name} {user.Surname} {roleName} rolu ilə uğurla qeydiyyatdan keçdi. Şifrəniz: {request.Password}",
+                OutboxAggregateTypes.User,
+                user.Id,
+                AuditEntityTypes.User,
+                user.Id);
         }
 
         public async Task DeleteAsync(int userId)
@@ -136,7 +146,15 @@ namespace ECafe.Application.Services.User.Concrete
 
             await _userRepository.SaveChangesAsync();
 
-            await _emailService.SendMailAsync(user.Email, user.Name, user.Surname, roleName);
+            await _emailOutboxService.EnqueueEmailAsync(
+                user.Email,
+                $"{user.Name} {user.Surname}",
+                "İstifadəçi qeydiyyatı tamamlandı",
+                $"{user.Name} {user.Surname} rolunuz dəyişdirildi. Yeni rolunuz: {roleName}",
+                OutboxAggregateTypes.User,
+                user.Id,
+                AuditEntityTypes.User,
+                user.Id);
 
             if (userId != GetCurrentUserId())
             {

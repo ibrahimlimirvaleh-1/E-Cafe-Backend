@@ -72,6 +72,58 @@ namespace ECafe.Application.Services
             await _outboxRepository.SaveChangesAsync();
         }
 
+        public async Task EnqueueEmailAsync(
+            string toEmail,
+            string toName,
+            string subject,
+            string body,
+            string aggregateType,
+            long aggregateId,
+            string? relatedEntityType = null,
+            long? relatedEntityId = null)
+        {
+            if (string.IsNullOrWhiteSpace(toEmail))
+                throw new BusinessRuleException("Email recipient is required.");
+
+            if (string.IsNullOrWhiteSpace(subject))
+                throw new BusinessRuleException("Email subject is required.");
+
+            if (string.IsNullOrWhiteSpace(body))
+                throw new BusinessRuleException("Email body is required.");
+
+            if (string.IsNullOrWhiteSpace(aggregateType))
+                throw new BusinessRuleException("Email aggregate type is required.");
+
+            if (aggregateId <= 0)
+                throw new BusinessRuleException("Invalid email aggregate ID.");
+
+            var normalizedAggregateType = aggregateType.Trim();
+            var payload = new EmailNotificationOutboxPayload
+            {
+                ToEmail = toEmail.Trim(),
+                ToName = string.IsNullOrWhiteSpace(toName) ? "Istifadeci" : toName.Trim(),
+                Subject = subject.Trim(),
+                Body = body.Trim(),
+                RelatedEntityType = string.IsNullOrWhiteSpace(relatedEntityType)
+                    ? normalizedAggregateType
+                    : relatedEntityType.Trim(),
+                RelatedEntityId = relatedEntityId ?? aggregateId
+            };
+
+            var outboxEvent = new Domain.Entities.OutboxEvent
+            {
+                Id = Guid.NewGuid(),
+                EventType = OutboxEventTypes.EmailNotificationRequested,
+                AggregateType = normalizedAggregateType,
+                AggregateId = aggregateId,
+                Payload = JsonSerializer.Serialize(payload, JsonOptions),
+                OccurredAt = DateTime.UtcNow
+            };
+
+            await _outboxRepository.Add(outboxEvent);
+            await _outboxRepository.SaveChangesAsync();
+        }
+
         public async Task<int> ProcessPendingAsync(int batchSize, CancellationToken cancellationToken = default)
         {
             if (batchSize <= 0)
