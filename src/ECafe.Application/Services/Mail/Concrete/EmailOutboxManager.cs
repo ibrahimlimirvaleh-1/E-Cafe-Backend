@@ -3,6 +3,7 @@ using ECafe.Application.Common.Outbox;
 using ECafe.Application.Repository;
 using ECafe.Domain.Exceptions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using System.Text.Json;
 
 namespace ECafe.Application.Services
@@ -10,18 +11,22 @@ namespace ECafe.Application.Services
     public class EmailOutboxManager : IEmailOutboxService, IEmailOutboxProcessor
     {
         private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
-        private static readonly TimeSpan LockDuration = TimeSpan.FromMinutes(5);
-        private const int MaxRetryCount = 5;
+        private static readonly int[] DefaultRetryDelaySeconds = [30, 120, 300, 900, 1800];
 
         private readonly IBaseRepository<Domain.Entities.OutboxEvent> _outboxRepository;
         private readonly IEmailService _emailService;
+        private readonly TimeSpan _lockDuration;
+        private readonly int _maxRetryCount;
 
         public EmailOutboxManager(
             IBaseRepository<Domain.Entities.OutboxEvent> outboxRepository,
-            IEmailService emailService)
+            IEmailService emailService,
+            IConfiguration configuration)
         {
             _outboxRepository = outboxRepository;
             _emailService = emailService;
+            _lockDuration = TimeSpan.FromSeconds(GetPositiveIntSetting(configuration, "EmailOutbox:LockSeconds", 300));
+            _maxRetryCount = GetPositiveIntSetting(configuration, "EmailOutbox:MaxRetryCount", 5);
         }
 
         public async Task EnqueueContractNotificationAsync(
@@ -76,7 +81,7 @@ namespace ECafe.Application.Services
             var outboxEvents = await _outboxRepository.QueryTracked(x =>
                     x.EventType == OutboxEventTypes.EmailNotificationRequested &&
                     x.ProcessedAt == null &&
-                    x.RetryCount < MaxRetryCount &&
+                    x.RetryCount < _maxRetryCount &&
                     (x.LockedUntil == null || x.LockedUntil <= now))
                 .OrderBy(x => x.OccurredAt)
                 .Take(batchSize)
@@ -84,7 +89,7 @@ namespace ECafe.Application.Services
 
             foreach (var outboxEvent in outboxEvents)
             {
-                outboxEvent.LockedUntil = now.Add(LockDuration);
+                outboxEvent.LockedUntil = now.Add(_lockDuration);
             }
 
             if (outboxEvents.Count > 0)
@@ -106,7 +111,9 @@ namespace ECafe.Application.Services
                 catch (Exception ex)
                 {
                     outboxEvent.RetryCount++;
-                    outboxEvent.LockedUntil = null;
+                    outboxEvent.LockedUntil = outboxEvent.RetryCount >= _maxRetryCount
+                        ? null
+                        : DateTime.UtcNow.Add(GetRetryDelay(outboxEvent.RetryCount));
                     outboxEvent.LastError = ex.Message.Length > 2000
                         ? ex.Message[..2000]
                         : ex.Message;
@@ -135,6 +142,20 @@ namespace ECafe.Application.Services
                 payload.ToName,
                 payload.Subject,
                 payload.Body);
+        }
+
+        private static TimeSpan GetRetryDelay(int retryCount)
+        {
+            var delayIndex = Math.Clamp(retryCount - 1, 0, DefaultRetryDelaySeconds.Length - 1);
+            return TimeSpan.FromSeconds(DefaultRetryDelaySeconds[delayIndex]);
+        }
+
+        private static int GetPositiveIntSetting(IConfiguration configuration, string key, int fallback)
+        {
+            var value = configuration[key];
+            return int.TryParse(value, out var parsed) && parsed > 0
+                ? parsed
+                : fallback;
         }
     }
 }

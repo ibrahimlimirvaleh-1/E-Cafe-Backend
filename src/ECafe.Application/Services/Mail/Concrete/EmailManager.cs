@@ -48,12 +48,18 @@ namespace ECafe.Application.Services
 
         private async Task SendAsync(string toEmail, string subject, string body)
         {
-            var smtpHost = _configuration["Email:SmtpHost"];
-            var smtpPort = int.Parse(_configuration["Email:SmtpPort"]!);
-            var smtpUser = _configuration["Email:Username"];
-            var smtpPass = _configuration["Email:Password"];
-            var fromEmail = _configuration["Email:From"] ?? smtpUser;
+            var smtpHost = GetRequiredEmailSetting("SmtpHost");
+            var smtpPortValue = GetRequiredEmailSetting("SmtpPort");
+            var smtpUser = GetRequiredEmailSetting("Username");
+            var smtpPass = GetRequiredEmailSetting("Password");
+            var fromEmail = _configuration["Email:From"];
             var fromName = _configuration["Email:FromName"] ?? "E-Cafe Admin";
+
+            if (!int.TryParse(smtpPortValue, out var smtpPort))
+                throw new InvalidOperationException("Email:SmtpPort must be a valid port number.");
+
+            if (string.IsNullOrWhiteSpace(fromEmail))
+                fromEmail = smtpUser;
 
             using var client = new SmtpClient(smtpHost, smtpPort)
             {
@@ -72,6 +78,15 @@ namespace ECafe.Application.Services
             mail.To.Add(toEmail);
 
             await client.SendMailAsync(mail);
+        }
+
+        private string GetRequiredEmailSetting(string key)
+        {
+            var value = _configuration[$"Email:{key}"];
+            if (string.IsNullOrWhiteSpace(value))
+                throw new InvalidOperationException($"Email:{key} configuration is required.");
+
+            return value.Trim();
         }
     }
 }
