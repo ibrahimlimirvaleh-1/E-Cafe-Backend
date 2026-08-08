@@ -20,6 +20,7 @@ using ECafe.Shared.DTOs;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using File = ECafe.Domain.Entities.File;
 
 namespace ECafe.Application.Services.Restaurant.Concrete
@@ -34,6 +35,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
         private readonly IFileRepository _fileRepository;
         private readonly IAuditLogService _auditLogService;
         private readonly ITableSessionRepository _tableSessionRepository;
+        private readonly ILogger<RestaurantManager> _logger;
 
         public RestaurantManager(
             IHttpContextAccessor httpContextAccessor,
@@ -46,7 +48,8 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             IUserRestaurantRepository userRestaurantRepository,
             IFileRepository fileRepository,
             IAuditLogService auditLogService,
-            ITableSessionRepository tableSessionRepository)
+            ITableSessionRepository tableSessionRepository,
+            ILogger<RestaurantManager> logger)
             : base(httpContextAccessor, mapper, configuration)
         {
             _restaurantRepository = restaurantRepository;
@@ -57,6 +60,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             _fileRepository = fileRepository;
             _auditLogService = auditLogService;
             _tableSessionRepository = tableSessionRepository;
+            _logger = logger;
         }
 
         public async Task<PaginatedList<GetAllRestaurantsResponse>> GetAllRestaurantsAsync(
@@ -402,7 +406,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
 
             response.ImageUrls = restaurant.Files is null
                 ? []
-                : (await Task.WhenAll(restaurant.Files.Select(file => _minioService.GenerateFileUrl(file.Token)))).ToList();
+                : await GenerateFileUrlsAsync(restaurant.Files);
 
             return response;
         }
@@ -471,9 +475,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
         {
             response.Restaurant.ImageUrls = restaurant.Files is null
                 ? []
-                : (await Task.WhenAll(
-                    restaurant.Files.Select(f => _minioService.GenerateFileUrl(f.Token))
-                  )).ToList();
+                : await GenerateFileUrlsAsync(restaurant.Files);
         }
 
         private async Task PopulateCategoryItemFileUrlsAsync(
@@ -498,9 +500,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
 
         private async Task AssignFileUrlAsync(string? token, Action<string?> assign)
         {
-            assign(token is not null
-                ? await _minioService.GenerateFileUrl(token)
-                : null);
+            assign(await TryGenerateFileUrlAsync(token));
         }
 
         private async Task<Domain.Entities.Restaurant> GetPublicRestaurantEntityAsync(int restaurantId)
@@ -536,8 +536,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             if (restaurant.Files is null || restaurant.Files.Count == 0)
                 return [];
 
-            return (await Task.WhenAll(
-                restaurant.Files.Select(file => _minioService.GenerateFileUrl(file.Token)))).ToList();
+            return await GenerateFileUrlsAsync(restaurant.Files);
         }
 
         private async Task<List<PublicMenuCategoryDto>> MapToPublicMenuAsync(Domain.Entities.Restaurant restaurant)
@@ -792,7 +791,37 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             if (file == null)
                 return null;
 
-            return await _minioService.GenerateFileUrl(file.Token);
+            return await TryGenerateFileUrlAsync(file.Token);
+        }
+
+        private async Task<List<string>> GenerateFileUrlsAsync(IEnumerable<File> files)
+        {
+            var urls = await Task.WhenAll(files.Select(file => TryGenerateFileUrlAsync(file.Token)));
+
+            return urls
+                .Where(url => !string.IsNullOrWhiteSpace(url))
+                .Select(url => url!)
+                .ToList();
+        }
+
+        private async Task<string?> TryGenerateFileUrlAsync(string? token)
+        {
+            if (string.IsNullOrWhiteSpace(token))
+                return null;
+
+            try
+            {
+                return await _minioService.GenerateFileUrl(token);
+            }
+            catch (Exception exception)
+            {
+                _logger.LogWarning(
+                    exception,
+                    "Failed to generate file URL for token {FileToken}.",
+                    token);
+
+                return null;
+            }
         }
     }
 }
