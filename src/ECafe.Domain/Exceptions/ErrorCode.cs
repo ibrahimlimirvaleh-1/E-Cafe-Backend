@@ -15,6 +15,8 @@ public enum ErrorCode
     InvalidInventoryItemId = 1102,
     RestaurantContextRequired = 1103,
     AccessDenied = 1104,
+    InvalidCredentials = 1105,
+    AccountTemporarilyLocked = 1106,
 
     RestaurantNotFound = 2000,
     UnitNotFound = 2001,

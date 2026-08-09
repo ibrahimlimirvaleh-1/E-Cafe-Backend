@@ -20,6 +20,8 @@ public sealed class ErrorMessageProvider : IErrorMessageProvider
         [ErrorCode.InvalidInventoryItemId] = "Invalid inventory item ID.",
         [ErrorCode.RestaurantContextRequired] = "Restaurant context is required.",
         [ErrorCode.AccessDenied] = "You do not have access to this resource.",
+        [ErrorCode.InvalidCredentials] = "Email or password is incorrect.",
+        [ErrorCode.AccountTemporarilyLocked] = "Account is temporarily locked because of too many failed login attempts. Please try again later.",
 
         [ErrorCode.RestaurantNotFound] = "Restaurant not found.",
         [ErrorCode.UnitNotFound] = "Unit not found.",

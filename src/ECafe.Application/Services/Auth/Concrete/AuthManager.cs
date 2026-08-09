@@ -23,6 +23,7 @@ namespace ECafe.Application.Services.Auth.Concrete
         private readonly IJwtService _jwtService;
         private readonly IMinioService _minioService;
         private readonly IFileRepository _fileRepository;
+        private readonly ILoginAttemptService _loginAttemptService;
         public AuthManager(IHttpContextAccessor httpContextAccessor,
                            IMapper mapper,
                            IConfiguration configuration,
@@ -30,7 +31,8 @@ namespace ECafe.Application.Services.Auth.Concrete
                            IUserRefreshTokenRepository refreshTokenRepository,
                            IJwtService jwtService,
                            IMinioService minioService,
-                           IFileRepository fileRepository)
+                           IFileRepository fileRepository,
+                           ILoginAttemptService loginAttemptService)
                            : base(httpContextAccessor, mapper, configuration)
         {
             _userRepository = userRepository;
@@ -38,6 +40,7 @@ namespace ECafe.Application.Services.Auth.Concrete
             _jwtService = jwtService;
             _minioService = minioService;
             _fileRepository = fileRepository;
+            _loginAttemptService = loginAttemptService;
         }
 
         public async Task<AuthResponseDto> LoginAsync(LoginRequestDto request)
@@ -45,18 +48,32 @@ namespace ECafe.Application.Services.Auth.Concrete
             if (request is null)
                 throw new BusinessRuleException("request is not null!");
 
-            var user = await _userRepository.GetByEmailTrackedAsync(request.Email.Trim().ToLowerInvariant());
+            var normalizedEmail = request.Email.Trim().ToLowerInvariant();
+            await _loginAttemptService.EnsureNotLockedOutAsync(normalizedEmail);
+
+            var user = await _userRepository.GetByEmailTrackedAsync(normalizedEmail);
 
             if (user is null)
-                throw new BusinessRuleException("User not found!");
+            {
+                await _loginAttemptService.RecordFailureAsync(null, normalizedEmail, "InvalidCredentials");
+                throw new UnauthorizedException(ErrorCode.InvalidCredentials);
+            }
+
             var isPasswordValid = BCrypt.Net.BCrypt.Verify(request.Password, user.Password);
 
             if (!isPasswordValid)
-                throw new BusinessRuleException("Password is wrong!");
+            {
+                await _loginAttemptService.RecordFailureAsync(user, normalizedEmail, "InvalidCredentials");
+                throw new UnauthorizedException(ErrorCode.InvalidCredentials);
+            }
 
             if (!user.IsActive)
+            {
+                await _loginAttemptService.RecordFailureAsync(user, normalizedEmail, "InactiveAccount");
                 throw new ForbiddenException("User account is inactive.");
+            }
 
+            await _loginAttemptService.RecordSuccessAsync(user, normalizedEmail);
             return await CreateAndStoreTokenResponseAsync(user);
         }
 
