@@ -1,12 +1,15 @@
-﻿using AutoMapper;
+using AutoMapper;
+using ECafe.Application.Common.Exceptions;
 using ECafe.Application.DTOs.File;
 using ECafe.Application.Services;
 using ECafe.Application.Services.MinIO.Abstracts;
 using ECafe.Domain.Exceptions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Minio;
 using Minio.DataModel.Args;
+using Minio.Exceptions;
 
 namespace ECafe.Infrastructure.Services.MinIO
 {
@@ -15,6 +18,7 @@ namespace ECafe.Infrastructure.Services.MinIO
         private readonly IMinioClient _minioClient;
         private readonly string _bucket;
         private readonly string? _publicBaseUrl;
+        private readonly ILogger<MinioManager> _logger;
         private bool _bucketExists;
         private readonly SemaphoreSlim _bucketLock = new(1, 1);
         private const long MaxUploadSize = 10 * 1024 * 1024;
@@ -30,9 +34,11 @@ namespace ECafe.Infrastructure.Services.MinIO
 
         public MinioManager(IHttpContextAccessor httpContextAccessor,
                             IMapper mapper,
-                            IConfiguration configuration)
+                            IConfiguration configuration,
+                            ILogger<MinioManager> logger)
                             : base(httpContextAccessor, mapper, configuration)
         {
+            _logger = logger;
             _bucket = configuration["Minio:BucketName"]
                 ?? throw new InvalidOperationException("Minio:BucketName is not configured.");
             _publicBaseUrl = configuration["FileStorage:PublicBaseUrl"]?.TrimEnd('/');
@@ -56,21 +62,23 @@ namespace ECafe.Infrastructure.Services.MinIO
 
         public async Task<GetFileResponse> GetFileAsync(string token)
         {
-            await EnsureBucketExistsAsync();
+            ValidateFileToken(token);
 
-            var contentType = await IsFileExists(token);
+            return await ExecuteMinioAsync("download file", async () =>
+            {
+                await EnsureBucketExistsAsync();
 
-            var destination = new MemoryStream();
+                var contentType = await GetFileContentTypeAsync(token);
+                var destination = new MemoryStream();
+                var getObjectArgs = new GetObjectArgs()
+                    .WithBucket(_bucket)
+                    .WithObject(token)
+                    .WithCallbackStream(stream => stream.CopyTo(destination));
 
-            var getObjectArgs = new GetObjectArgs()
-                .WithBucket(_bucket)
-                .WithObject(token)
-                .WithCallbackStream((stream) => { stream.CopyTo(destination); });
+                await _minioClient.GetObjectAsync(getObjectArgs);
 
-            await _minioClient.GetObjectAsync(getObjectArgs);
-
-            return new GetFileResponse(destination.ToArray(), contentType);
-
+                return new GetFileResponse(destination.ToArray(), contentType);
+            }, token);
         }
 
         public async Task<string> UploadFileAsync(UploadFileDto request)
@@ -84,21 +92,24 @@ namespace ECafe.Infrastructure.Services.MinIO
             var contentType = ValidateUploadType(request.File.FileName, request.File.ContentType);
             await ValidateFileSignatureAsync(request.File, contentType);
 
-            await EnsureBucketExistsAsync();
+            return await ExecuteMinioAsync("upload file", async () =>
+            {
+                await EnsureBucketExistsAsync();
 
-            var filename = Guid.NewGuid().ToString();
-            await using var filestream = request.File.OpenReadStream();
+                var filename = Guid.NewGuid().ToString();
+                await using var filestream = request.File.OpenReadStream();
 
-            var putObjectArgs = new PutObjectArgs()
-                .WithBucket(_bucket)
-                .WithObject(filename)
-                .WithStreamData(filestream)
-                .WithObjectSize(filestream.Length)
-                .WithContentType(request.File.ContentType);
+                var putObjectArgs = new PutObjectArgs()
+                    .WithBucket(_bucket)
+                    .WithObject(filename)
+                    .WithStreamData(filestream)
+                    .WithObjectSize(filestream.Length)
+                    .WithContentType(request.File.ContentType);
 
-            await _minioClient.PutObjectAsync(putObjectArgs);
+                await _minioClient.PutObjectAsync(putObjectArgs);
 
-            return filename;
+                return filename;
+            });
         }
 
         public async Task<string> UploadFileAsync(UploadGeneratedFileDto request)
@@ -108,21 +119,24 @@ namespace ECafe.Infrastructure.Services.MinIO
 
             ValidateUploadType(request.FileName, request.ContentType);
 
-            await EnsureBucketExistsAsync();
+            return await ExecuteMinioAsync("upload generated file", async () =>
+            {
+                await EnsureBucketExistsAsync();
 
-            var filename = Guid.NewGuid().ToString();
-            await using var fileStream = new MemoryStream(request.Bytes);
+                var filename = Guid.NewGuid().ToString();
+                await using var fileStream = new MemoryStream(request.Bytes);
 
-            var putObjectArgs = new PutObjectArgs()
-                .WithBucket(_bucket)
-                .WithObject(filename)
-                .WithStreamData(fileStream)
-                .WithObjectSize(fileStream.Length)
-                .WithContentType(request.ContentType);
+                var putObjectArgs = new PutObjectArgs()
+                    .WithBucket(_bucket)
+                    .WithObject(filename)
+                    .WithStreamData(fileStream)
+                    .WithObjectSize(fileStream.Length)
+                    .WithContentType(request.ContentType);
 
-            await _minioClient.PutObjectAsync(putObjectArgs);
+                await _minioClient.PutObjectAsync(putObjectArgs);
 
-            return filename;
+                return filename;
+            });
         }
 
         public Task<string> GenerateFileUrl(string token)
@@ -144,16 +158,18 @@ namespace ECafe.Infrastructure.Services.MinIO
 
         public async Task DeleteFileAsync(string token)
         {
-            if (string.IsNullOrWhiteSpace(token))
-                throw new ArgumentException("File token is required.", nameof(token));
+            ValidateFileToken(token);
 
-            await EnsureBucketExistsAsync();
+            await ExecuteMinioAsync("delete file", async () =>
+            {
+                await EnsureBucketExistsAsync();
 
-            var removeObjectArgs = new RemoveObjectArgs()
-                .WithBucket(_bucket)
-                .WithObject(token);
+                var removeObjectArgs = new RemoveObjectArgs()
+                    .WithBucket(_bucket)
+                    .WithObject(token);
 
-            await _minioClient.RemoveObjectAsync(removeObjectArgs);
+                await _minioClient.RemoveObjectAsync(removeObjectArgs);
+            }, token);
         }
 
         private async Task EnsureBucketExistsAsync()
@@ -198,7 +214,7 @@ namespace ECafe.Infrastructure.Services.MinIO
             return doesBucketExist;
         }
 
-        private async Task<string> IsFileExists(string token)
+        private async Task<string> GetFileContentTypeAsync(string token)
         {
             var statObjectArgs = new StatObjectArgs()
                 .WithBucket(_bucket)
@@ -210,6 +226,70 @@ namespace ECafe.Infrastructure.Services.MinIO
 
             return status.ContentType;
         }
+
+        private async Task ExecuteMinioAsync(
+            string operation,
+            Func<Task> action,
+            string? token = null)
+        {
+            await ExecuteMinioAsync(operation, async () =>
+            {
+                await action();
+                return true;
+            }, token);
+        }
+
+        private async Task<T> ExecuteMinioAsync<T>(
+            string operation,
+            Func<Task<T>> action,
+            string? token = null)
+        {
+            try
+            {
+                return await action();
+            }
+            catch (ObjectNotFoundException exception)
+            {
+                _logger.LogWarning(
+                    exception,
+                    "MinIO object was not found during {Operation}. Token: {FileToken}",
+                    operation,
+                    MaskToken(token));
+
+                throw new NotFoundException(ErrorCode.FileNotFound);
+            }
+            catch (BucketNotFoundException exception)
+            {
+                _logger.LogError(
+                    exception,
+                    "MinIO bucket was not found during {Operation}. Bucket: {BucketName}",
+                    operation,
+                    _bucket);
+
+                throw new ServiceUnavailableException(ErrorCode.FileStorageUnavailable);
+            }
+            catch (MinioException exception)
+            {
+                _logger.LogError(
+                    exception,
+                    "MinIO failed during {Operation}. Token: {FileToken}",
+                    operation,
+                    MaskToken(token));
+
+                throw new ServiceUnavailableException(ErrorCode.FileStorageUnavailable);
+            }
+        }
+
+        private static void ValidateFileToken(string token)
+        {
+            if (string.IsNullOrWhiteSpace(token) || !Guid.TryParse(token, out _))
+                throw new BadRequestException(ErrorCode.InvalidFileToken);
+        }
+
+        private static string MaskToken(string? token)
+            => string.IsNullOrWhiteSpace(token) || token.Length <= 8
+                ? "***"
+                : $"{token[..4]}...{token[^4..]}";
 
         private static string ValidateUploadType(string fileName, string? contentType)
         {

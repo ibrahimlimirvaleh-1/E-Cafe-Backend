@@ -28,7 +28,11 @@ public sealed class ErrorMessageProvider : IErrorMessageProvider
         [ErrorCode.InvalidInventoryMovementType] = "Invalid inventory movement type.",
         [ErrorCode.InventoryMovementQuantityMustBeGreaterThanZero] = "Quantity must be greater than zero.",
         [ErrorCode.InventoryStockCannotBeNegative] = "Stock cannot be negative.",
-        [ErrorCode.InventoryUnitConversionNotAllowed] = "Unit conversion is not allowed between different unit groups."
+        [ErrorCode.InventoryUnitConversionNotAllowed] = "Unit conversion is not allowed between different unit groups.",
+
+        [ErrorCode.InvalidFileToken] = "Invalid file token.",
+        [ErrorCode.FileNotFound] = "File not found.",
+        [ErrorCode.FileStorageUnavailable] = "File storage is temporarily unavailable."
     };
 
     public string GetMessage(BaseException exception)

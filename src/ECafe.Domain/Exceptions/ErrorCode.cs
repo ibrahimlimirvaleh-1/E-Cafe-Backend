@@ -24,5 +24,9 @@ public enum ErrorCode
     InventoryMovementQuantityMustBeGreaterThanZero = 2006,
     InventoryStockCannotBeNegative = 2007,
     InventoryUnitConversionNotAllowed = 2008,
-    InventoryMovementNotFound = 2009
+    InventoryMovementNotFound = 2009,
+
+    InvalidFileToken = 3000,
+    FileNotFound = 3001,
+    FileStorageUnavailable = 3002
 }
