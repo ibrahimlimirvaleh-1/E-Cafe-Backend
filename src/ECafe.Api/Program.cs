@@ -1,5 +1,6 @@
 using ECafe.Api.BackgroundServices;
 using ECafe.Api.Middlewares;
+using ECafe.Api.Security;
 using ECafe.Api.Swagger;
 using ECafe.Application;
 using ECafe.Application.Services.Jwt.Concrete;
@@ -108,6 +109,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 
 builder.Services.AddAuthorization();
+builder.Services.AddEcafeRateLimiting(builder.Configuration);
 
 builder.Services.AddStackExchangeRedisCache(options =>
 {
@@ -154,7 +156,9 @@ if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Local"))
 
 app.UseHttpsRedirection();
 
+app.UseRouting();
 app.UseAuthentication();
+app.UseRateLimiter();
 app.UseAuthorization();
 
 app.MapControllers();

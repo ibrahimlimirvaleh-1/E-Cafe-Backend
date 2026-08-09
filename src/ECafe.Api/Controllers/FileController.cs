@@ -1,9 +1,11 @@
+using ECafe.Api.Security;
 using ECafe.Application.Features.Commands.File;
 using ECafe.Application.Features.Queries.File;
 using ECafe.Domain.Enums;
 using ECafe.Infrastructure.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace ECafe.Api.Controllers
 {
@@ -12,6 +14,7 @@ namespace ECafe.Api.Controllers
         [HasPermission(PermissionCode.ViewRestaurantInfo)]
         [HttpPost("api/v1/file/upload")]
         [Consumes("multipart/form-data")]
+        [EnableRateLimiting(RateLimitPolicyNames.FileUpload)]
         public async Task<IActionResult> Upload([FromForm] FileUploadCommand command)
         {
             var file = await Mediator.Send(command);
@@ -36,6 +39,7 @@ namespace ECafe.Api.Controllers
 
         [AllowAnonymous]
         [HttpGet("api/v1/file/getFile")]
+        [EnableRateLimiting(RateLimitPolicyNames.FileDownload)]
         public async Task<IActionResult> GetFile([FromQuery] GetFileQuery query)
         {
             var file = await Mediator.Send(query);

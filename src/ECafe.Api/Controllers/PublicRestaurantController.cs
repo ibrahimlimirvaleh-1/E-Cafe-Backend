@@ -1,10 +1,13 @@
+using ECafe.Api.Security;
 using ECafe.Application.Features.Queries.Restaurant.Public;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace ECafe.Api.Controllers
 {
     [AllowAnonymous]
+    [EnableRateLimiting(RateLimitPolicyNames.PublicRead)]
     public class PublicRestaurantController : BaseController
     {
         [HttpGet("api/v1/public/restaurants")]

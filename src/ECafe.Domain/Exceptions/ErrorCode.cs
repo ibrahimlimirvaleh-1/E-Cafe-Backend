@@ -8,6 +8,7 @@ public enum ErrorCode
     Forbidden = 1003,
     NotFound = 1004,
     InternalServerError = 1005,
+    TooManyRequests = 1006,
 
     RequestCannotBeNull = 1100,
     InvalidRestaurantId = 1101,

@@ -13,6 +13,7 @@ public sealed class ErrorMessageProvider : IErrorMessageProvider
         [ErrorCode.Forbidden] = "Access denied.",
         [ErrorCode.NotFound] = "Resource not found.",
         [ErrorCode.InternalServerError] = "Internal server error.",
+        [ErrorCode.TooManyRequests] = "Too many requests. Please try again later.",
 
         [ErrorCode.RequestCannotBeNull] = "Request cannot be null.",
         [ErrorCode.InvalidRestaurantId] = "Invalid restaurant ID.",
