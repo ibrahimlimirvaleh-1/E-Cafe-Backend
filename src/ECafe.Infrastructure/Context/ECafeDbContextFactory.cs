@@ -23,6 +23,7 @@ public sealed class ECafeDbContextFactory : IDesignTimeDbContextFactory<ECafeDbC
             .SetBasePath(apiProjectPath)
             .AddJsonFile("appsettings.json", optional: false, reloadOnChange: false)
             .AddJsonFile("appsettings.Development.json", optional: true, reloadOnChange: false)
+            .AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: false)
             .AddEnvironmentVariables()
             .Build();
 
