@@ -10,5 +10,9 @@ namespace ECafe.Application.Services.Auth.Abstract
 
         public Task<AuthResponseDto> RefreshAsync(RefreshTokenRequestDto request);
 
+        public Task LogoutAsync(LogoutRequestDto request);
+
+        public Task LogoutAllAsync();
+
     }
 }

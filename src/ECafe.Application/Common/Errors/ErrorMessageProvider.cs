@@ -22,6 +22,8 @@ public sealed class ErrorMessageProvider : IErrorMessageProvider
         [ErrorCode.AccessDenied] = "You do not have access to this resource.",
         [ErrorCode.InvalidCredentials] = "Email or password is incorrect.",
         [ErrorCode.AccountTemporarilyLocked] = "Account is temporarily locked because of too many failed login attempts. Please try again later.",
+        [ErrorCode.RefreshTokenInvalid] = "Refresh token is invalid or expired.",
+        [ErrorCode.RefreshTokenReuseDetected] = "Refresh token reuse was detected. All sessions were signed out for security.",
 
         [ErrorCode.RestaurantNotFound] = "Restaurant not found.",
         [ErrorCode.UnitNotFound] = "Unit not found.",

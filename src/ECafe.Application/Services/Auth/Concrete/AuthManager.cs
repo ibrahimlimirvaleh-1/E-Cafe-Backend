@@ -4,6 +4,7 @@ using ECafe.Application.DTOs.Auth;
 using ECafe.Application.Repositories.File;
 using ECafe.Application.Repositories.User;
 using ECafe.Application.Repositories.UserRefreshToken;
+using ECafe.Application.Services;
 using ECafe.Application.Services.Auth.Abstract;
 using ECafe.Application.Services.MinIO.Abstracts;
 using ECafe.Domain.Enums;
@@ -24,6 +25,7 @@ namespace ECafe.Application.Services.Auth.Concrete
         private readonly IMinioService _minioService;
         private readonly IFileRepository _fileRepository;
         private readonly ILoginAttemptService _loginAttemptService;
+        private readonly IEmailOutboxService _emailOutboxService;
         public AuthManager(IHttpContextAccessor httpContextAccessor,
                            IMapper mapper,
                            IConfiguration configuration,
@@ -32,7 +34,8 @@ namespace ECafe.Application.Services.Auth.Concrete
                            IJwtService jwtService,
                            IMinioService minioService,
                            IFileRepository fileRepository,
-                           ILoginAttemptService loginAttemptService)
+                           ILoginAttemptService loginAttemptService,
+                           IEmailOutboxService emailOutboxService)
                            : base(httpContextAccessor, mapper, configuration)
         {
             _userRepository = userRepository;
@@ -41,6 +44,7 @@ namespace ECafe.Application.Services.Auth.Concrete
             _minioService = minioService;
             _fileRepository = fileRepository;
             _loginAttemptService = loginAttemptService;
+            _emailOutboxService = emailOutboxService;
         }
 
         public async Task<AuthResponseDto> LoginAsync(LoginRequestDto request)
@@ -99,15 +103,53 @@ namespace ECafe.Application.Services.Auth.Concrete
             var refreshTokenHash = HashRefreshToken(request.RefreshToken);
             var storedToken = await _refreshTokenRepository.GetByTokenHashTrackedAsync(refreshTokenHash);
 
-            if (storedToken is null ||
-                storedToken.RevokedAt is not null ||
-                storedToken.ExpiresAt <= DateTime.UtcNow)
-                throw new ForbiddenException("Refresh token is invalid or expired.");
+            if (storedToken is null)
+                throw new ForbiddenException(ErrorCode.RefreshTokenInvalid);
+
+            if (storedToken.RevokedAt is not null)
+                await HandleRefreshTokenReuseAsync(storedToken);
+
+            if (storedToken.ExpiresAt <= DateTime.UtcNow)
+                throw new ForbiddenException(ErrorCode.RefreshTokenInvalid);
 
             if (!storedToken.User.IsActive)
                 throw new ForbiddenException("User account is inactive.");
 
             return await RotateRefreshTokenAsync(storedToken);
+        }
+
+        public async Task LogoutAsync(LogoutRequestDto request)
+        {
+            if (request is null || string.IsNullOrWhiteSpace(request.RefreshToken))
+                throw new BusinessRuleException("Refresh token is required.");
+
+            var refreshTokenHash = HashRefreshToken(request.RefreshToken);
+            var storedToken = await _refreshTokenRepository.GetByTokenHashTrackedAsync(refreshTokenHash);
+
+            if (storedToken is null)
+                return;
+
+            if (storedToken.RevokedAt is null)
+            {
+                RevokeRefreshToken(storedToken);
+                await _refreshTokenRepository.SaveChangesAsync();
+            }
+        }
+
+        public async Task LogoutAllAsync()
+        {
+            var currentUserId = GetCurrentUserId();
+            var activeTokens = await _refreshTokenRepository.GetActiveByUserIdTrackedAsync(currentUserId, DateTime.UtcNow);
+
+            if (activeTokens.Count == 0)
+                return;
+
+            foreach (var token in activeTokens)
+            {
+                RevokeRefreshToken(token);
+            }
+
+            await _refreshTokenRepository.SaveChangesAsync();
         }
 
         #region Helpers
@@ -206,6 +248,56 @@ namespace ECafe.Application.Services.Auth.Concrete
             });
 
             await _refreshTokenRepository.Add(refreshToken);
+        }
+
+        private async Task HandleRefreshTokenReuseAsync(Domain.Entities.UserRefreshToken reusedToken)
+        {
+            await RevokeAllActiveRefreshTokensAsync(reusedToken.UserId);
+            await _refreshTokenRepository.SaveChangesAsync();
+            await EnqueueRefreshTokenReuseEmailAsync(reusedToken.User);
+
+            throw new ForbiddenException(ErrorCode.RefreshTokenReuseDetected);
+        }
+
+        private async Task RevokeAllActiveRefreshTokensAsync(int userId)
+        {
+            var activeTokens = await _refreshTokenRepository.GetActiveByUserIdTrackedAsync(userId, DateTime.UtcNow);
+            foreach (var token in activeTokens)
+            {
+                RevokeRefreshToken(token);
+            }
+        }
+
+        private void RevokeRefreshToken(Domain.Entities.UserRefreshToken refreshToken)
+        {
+            refreshToken.RevokedAt ??= DateTime.UtcNow;
+            refreshToken.RevokedByIp ??= GetRequestIp();
+        }
+
+        private Task EnqueueRefreshTokenReuseEmailAsync(Domain.Entities.User user)
+        {
+            var ipAddress = GetRequestIp() ?? "unknown";
+            var userAgent = HttpContextAccessor.HttpContext?.Request.Headers["User-Agent"].ToString();
+            var body = $"""
+            Salam {user.Name},
+
+            Hesabinizda refresh token tekrar istifadəsi askarlandi. Tehlukesizlik ucun butun aktiv sessiyalar baglandi.
+
+            IP address: {ipAddress}
+            Cihaz/browser: {userAgent}
+
+            Bu emeliyyati siz etmemisinizse, sifrenizi yenileyin.
+            """;
+
+            return _emailOutboxService.EnqueueEmailAsync(
+                user.Email,
+                $"{user.Name} {user.Surname}",
+                "ECafe hesabinizda sessiya tehlukesizliyi xeberdarligi",
+                body,
+                "RefreshToken",
+                user.Id,
+                "User",
+                user.Id);
         }
 
         private string? GetRequestIp()

@@ -1,7 +1,10 @@
 using ECafe.Application.Features.Commands.Auth.Login;
+using ECafe.Application.Features.Commands.Auth.Logout;
+using ECafe.Application.Features.Commands.Auth.LogoutAll;
 using ECafe.Application.Features.Commands.Auth.Refresh;
 using ECafe.Application.Features.Commands.Auth.Register;
 using ECafe.Api.Security;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 
@@ -28,6 +31,22 @@ namespace ECafe.Api.Controllers
         public async Task<IActionResult> Refresh([FromBody] RefreshTokenCommand command)
             => Ok(await Mediator.Send(command));
 
+        [HttpPost("api/v1/user/logout")]
+        [EnableRateLimiting(RateLimitPolicyNames.AuthRefresh)]
+        public async Task<IActionResult> Logout([FromBody] LogoutCommand command)
+        {
+            await Mediator.Send(command);
+            return NoContent();
+        }
+
+        [Authorize]
+        [HttpPost("api/v1/user/logout-all")]
+        [EnableRateLimiting(RateLimitPolicyNames.AuthRefresh)]
+        public async Task<IActionResult> LogoutAll()
+        {
+            await Mediator.Send(new LogoutAllCommand());
+            return NoContent();
+        }
 
     }
 }

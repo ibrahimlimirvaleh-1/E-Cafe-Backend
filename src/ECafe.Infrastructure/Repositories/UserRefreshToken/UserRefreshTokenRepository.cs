@@ -23,5 +23,14 @@ namespace ECafe.Infrastructure.Repositories.UserRefreshToken
                     .ThenInclude(ur => ur!.Restaurant)
                 .FirstOrDefaultAsync(t => t.TokenHash == tokenHash);
         }
+
+        public Task<List<Domain.Entities.UserRefreshToken>> GetActiveByUserIdTrackedAsync(int userId, DateTime nowUtc)
+        {
+            return QueryTracked(t =>
+                    t.UserId == userId &&
+                    t.RevokedAt == null &&
+                    t.ExpiresAt > nowUtc)
+                .ToListAsync();
+        }
     }
 }
