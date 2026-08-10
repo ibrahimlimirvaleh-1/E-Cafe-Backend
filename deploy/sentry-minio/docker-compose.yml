@@ -80,6 +80,7 @@ services:
       Jwt__Key: ${ECAFE_JWT_KEY:-replace-with-long-random-jwt-key}
       Jwt__Issuer: ${ECAFE_JWT_ISSUER:-ecafe}
       Jwt__Audience: ${ECAFE_JWT_AUDIENCE:-ecafe-users}
+      Jwt__AccessTokenLifetimeMinutes: ${ECAFE_JWT_ACCESS_TOKEN_LIFETIME_MINUTES:-15}
 
       # Email
       Email__SmtpHost: ${ECAFE_EMAIL_SMTP_HOST:-smtp.gmail.com}

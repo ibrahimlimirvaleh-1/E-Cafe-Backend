@@ -68,7 +68,7 @@ namespace ECafe.Application.Services.Jwt.Concrete
                 issuer: _configuration["Jwt:Issuer"],
                 audience: _configuration["Jwt:Audience"],
                 claims: claims,
-                expires: DateTime.UtcNow.AddMinutes(15),
+                expires: DateTime.UtcNow.AddMinutes(GetAccessTokenLifetimeMinutes()),
                 signingCredentials: creds
             );
 
@@ -79,6 +79,13 @@ namespace ECafe.Application.Services.Jwt.Concrete
             => roleId is (int)RoleCode.Manager or
                 (int)RoleCode.Waiter or
                 (int)RoleCode.Kitchen;
+
+        private int GetAccessTokenLifetimeMinutes()
+        {
+            var configuredLifetime = _configuration["Jwt:AccessTokenLifetimeMinutes"];
+            var lifetimeMinutes = int.TryParse(configuredLifetime, out var parsedLifetime) ? parsedLifetime : 15;
+            return Math.Clamp(lifetimeMinutes, 1, 60);
+        }
 
         private static IEnumerable<string> GetPermissionClaims(Domain.Entities.User user)
         {
