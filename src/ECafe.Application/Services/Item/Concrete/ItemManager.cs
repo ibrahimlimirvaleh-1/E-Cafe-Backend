@@ -10,6 +10,7 @@ using ECafe.Application.Services.AuditLog.Abstract;
 using ECafe.Application.Services.Item.Abstract;
 using ECafe.Application.Services.MinIO.Abstracts;
 using ECafe.Application.Services.RestaurantContract.Abstract;
+using ECafe.Domain.Enums;
 using ECafe.Domain.Exceptions;
 using ECafe.Shared.DTOs;
 using FluentValidation;
@@ -226,6 +227,8 @@ namespace ECafe.Application.Services.Item.Concrete
             var file = await _fileRepository.GetAttachableByIdAsync(fileId.Value);
             if (file is null)
                 throw new BusinessRuleException("File not found or already attached.");
+
+            file.FileTypeId = (int)FileTypeCode.MenuItemImage;
 
             return file;
         }

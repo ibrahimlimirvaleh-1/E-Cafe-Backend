@@ -5,6 +5,8 @@ using ECafe.Application.Services.AuditLog.Concrete;
 using ECafe.Application.Services.Auth.Abstract;
 using ECafe.Application.Services.Auth.Concrete;
 using ECafe.Application.Services.Category.Abstract;
+using ECafe.Application.Services.FileAccess.Abstract;
+using ECafe.Application.Services.FileAccess.Concrete;
 using ECafe.Application.Services.Item.Abstract;
 using ECafe.Application.Services.Item.Concrete;
 using ECafe.Application.Services.MinIO.Abstracts;
@@ -73,6 +75,7 @@ namespace ECafe.Application
             services.AddScoped<ITableService, TableManager>();
             services.AddScoped<ICategoryService, CategoryManager>();
             services.AddScoped<IItemService, ItemManager>();
+            services.AddScoped<IFileAccessUrlService, FileAccessUrlService>();
             services.AddScoped<IWorkflowActionService, WorkflowActionManager>();
             services.AddScoped<INotificationService, NotificationManager>();
             services.AddScoped<IInventoryItemService, InventoryItemManager>();

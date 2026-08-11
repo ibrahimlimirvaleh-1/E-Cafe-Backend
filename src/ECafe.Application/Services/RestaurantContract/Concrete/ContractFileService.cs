@@ -1,8 +1,9 @@
 using AutoMapper;
 using ECafe.Application.DTOs.Auth;
 using ECafe.Application.DTOs.File;
-using ECafe.Application.Repository;
+using ECafe.Application.Repositories.FileType;
 using ECafe.Application.DTOs.RestaurantContract;
+using ECafe.Application.Services.FileAccess.Abstract;
 using ECafe.Application.Services.MinIO.Abstracts;
 using ECafe.Application.Services.RestaurantContract.Abstract;
 using ECafe.Domain.Enums;
@@ -15,18 +16,21 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
     {
         private readonly IContractDocumentGenerator _contractDocumentGenerator;
         private readonly IMinioService _minioService;
-        private readonly IBaseRepository<Domain.Entities.FileType> _fileTypeRepository;
+        private readonly IFileTypeRepository _fileTypeRepository;
+        private readonly IFileAccessUrlService _fileAccessUrlService;
         private readonly IMapper _mapper;
 
         public ContractFileService(
             IContractDocumentGenerator contractDocumentGenerator,
             IMinioService minioService,
-            IBaseRepository<Domain.Entities.FileType> fileTypeRepository,
+            IFileTypeRepository fileTypeRepository,
+            IFileAccessUrlService fileAccessUrlService,
             IMapper mapper)
         {
             _contractDocumentGenerator = contractDocumentGenerator;
             _minioService = minioService;
             _fileTypeRepository = fileTypeRepository;
+            _fileAccessUrlService = fileAccessUrlService;
             _mapper = mapper;
         }
 
@@ -64,14 +68,12 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             if (file is null)
                 return null;
 
-            return file.FileType?.IsPublic == true
-                ? await _minioService.GenerateFileUrl(file.Token)
-                : $"/api/v1/files/{file.Id}/view";
+            return await _fileAccessUrlService.BuildPrimaryUrlAsync(file);
         }
 
         private async Task<Domain.Entities.FileType> GetContractDocumentFileTypeAsync()
         {
-            var fileType = await _fileTypeRepository.GetByIdAsync((int)FileTypeCode.ContractDocument);
+            var fileType = await _fileTypeRepository.GetByTypeAsync(FileTypeCode.ContractDocument);
             if (fileType is null)
                 throw new BusinessRuleException("Contract document file type is not configured.");
 

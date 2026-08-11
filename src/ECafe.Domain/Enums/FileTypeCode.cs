@@ -23,6 +23,9 @@ namespace ECafe.Domain.Enums
         PaymentReceipt = 6,
 
         [Description("Admin sənədi")]
-        AdminDocument = 7
+        AdminDocument = 7,
+
+        [Description("Müvəqqəti yükləmə")]
+        TemporaryUpload = 8
     }
 }

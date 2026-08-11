@@ -2,8 +2,10 @@ using AutoMapper;
 using ECafe.Application.DTOs.Auth;
 using ECafe.Application.DTOs.File;
 using ECafe.Application.Repositories.File;
-using ECafe.Application.Repository;
+using ECafe.Application.Repositories.FileType;
+using ECafe.Application.Services.FileAccess.Abstract;
 using ECafe.Application.Services.MinIO.Abstracts;
+using ECafe.Domain.Enums;
 using ECafe.Domain.Exceptions;
 using MediatR;
 
@@ -13,18 +15,21 @@ namespace ECafe.Application.Features.Commands.File
     {
         private readonly IMinioService _minioService;
         private readonly IFileRepository _fileRepository;
-        private readonly IBaseRepository<Domain.Entities.FileType> _fileTypeRepository;
+        private readonly IFileTypeRepository _fileTypeRepository;
+        private readonly IFileAccessUrlService _fileAccessUrlService;
         private readonly IMapper _mapper;
 
         public FileUploadCommandHandler(
             IMinioService minioService,
             IFileRepository fileRepository,
-            IBaseRepository<Domain.Entities.FileType> fileTypeRepository,
+            IFileTypeRepository fileTypeRepository,
+            IFileAccessUrlService fileAccessUrlService,
             IMapper mapper)
         {
             _minioService = minioService;
             _fileRepository = fileRepository;
             _fileTypeRepository = fileTypeRepository;
+            _fileAccessUrlService = fileAccessUrlService;
             _mapper = mapper;
         }
 
@@ -34,7 +39,7 @@ namespace ECafe.Application.Features.Commands.File
             if (file is null || file.Length == 0)
                 throw new ArgumentException("File is required.", nameof(request));
 
-            var fileType = await _fileTypeRepository.GetByIdAsync(request.FileTypeId);
+            var fileType = await GetFileTypeAsync(request.FileTypeId, cancellationToken);
             if (fileType is null)
                 throw new BusinessRuleException("File type not found.");
 
@@ -54,19 +59,32 @@ namespace ECafe.Application.Features.Commands.File
             await _fileRepository.Add(fileEntity);
             await _fileRepository.SaveChangesAsync();
 
+            fileEntity.FileType = fileType;
+            var urls = await _fileAccessUrlService.BuildUrlsAsync(fileEntity, cancellationToken);
+
             return new FileResponse
             {
                 Id = fileEntity.Id,
                 Name = fileEntity.Name,
                 Extension = fileEntity.Extension,
                 Size = fileEntity.Size,
-                Url = fileType.IsPublic ? url : $"/api/v1/files/{fileEntity.Id}/view",
-                DownloadUrl = fileType.IsPublic ? null : $"/api/v1/files/{fileEntity.Id}/download",
+                Url = urls.Url,
+                DownloadUrl = urls.DownloadUrl,
                 FileTypeId = fileType.Id,
                 FileTypeCode = fileType.Code,
                 IsPublic = fileType.IsPublic,
                 IsAttached = false
             };
+        }
+
+        private async Task<Domain.Entities.FileType?> GetFileTypeAsync(
+            int? fileTypeId,
+            CancellationToken cancellationToken)
+        {
+            if (fileTypeId.HasValue)
+                return await _fileTypeRepository.GetByIdAsync(fileTypeId.Value);
+
+            return await _fileTypeRepository.GetByTypeAsync(FileTypeCode.TemporaryUpload, cancellationToken);
         }
 
         private static FileUploadPolicy BuildUploadPolicy(Domain.Entities.FileType fileType)

@@ -10,6 +10,7 @@ using ECafe.Application.Repositories.User;
 using ECafe.Application.Repositories.UserRestaurant;
 using ECafe.Application.Repository;
 using ECafe.Application.Services.AuditLog.Abstract;
+using ECafe.Application.Services.FileAccess.Abstract;
 using ECafe.Application.Services.Notification.Abstract;
 using ECafe.Application.Services.RestaurantContract.Abstract;
 using ECafe.Domain.Enums;
@@ -34,6 +35,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
         private readonly INotificationService _notificationService;
         private readonly IBaseRepository<Domain.Entities.WorkflowActionRule> _workflowActionRuleRepository;
         private readonly IEmailOutboxService _emailOutboxService;
+        private readonly IFileAccessUrlService _fileAccessUrlService;
 
         public RestaurantContractManager(
             IHttpContextAccessor httpContextAccessor,
@@ -47,7 +49,8 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             IUserRepository userRepository,
             INotificationService notificationService,
             IBaseRepository<Domain.Entities.WorkflowActionRule> workflowActionRuleRepository,
-            IEmailOutboxService emailOutboxService)
+            IEmailOutboxService emailOutboxService,
+            IFileAccessUrlService fileAccessUrlService)
             : base(httpContextAccessor, mapper, configuration)
         {
             _contractRepository = contractRepository;
@@ -59,6 +62,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             _notificationService = notificationService;
             _workflowActionRuleRepository = workflowActionRuleRepository;
             _emailOutboxService = emailOutboxService;
+            _fileAccessUrlService = fileAccessUrlService;
         }
 
         public async Task<int> CreateAsync(int restaurantId, CreateRestaurantContractRequest request)
@@ -445,10 +449,10 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
                 StatusName = contract.Status?.Name,
                 FileId = contract.FileId,
                 FileUrl = contract.FileId.HasValue
-                    ? $"/api/v1/files/{contract.FileId.Value}/view"
+                    ? _fileAccessUrlService.BuildViewUrl(contract.FileId.Value)
                     : null,
                 FileDownloadUrl = contract.FileId.HasValue
-                    ? $"/api/v1/files/{contract.FileId.Value}/download"
+                    ? _fileAccessUrlService.BuildDownloadUrl(contract.FileId.Value)
                     : null,
                 SignedAt = contract.SignedAt,
                 SignedByUserId = contract.SignedByUserId,

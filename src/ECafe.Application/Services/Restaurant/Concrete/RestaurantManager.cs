@@ -466,6 +466,9 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             if (missingIds.Count > 0)
                 throw new BusinessRuleException($"File(s) not found or already attached: {string.Join(", ", missingIds)}");
 
+            foreach (var file in files)
+                file.FileTypeId = (int)FileTypeCode.RestaurantImage;
+
             return files;
         }
 

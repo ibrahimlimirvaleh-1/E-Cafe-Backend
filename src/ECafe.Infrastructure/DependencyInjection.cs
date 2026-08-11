@@ -1,5 +1,6 @@
 using ECafe.Application.Repositories.Category;
 using ECafe.Application.Repositories.File;
+using ECafe.Application.Repositories.FileType;
 using ECafe.Application.Repositories.InventoryItem;
 using ECafe.Application.Repositories.InventoryMovement;
 using ECafe.Application.Repositories.InventoryMovementType;
@@ -23,6 +24,7 @@ using ECafe.Infrastructure.Context;
 using ECafe.Infrastructure.Repositories;
 using ECafe.Infrastructure.Repositories.Category;
 using ECafe.Infrastructure.Repositories.File;
+using ECafe.Infrastructure.Repositories.FileType;
 using ECafe.Infrastructure.Repositories.InventoryItem;
 using ECafe.Infrastructure.Repositories.InventoryMovement;
 using ECafe.Infrastructure.Repositories.InventoryMovementType;
@@ -76,6 +78,7 @@ namespace ECafe.Infrastructure
             services.AddScoped<ICategoryRepository, CategoryRepository>();
             services.AddScoped<IItemRepository, ItemRepository>();
             services.AddScoped<IFileRepository, FileRepository>();
+            services.AddScoped<IFileTypeRepository, FileTypeRepository>();
             services.AddScoped<INotificationRepository, NotificationRepository>();
             services.AddScoped<IInventoryItemRepository, InventoryItemRepository>();
             services.AddScoped<IInventoryMovementRepository, InventoryMovementRepository>();
@@ -86,4 +89,3 @@ namespace ECafe.Infrastructure
         }
     }
 }
-

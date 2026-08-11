@@ -176,6 +176,8 @@ namespace ECafe.Application.Services.Auth.Concrete
             if (file is null)
                 throw new BusinessRuleException("File not found or already attached.");
 
+            file.FileTypeId = (int)FileTypeCode.UserProfileImage;
+
             return file;
         }
 

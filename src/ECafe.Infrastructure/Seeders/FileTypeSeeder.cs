@@ -16,7 +16,8 @@ namespace ECafe.Infrastructure.Seeders
                 FileType(FileTypeCode.ContractDocument, "contract_document", false, ".pdf,.doc,.docx", "application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document", 10),
                 FileType(FileTypeCode.InvoiceDocument, "invoice_document", false, ".pdf", "application/pdf", 10),
                 FileType(FileTypeCode.PaymentReceipt, "payment_receipt", false, ".pdf,.jpg,.jpeg,.png,.webp", "application/pdf,image/jpeg,image/png,image/webp", 10),
-                FileType(FileTypeCode.AdminDocument, "admin_document", false, ".pdf,.doc,.docx", "application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document", 10));
+                FileType(FileTypeCode.AdminDocument, "admin_document", false, ".pdf,.doc,.docx", "application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document", 10),
+                FileType(FileTypeCode.TemporaryUpload, "temporary_upload", false, ".jpg,.jpeg,.png,.webp,.pdf,.doc,.docx", "image/jpeg,image/png,image/webp,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document", 10));
         }
 
         private static FileType FileType(

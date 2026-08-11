@@ -1,6 +1,6 @@
 using ECafe.Application.DTOs.File;
 using ECafe.Application.Repositories.File;
-using ECafe.Application.Services.MinIO.Abstracts;
+using ECafe.Application.Services.FileAccess.Abstract;
 using ECafe.Domain.Exceptions;
 using MediatR;
 
@@ -9,14 +9,14 @@ namespace ECafe.Application.Features.Queries.File
     public class GetFileMetadataQueryHandler : IRequestHandler<GetFileMetadataQuery, FileResponse>
     {
         private readonly IFileRepository _fileRepository;
-        private readonly IMinioService _minioService;
+        private readonly IFileAccessUrlService _fileAccessUrlService;
 
         public GetFileMetadataQueryHandler(
             IFileRepository fileRepository,
-            IMinioService minioService)
+            IFileAccessUrlService fileAccessUrlService)
         {
             _fileRepository = fileRepository;
-            _minioService = minioService;
+            _fileAccessUrlService = fileAccessUrlService;
         }
 
         public async Task<FileResponse> Handle(GetFileMetadataQuery request, CancellationToken cancellationToken)
@@ -28,24 +28,21 @@ namespace ECafe.Application.Features.Queries.File
             if (file is null)
                 throw new BusinessRuleException("File not found!");
 
+            var urls = await _fileAccessUrlService.BuildUrlsAsync(file, cancellationToken);
+
             return new FileResponse
             {
                 Id = file.Id,
                 Name = file.Name,
                 Extension = file.Extension,
                 Size = file.Size,
-                Url = await BuildFileUrlAsync(file),
-                DownloadUrl = file.FileType.IsPublic ? null : $"/api/v1/files/{file.Id}/download",
+                Url = urls.Url,
+                DownloadUrl = urls.DownloadUrl,
                 FileTypeId = file.FileTypeId,
                 FileTypeCode = file.FileType.Code,
                 IsPublic = file.FileType.IsPublic,
                 IsAttached = await _fileRepository.IsAttachedAsync(file.Id)
             };
         }
-
-        private async Task<string> BuildFileUrlAsync(Domain.Entities.File file)
-            => file.FileType.IsPublic
-                ? await _minioService.GenerateFileUrl(file.Token)
-                : $"/api/v1/files/{file.Id}/view";
     }
 }

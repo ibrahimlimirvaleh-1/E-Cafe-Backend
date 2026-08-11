@@ -6,7 +6,7 @@ namespace ECafe.Application.DTOs.File
     {
         public IFormFile? File { get; set; }
 
-        public int FileTypeId { get; set; }
+        public int? FileTypeId { get; set; }
 
         public UploadFileDto()
         {
