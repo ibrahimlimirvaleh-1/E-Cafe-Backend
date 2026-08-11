@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 
 namespace ECafe.Infrastructure.Configurations.Concrete
 {
@@ -26,6 +26,12 @@ namespace ECafe.Infrastructure.Configurations.Concrete
             builder.Property(e => e.Url)
                 .HasMaxLength(500)
                 .HasColumnName("url");
+            builder.Property(e => e.FileTypeId).HasColumnName("file_type_id");
+
+            builder.HasOne(e => e.FileType)
+                .WithMany(e => e.Files)
+                .HasForeignKey(e => e.FileTypeId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             builder.HasOne(e => e.Restaurant)
                 .WithMany(r => r.Files);

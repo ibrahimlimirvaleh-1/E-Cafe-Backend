@@ -9,14 +9,6 @@ namespace ECafe.Application.Features.Queries.File
 {
     public class GetFileQueryHandler : IRequestHandler<GetFileQuery, GetFileResponse>
     {
-        private static readonly HashSet<string> PublicImageExtensions = new(StringComparer.OrdinalIgnoreCase)
-        {
-            ".jpg",
-            ".jpeg",
-            ".png",
-            ".webp"
-        };
-
         private readonly IFileRepository _fileRepository;
         private readonly IMinioService _minioService;
 
@@ -31,7 +23,7 @@ namespace ECafe.Application.Features.Queries.File
         public async Task<GetFileResponse> Handle(GetFileQuery request, CancellationToken cancellationToken)
         {
             var file = await _fileRepository.GetWithUsageByTokenAsync(request.token);
-            if (file is null || !PublicImageExtensions.Contains(file.Extension))
+            if (file is null || !file.FileType.IsPublic)
                 throw new NotFoundException(ErrorCode.FileNotFound);
 
             return await _minioService.GetFileAsync(file.Token);

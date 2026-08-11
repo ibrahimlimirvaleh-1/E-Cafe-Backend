@@ -445,6 +445,9 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
                 StatusName = contract.Status?.Name,
                 FileId = contract.FileId,
                 FileUrl = contract.FileId.HasValue
+                    ? $"/api/v1/files/{contract.FileId.Value}/view"
+                    : null,
+                FileDownloadUrl = contract.FileId.HasValue
                     ? $"/api/v1/files/{contract.FileId.Value}/download"
                     : null,
                 SignedAt = contract.SignedAt,

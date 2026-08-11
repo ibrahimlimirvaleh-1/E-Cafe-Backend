@@ -1,4 +1,4 @@
-﻿using ECafe.Domain.Entities.Base;
+using ECafe.Domain.Entities.Base;
 
 namespace ECafe.Domain.Entities
 {
@@ -13,6 +13,10 @@ namespace ECafe.Domain.Entities
         public long Size { get; set; }
 
         public string Url { get; set; } = null!;
+
+        public int FileTypeId { get; set; }
+
+        public virtual FileType FileType { get; set; } = null!;
 
         public virtual ICollection<Item> Items { get; set; } = new List<Item>();
 

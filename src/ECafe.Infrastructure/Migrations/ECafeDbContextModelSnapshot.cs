@@ -216,6 +216,10 @@ namespace ECafe.Infrastructure.Migrations
                         .HasColumnType("character varying(20)")
                         .HasColumnName("extension");
 
+                    b.Property<int>("FileTypeId")
+                        .HasColumnType("integer")
+                        .HasColumnName("file_type_id");
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
@@ -253,12 +257,182 @@ namespace ECafe.Infrastructure.Migrations
                     b.HasKey("Id")
                         .HasName("files_pkey");
 
+                    b.HasIndex("FileTypeId");
+
                     b.HasIndex("RestaurantId");
 
                     b.HasIndex(new[] { "Token" }, "files_token_key")
                         .IsUnique();
 
                     b.ToTable("files", "common");
+                });
+
+            modelBuilder.Entity("ECafe.Domain.Entities.FileType", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AllowedExtensions")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("allowed_extensions");
+
+                    b.Property<string>("AllowedMimeTypes")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("allowed_mime_types");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("code");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsPublic")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_public");
+
+                    b.Property<int>("MaxSizeMb")
+                        .HasColumnType("integer")
+                        .HasColumnName("max_size_mb");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id")
+                        .HasName("file_types_pkey");
+
+                    b.HasIndex(new[] { "Code" }, "file_types_code_key")
+                        .IsUnique();
+
+                    b.HasIndex(new[] { "Name" }, "file_types_name_key")
+                        .IsUnique();
+
+                    b.ToTable("file_types", "common");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            AllowedExtensions = ".jpg,.jpeg,.png,.webp",
+                            AllowedMimeTypes = "image/jpeg,image/png,image/webp",
+                            Code = "restaurant_image",
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            CreatedBy = "",
+                            IsDeleted = false,
+                            IsPublic = true,
+                            MaxSizeMb = 10,
+                            Name = "Restoran şəkli"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            AllowedExtensions = ".jpg,.jpeg,.png,.webp",
+                            AllowedMimeTypes = "image/jpeg,image/png,image/webp",
+                            Code = "menu_item_image",
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            CreatedBy = "",
+                            IsDeleted = false,
+                            IsPublic = true,
+                            MaxSizeMb = 10,
+                            Name = "Menyu elementi şəkli"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            AllowedExtensions = ".jpg,.jpeg,.png,.webp",
+                            AllowedMimeTypes = "image/jpeg,image/png,image/webp",
+                            Code = "user_profile_image",
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            CreatedBy = "",
+                            IsDeleted = false,
+                            IsPublic = true,
+                            MaxSizeMb = 5,
+                            Name = "Profil şəkli"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            AllowedExtensions = ".pdf,.doc,.docx",
+                            AllowedMimeTypes = "application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                            Code = "contract_document",
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            CreatedBy = "",
+                            IsDeleted = false,
+                            IsPublic = false,
+                            MaxSizeMb = 10,
+                            Name = "Müqavilə sənədi"
+                        },
+                        new
+                        {
+                            Id = 5,
+                            AllowedExtensions = ".pdf",
+                            AllowedMimeTypes = "application/pdf",
+                            Code = "invoice_document",
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            CreatedBy = "",
+                            IsDeleted = false,
+                            IsPublic = false,
+                            MaxSizeMb = 10,
+                            Name = "Invoice sənədi"
+                        },
+                        new
+                        {
+                            Id = 6,
+                            AllowedExtensions = ".pdf,.jpg,.jpeg,.png,.webp",
+                            AllowedMimeTypes = "application/pdf,image/jpeg,image/png,image/webp",
+                            Code = "payment_receipt",
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            CreatedBy = "",
+                            IsDeleted = false,
+                            IsPublic = false,
+                            MaxSizeMb = 10,
+                            Name = "Ödəniş qəbzi"
+                        },
+                        new
+                        {
+                            Id = 7,
+                            AllowedExtensions = ".pdf,.doc,.docx",
+                            AllowedMimeTypes = "application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                            Code = "admin_document",
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            CreatedBy = "",
+                            IsDeleted = false,
+                            IsPublic = false,
+                            MaxSizeMb = 10,
+                            Name = "Admin sənədi"
+                        });
                 });
 
             modelBuilder.Entity("ECafe.Domain.Entities.InventoryItem", b =>
@@ -4230,9 +4404,17 @@ namespace ECafe.Infrastructure.Migrations
 
             modelBuilder.Entity("ECafe.Domain.Entities.File", b =>
                 {
+                    b.HasOne("ECafe.Domain.Entities.FileType", "FileType")
+                        .WithMany("Files")
+                        .HasForeignKey("FileTypeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("ECafe.Domain.Entities.Restaurant", "Restaurant")
                         .WithMany("Files")
                         .HasForeignKey("RestaurantId");
+
+                    b.Navigation("FileType");
 
                     b.Navigation("Restaurant");
                 });
@@ -4960,6 +5142,11 @@ namespace ECafe.Infrastructure.Migrations
                     b.Navigation("RestaurantContracts");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("ECafe.Domain.Entities.FileType", b =>
+                {
+                    b.Navigation("Files");
                 });
 
             modelBuilder.Entity("ECafe.Domain.Entities.InventoryItem", b =>

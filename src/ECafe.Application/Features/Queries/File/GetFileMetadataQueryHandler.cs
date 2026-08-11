@@ -8,14 +8,6 @@ namespace ECafe.Application.Features.Queries.File
 {
     public class GetFileMetadataQueryHandler : IRequestHandler<GetFileMetadataQuery, FileResponse>
     {
-        private static readonly HashSet<string> PublicImageExtensions = new(StringComparer.OrdinalIgnoreCase)
-        {
-            ".jpg",
-            ".jpeg",
-            ".png",
-            ".webp"
-        };
-
         private readonly IFileRepository _fileRepository;
         private readonly IMinioService _minioService;
 
@@ -32,7 +24,7 @@ namespace ECafe.Application.Features.Queries.File
             if (request.FileId <= 0)
                 throw new BusinessRuleException("Invalid file ID!");
 
-            var file = await _fileRepository.GetByIdAsync(request.FileId);
+            var file = await _fileRepository.GetWithUsageByIdAsync(request.FileId);
             if (file is null)
                 throw new BusinessRuleException("File not found!");
 
@@ -43,13 +35,17 @@ namespace ECafe.Application.Features.Queries.File
                 Extension = file.Extension,
                 Size = file.Size,
                 Url = await BuildFileUrlAsync(file),
+                DownloadUrl = file.FileType.IsPublic ? null : $"/api/v1/files/{file.Id}/download",
+                FileTypeId = file.FileTypeId,
+                FileTypeCode = file.FileType.Code,
+                IsPublic = file.FileType.IsPublic,
                 IsAttached = await _fileRepository.IsAttachedAsync(file.Id)
             };
         }
 
         private async Task<string> BuildFileUrlAsync(Domain.Entities.File file)
-            => PublicImageExtensions.Contains(file.Extension)
+            => file.FileType.IsPublic
                 ? await _minioService.GenerateFileUrl(file.Token)
-                : $"/api/v1/files/{file.Id}/download";
+                : $"/api/v1/files/{file.Id}/view";
     }
 }

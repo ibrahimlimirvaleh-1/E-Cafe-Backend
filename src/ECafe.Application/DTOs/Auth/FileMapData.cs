@@ -9,5 +9,7 @@ namespace ECafe.Application.DTOs.Auth
         public long Size { get; set; }
 
         public string Url { get; set; } = string.Empty;
+
+        public int FileTypeId { get; set; }
     }
 }

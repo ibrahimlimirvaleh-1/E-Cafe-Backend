@@ -27,6 +27,7 @@ namespace ECafe.Infrastructure.Repositories.File
 
         public Task<Domain.Entities.File?> GetWithUsageByIdAsync(int fileId)
             => _context.Files
+                .Include(file => file.FileType)
                 .Include(file => file.Items)
                 .Include(file => file.User)
                 .Include(file => file.Restaurant)
@@ -35,6 +36,7 @@ namespace ECafe.Infrastructure.Repositories.File
 
         public Task<Domain.Entities.File?> GetWithUsageByTokenAsync(string token)
             => _context.Files
+                .Include(file => file.FileType)
                 .Include(file => file.Items)
                 .Include(file => file.User)
                 .Include(file => file.Restaurant)

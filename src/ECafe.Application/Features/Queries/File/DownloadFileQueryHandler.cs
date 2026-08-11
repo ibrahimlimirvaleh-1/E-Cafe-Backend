@@ -38,7 +38,9 @@ namespace ECafe.Application.Features.Queries.File
                 throw new NotFoundException(ErrorCode.FileNotFound);
 
             EnsureCurrentUserCanAccessFile(file);
-            return await _minioService.GetFileAsync(file.Token);
+            var response = await _minioService.GetFileAsync(file.Token);
+            response.FileName = $"{file.Name}{file.Extension}";
+            return response;
         }
 
         private void EnsureCurrentUserCanAccessFile(Domain.Entities.File file)

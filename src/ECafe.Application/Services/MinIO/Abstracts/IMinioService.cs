@@ -1,4 +1,4 @@
-﻿using ECafe.Application.DTOs.File;
+using ECafe.Application.DTOs.File;
 
 namespace ECafe.Application.Services.MinIO.Abstracts
 {
@@ -6,7 +6,11 @@ namespace ECafe.Application.Services.MinIO.Abstracts
     {
         public Task<string> UploadFileAsync(UploadFileDto request);
 
+        public Task<string> UploadFileAsync(UploadFileDto request, FileUploadPolicy policy);
+
         public Task<string> UploadFileAsync(UploadGeneratedFileDto request);
+
+        public Task<string> UploadFileAsync(UploadGeneratedFileDto request, FileUploadPolicy policy);
 
         Task<GetFileResponse> GetFileAsync(string token);
 

@@ -7,5 +7,7 @@ namespace ECafe.Application.DTOs.File
         public string FileName { get; set; } = null!;
 
         public string ContentType { get; set; } = null!;
+
+        public int FileTypeId { get; set; }
     }
 }

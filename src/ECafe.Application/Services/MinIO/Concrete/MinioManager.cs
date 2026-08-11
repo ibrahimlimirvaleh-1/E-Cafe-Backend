@@ -82,14 +82,21 @@ namespace ECafe.Infrastructure.Services.MinIO
         }
 
         public async Task<string> UploadFileAsync(UploadFileDto request)
+            => await UploadFileAsync(request, DefaultUploadPolicy);
+
+        public async Task<string> UploadFileAsync(UploadFileDto request, FileUploadPolicy policy)
         {
             if (request.File is null || request.File.Length == 0)
                 throw new ArgumentException("File is required.", nameof(request));
 
-            if (request.File.Length > MaxUploadSize)
-                throw new BusinessRuleException("File size must not exceed 10 MB.");
+            var maxUploadSize = GetMaxUploadSizeBytes(policy);
+            if (request.File.Length > maxUploadSize)
+                throw new BusinessRuleException($"File size must not exceed {policy.MaxSizeMb} MB.");
 
-            var contentType = ValidateUploadType(request.File.FileName, request.File.ContentType);
+            var contentType = ValidateUploadType(
+                request.File.FileName,
+                request.File.ContentType,
+                policy);
             await ValidateFileSignatureAsync(request.File, contentType);
 
             return await ExecuteMinioAsync("upload file", async () =>
@@ -113,11 +120,18 @@ namespace ECafe.Infrastructure.Services.MinIO
         }
 
         public async Task<string> UploadFileAsync(UploadGeneratedFileDto request)
+            => await UploadFileAsync(request, DefaultUploadPolicy);
+
+        public async Task<string> UploadFileAsync(UploadGeneratedFileDto request, FileUploadPolicy policy)
         {
             if (request.Bytes.Length == 0)
                 throw new ArgumentException("File bytes are required.", nameof(request));
 
-            ValidateUploadType(request.FileName, request.ContentType);
+            var maxUploadSize = GetMaxUploadSizeBytes(policy);
+            if (request.Bytes.LongLength > maxUploadSize)
+                throw new BusinessRuleException($"File size must not exceed {policy.MaxSizeMb} MB.");
+
+            ValidateUploadType(request.FileName, request.ContentType, policy);
 
             return await ExecuteMinioAsync("upload generated file", async () =>
             {
@@ -291,10 +305,22 @@ namespace ECafe.Infrastructure.Services.MinIO
                 ? "***"
                 : $"{token[..4]}...{token[^4..]}";
 
-        private static string ValidateUploadType(string fileName, string? contentType)
+        private static FileUploadPolicy DefaultUploadPolicy => new()
+        {
+            AllowedExtensions = ".jpg,.jpeg,.png,.webp,.pdf,.doc,.docx",
+            AllowedMimeTypes = string.Join(',', AllowedUploadTypes.Keys),
+            MaxSizeMb = 10
+        };
+
+        private static string ValidateUploadType(
+            string fileName,
+            string? contentType,
+            FileUploadPolicy policy)
         {
             var normalizedContentType = NormalizeContentType(contentType);
-            if (!AllowedUploadTypes.TryGetValue(normalizedContentType, out var extensions))
+            var allowedTypeMap = BuildAllowedUploadTypes(policy);
+
+            if (!allowedTypeMap.TryGetValue(normalizedContentType, out var extensions))
                 throw new BusinessRuleException("Unsupported file type.");
 
             var extension = Path.GetExtension(fileName);
@@ -304,6 +330,28 @@ namespace ECafe.Infrastructure.Services.MinIO
 
             return normalizedContentType;
         }
+
+        private static Dictionary<string, string[]> BuildAllowedUploadTypes(FileUploadPolicy policy)
+        {
+            var extensions = SplitAllowedValues(policy.AllowedExtensions);
+            var mimeTypes = SplitAllowedValues(policy.AllowedMimeTypes);
+
+            return mimeTypes.ToDictionary(
+                mimeType => mimeType,
+                _ => extensions,
+                StringComparer.OrdinalIgnoreCase);
+        }
+
+        private static string[] SplitAllowedValues(string values)
+            => values
+                .Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+
+        private static long GetMaxUploadSizeBytes(FileUploadPolicy policy)
+            => policy.MaxSizeMb > 0
+                ? policy.MaxSizeMb * 1024L * 1024L
+                : MaxUploadSize;
 
         private static string NormalizeContentType(string? contentType)
             => string.IsNullOrWhiteSpace(contentType)

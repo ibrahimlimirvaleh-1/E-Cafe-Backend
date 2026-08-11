@@ -38,12 +38,21 @@ namespace ECafe.Api.Controllers
         }
 
         [Authorize]
+        [HttpGet("api/v1/files/{fileId:int}/view")]
+        [EnableRateLimiting(RateLimitPolicyNames.FileDownload)]
+        public async Task<IActionResult> View(int fileId)
+        {
+            var file = await Mediator.Send(new DownloadFileQuery { FileId = fileId });
+            return File(file.Bytes, file.ContentType);
+        }
+
+        [Authorize]
         [HttpGet("api/v1/files/{fileId:int}/download")]
         [EnableRateLimiting(RateLimitPolicyNames.FileDownload)]
         public async Task<IActionResult> Download(int fileId)
         {
             var file = await Mediator.Send(new DownloadFileQuery { FileId = fileId });
-            return File(file.Bytes, file.ContentType);
+            return File(file.Bytes, file.ContentType, file.FileName);
         }
 
         [AllowAnonymous]

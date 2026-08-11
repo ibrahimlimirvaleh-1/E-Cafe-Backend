@@ -23,7 +23,8 @@ namespace ECafe.Application.Mappings
 
             CreateMap<FileMapData, File>()
                 .ForMember(dest => dest.Name, opt => opt.MapFrom(src => Path.GetFileNameWithoutExtension(src.FileName)))
-                .ForMember(dest => dest.Extension, opt => opt.MapFrom(src => Path.GetExtension(src.FileName)));
+                .ForMember(dest => dest.Extension, opt => opt.MapFrom(src => Path.GetExtension(src.FileName)))
+                .ForMember(dest => dest.FileTypeId, opt => opt.MapFrom(src => src.FileTypeId));
 
             CreateMap<RefreshTokenMapData, UserRefreshToken>();
 

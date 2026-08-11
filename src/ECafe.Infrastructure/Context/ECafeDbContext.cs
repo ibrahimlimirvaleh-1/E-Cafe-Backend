@@ -13,6 +13,7 @@ public partial class ECafeDbContext : DbContext
 
     public virtual DbSet<Category> Categories { get; set; } = null!;
     public virtual DbSet<Domain.Entities.File> Files { get; set; } = null!;
+    public virtual DbSet<FileType> FileTypes { get; set; } = null!;
     public virtual DbSet<Order> Orders { get; set; } = null!;
     public virtual DbSet<OrderItem> OrderItems { get; set; } = null!;
     public virtual DbSet<Payment> Payments { get; set; } = null!;
@@ -67,6 +68,7 @@ public partial class ECafeDbContext : DbContext
 
         UnitSeeder.Seed(modelBuilder);
         InventoryMovementTypeSeeder.Seed(modelBuilder);
+        FileTypeSeeder.Seed(modelBuilder);
         StatusTypeSeeder.Seed(modelBuilder);
         StatusSeeder.Seed(modelBuilder);
         PermissionSeeder.Seed(modelBuilder);
@@ -146,4 +148,3 @@ public partial class ECafeDbContext : DbContext
         }
     }
 }
-
