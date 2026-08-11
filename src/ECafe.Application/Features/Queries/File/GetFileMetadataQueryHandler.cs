@@ -8,6 +8,14 @@ namespace ECafe.Application.Features.Queries.File
 {
     public class GetFileMetadataQueryHandler : IRequestHandler<GetFileMetadataQuery, FileResponse>
     {
+        private static readonly HashSet<string> PublicImageExtensions = new(StringComparer.OrdinalIgnoreCase)
+        {
+            ".jpg",
+            ".jpeg",
+            ".png",
+            ".webp"
+        };
+
         private readonly IFileRepository _fileRepository;
         private readonly IMinioService _minioService;
 
@@ -34,9 +42,14 @@ namespace ECafe.Application.Features.Queries.File
                 Name = file.Name,
                 Extension = file.Extension,
                 Size = file.Size,
-                Url = await _minioService.GenerateFileUrl(file.Token),
+                Url = await BuildFileUrlAsync(file),
                 IsAttached = await _fileRepository.IsAttachedAsync(file.Id)
             };
         }
+
+        private async Task<string> BuildFileUrlAsync(Domain.Entities.File file)
+            => PublicImageExtensions.Contains(file.Extension)
+                ? await _minioService.GenerateFileUrl(file.Token)
+                : $"/api/v1/files/{file.Id}/download";
     }
 }

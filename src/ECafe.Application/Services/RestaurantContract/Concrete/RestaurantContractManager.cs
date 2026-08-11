@@ -431,8 +431,6 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
 
         private async Task<RestaurantContractResponse> MapToResponseAsync(Domain.Entities.RestaurantContract contract)
         {
-            var fileUrl = await _contractFileService.GenerateFileUrlAsync(contract.File);
-
             return new RestaurantContractResponse
             {
                 Id = contract.Id,
@@ -446,7 +444,9 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
                 StatusId = contract.StatusId,
                 StatusName = contract.Status?.Name,
                 FileId = contract.FileId,
-                FileUrl = fileUrl,
+                FileUrl = contract.FileId.HasValue
+                    ? $"/api/v1/files/{contract.FileId.Value}/download"
+                    : null,
                 SignedAt = contract.SignedAt,
                 SignedByUserId = contract.SignedByUserId,
                 SignedByUserName = contract.SignedByUser is null

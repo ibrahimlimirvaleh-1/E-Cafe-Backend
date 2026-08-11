@@ -10,6 +10,8 @@ namespace ECafe.Application.Repositories.File
 
         Task<Domain.Entities.File?> GetWithUsageByIdAsync(int fileId);
 
+        Task<Domain.Entities.File?> GetWithUsageByTokenAsync(string token);
+
         Task<bool> IsAttachedAsync(int fileId);
 
         Task<List<Domain.Entities.File>> GetUnattachedOlderThanAsync(DateTime cutoffUtc, int take);

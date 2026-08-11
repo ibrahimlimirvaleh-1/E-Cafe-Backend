@@ -37,6 +37,15 @@ namespace ECafe.Api.Controllers
             return Ok(file);
         }
 
+        [Authorize]
+        [HttpGet("api/v1/files/{fileId:int}/download")]
+        [EnableRateLimiting(RateLimitPolicyNames.FileDownload)]
+        public async Task<IActionResult> Download(int fileId)
+        {
+            var file = await Mediator.Send(new DownloadFileQuery { FileId = fileId });
+            return File(file.Bytes, file.ContentType);
+        }
+
         [AllowAnonymous]
         [HttpGet("api/v1/file/getFile")]
         [EnableRateLimiting(RateLimitPolicyNames.FileDownload)]

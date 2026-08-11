@@ -29,8 +29,17 @@ namespace ECafe.Infrastructure.Repositories.File
             => _context.Files
                 .Include(file => file.Items)
                 .Include(file => file.User)
+                .Include(file => file.Restaurant)
                 .Include(file => file.RestaurantContracts)
                 .FirstOrDefaultAsync(file => file.Id == fileId);
+
+        public Task<Domain.Entities.File?> GetWithUsageByTokenAsync(string token)
+            => _context.Files
+                .Include(file => file.Items)
+                .Include(file => file.User)
+                .Include(file => file.Restaurant)
+                .Include(file => file.RestaurantContracts)
+                .FirstOrDefaultAsync(file => file.Token == token);
 
         public Task<bool> IsAttachedAsync(int fileId)
             => _context.Files
