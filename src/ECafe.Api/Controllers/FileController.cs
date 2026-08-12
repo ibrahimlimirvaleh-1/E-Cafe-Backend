@@ -1,4 +1,5 @@
 using ECafe.Api.Security;
+using ECafe.Application.DTOs.File;
 using ECafe.Application.Features.Commands.File;
 using ECafe.Application.Features.Queries.File;
 using ECafe.Domain.Enums;
@@ -6,6 +7,7 @@ using ECafe.Infrastructure.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.Net.Http.Headers;
 
 namespace ECafe.Api.Controllers
 {
@@ -43,6 +45,7 @@ namespace ECafe.Api.Controllers
         public async Task<IActionResult> View(int fileId)
         {
             var file = await Mediator.Send(new DownloadFileQuery { FileId = fileId });
+            ApplyProtectedFileHeaders(file, "inline");
             return File(file.Bytes, file.ContentType);
         }
 
@@ -52,6 +55,7 @@ namespace ECafe.Api.Controllers
         public async Task<IActionResult> Download(int fileId)
         {
             var file = await Mediator.Send(new DownloadFileQuery { FileId = fileId });
+            ApplyProtectedFileHeaders(file, "attachment");
             return File(file.Bytes, file.ContentType, file.FileName);
         }
 
@@ -62,6 +66,21 @@ namespace ECafe.Api.Controllers
         {
             var file = await Mediator.Send(query);
             return File(file.Bytes, file.ContentType);
+        }
+
+        private void ApplyProtectedFileHeaders(GetFileResponse file, string dispositionType)
+        {
+            Response.Headers.CacheControl = "no-store, private";
+            Response.Headers.Pragma = "no-cache";
+            Response.Headers.Expires = "0";
+
+            if (string.IsNullOrWhiteSpace(file.FileName))
+                return;
+
+            Response.Headers.ContentDisposition = new ContentDispositionHeaderValue(dispositionType)
+            {
+                FileNameStar = file.FileName
+            }.ToString();
         }
     }
 }

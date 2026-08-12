@@ -4,6 +4,7 @@ using ECafe.Application.DTOs.File;
 using ECafe.Application.Repositories.File;
 using ECafe.Application.Services;
 using ECafe.Application.Services.MinIO.Abstracts;
+using ECafe.Domain.Enums;
 using ECafe.Domain.Exceptions;
 using MediatR;
 using Microsoft.AspNetCore.Http;
@@ -38,6 +39,7 @@ namespace ECafe.Application.Features.Queries.File
                 throw new NotFoundException(ErrorCode.FileNotFound);
 
             EnsureCurrentUserCanAccessFile(file);
+
             var response = await _minioService.GetFileAsync(file.Token);
             response.FileName = $"{file.Name}{file.Extension}";
             return response;
@@ -45,6 +47,14 @@ namespace ECafe.Application.Features.Queries.File
 
         private void EnsureCurrentUserCanAccessFile(Domain.Entities.File file)
         {
+            if (file.FileTypeId == (int)FileTypeCode.TemporaryUpload)
+            {
+                if (IsCurrentUserSuperAdmin() || file.CreatedBy == GetCurrentUserId().ToString())
+                    return;
+
+                throw new ForbiddenException(ErrorCode.AccessDenied);
+            }
+
             var contractRestaurantIds = file.RestaurantContracts
                 .Select(contract => contract.RestaurantId)
                 .Distinct()

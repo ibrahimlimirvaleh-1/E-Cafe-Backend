@@ -1,4 +1,5 @@
 using AutoMapper;
+using ECafe.Application.Common.Exceptions;
 using ECafe.Application.DTOs.Auth;
 using ECafe.Application.DTOs.File;
 using ECafe.Application.Repositories.File;
@@ -8,6 +9,7 @@ using ECafe.Application.Services.MinIO.Abstracts;
 using ECafe.Domain.Enums;
 using ECafe.Domain.Exceptions;
 using MediatR;
+using Microsoft.AspNetCore.Http;
 
 namespace ECafe.Application.Features.Commands.File
 {
@@ -17,6 +19,7 @@ namespace ECafe.Application.Features.Commands.File
         private readonly IFileRepository _fileRepository;
         private readonly IFileTypeRepository _fileTypeRepository;
         private readonly IFileAccessUrlService _fileAccessUrlService;
+        private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IMapper _mapper;
 
         public FileUploadCommandHandler(
@@ -24,12 +27,14 @@ namespace ECafe.Application.Features.Commands.File
             IFileRepository fileRepository,
             IFileTypeRepository fileTypeRepository,
             IFileAccessUrlService fileAccessUrlService,
+            IHttpContextAccessor httpContextAccessor,
             IMapper mapper)
         {
             _minioService = minioService;
             _fileRepository = fileRepository;
             _fileTypeRepository = fileTypeRepository;
             _fileAccessUrlService = fileAccessUrlService;
+            _httpContextAccessor = httpContextAccessor;
             _mapper = mapper;
         }
 
@@ -55,6 +60,7 @@ namespace ECafe.Application.Features.Commands.File
                 Url = url,
                 FileTypeId = fileType.Id
             });
+            fileEntity.CreatedBy = GetCurrentUserId().ToString();
 
             await _fileRepository.Add(fileEntity);
             await _fileRepository.SaveChangesAsync();
@@ -85,6 +91,15 @@ namespace ECafe.Application.Features.Commands.File
                 return await _fileTypeRepository.GetByIdAsync(fileTypeId.Value);
 
             return await _fileTypeRepository.GetByTypeAsync(FileTypeCode.TemporaryUpload, cancellationToken);
+        }
+
+        private int GetCurrentUserId()
+        {
+            var userIdClaim = _httpContextAccessor.HttpContext?.User.FindFirst("userId")?.Value;
+            if (!int.TryParse(userIdClaim, out var userId) || userId <= 0)
+                throw new ForbiddenException("User context is required.");
+
+            return userId;
         }
 
         private static FileUploadPolicy BuildUploadPolicy(Domain.Entities.FileType fileType)

@@ -77,6 +77,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
 
             ValidateContractDates(request.StartDate, request.EndDate);
             ValidatePercent(request.CommissionPercent, nameof(request.CommissionPercent));
+            await EnsureRestaurantDoesNotHaveActiveContractAsync(restaurantId);
 
             var restaurant = await _restaurantRepository.Query(x => x.Id == restaurantId)
                 .Include(x => x.RestaurantGroup)
@@ -504,6 +505,12 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             => template
                 .Replace("{restaurantId}", restaurantId.ToString())
                 .Replace("{contractId}", contractId.ToString());
+
+        private async Task EnsureRestaurantDoesNotHaveActiveContractAsync(int restaurantId)
+        {
+            if (await _contractRepository.HasActiveContractAsync(restaurantId))
+                throw new BusinessRuleException("Restaurant already has an active contract. Terminate or expire the current contract before creating a new one.");
+        }
 
         private static int ContractStatusId(ContractStatus status)
             => ((int)StatusType.Contract * 1000) + (int)status;
