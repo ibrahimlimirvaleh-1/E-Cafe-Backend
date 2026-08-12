@@ -49,7 +49,8 @@ namespace ECafe.Api.Controllers
             return File(file.Bytes, file.ContentType);
         }
 
-        [Authorize]
+
+        [Authorize]                                                     
         [HttpGet("api/v1/files/{fileId:int}/download")]
         [EnableRateLimiting(RateLimitPolicyNames.FileDownload)]
         public async Task<IActionResult> Download(int fileId)
