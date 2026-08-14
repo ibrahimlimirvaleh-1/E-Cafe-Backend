@@ -3069,6 +3069,15 @@ namespace ECafe.Infrastructure.Migrations
                         },
                         new
                         {
+                            Id = 6007,
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            CreatedBy = "",
+                            IsDeleted = false,
+                            Name = "Planlaşdırılıb",
+                            StatusTypeId = 6
+                        },
+                        new
+                        {
                             Id = 7001,
                             CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CreatedBy = "",
@@ -4390,6 +4399,20 @@ namespace ECafe.Infrastructure.Migrations
                             RoleId = 1,
                             SortOrder = 90,
                             StatusId = 3002
+                        },
+                        new
+                        {
+                            Id = 31,
+                            ActionCode = "terminate",
+                            EndpointTemplate = "/api/v1/admin/restaurants/{restaurantId}/contracts/{contractId}/terminate",
+                            FlowCode = "contract",
+                            HttpMethod = "POST",
+                            IsEnabled = true,
+                            Label = "Müqaviləni ləğv et",
+                            RequiresConfirmation = true,
+                            RoleId = 1,
+                            SortOrder = 90,
+                            StatusId = 6007
                         });
                 });
 

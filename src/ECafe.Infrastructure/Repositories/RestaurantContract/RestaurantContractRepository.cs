@@ -59,7 +59,20 @@ namespace ECafe.Infrastructure.Repositories.RestaurantContract
                 .Take(batchSize)
                 .ToListAsync();
 
+        public Task<List<Domain.Entities.RestaurantContract>> GetScheduledContractsDueForActivationAsync(DateTime nowUtc, int batchSize)
+            => QueryTracked(x =>
+                    x.StatusId == ScheduledStatusId &&
+                    x.StartDate <= nowUtc &&
+                    x.EndDate.HasValue &&
+                    x.EndDate > nowUtc)
+                .OrderBy(x => x.StartDate)
+                .Take(batchSize)
+                .ToListAsync();
+
         private static int ActiveStatusId =>
             ((int)StatusType.Contract * 1000) + (int)ContractStatus.Active;
+
+        private static int ScheduledStatusId =>
+            ((int)StatusType.Contract * 1000) + (int)ContractStatus.Scheduled;
     }
 }

@@ -75,7 +75,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
 
             EnsureCurrentUserCanAccessRestaurant(restaurantId);
 
-            ValidateContractDates(request.StartDate, request.EndDate);
+            ValidateEditableContractDates(request.StartDate, request.EndDate);
             ValidatePercent(request.CommissionPercent, nameof(request.CommissionPercent));
             await EnsureRestaurantDoesNotHaveActiveContractAsync(restaurantId);
 
@@ -137,17 +137,20 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
                 throw new BusinessRuleException("Contract request is required!");
 
             EnsureCurrentUserCanAccessRestaurant(restaurantId);
-            ValidateContractDates(request.StartDate, request.EndDate);
+            ValidateEditableContractDates(request.StartDate, request.EndDate);
             ValidatePercent(request.CommissionPercent, nameof(request.CommissionPercent));
 
             var contract = await GetTrackedContractAsync(restaurantId, contractId);
-            if (contract.StatusId is var statusId &&
-                (statusId == ContractStatusId(ContractStatus.Active) ||
-                 statusId == ContractStatusId(ContractStatus.Expired) ||
-                 statusId == ContractStatusId(ContractStatus.Terminated)))
+            var previousStatusId = contract.StatusId;
+            var draftStatusId = ContractStatusId(ContractStatus.Draft);
+            var pendingSignatureStatusId = ContractStatusId(ContractStatus.PendingSignature);
+
+            if (previousStatusId != draftStatusId && previousStatusId != pendingSignatureStatusId)
             {
-                throw new BusinessRuleException("Only non-active contracts can be edited.");
+                throw new BusinessRuleException(GetContractEditBlockedMessage(previousStatusId));
             }
+
+            var shouldResetSignatureFlow = previousStatusId == pendingSignatureStatusId;
 
             var restaurant = await _restaurantRepository.Query(x => x.Id == restaurantId)
                 .Include(x => x.RestaurantGroup)
@@ -161,6 +164,13 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             contract.StaffSettlementPeriod = request.StaffSettlementPeriod;
             contract.PaymentPolicyId = request.PaymentPolicyId;
             contract.File = await _contractFileService.GenerateAndUploadAsync(restaurant, contract.ContractNumber, request);
+
+            if (shouldResetSignatureFlow)
+            {
+                contract.StatusId = draftStatusId;
+                contract.SignedAt = null;
+                contract.SignedByUserId = null;
+            }
 
             await _contractRepository.Update(contract);
             await _contractRepository.SaveChangesAsync();
@@ -177,7 +187,10 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
                     contract.CommissionPercent,
                     contract.StaffSettlementPeriod,
                     contract.PaymentPolicyId,
-                    contract.FileId
+                    contract.FileId,
+                    previousStatusId,
+                    currentStatusId = contract.StatusId,
+                    requiresResendForSignature = shouldResetSignatureFlow
                 },
                 AuditEntityTypes.Contract,
                 contract.Id,
@@ -227,19 +240,35 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
 
             var contract = await GetTrackedContractAsync(restaurantId, contractId);
 
-            ValidateContractDates(contract.StartDate, contract.EndDate);
-            EnsureContractHasNotExpired(contract.EndDate);
+            ValidateContractCanEnterActivationFlow(contract.StartDate, contract.EndDate);
             EnsureContractStatus(contract, ContractStatus.OwnerApproved, "Only owner-approved contracts can be activated.");
 
             var nowUtc = DateTime.UtcNow;
-            var hasOtherActive = await _contractRepository.CheckExistAsync(x =>
-                x.RestaurantId == restaurantId &&
-                x.Id != contractId &&
-                x.StatusId == ContractStatusId(ContractStatus.Active) &&
-                (!x.EndDate.HasValue || x.EndDate >= nowUtc));
+            if (contract.StartDate > nowUtc)
+            {
+                contract.StatusId = ContractStatusId(ContractStatus.Scheduled);
 
-            if (hasOtherActive)
-                throw new BusinessRuleException("Restaurant already has an active contract!");
+                await _contractRepository.Update(contract);
+                await _contractRepository.SaveChangesAsync();
+
+                await _auditLogService.RecordRestaurantActionAsync(
+                    restaurantId,
+                    AuditActions.ContractScheduled,
+                    new
+                    {
+                        contractId = contract.Id,
+                        contract.ContractNumber,
+                        contract.StartDate,
+                        scheduledAt = nowUtc
+                    },
+                    AuditEntityTypes.Contract,
+                    contract.Id,
+                    contract.ContractNumber);
+
+                return;
+            }
+
+            await EnsureRestaurantDoesNotHaveAnotherActiveContractAsync(restaurantId, contractId, nowUtc);
 
             contract.StatusId = ContractStatusId(ContractStatus.Active);
             contract.SignedAt ??= DateTime.UtcNow;
@@ -266,13 +295,12 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
                 contract.Id,
                 contract.ContractNumber);
         }
-
         public async Task SendForSignatureAsync(int restaurantId, int contractId)
         {
             EnsureCurrentUserCanAccessRestaurant(restaurantId);
 
             var contract = await GetTrackedContractAsync(restaurantId, contractId);
-            ValidateContractDates(contract.StartDate, contract.EndDate);
+            ValidatePersistedContractDates(contract.StartDate, contract.EndDate);
             EnsureContractHasNotExpired(contract.EndDate);
             EnsureContractStatus(contract, ContractStatus.Draft, "Only draft contracts can be sent for signature.");
 
@@ -310,7 +338,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             EnsureCurrentUserCanAccessRestaurant(restaurantId);
 
             var contract = await GetTrackedContractAsync(restaurantId, contractId);
-            ValidateContractDates(contract.StartDate, contract.EndDate);
+            ValidatePersistedContractDates(contract.StartDate, contract.EndDate);
             EnsureContractHasNotExpired(contract.EndDate);
             EnsureContractStatus(contract, ContractStatus.PendingSignature, "Only contracts waiting for signature can be approved.");
 
@@ -419,6 +447,53 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             return expiredContracts.Count;
         }
 
+        public async Task<int> ActivateDueScheduledContractsAsync(int batchSize)
+        {
+            if (batchSize <= 0)
+                batchSize = 100;
+
+            var nowUtc = DateTime.UtcNow;
+            var scheduledContracts = await _contractRepository.GetScheduledContractsDueForActivationAsync(nowUtc, batchSize);
+            var activatedContracts = new List<Domain.Entities.RestaurantContract>();
+
+            foreach (var contract in scheduledContracts)
+            {
+                if (await HasAnotherActiveContractAsync(contract.RestaurantId, contract.Id, nowUtc))
+                    continue;
+
+                contract.StatusId = ContractStatusId(ContractStatus.Active);
+                activatedContracts.Add(contract);
+                await _contractRepository.Update(contract);
+            }
+
+            if (activatedContracts.Count == 0)
+                return 0;
+
+            await _contractRepository.SaveChangesAsync();
+
+            foreach (var contract in activatedContracts)
+            {
+                var owner = await GetRestaurantOwnerAsync(contract.RestaurantId);
+                await EnqueueContractActivatedEmailAsync(owner.User, contract);
+                await NotifyOwnerContractActivatedAsync(contract, owner.UserId);
+
+                await _auditLogService.RecordRestaurantActionAsync(
+                    contract.RestaurantId,
+                    AuditActions.ContractActivated,
+                    new
+                    {
+                        contractId = contract.Id,
+                        contract.ContractNumber,
+                        activatedAt = nowUtc,
+                        activatedBy = "system"
+                    },
+                    AuditEntityTypes.Contract,
+                    contract.Id,
+                    contract.ContractNumber);
+            }
+
+            return activatedContracts.Count;
+        }
         private async Task<Domain.Entities.RestaurantContract> GetTrackedContractAsync(int restaurantId, int contractId)
         {
             if (restaurantId <= 0)
@@ -512,8 +587,40 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
                 throw new BusinessRuleException("Restaurant already has an active contract. Terminate or expire the current contract before creating a new one.");
         }
 
+        private async Task EnsureRestaurantDoesNotHaveAnotherActiveContractAsync(int restaurantId, int contractId, DateTime nowUtc)
+        {
+            if (await HasAnotherActiveContractAsync(restaurantId, contractId, nowUtc))
+                throw new BusinessRuleException("Restaurant already has an active contract!");
+        }
+
+        private Task<bool> HasAnotherActiveContractAsync(int restaurantId, int contractId, DateTime nowUtc)
+            => _contractRepository.CheckExistAsync(x =>
+                x.RestaurantId == restaurantId &&
+                x.Id != contractId &&
+                x.StatusId == ContractStatusId(ContractStatus.Active) &&
+                (!x.EndDate.HasValue || x.EndDate >= nowUtc));
+
         private static int ContractStatusId(ContractStatus status)
             => ((int)StatusType.Contract * 1000) + (int)status;
+        private static string GetContractEditBlockedMessage(int statusId)
+        {
+            if (statusId == ContractStatusId(ContractStatus.OwnerApproved))
+                return "Owner-approved contracts cannot be edited. Create a new draft contract if terms changed.";
+
+            if (statusId == ContractStatusId(ContractStatus.Scheduled))
+                return "Scheduled contracts cannot be edited. Use a dedicated reschedule flow before the start date.";
+
+            if (statusId == ContractStatusId(ContractStatus.Active))
+                return "Active contracts cannot be edited.";
+
+            if (statusId == ContractStatusId(ContractStatus.Expired))
+                return "Expired contracts cannot be edited.";
+
+            if (statusId == ContractStatusId(ContractStatus.Terminated))
+                return "Terminated contracts cannot be edited.";
+
+            return "Only draft contracts can be edited. Contracts waiting for signature are returned to draft before resend.";
+        }
 
         private static void EnsureContractStatus(
             Domain.Entities.RestaurantContract contract,
@@ -715,19 +822,44 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             throw new BusinessRuleException("Could not generate a unique contract number.");
         }
 
-        private static void ValidateContractDates(DateTime startDate, DateTime? endDate)
+        private static void ValidateEditableContractDates(DateTime startDate, DateTime? endDate)
+        {
+            ValidateContractDateRange(startDate, endDate);
+
+            if (startDate.Date < DateTime.UtcNow.Date)
+                throw new BusinessRuleException("Contract start date cannot be in the past.");
+        }
+
+        private static void ValidatePersistedContractDates(DateTime startDate, DateTime? endDate)
+            => ValidateContractDateRange(startDate, endDate);
+
+        private static void ValidateContractCanEnterActivationFlow(DateTime startDate, DateTime? endDate)
+        {
+            ValidateContractDateRange(startDate, endDate);
+
+            if (endDate!.Value <= DateTime.UtcNow)
+                throw new BusinessRuleException("Expired contract cannot be activated.");
+        }
+
+        private static void ValidateContractDateRange(DateTime startDate, DateTime? endDate)
         {
             if (startDate == default)
                 throw new BusinessRuleException("Contract start date is required!");
 
-            if (endDate.HasValue && endDate.Value < startDate)
-                throw new BusinessRuleException("Contract end date cannot be earlier than start date!");
+            if (!endDate.HasValue)
+                throw new BusinessRuleException("Contract end date is required!");
+
+            if (endDate.Value <= startDate)
+                throw new BusinessRuleException("Contract end date must be later than start date!");
         }
 
         private static void EnsureContractHasNotExpired(DateTime? endDate)
         {
-            if (endDate.HasValue && endDate.Value < DateTime.UtcNow)
-                throw new BusinessRuleException("Expired contract cannot be activated.");
+            if (!endDate.HasValue)
+                throw new BusinessRuleException("Contract end date is required!");
+
+            if (endDate.Value <= DateTime.UtcNow)
+                throw new BusinessRuleException("Expired contract cannot continue in the approval flow.");
         }
 
         private static void ValidatePercent(decimal? value, string fieldName)

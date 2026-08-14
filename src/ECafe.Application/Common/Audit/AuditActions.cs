@@ -11,6 +11,7 @@ namespace ECafe.Application.Common.Audit
         public const string ContractSentForSignature = "ContractSentForSignature";
         public const string ContractOwnerApproved = "ContractOwnerApproved";
         public const string ContractActivated = "ContractActivated";
+        public const string ContractScheduled = "ContractScheduled";
         public const string ContractExpired = "ContractExpired";
         public const string ContractTerminated = "ContractTerminated";
 

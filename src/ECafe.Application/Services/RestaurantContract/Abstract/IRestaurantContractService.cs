@@ -30,5 +30,7 @@ namespace ECafe.Application.Services.RestaurantContract.Abstract
         Task EnsureRestaurantHasActiveContractAsync(int restaurantId);
 
         Task<int> ExpireActiveContractsAsync(int batchSize);
+
+        Task<int> ActivateDueScheduledContractsAsync(int batchSize);
     }
 }

@@ -45,16 +45,20 @@ namespace ECafe.Api.BackgroundServices
                 using var scope = _scopeFactory.CreateScope();
                 var contractService = scope.ServiceProvider.GetRequiredService<IRestaurantContractService>();
                 var expiredCount = await contractService.ExpireActiveContractsAsync(_batchSize);
+                var activatedCount = await contractService.ActivateDueScheduledContractsAsync(_batchSize);
 
                 if (expiredCount > 0)
                     _logger.LogInformation("Expired {ExpiredCount} restaurant contract(s).", expiredCount);
+
+                if (activatedCount > 0)
+                    _logger.LogInformation("Activated {ActivatedCount} scheduled restaurant contract(s).", activatedCount);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Contract expiry processing failed.");
+                _logger.LogError(ex, "Contract status processing failed.");
             }
         }
     }

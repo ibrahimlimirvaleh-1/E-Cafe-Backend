@@ -14,5 +14,7 @@ namespace ECafe.Application.Repositories.RestaurantContract
         Task<bool> HasActiveContractAsync(int restaurantId);
 
         Task<List<Domain.Entities.RestaurantContract>> GetExpiredActiveContractsAsync(DateTime nowUtc, int batchSize);
+
+        Task<List<Domain.Entities.RestaurantContract>> GetScheduledContractsDueForActivationAsync(DateTime nowUtc, int batchSize);
     }
 }

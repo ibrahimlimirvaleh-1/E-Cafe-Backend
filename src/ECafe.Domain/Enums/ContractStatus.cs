@@ -20,6 +20,9 @@ namespace ECafe.Domain.Enums
         Terminated,
 
         [Description("Owner təsdiqlədi")]
-        OwnerApproved
+        OwnerApproved,
+
+        [Description("Planlaşdırılıb")]
+        Scheduled
     }
 }

@@ -23,6 +23,7 @@ public static class WorkflowActionRuleSeeder
         AddOrderRules(rules, ref id);
         AddKitchenRules(rules, ref id);
         AddPaymentRules(rules, ref id);
+        AddScheduledContractRules(rules, ref id);
 
         modelBuilder.Entity<WorkflowActionRule>().HasData(rules);
     }
@@ -36,6 +37,11 @@ public static class WorkflowActionRuleSeeder
         rules.Add(Rule(id++, ContractFlow, StatusTypeEnum.Contract, ContractStatus.OwnerApproved, RoleCode.SuperAdmin, "activate", "Müqaviləni aktivləşdir", "POST", "/api/v1/admin/restaurants/{restaurantId}/contracts/{contractId}/activate", 10));
         rules.Add(Rule(id++, ContractFlow, StatusTypeEnum.Contract, ContractStatus.OwnerApproved, RoleCode.SuperAdmin, "terminate", "Müqaviləni ləğv et", "POST", "/api/v1/admin/restaurants/{restaurantId}/contracts/{contractId}/terminate", 90, true));
         rules.Add(Rule(id++, ContractFlow, StatusTypeEnum.Contract, ContractStatus.Active, RoleCode.SuperAdmin, "terminate", "Müqaviləni ləğv et", "POST", "/api/v1/admin/restaurants/{restaurantId}/contracts/{contractId}/terminate", 90, true));
+    }
+
+    private static void AddScheduledContractRules(List<WorkflowActionRule> rules, ref int id)
+    {
+        rules.Add(Rule(id++, ContractFlow, StatusTypeEnum.Contract, ContractStatus.Scheduled, RoleCode.SuperAdmin, "terminate", "Müqaviləni ləğv et", "POST", "/api/v1/admin/restaurants/{restaurantId}/contracts/{contractId}/terminate", 90, true));
     }
 
     private static void AddReservationRules(List<WorkflowActionRule> rules, ref int id)

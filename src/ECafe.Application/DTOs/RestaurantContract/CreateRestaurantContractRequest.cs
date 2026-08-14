@@ -6,7 +6,7 @@ namespace ECafe.Application.DTOs.RestaurantContract
     {
         public DateTime StartDate { get; set; }
 
-        public DateTime? EndDate { get; set; }
+        public DateTime EndDate { get; set; }
 
         public decimal? CommissionPercent { get; set; }
 
