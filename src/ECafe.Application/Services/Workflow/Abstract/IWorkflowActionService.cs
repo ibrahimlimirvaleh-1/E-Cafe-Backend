@@ -9,4 +9,11 @@ public interface IWorkflowActionService
         int statusId,
         int? restaurantId,
         int? entityId);
+
+    Task EnsureCanExecuteAsync(
+        string flowCode,
+        int statusId,
+        string actionCode,
+        int? restaurantId,
+        int? entityId);
 }

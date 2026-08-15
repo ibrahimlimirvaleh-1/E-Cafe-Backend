@@ -8,11 +8,11 @@ using ECafe.Application.Repositories.Restaurant;
 using ECafe.Application.Repositories.RestaurantContract;
 using ECafe.Application.Repositories.User;
 using ECafe.Application.Repositories.UserRestaurant;
-using ECafe.Application.Repository;
 using ECafe.Application.Services.AuditLog.Abstract;
 using ECafe.Application.Services.FileAccess.Abstract;
 using ECafe.Application.Services.Notification.Abstract;
 using ECafe.Application.Services.RestaurantContract.Abstract;
+using ECafe.Application.Services.Workflow.Abstract;
 using ECafe.Domain.Enums;
 using ECafe.Domain.Exceptions;
 using Microsoft.AspNetCore.Http;
@@ -25,6 +25,11 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
     public class RestaurantContractManager : BaseManager, IRestaurantContractService
     {
         private static readonly JsonSerializerOptions NotificationJsonOptions = new(JsonSerializerDefaults.Web);
+        private const string ContractFlowCode = "contract";
+        private const string SendForSignatureActionCode = "sendForSignature";
+        private const string ApproveActionCode = "approve";
+        private const string ActivateActionCode = "activate";
+        private const string TerminateActionCode = "terminate";
 
         private readonly IRestaurantContractRepository _contractRepository;
         private readonly IRestaurantRepository _restaurantRepository;
@@ -33,7 +38,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
         private readonly IUserRestaurantRepository _userRestaurantRepository;
         private readonly IUserRepository _userRepository;
         private readonly INotificationService _notificationService;
-        private readonly IBaseRepository<Domain.Entities.WorkflowActionRule> _workflowActionRuleRepository;
+        private readonly IWorkflowActionService _workflowActionService;
         private readonly IEmailOutboxService _emailOutboxService;
         private readonly IFileAccessUrlService _fileAccessUrlService;
 
@@ -48,7 +53,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             IUserRestaurantRepository userRestaurantRepository,
             IUserRepository userRepository,
             INotificationService notificationService,
-            IBaseRepository<Domain.Entities.WorkflowActionRule> workflowActionRuleRepository,
+            IWorkflowActionService workflowActionService,
             IEmailOutboxService emailOutboxService,
             IFileAccessUrlService fileAccessUrlService)
             : base(httpContextAccessor, mapper, configuration)
@@ -60,7 +65,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             _userRestaurantRepository = userRestaurantRepository;
             _userRepository = userRepository;
             _notificationService = notificationService;
-            _workflowActionRuleRepository = workflowActionRuleRepository;
+            _workflowActionService = workflowActionService;
             _emailOutboxService = emailOutboxService;
             _fileAccessUrlService = fileAccessUrlService;
         }
@@ -241,7 +246,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             var contract = await GetTrackedContractAsync(restaurantId, contractId);
 
             ValidateContractCanEnterActivationFlow(contract.StartDate, contract.EndDate);
-            EnsureContractStatus(contract, ContractStatus.OwnerApproved, "Only owner-approved contracts can be activated.");
+            await EnsureWorkflowActionAllowedAsync(contract, ActivateActionCode);
 
             var nowUtc = DateTime.UtcNow;
             if (contract.StartDate > nowUtc)
@@ -302,7 +307,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             var contract = await GetTrackedContractAsync(restaurantId, contractId);
             ValidatePersistedContractDates(contract.StartDate, contract.EndDate);
             EnsureContractHasNotExpired(contract.EndDate);
-            EnsureContractStatus(contract, ContractStatus.Draft, "Only draft contracts can be sent for signature.");
+            await EnsureWorkflowActionAllowedAsync(contract, SendForSignatureActionCode);
 
             var owner = await GetRestaurantOwnerAsync(restaurantId);
 
@@ -340,7 +345,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             var contract = await GetTrackedContractAsync(restaurantId, contractId);
             ValidatePersistedContractDates(contract.StartDate, contract.EndDate);
             EnsureContractHasNotExpired(contract.EndDate);
-            EnsureContractStatus(contract, ContractStatus.PendingSignature, "Only contracts waiting for signature can be approved.");
+            await EnsureWorkflowActionAllowedAsync(contract, ApproveActionCode);
 
             var owner = await GetRestaurantOwnerAsync(restaurantId);
             var currentUserId = GetCurrentUserId();
@@ -377,6 +382,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             EnsureCurrentUserCanAccessRestaurant(restaurantId);
 
             var contract = await GetTrackedContractAsync(restaurantId, contractId);
+            await EnsureWorkflowActionAllowedAsync(contract, TerminateActionCode);
             var owner = await GetRestaurantOwnerAsync(restaurantId);
 
             contract.StatusId = ContractStatusId(ContractStatus.Terminated);
@@ -539,47 +545,20 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             };
         }
 
-        private async Task<List<WorkflowActionResponse>> ResolveAvailableActionsAsync(Domain.Entities.RestaurantContract contract)
-        {
-            var roleId = GetCurrentRoleId();
-            var rules = await _workflowActionRuleRepository.Query(rule =>
-                    rule.FlowCode == "contract" &&
-                    rule.StatusId == contract.StatusId &&
-                    rule.RoleId == roleId &&
-                    rule.IsEnabled)
-                .OrderBy(rule => rule.SortOrder)
-                .ThenBy(rule => rule.Id)
-                .ToListAsync();
+        private Task<List<WorkflowActionResponse>> ResolveAvailableActionsAsync(Domain.Entities.RestaurantContract contract)
+            => _workflowActionService.GetAvailableActionsAsync(
+                ContractFlowCode,
+                contract.StatusId,
+                contract.RestaurantId,
+                contract.Id);
 
-            if (rules.Count == 0)
-                return [];
-
-            if (roleId == (int)RoleCode.Owner && !await IsCurrentUserRestaurantOwnerAsync(contract.RestaurantId))
-                return [];
-
-            return rules
-                .Select(rule => new WorkflowActionResponse
-                {
-                    Code = rule.ActionCode,
-                    Label = rule.Label,
-                    HttpMethod = rule.HttpMethod,
-                    Endpoint = BuildActionEndpoint(rule.EndpointTemplate, contract.RestaurantId, contract.Id),
-                    RequiresConfirmation = rule.RequiresConfirmation,
-                    SortOrder = rule.SortOrder
-                })
-                .ToList();
-        }
-
-        private async Task<bool> IsCurrentUserRestaurantOwnerAsync(int restaurantId)
-        {
-            var owner = await _userRestaurantRepository.GetActiveOwnerByRestaurantAsync(restaurantId);
-            return owner?.UserId == GetCurrentUserId();
-        }
-
-        private static string BuildActionEndpoint(string template, int restaurantId, int contractId)
-            => template
-                .Replace("{restaurantId}", restaurantId.ToString())
-                .Replace("{contractId}", contractId.ToString());
+        private Task EnsureWorkflowActionAllowedAsync(Domain.Entities.RestaurantContract contract, string actionCode)
+            => _workflowActionService.EnsureCanExecuteAsync(
+                ContractFlowCode,
+                contract.StatusId,
+                actionCode,
+                contract.RestaurantId,
+                contract.Id);
 
         private async Task EnsureRestaurantDoesNotHaveActiveContractAsync(int restaurantId)
         {
@@ -622,14 +601,6 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             return "Only draft contracts can be edited. Contracts waiting for signature are returned to draft before resend.";
         }
 
-        private static void EnsureContractStatus(
-            Domain.Entities.RestaurantContract contract,
-            ContractStatus expectedStatus,
-            string message)
-        {
-            if (contract.StatusId != ContractStatusId(expectedStatus))
-                throw new BusinessRuleException(message);
-        }
 
         private static void EnsureOwnerAcceptedContractTerms(bool hasAcceptedContractTerms, string? acceptanceText)
         {
