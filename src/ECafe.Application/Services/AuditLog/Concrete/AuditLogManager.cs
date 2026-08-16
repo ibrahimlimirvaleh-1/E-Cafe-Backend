@@ -140,7 +140,7 @@ namespace ECafe.Application.Services.AuditLog.Concrete
             return processedCount;
         }
 
-        public Task<PaginatedList<AuditLogResponse>> GetRestaurantTimelineAsync(
+        public async Task<PaginatedList<AuditLogResponse>> GetRestaurantTimelineAsync(
             int restaurantId,
             AuditLogFilterRequest filter)
         {
@@ -204,10 +204,15 @@ namespace ECafe.Application.Services.AuditLog.Concrete
                     CreatedAt = x.CreatedAt
                 });
 
-            return PaginatedList<AuditLogResponse>.CreateAsync(
+            var paginatedResponse = await PaginatedList<AuditLogResponse>.CreateAsync(
                 response,
                 filter.PageNumber,
                 filter.PageSize);
+
+            foreach (var item in paginatedResponse.Items)
+                item.Details = BuildDetails(item.Metadata);
+
+            return paginatedResponse;
         }
 
         private async Task ProcessOutboxEventAsync(Domain.Entities.OutboxEvent outboxEvent)
@@ -265,6 +270,86 @@ namespace ECafe.Application.Services.AuditLog.Concrete
                 ? utc.Date.AddDays(1).AddTicks(-1)
                 : utc;
         }
+
+        private static List<AuditLogDetailResponse> BuildDetails(string? metadata)
+        {
+            if (string.IsNullOrWhiteSpace(metadata))
+                return [];
+
+            try
+            {
+                using var document = JsonDocument.Parse(metadata);
+                if (document.RootElement.ValueKind != JsonValueKind.Object)
+                    return [];
+
+                var details = new List<AuditLogDetailResponse>();
+
+                if (document.RootElement.TryGetProperty("changedFields", out var changedFields) &&
+                    changedFields.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var changedField in changedFields.EnumerateArray())
+                    {
+                        var label = ReadString(changedField, "field");
+                        if (string.IsNullOrWhiteSpace(label))
+                            continue;
+
+                        details.Add(new AuditLogDetailResponse
+                        {
+                            Label = label,
+                            OldValue = ReadElementAsString(changedField, "oldValue"),
+                            NewValue = ReadElementAsString(changedField, "newValue")
+                        });
+                    }
+                }
+
+                foreach (var property in document.RootElement.EnumerateObject())
+                {
+                    if (property.NameEquals("changedFields"))
+                        continue;
+
+                    if (property.Value.ValueKind is JsonValueKind.Object or JsonValueKind.Array)
+                        continue;
+
+                    details.Add(new AuditLogDetailResponse
+                    {
+                        Label = property.Name,
+                        Value = ElementToDisplayValue(property.Value)
+                    });
+                }
+
+                return details;
+            }
+            catch (JsonException)
+            {
+                return [];
+            }
+        }
+
+        private static string? ReadString(JsonElement element, string propertyName)
+        {
+            if (!element.TryGetProperty(propertyName, out var property))
+                return null;
+
+            return property.ValueKind == JsonValueKind.String
+                ? property.GetString()
+                : ElementToDisplayValue(property);
+        }
+
+        private static string? ReadElementAsString(JsonElement element, string propertyName)
+            => element.TryGetProperty(propertyName, out var property)
+                ? ElementToDisplayValue(property)
+                : null;
+
+        private static string? ElementToDisplayValue(JsonElement element)
+            => element.ValueKind switch
+            {
+                JsonValueKind.Null => null,
+                JsonValueKind.Undefined => null,
+                JsonValueKind.String => element.GetString(),
+                JsonValueKind.True => "true",
+                JsonValueKind.False => "false",
+                _ => element.GetRawText()
+            };
 
         private int? TryGetCurrentUserId()
         {

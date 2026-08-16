@@ -147,6 +147,12 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
 
             var contract = await GetTrackedContractAsync(restaurantId, contractId);
             var previousStatusId = contract.StatusId;
+            var previousStartDate = contract.StartDate;
+            var previousEndDate = contract.EndDate;
+            var previousCommissionPercent = contract.CommissionPercent;
+            var previousStaffSettlementPeriod = contract.StaffSettlementPeriod;
+            var previousPaymentPolicyId = contract.PaymentPolicyId;
+            var previousFileId = contract.FileId;
             var draftStatusId = ContractStatusId(ContractStatus.Draft);
             var pendingSignatureStatusId = ContractStatusId(ContractStatus.PendingSignature);
 
@@ -187,12 +193,21 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
                 {
                     contractId = contract.Id,
                     contract.ContractNumber,
-                    contract.StartDate,
-                    contract.EndDate,
-                    contract.CommissionPercent,
-                    contract.StaffSettlementPeriod,
-                    contract.PaymentPolicyId,
-                    contract.FileId,
+                    changedFields = BuildContractChangeDetails(
+                        previousStartDate,
+                        contract.StartDate,
+                        previousEndDate,
+                        contract.EndDate,
+                        previousCommissionPercent,
+                        contract.CommissionPercent,
+                        previousStaffSettlementPeriod,
+                        contract.StaffSettlementPeriod,
+                        previousPaymentPolicyId,
+                        contract.PaymentPolicyId,
+                        previousFileId,
+                        contract.FileId,
+                        previousStatusId,
+                        contract.StatusId),
                     previousStatusId,
                     currentStatusId = contract.StatusId,
                     requiresResendForSignature = shouldResetSignatureFlow
@@ -838,6 +853,61 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             if (value is < 0 or > 100)
                 throw new BusinessRuleException($"{fieldName} must be between 0 and 100!");
         }
+
+        private static List<AuditChangedField> BuildContractChangeDetails(
+            DateTime previousStartDate,
+            DateTime currentStartDate,
+            DateTime? previousEndDate,
+            DateTime? currentEndDate,
+            decimal? previousCommissionPercent,
+            decimal? currentCommissionPercent,
+            int? previousStaffSettlementPeriod,
+            int? currentStaffSettlementPeriod,
+            int previousPaymentPolicyId,
+            int currentPaymentPolicyId,
+            int? previousFileId,
+            int? currentFileId,
+            int previousStatusId,
+            int currentStatusId)
+        {
+            var changes = new List<AuditChangedField>();
+
+            AddChange(changes, "Başlama tarixi", previousStartDate, currentStartDate);
+            AddChange(changes, "Bitmə tarixi", previousEndDate, currentEndDate);
+            AddChange(changes, "Komissiya faizi", previousCommissionPercent, currentCommissionPercent);
+            AddChange(changes, "Hesablaşma dövrü", previousStaffSettlementPeriod, currentStaffSettlementPeriod);
+            AddChange(changes, "Ödəniş siyasəti", previousPaymentPolicyId, currentPaymentPolicyId);
+            AddChange(changes, "Müqavilə faylı", previousFileId, currentFileId);
+            AddChange(changes, "Status", previousStatusId, currentStatusId);
+
+            return changes;
+        }
+
+        private static void AddChange<T>(List<AuditChangedField> changes, string field, T oldValue, T newValue)
+        {
+            if (EqualityComparer<T>.Default.Equals(oldValue, newValue))
+                return;
+
+            changes.Add(new AuditChangedField(
+                field,
+                FormatAuditValue(oldValue),
+                FormatAuditValue(newValue)));
+        }
+
+        private static string? FormatAuditValue<T>(T value)
+        {
+            if (value is null)
+                return null;
+
+            return value switch
+            {
+                DateTime dateTime => dateTime.ToString("yyyy-MM-dd HH:mm:ss"),
+                decimal decimalValue => decimalValue.ToString("0.##"),
+                _ => value.ToString()
+            };
+        }
+
+        private sealed record AuditChangedField(string Field, string? OldValue, string? NewValue);
 
     }
 }

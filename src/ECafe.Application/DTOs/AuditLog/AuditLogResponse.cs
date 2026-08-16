@@ -38,6 +38,8 @@ namespace ECafe.Application.DTOs.AuditLog
 
         public string? Metadata { get; set; }
 
+        public List<AuditLogDetailResponse> Details { get; set; } = [];
+
         public string? CorrelationId { get; set; }
 
         public string? IpAddress { get; set; }
