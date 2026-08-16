@@ -30,6 +30,8 @@ namespace ECafe.Infrastructure.Configurations.Concrete
             builder.Property(e => e.Password)
                 .HasMaxLength(200)
                 .HasColumnName("password");
+            builder.Property(e => e.PasswordSetAt)
+                .HasColumnName("password_set_at");
             builder.Property(e => e.Phone)
                 .HasMaxLength(50)
                 .HasColumnName("phone");

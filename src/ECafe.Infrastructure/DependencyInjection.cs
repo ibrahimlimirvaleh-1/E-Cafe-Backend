@@ -16,6 +16,7 @@ using ECafe.Application.Repositories.Table;
 using ECafe.Application.Repositories.TableSession;
 using ECafe.Application.Repositories.Unit;
 using ECafe.Application.Repositories.User;
+using ECafe.Application.Repositories.UserPasswordSetupToken;
 using ECafe.Application.Repositories.UserRefreshToken;
 using ECafe.Application.Repositories.UserRestaurant;
 using ECafe.Application.Repository;
@@ -40,6 +41,7 @@ using ECafe.Infrastructure.Repositories.Table;
 using ECafe.Infrastructure.Repositories.TableSession;
 using ECafe.Infrastructure.Repositories.Unit;
 using ECafe.Infrastructure.Repositories.User;
+using ECafe.Infrastructure.Repositories.UserPasswordSetupToken;
 using ECafe.Infrastructure.Repositories.UserRefreshToken;
 using ECafe.Infrastructure.Repositories.UserRestaurant;
 using Microsoft.EntityFrameworkCore;
@@ -66,6 +68,7 @@ namespace ECafe.Infrastructure
 
             services.AddScoped(typeof(IBaseRepository<>), typeof(BaseRepository<>));
             services.AddScoped<IUserRepository, UserRepository>();
+            services.AddScoped<IUserPasswordSetupTokenRepository, UserPasswordSetupTokenRepository>();
             services.AddScoped<IUserRefreshTokenRepository, UserRefreshTokenRepository>();
             services.AddScoped<ILoginAttemptRepository, LoginAttemptRepository>();
             services.AddScoped<IRoleRepository, RoleRepository>();

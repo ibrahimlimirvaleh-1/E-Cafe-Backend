@@ -3,6 +3,7 @@ using ECafe.Application.Features.Commands.Auth.Logout;
 using ECafe.Application.Features.Commands.Auth.LogoutAll;
 using ECafe.Application.Features.Commands.Auth.Refresh;
 using ECafe.Application.Features.Commands.Auth.Register;
+using ECafe.Application.Features.Commands.Auth.SetPassword;
 using ECafe.Api.Security;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -24,6 +25,15 @@ namespace ECafe.Api.Controllers
         [EnableRateLimiting(RateLimitPolicyNames.AuthLogin)]
         public async Task<IActionResult> Register([FromForm] RegisterUserCommand command)
             => Ok(await Mediator.Send(command));
+
+        [HttpPost("api/v1/user/set-password")]
+        [Consumes("application/json")]
+        [EnableRateLimiting(RateLimitPolicyNames.AuthLogin)]
+        public async Task<IActionResult> SetPassword([FromBody] SetPasswordCommand command)
+        {
+            await Mediator.Send(command);
+            return Ok(new { message = "Password has been set successfully." });
+        }
 
 
         [HttpPost("api/v1/user/refresh")]

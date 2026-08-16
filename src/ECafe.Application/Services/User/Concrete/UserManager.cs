@@ -13,6 +13,7 @@ using ECafe.Application.Repositories.Role;
 using ECafe.Application.Repositories.User;
 using ECafe.Application.Repositories.UserRefreshToken;
 using ECafe.Application.Repositories.UserRestaurant;
+using ECafe.Application.Services.Auth.Abstract;
 using ECafe.Application.Services.MinIO.Abstracts;
 using ECafe.Application.Services.User.Abstract;
 using ECafe.Domain.Enums;
@@ -38,6 +39,7 @@ namespace ECafe.Application.Services.User.Concrete
         private readonly IJwtService _jwtService;
         private readonly IUserRefreshTokenRepository _refreshTokenRepository;
         private readonly IUserRestaurantRepository _userRestaurantRepository;
+        private readonly IPasswordSetupService _passwordSetupService;
 
         public UserManager(
             IHttpContextAccessor httpContextAccessor,
@@ -51,7 +53,8 @@ namespace ECafe.Application.Services.User.Concrete
             IEmailOutboxService emailOutboxService,
             IJwtService jwtService,
             IUserRefreshTokenRepository refreshTokenRepository,
-            IUserRestaurantRepository userRestaurantRepository)
+            IUserRestaurantRepository userRestaurantRepository,
+            IPasswordSetupService passwordSetupService)
             : base(httpContextAccessor, mapper, configuration)
         {
             _restaurantRepository = restaurantRepository;
@@ -63,6 +66,7 @@ namespace ECafe.Application.Services.User.Concrete
             _jwtService = jwtService;
             _refreshTokenRepository = refreshTokenRepository;
             _userRestaurantRepository = userRestaurantRepository;
+            _passwordSetupService = passwordSetupService;
         }
 
         public async Task CreateUserAsync(CreateUserRequest request)
@@ -79,21 +83,12 @@ namespace ECafe.Application.Services.User.Concrete
 
             var user = Mapper.Map<Domain.Entities.User>(request);
             user.File = file;
+            user.Password = CreateUnusablePasswordHash();
 
             await _userRepository.Add(user);
             await _userRepository.SaveChangesAsync();
 
-            var roleName = GetRoleDescription(request.RoleId);
-
-            await _emailOutboxService.EnqueueEmailAsync(
-                user.Email,
-                $"{user.Name} {user.Surname}",
-                "İstifadəçi qeydiyyatı tamamlandı",
-                $"{user.Name} {user.Surname} {roleName} rolu ilə uğurla qeydiyyatdan keçdi. Şifrəniz: {request.Password}",
-                OutboxAggregateTypes.User,
-                user.Id,
-                AuditEntityTypes.User,
-                user.Id);
+            await _passwordSetupService.SendSetupLinkAsync(user);
         }
 
         public async Task DeleteAsync(int userId)
@@ -387,6 +382,12 @@ namespace ECafe.Application.Services.User.Concrete
         {
             var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(refreshToken));
             return Convert.ToHexString(bytes);
+        }
+
+        private static string CreateUnusablePasswordHash()
+        {
+            var bytes = RandomNumberGenerator.GetBytes(32);
+            return BCrypt.Net.BCrypt.HashPassword(Convert.ToHexString(bytes));
         }
     }
 }

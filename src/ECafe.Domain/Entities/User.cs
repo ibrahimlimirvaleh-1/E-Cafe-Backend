@@ -43,4 +43,8 @@ public partial class User : AuditableSoftDeletableEntity<int>
 
     public virtual ICollection<RestaurantContract> SignedRestaurantContracts { get; set; } = new List<RestaurantContract>();
 
+    public DateTime? PasswordSetAt { get; set; }
+
+    public ICollection<UserPasswordSetupToken> PasswordSetupTokens { get; set; } = new List<UserPasswordSetupToken>();
+
 }

@@ -63,6 +63,12 @@ namespace ECafe.Application.Services.Auth.Concrete
                 throw new UnauthorizedException(ErrorCode.InvalidCredentials);
             }
 
+            if (user.PasswordSetAt is null || string.IsNullOrWhiteSpace(user.Password))
+            {
+                await _loginAttemptService.RecordFailureAsync(user, normalizedEmail, "PasswordNotSet");
+                throw new ForbiddenException("Password has not been set yet.");
+            }
+
             var isPasswordValid = BCrypt.Net.BCrypt.Verify(request.Password, user.Password);
 
             if (!isPasswordValid)
@@ -88,6 +94,7 @@ namespace ECafe.Application.Services.Auth.Concrete
 
             var user = Mapper.Map<Domain.Entities.User>(request);
             user.File = file;
+            user.PasswordSetAt = DateTime.UtcNow;
 
             await _userRepository.Add(user);
             await _userRepository.SaveChangesAsync();
