@@ -236,7 +236,7 @@ namespace ECafe.Infrastructure.Services.MinIO
 
             var status = await _minioClient.StatObjectAsync(statObjectArgs);
             if (status == null)
-                throw new BusinessRuleException("File not found or deleted");
+                throw new NotFoundException(ErrorCode.FileNotFound);
 
             return status.ContentType;
         }
@@ -292,7 +292,22 @@ namespace ECafe.Infrastructure.Services.MinIO
 
                 throw new ServiceUnavailableException(ErrorCode.FileStorageUnavailable);
             }
+            catch (Exception exception) when (IsTransientStorageException(exception))
+            {
+                _logger.LogError(
+                    exception,
+                    "File storage connection failed during {Operation}. Token: {FileToken}",
+                    operation,
+                    MaskToken(token));
+
+                throw new ServiceUnavailableException(ErrorCode.FileStorageUnavailable);
+            }
         }
+
+        private static bool IsTransientStorageException(Exception exception)
+            => exception is HttpRequestException
+               or IOException
+               or TimeoutException;
 
         private static void ValidateFileToken(string token)
         {

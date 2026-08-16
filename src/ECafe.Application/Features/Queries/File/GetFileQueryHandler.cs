@@ -22,8 +22,8 @@ namespace ECafe.Application.Features.Queries.File
 
         public async Task<GetFileResponse> Handle(GetFileQuery request, CancellationToken cancellationToken)
         {
-            var file = await _fileRepository.GetWithUsageByTokenAsync(request.token);
-            if (file is null || !file.FileType.IsPublic)
+            var file = await _fileRepository.GetPublicByTokenAsync(request.token);
+            if (file?.FileType is null || !file.FileType.IsPublic)
                 throw new NotFoundException(ErrorCode.FileNotFound);
 
             return await _minioService.GetFileAsync(file.Token);
