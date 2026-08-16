@@ -10,6 +10,7 @@ using ECafe.Shared.DTOs;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using System.Security.Claims;
 using System.Text.Json;
 
 namespace ECafe.Application.Services.AuditLog.Concrete
@@ -57,6 +58,10 @@ namespace ECafe.Application.Services.AuditLog.Concrete
             {
                 RestaurantId = restaurantId,
                 ActorUserId = TryGetCurrentUserId(),
+                ActorFullName = GetActorFullName(),
+                ActorRoleId = TryGetCurrentRoleId(),
+                ActorRoleName = GetClaimValue("roleName"),
+                ActorEmail = GetClaimValue(ClaimTypes.Email) ?? GetClaimValue("email"),
                 EntityType = entityType.Trim(),
                 EntityId = entityId ?? restaurantId,
                 EntityDisplayName = string.IsNullOrWhiteSpace(entityDisplayName)
@@ -158,17 +163,17 @@ namespace ECafe.Application.Services.AuditLog.Concrete
                 query = query.Where(x => x.Action == action);
             }
 
-            if (!string.IsNullOrWhiteSpace(filter.EntityType))
+            if (filter.DateFrom.HasValue)
             {
-                var entityType = filter.EntityType.Trim();
-                query = query.Where(x => x.EntityName == entityType);
+                var dateFromUtc = NormalizeUtc(filter.DateFrom.Value);
+                query = query.Where(x => (x.OccurredAt ?? x.CreatedAt) >= dateFromUtc);
             }
 
-            if (filter.DateFrom.HasValue)
-                query = query.Where(x => (x.OccurredAt ?? x.CreatedAt) >= filter.DateFrom.Value);
-
             if (filter.DateTo.HasValue)
-                query = query.Where(x => (x.OccurredAt ?? x.CreatedAt) <= filter.DateTo.Value);
+            {
+                var dateToUtc = NormalizeUtcDateTo(filter.DateTo.Value);
+                query = query.Where(x => (x.OccurredAt ?? x.CreatedAt) <= dateToUtc);
+            }
 
             var response = query
                 .OrderByDescending(x => x.OccurredAt ?? x.CreatedAt)
@@ -178,10 +183,18 @@ namespace ECafe.Application.Services.AuditLog.Concrete
                     EventId = x.EventId,
                     RestaurantId = x.RestaurantId,
                     UserId = x.UserId,
+                    ActorUserId = x.UserId,
+                    ActorFullName = x.ActorFullName,
+                    UserName = x.ActorFullName,
+                    ActorRoleId = x.ActorRoleId,
+                    ActorRoleName = x.ActorRoleName,
+                    RoleName = x.ActorRoleName,
+                    ActorEmail = x.ActorEmail,
                     EntityName = x.EntityName,
                     EntityId = x.EntityId,
                     EntityDisplayName = x.EntityDisplayName,
                     Action = x.Action,
+                    ActionDisplayName = AuditActions.GetDisplayName(x.Action),
                     NewValues = x.NewValues,
                     Metadata = x.Metadata,
                     CorrelationId = x.CorrelationId,
@@ -215,6 +228,10 @@ namespace ECafe.Application.Services.AuditLog.Concrete
                 EventId = outboxEvent.Id,
                 RestaurantId = payload.RestaurantId,
                 UserId = payload.ActorUserId,
+                ActorFullName = payload.ActorFullName,
+                ActorRoleId = payload.ActorRoleId,
+                ActorRoleName = payload.ActorRoleName,
+                ActorEmail = payload.ActorEmail,
                 EntityName = payload.EntityType,
                 EntityId = payload.EntityId,
                 EntityDisplayName = payload.EntityDisplayName,
@@ -230,12 +247,53 @@ namespace ECafe.Application.Services.AuditLog.Concrete
             await _auditLogRepository.Add(auditLog);
         }
 
+        private static DateTime NormalizeUtc(DateTime value)
+        {
+            if (value.Kind == DateTimeKind.Utc)
+                return value;
+
+            if (value.Kind == DateTimeKind.Local)
+                return value.ToUniversalTime();
+
+            return DateTime.SpecifyKind(value, DateTimeKind.Utc);
+        }
+
+        private static DateTime NormalizeUtcDateTo(DateTime value)
+        {
+            var utc = NormalizeUtc(value);
+            return utc.TimeOfDay == TimeSpan.Zero
+                ? utc.Date.AddDays(1).AddTicks(-1)
+                : utc;
+        }
+
         private int? TryGetCurrentUserId()
         {
             var userIdClaim = HttpContextAccessor.HttpContext?.User.FindFirst("userId")?.Value;
             return int.TryParse(userIdClaim, out var userId) && userId > 0
                 ? userId
                 : null;
+        }
+
+        private int? TryGetCurrentRoleId()
+        {
+            var roleClaim = GetClaimValue(ClaimTypes.Role);
+            return int.TryParse(roleClaim, out var roleId) && roleId > 0
+                ? roleId
+                : null;
+        }
+
+        private string? GetActorFullName()
+        {
+            var name = GetClaimValue(ClaimTypes.Name) ?? GetClaimValue("name");
+            var surname = GetClaimValue(ClaimTypes.Surname) ?? GetClaimValue("surname");
+            var fullName = string.Join(' ', new[] { name, surname }.Where(x => !string.IsNullOrWhiteSpace(x)));
+            return string.IsNullOrWhiteSpace(fullName) ? null : fullName.Trim();
+        }
+
+        private string? GetClaimValue(string claimType)
+        {
+            var value = HttpContextAccessor.HttpContext?.User.FindFirst(claimType)?.Value;
+            return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
         }
 
         private string? GetClientIpAddress()

@@ -4,8 +4,6 @@ namespace ECafe.Application.DTOs.AuditLog
     {
         public string? Action { get; set; }
 
-        public string? EntityType { get; set; }
-
         public DateTime? DateFrom { get; set; }
 
         public DateTime? DateTo { get; set; }

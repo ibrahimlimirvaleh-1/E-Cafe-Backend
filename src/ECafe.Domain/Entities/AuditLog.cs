@@ -1,4 +1,4 @@
-﻿using ECafe.Domain.Entities.Base;
+using ECafe.Domain.Entities.Base;
 
 namespace ECafe.Domain.Entities
 {
@@ -9,6 +9,14 @@ namespace ECafe.Domain.Entities
         public int? RestaurantId { get; set; }
 
         public int? UserId { get; set; }
+
+        public string? ActorFullName { get; set; }
+
+        public int? ActorRoleId { get; set; }
+
+        public string? ActorRoleName { get; set; }
+
+        public string? ActorEmail { get; set; }
 
         public string EntityName { get; set; } = null!;
 

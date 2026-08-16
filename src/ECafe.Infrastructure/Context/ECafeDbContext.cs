@@ -102,6 +102,8 @@ public partial class ECafeDbContext : DbContext
 
         foreach (var entry in ChangeTracker.Entries())
         {
+            if (entry.Entity is AuditLog && entry.State is EntityState.Modified or EntityState.Deleted)
+                throw new InvalidOperationException("Audit logs are immutable and cannot be updated or deleted.");
             if (entry.State == EntityState.Deleted && entry.Entity is ISoftDelete softDeleteEntity)
             {
                 entry.State = EntityState.Modified;

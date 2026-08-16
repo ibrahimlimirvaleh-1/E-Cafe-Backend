@@ -6,6 +6,14 @@ namespace ECafe.Application.Common.Audit
 
         public int? ActorUserId { get; set; }
 
+        public string? ActorFullName { get; set; }
+
+        public int? ActorRoleId { get; set; }
+
+        public string? ActorRoleName { get; set; }
+
+        public string? ActorEmail { get; set; }
+
         public string EntityType { get; set; } = null!;
 
         public long EntityId { get; set; }

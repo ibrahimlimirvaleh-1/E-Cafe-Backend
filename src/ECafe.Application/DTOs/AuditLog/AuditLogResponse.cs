@@ -10,6 +10,20 @@ namespace ECafe.Application.DTOs.AuditLog
 
         public int? UserId { get; set; }
 
+        public int? ActorUserId { get; set; }
+
+        public string? ActorFullName { get; set; }
+
+        public string? UserName { get; set; }
+
+        public int? ActorRoleId { get; set; }
+
+        public string? ActorRoleName { get; set; }
+
+        public string? RoleName { get; set; }
+
+        public string? ActorEmail { get; set; }
+
         public string EntityName { get; set; } = null!;
 
         public long EntityId { get; set; }
@@ -17,6 +31,8 @@ namespace ECafe.Application.DTOs.AuditLog
         public string? EntityDisplayName { get; set; }
 
         public string Action { get; set; } = null!;
+
+        public string ActionDisplayName { get; set; } = null!;
 
         public string? NewValues { get; set; }
 

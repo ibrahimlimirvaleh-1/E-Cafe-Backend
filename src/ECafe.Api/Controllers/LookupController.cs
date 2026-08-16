@@ -1,3 +1,4 @@
+using ECafe.Application.Common.Audit;
 using ECafe.Application.DTOs.Lookup;
 using ECafe.Domain.Enums;
 using ECafe.Shared.Extensions;
@@ -28,6 +29,19 @@ namespace ECafe.Api.Controllers
         [HttpGet("api/v1/lookups/units")]
         public IActionResult GetUnits()
             => Ok(MapEnum<UnitCode>());
+
+        [HttpGet("api/v1/lookups/actions")]
+        [HttpGet("api/v1/lookups/audit-actions")]
+        public IActionResult GetAuditActions()
+            => Ok(AuditActions.All
+                .OrderBy(action => action.Id)
+                .Select(action => new LookupItemResponse
+                {
+                    Id = action.Id,
+                    Code = action.Code,
+                    Name = action.DisplayName
+                })
+                .ToList());
 
 
 

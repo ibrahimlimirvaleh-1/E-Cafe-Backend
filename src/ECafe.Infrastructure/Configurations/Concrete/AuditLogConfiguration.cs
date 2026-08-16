@@ -1,4 +1,4 @@
-﻿using ECafe.Domain.Entities;
+using ECafe.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -21,6 +21,15 @@ namespace ECafe.Infrastructure.Configurations.Concrete
 
             builder.Property(x => x.Action)
                 .HasMaxLength(100);
+
+            builder.Property(x => x.ActorFullName)
+                .HasMaxLength(200);
+
+            builder.Property(x => x.ActorRoleName)
+                .HasMaxLength(100);
+
+            builder.Property(x => x.ActorEmail)
+                .HasMaxLength(256);
 
             builder.Property(x => x.OldValues)
                 .HasColumnType("text");
@@ -50,6 +59,10 @@ namespace ECafe.Infrastructure.Configurations.Concrete
                 .HasFilter("\"EventId\" IS NOT NULL");
 
             builder.HasIndex(x => new { x.RestaurantId, x.OccurredAt });
+
+            builder.HasIndex(x => new { x.RestaurantId, x.UserId, x.OccurredAt });
+
+            builder.HasIndex(x => new { x.RestaurantId, x.Action, x.OccurredAt });
 
             builder.HasIndex(x => new { x.EntityName, x.EntityId });
         }
