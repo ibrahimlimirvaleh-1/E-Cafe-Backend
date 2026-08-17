@@ -29,6 +29,8 @@ using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 using ECafe.Application.Services.Notification.Abstract;
 using ECafe.Application.Services.Notification.Concrete;
+using ECafe.Application.Services.Outbox.Abstract;
+using ECafe.Application.Services.Outbox.Concrete;
 using ECafe.Application.Services.InventoryItem.Abstract;
 using ECafe.Application.Services.InventoryItem.Concrete;
 using ECafe.Application.Services.InventoryMovement.Abstract;
@@ -79,6 +81,7 @@ namespace ECafe.Application
             services.AddScoped<IFileAccessUrlService, FileAccessUrlService>();
             services.AddScoped<IWorkflowActionService, WorkflowActionManager>();
             services.AddScoped<INotificationService, NotificationManager>();
+            services.AddScoped<IOutboxAdminService, OutboxAdminManager>();
             services.AddScoped<IInventoryItemService, InventoryItemManager>();
             services.AddScoped<IInventoryMovementService, InventoryMovementManager>();
             services.AddScoped<IRecipeService, RecipeManager>();

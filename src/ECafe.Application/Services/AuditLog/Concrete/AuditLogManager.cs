@@ -7,6 +7,7 @@ using ECafe.Application.Repository;
 using ECafe.Application.Services.AuditLog.Abstract;
 using ECafe.Domain.Exceptions;
 using ECafe.Shared.DTOs;
+using ECafe.Shared.Extensions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -283,37 +284,43 @@ namespace ECafe.Application.Services.AuditLog.Concrete
                     return [];
 
                 var details = new List<AuditLogDetailResponse>();
+                var scalarProperties = document.RootElement.EnumerateObject()
+                    .Where(property => property.Value.ValueKind is not JsonValueKind.Object and not JsonValueKind.Array)
+                    .ToDictionary(property => property.Name, property => property.Value, StringComparer.OrdinalIgnoreCase);
 
                 if (document.RootElement.TryGetProperty("changedFields", out var changedFields) &&
                     changedFields.ValueKind == JsonValueKind.Array)
                 {
                     foreach (var changedField in changedFields.EnumerateArray())
                     {
-                        var label = ReadString(changedField, "field");
-                        if (string.IsNullOrWhiteSpace(label))
+                        var field = ReadString(changedField, "field");
+                        if (string.IsNullOrWhiteSpace(field))
+                            continue;
+
+                        if (ShouldSkipTechnicalField(field, scalarProperties))
                             continue;
 
                         details.Add(new AuditLogDetailResponse
                         {
-                            Label = label,
-                            OldValue = ReadElementAsString(changedField, "oldValue"),
-                            NewValue = ReadElementAsString(changedField, "newValue")
+                            Label = ToFriendlyLabel(field),
+                            OldValue = ToFriendlyValue(field, ReadElementAsString(changedField, "oldValue")),
+                            NewValue = ToFriendlyValue(field, ReadElementAsString(changedField, "newValue"))
                         });
                     }
                 }
 
-                foreach (var property in document.RootElement.EnumerateObject())
+                foreach (var property in scalarProperties)
                 {
-                    if (property.NameEquals("changedFields"))
+                    if (property.Key.Equals("changedFields", StringComparison.OrdinalIgnoreCase))
                         continue;
 
-                    if (property.Value.ValueKind is JsonValueKind.Object or JsonValueKind.Array)
+                    if (ShouldSkipTechnicalField(property.Key, scalarProperties))
                         continue;
 
                     details.Add(new AuditLogDetailResponse
                     {
-                        Label = property.Name,
-                        Value = ElementToDisplayValue(property.Value)
+                        Label = ToFriendlyLabel(property.Key),
+                        Value = ToFriendlyValue(property.Key, ElementToDisplayValue(property.Value))
                     });
                 }
 
@@ -350,6 +357,75 @@ namespace ECafe.Application.Services.AuditLog.Concrete
                 JsonValueKind.False => "false",
                 _ => element.GetRawText()
             };
+
+        private static bool ShouldSkipTechnicalField(
+            string field,
+            IReadOnlyDictionary<string, JsonElement> properties)
+        {
+            if (field.Equals("itemId", StringComparison.OrdinalIgnoreCase) ||
+                field.Equals("fileId", StringComparison.OrdinalIgnoreCase))
+                return true;
+
+            if (field.Equals("categoryId", StringComparison.OrdinalIgnoreCase) &&
+                properties.ContainsKey("categoryName"))
+                return true;
+
+            if (field.Equals("statusId", StringComparison.OrdinalIgnoreCase) &&
+                properties.ContainsKey("statusName"))
+                return true;
+
+            return false;
+        }
+
+        private static string ToFriendlyLabel(string field)
+            => field.Trim() switch
+            {
+                "name" or "Name" => "Məhsul adı",
+                "categoryName" or "CategoryName" => "Kateqoriya",
+                "categoryId" or "CategoryId" => "Kateqoriya",
+                "statusName" or "StatusName" => "Status",
+                "statusId" or "StatusId" => "Status",
+                "basePrice" or "BasePrice" => "Qiymət",
+                "sortOrder" or "SortOrder" => "Sıra",
+                "slug" or "Slug" => "Slug",
+                "commissionPercent" or "CommissionPercent" => "Komissiya faizi",
+                "staffSettlementPeriod" or "StaffSettlementPeriod" => "Hesablaşma dövrü",
+                "startDate" or "StartDate" => "Başlama tarixi",
+                "endDate" or "EndDate" => "Bitmə tarixi",
+                "paymentPolicyId" or "PaymentPolicyId" => "Ödəniş siyasəti",
+                _ => SplitCamelCase(field)
+            };
+
+        private static string? ToFriendlyValue(string field, string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return value;
+
+            if (field.Equals("statusId", StringComparison.OrdinalIgnoreCase) &&
+                int.TryParse(value, out var statusId))
+                return ResolveKnownStatusName(statusId) ?? $"ID #{statusId}";
+
+            if (field.EndsWith("Id", StringComparison.OrdinalIgnoreCase))
+                return $"ID #{value}";
+
+            return value;
+        }
+
+        private static string? ResolveKnownStatusName(int statusId)
+        {
+            var statusTypeId = statusId / 1000;
+            var statusValue = statusId % 1000;
+
+            if (statusTypeId == (int)ECafe.Domain.Enums.StatusType.ItemStatus &&
+                Enum.IsDefined(typeof(ECafe.Domain.Enums.ItemStatus), statusValue))
+                return ((ECafe.Domain.Enums.ItemStatus)statusValue).GetDescription();
+
+            return null;
+        }
+
+        private static string SplitCamelCase(string value)
+            => string.Concat(value.Select((character, index) =>
+                index > 0 && char.IsUpper(character) ? $" {character}" : character.ToString()));
 
         private int? TryGetCurrentUserId()
         {

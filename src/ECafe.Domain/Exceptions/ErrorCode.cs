@@ -33,5 +33,9 @@ public enum ErrorCode
 
     InvalidFileToken = 3000,
     FileNotFound = 3001,
-    FileStorageUnavailable = 3002
+    FileStorageUnavailable = 3002,
+
+    OutboxMessageNotFound = 4000,
+    OutboxMessageAlreadySent = 4001,
+    OutboxMessageRetryNotAllowed = 4002
 }

@@ -37,7 +37,11 @@ public sealed class ErrorMessageProvider : IErrorMessageProvider
 
         [ErrorCode.InvalidFileToken] = "Invalid file token.",
         [ErrorCode.FileNotFound] = "File not found.",
-        [ErrorCode.FileStorageUnavailable] = "File storage is temporarily unavailable."
+        [ErrorCode.FileStorageUnavailable] = "File storage is temporarily unavailable.",
+
+        [ErrorCode.OutboxMessageNotFound] = "Outbox message not found.",
+        [ErrorCode.OutboxMessageAlreadySent] = "Outbox message has already been sent.",
+        [ErrorCode.OutboxMessageRetryNotAllowed] = "Outbox message cannot be retried."
     };
 
     public string GetMessage(BaseException exception)

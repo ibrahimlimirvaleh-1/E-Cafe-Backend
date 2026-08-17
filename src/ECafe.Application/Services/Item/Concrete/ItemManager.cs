@@ -2,6 +2,7 @@ using AutoMapper;
 using ECafe.Application.Common.Audit;
 using ECafe.Application.Common.Pagination;
 using ECafe.Application.DTOs.Item;
+using ECafe.Application.Repository;
 using ECafe.Application.Repositories.Category;
 using ECafe.Application.Repositories.File;
 using ECafe.Application.Repositories.Item;
@@ -26,6 +27,7 @@ namespace ECafe.Application.Services.Item.Concrete
         private readonly IRestaurantRepository _restaurantRepository;
         private readonly IItemRepository _itemRepository;
         private readonly IFileRepository _fileRepository;
+        private readonly IBaseRepository<Domain.Entities.Status> _statusRepository;
         private readonly IValidator<CreateItemRequest> _validator;
         private readonly IRestaurantContractService _restaurantContractService;
         private readonly IAuditLogService _auditLogService;
@@ -38,6 +40,7 @@ namespace ECafe.Application.Services.Item.Concrete
                            IRestaurantRepository restaurantRepository,
                            IItemRepository itemRepository,
                            IFileRepository fileRepository,
+                           IBaseRepository<Domain.Entities.Status> statusRepository,
                            IValidator<CreateItemRequest> validator,
                            IRestaurantContractService restaurantContractService,
                            IAuditLogService auditLogService,
@@ -48,6 +51,7 @@ namespace ECafe.Application.Services.Item.Concrete
             _restaurantRepository = restaurantRepository;
             _itemRepository = itemRepository;
             _fileRepository = fileRepository;
+            _statusRepository = statusRepository;
             _validator = validator;
             _restaurantContractService = restaurantContractService;
             _auditLogService = auditLogService;
@@ -66,8 +70,9 @@ namespace ECafe.Application.Services.Item.Concrete
             await EnsureRestaurantExistsAsync(request.RestaurantId);
             EnsureCurrentUserCanAccessRestaurant(request.RestaurantId);
             await _restaurantContractService.EnsureRestaurantHasActiveContractAsync(request.RestaurantId);
-            await EnsureCategoryBelongsToRestaurantAsync(request.CategoryId, request.RestaurantId);
+            var category = await EnsureCategoryBelongsToRestaurantAsync(request.CategoryId, request.RestaurantId);
             await EnsureItemNameIsUniqueAsync(request.RestaurantId, request.CategoryId, itemName);
+            var status = await _statusRepository.GetByIdAsync(request.StatusId);
 
             var item = Mapper.Map<Domain.Entities.Item>(request);
             item.File = await GetAttachableFileAsync(request.FileId);
@@ -83,8 +88,10 @@ namespace ECafe.Application.Services.Item.Concrete
                     itemId = item.Id,
                     item.Name,
                     item.CategoryId,
+                    CategoryName = category.Name,
                     item.BasePrice,
                     item.StatusId,
+                    StatusName = status?.Name,
                     item.FileId
                 },
                 AuditEntityTypes.Item,
@@ -191,12 +198,14 @@ namespace ECafe.Application.Services.Item.Concrete
                 throw new BusinessRuleException("Restaurant not found!");
         }
 
-        private async Task EnsureCategoryBelongsToRestaurantAsync(int categoryId, int restaurantId)
+        private async Task<Domain.Entities.Category> EnsureCategoryBelongsToRestaurantAsync(int categoryId, int restaurantId)
         {
             var category = await GetCategoryAsync(categoryId);
 
             if (category.RestaurantId != restaurantId)
                 throw new BusinessRuleException("Category does not belong to the selected restaurant.");
+
+            return category;
         }
 
         private async Task<Domain.Entities.Category> GetCategoryAsync(int categoryId)
