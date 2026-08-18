@@ -1,4 +1,4 @@
-﻿using ECafe.Application.Repository;
+using ECafe.Application.Repository;
 
 namespace ECafe.Application.Repositories.UserRestaurant
 {
@@ -7,6 +7,10 @@ namespace ECafe.Application.Repositories.UserRestaurant
         public Task<List<Domain.Entities.UserRestaurant>> GetRestaurantStaffAsync(int restaurantId);
 
         public Task<Domain.Entities.UserRestaurant?> GetActiveByUserIdAsync(int userId);
+
+        public Task<Domain.Entities.UserRestaurant?> GetActiveStaffAssignmentAsync(int restaurantId, int staffId);
+
+        public Task<bool> HasAnyOtherActiveAssignmentAsync(int userId, int excludedUserRestaurantId);
 
         public Task<Domain.Entities.UserRestaurant?> GetActiveOwnerByRestaurantAsync(int restaurantId);
 

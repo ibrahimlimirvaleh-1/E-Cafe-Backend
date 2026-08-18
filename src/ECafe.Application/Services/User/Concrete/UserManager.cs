@@ -14,6 +14,7 @@ using ECafe.Application.Repositories.User;
 using ECafe.Application.Repositories.UserRefreshToken;
 using ECafe.Application.Repositories.UserRestaurant;
 using ECafe.Application.Services.Auth.Abstract;
+using ECafe.Application.Services.AuditLog.Abstract;
 using ECafe.Application.Services.MinIO.Abstracts;
 using ECafe.Application.Services.User.Abstract;
 using ECafe.Domain.Enums;
@@ -40,6 +41,7 @@ namespace ECafe.Application.Services.User.Concrete
         private readonly IUserRefreshTokenRepository _refreshTokenRepository;
         private readonly IUserRestaurantRepository _userRestaurantRepository;
         private readonly IPasswordSetupService _passwordSetupService;
+        private readonly IAuditLogService _auditLogService;
 
         public UserManager(
             IHttpContextAccessor httpContextAccessor,
@@ -54,7 +56,8 @@ namespace ECafe.Application.Services.User.Concrete
             IJwtService jwtService,
             IUserRefreshTokenRepository refreshTokenRepository,
             IUserRestaurantRepository userRestaurantRepository,
-            IPasswordSetupService passwordSetupService)
+            IPasswordSetupService passwordSetupService,
+            IAuditLogService auditLogService)
             : base(httpContextAccessor, mapper, configuration)
         {
             _restaurantRepository = restaurantRepository;
@@ -67,6 +70,7 @@ namespace ECafe.Application.Services.User.Concrete
             _refreshTokenRepository = refreshTokenRepository;
             _userRestaurantRepository = userRestaurantRepository;
             _passwordSetupService = passwordSetupService;
+            _auditLogService = auditLogService;
         }
 
         public async Task CreateUserAsync(CreateUserRequest request)
@@ -109,6 +113,48 @@ namespace ECafe.Application.Services.User.Concrete
 
             await _userRepository.Delete(user);
             await _userRepository.SaveChangesAsync();
+        }
+
+        public async Task DeactivateStaffAsync(int restaurantId, int staffId)
+        {
+            if (restaurantId <= 0)
+                throw new BusinessRuleException("Invalid restaurant id");
+
+            if (staffId <= 0)
+                throw new BusinessRuleException("Invalid staff id");
+
+            EnsureCurrentUserCanAccessRestaurant(restaurantId);
+
+            if (staffId == GetCurrentUserId())
+                throw new BusinessRuleException("You cannot deactivate your own account.");
+
+            var staffAssignment = await _userRestaurantRepository.GetActiveStaffAssignmentAsync(restaurantId, staffId);
+            if (staffAssignment is null)
+                throw new BusinessRuleException("Active staff assignment not found.");
+
+            staffAssignment.IsActive = false;
+
+            if (!await _userRestaurantRepository.HasAnyOtherActiveAssignmentAsync(staffId, staffAssignment.Id))
+                staffAssignment.User.IsActive = false;
+
+            await RevokeActiveRefreshTokensAsync(staffId);
+
+            await _auditLogService.RecordRestaurantActionAsync(
+                restaurantId,
+                AuditActions.StaffDeactivated,
+                new
+                {
+                    StaffId = staffAssignment.UserId,
+                    StaffName = $"{staffAssignment.User.Name} {staffAssignment.User.Surname}",
+                    staffAssignment.User.Email,
+                    RoleName = GetRoleDescription(staffAssignment.User.RoleId),
+                    RestaurantName = staffAssignment.Restaurant.Name
+                },
+                AuditEntityTypes.User,
+                staffAssignment.UserId,
+                $"{staffAssignment.User.Name} {staffAssignment.User.Surname}");
+
+            await _userRestaurantRepository.SaveChangesAsync();
         }
 
         public async Task<AuthResponseDto> UpdateRoleAsync(int userId, int roleId)
@@ -376,6 +422,19 @@ namespace ECafe.Application.Services.User.Concrete
                 AccessToken = _jwtService.GenerateToken(user, fileUrl),
                 RefreshToken = refreshToken
             });
+        }
+
+        private async Task RevokeActiveRefreshTokensAsync(int userId)
+        {
+            var nowUtc = DateTime.UtcNow;
+            var refreshTokens = await _refreshTokenRepository.GetActiveByUserIdTrackedAsync(userId, nowUtc);
+            var ipAddress = HttpContextAccessor.HttpContext?.Connection.RemoteIpAddress?.ToString();
+
+            foreach (var refreshToken in refreshTokens)
+            {
+                refreshToken.RevokedAt = nowUtc;
+                refreshToken.RevokedByIp = ipAddress;
+            }
         }
 
         private static string HashRefreshToken(string refreshToken)

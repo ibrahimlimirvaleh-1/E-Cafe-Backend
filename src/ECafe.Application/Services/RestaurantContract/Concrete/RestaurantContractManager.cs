@@ -1,5 +1,6 @@
 using AutoMapper;
 using ECafe.Application.Common.Audit;
+using ECafe.Application.Common.Pagination;
 using ECafe.Application.DTOs.Auth;
 using ECafe.Application.DTOs.Notification;
 using ECafe.Application.DTOs.RestaurantContract;
@@ -15,6 +16,7 @@ using ECafe.Application.Services.RestaurantContract.Abstract;
 using ECafe.Application.Services.Workflow.Abstract;
 using ECafe.Domain.Enums;
 using ECafe.Domain.Exceptions;
+using ECafe.Shared.DTOs;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -233,6 +235,74 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             }
 
             return response;
+        }
+
+        public async Task<PaginatedList<RestaurantContractResponse>> GetPagedByRestaurantAsync(
+            int restaurantId,
+            RestaurantContractFilterRequest request)
+        {
+            if (restaurantId <= 0)
+                throw new BusinessRuleException("Invalid restaurant ID!");
+
+            EnsureCurrentUserCanAccessRestaurant(restaurantId);
+
+            request ??= new RestaurantContractFilterRequest();
+            var pagination = PaginationFilterNormalizer.Normalize(
+                new PaginationFilter(request.PageNumber, request.PageSize));
+
+            var query = _contractRepository.Query(x => x.RestaurantId == restaurantId)
+                .Include(x => x.Status)
+                .Include(x => x.File)
+                .Include(x => x.SignedByUser)
+                .AsQueryable();
+
+            if (request.StatusId.HasValue && request.StatusId.Value > 0)
+                query = query.Where(x => x.StatusId == request.StatusId.Value);
+
+            var search = NormalizeSearch(request.Search);
+            if (search is not null)
+            {
+                query = query.Where(x =>
+                    x.ContractNumber.ToLower().Contains(search) ||
+                    (x.Status != null && x.Status.Name.ToLower().Contains(search)));
+            }
+
+            if (request.EndDateFrom.HasValue)
+                query = query.Where(x => x.EndDate.HasValue && x.EndDate.Value >= request.EndDateFrom.Value);
+
+            if (request.EndDateTo.HasValue)
+                query = query.Where(x => x.EndDate.HasValue && x.EndDate.Value <= request.EndDateTo.Value);
+
+            if (request.ExpiringInDays.HasValue && request.ExpiringInDays.Value > 0)
+            {
+                var nowUtc = DateTime.UtcNow;
+                var limitUtc = nowUtc.AddDays(request.ExpiringInDays.Value);
+                query = query.Where(x =>
+                    x.EndDate.HasValue &&
+                    x.EndDate.Value >= nowUtc &&
+                    x.EndDate.Value <= limitUtc);
+            }
+
+            var totalCount = await query.CountAsync();
+            var contracts = await query
+                .OrderByDescending(x => x.StatusId == ContractStatusId(ContractStatus.Active))
+                .ThenBy(x => x.EndDate ?? DateTime.MaxValue)
+                .ThenByDescending(x => x.Id)
+                .Skip((pagination.PageNumber - 1) * pagination.PageSize)
+                .Take(pagination.PageSize)
+                .ToListAsync();
+
+            var items = new List<RestaurantContractResponse>(contracts.Count);
+            foreach (var contract in contracts)
+            {
+                items.Add(await MapToResponseAsync(contract));
+            }
+
+            return new PaginatedList<RestaurantContractResponse>(
+                items,
+                totalCount,
+                pagination.PageNumber,
+                pagination.PageSize);
         }
 
         public async Task<RestaurantContractResponse> GetActiveAsync(int restaurantId)
@@ -558,6 +628,14 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
                     : $"{contract.SignedByUser.Name} {contract.SignedByUser.Surname}".Trim(),
                 AvailableActions = await ResolveAvailableActionsAsync(contract)
             };
+        }
+
+        private static string? NormalizeSearch(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return null;
+
+            return value.Trim().ToLower();
         }
 
         private Task<List<WorkflowActionResponse>> ResolveAvailableActionsAsync(Domain.Entities.RestaurantContract contract)
