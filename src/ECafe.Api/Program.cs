@@ -15,12 +15,16 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.SwaggerUI;
 using System.Text;
+using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
 if (builder.Environment.IsEnvironment("Local"))
 {
-    builder.Configuration.AddUserSecrets<Program>(optional: true);
+    builder.Configuration
+        .AddJsonFile("appsettings.Development.json", optional: true, reloadOnChange: true)
+        .AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true)
+        .AddUserSecrets<Program>(optional: true);
 }
 
 builder.WebHost.UseSentry(options =>
@@ -97,9 +101,14 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 
+var jwtKey = GetRequiredConfigurationValue(builder.Configuration, "Jwt:Key");
+var jwtIssuer = GetRequiredConfigurationValue(builder.Configuration, "Jwt:Issuer");
+var jwtAudience = GetRequiredConfigurationValue(builder.Configuration, "Jwt:Audience");
+
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
+        options.IncludeErrorDetails = false;
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
@@ -107,11 +116,32 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
 
-            ValidIssuer = builder.Configuration["Jwt:Issuer"],
-            ValidAudience = builder.Configuration["Jwt:Audience"],
+            ValidIssuer = jwtIssuer,
+            ValidAudience = jwtAudience,
 
             IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!))
+                Encoding.UTF8.GetBytes(jwtKey))
+        };
+
+        options.Events = new JwtBearerEvents
+        {
+            OnChallenge = async context =>
+            {
+                context.HandleResponse();
+                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                context.Response.ContentType = "application/json";
+
+                var response = new
+                {
+                    statusCode = StatusCodes.Status401Unauthorized,
+                    code = "Unauthorized",
+                    message = "Sessiya etibarsızdır və ya vaxtı bitib. Zəhmət olmasa yenidən daxil olun.",
+                    traceId = context.HttpContext.TraceIdentifier,
+                    timestamp = DateTime.UtcNow
+                };
+
+                await context.Response.WriteAsync(JsonSerializer.Serialize(response));
+            }
         };
     });
 
@@ -172,3 +202,13 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+static string GetRequiredConfigurationValue(IConfiguration configuration, string key)
+{
+    var value = configuration[key];
+
+    if (string.IsNullOrWhiteSpace(value))
+        throw new InvalidOperationException($"Required configuration value '{key}' is missing.");
+
+    return value;
+}

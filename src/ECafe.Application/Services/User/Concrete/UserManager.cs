@@ -157,6 +157,65 @@ namespace ECafe.Application.Services.User.Concrete
             await _userRestaurantRepository.SaveChangesAsync();
         }
 
+        public async Task<StaffDetailResponseDto> UpdateStaffAsync(int restaurantId, int staffId, UpdateStaffRequest request)
+        {
+            if (request is null)
+                throw new BusinessRuleException("Request is required");
+
+            if (restaurantId <= 0)
+                throw new BusinessRuleException("Invalid restaurant id");
+
+            if (staffId <= 0)
+                throw new BusinessRuleException("Invalid staff id");
+
+            EnsureCurrentUserCanAccessRestaurant(restaurantId);
+
+            var staffAssignment = await _userRestaurantRepository.GetActiveStaffAssignmentAsync(restaurantId, staffId);
+            if (staffAssignment is null)
+                throw new BusinessRuleException("Active staff assignment not found.");
+
+            var email = request.Email.Trim().ToLowerInvariant();
+            var phone = request.Phone.Trim();
+            var conflict = await _userRepository.GetProfileConflictAsync(staffId, email, phone);
+            if (conflict is not null)
+                throw new BusinessRuleException("Email or phone already belongs to another user.");
+
+            var file = await GetAttachableFileAsync(request.FileId);
+
+            Mapper.Map(request, staffAssignment.User);
+            if (file is not null)
+                staffAssignment.User.File = file;
+
+            staffAssignment.ServiceFeePercent = request.ServiceFeePercent;
+            staffAssignment.MaxActiveTableCount = request.MaxActiveTableCount;
+
+            if (!request.IsActive)
+            {
+                staffAssignment.IsActive = false;
+                staffAssignment.User.IsActive = false;
+                await RevokeActiveRefreshTokensAsync(staffId);
+            }
+
+            await _auditLogService.RecordRestaurantActionAsync(
+                restaurantId,
+                AuditActions.StaffUpdated,
+                new
+                {
+                    StaffId = staffAssignment.UserId,
+                    StaffName = $"{staffAssignment.User.Name} {staffAssignment.User.Surname}",
+                    staffAssignment.User.Email,
+                    RoleName = GetRoleDescription(staffAssignment.User.RoleId),
+                    RestaurantName = staffAssignment.Restaurant.Name
+                },
+                AuditEntityTypes.User,
+                staffAssignment.UserId,
+                $"{staffAssignment.User.Name} {staffAssignment.User.Surname}");
+
+            await _userRestaurantRepository.SaveChangesAsync();
+
+            return await MapToStaffDetailResponseAsync(staffAssignment.User);
+        }
+
         public async Task<AuthResponseDto> UpdateRoleAsync(int userId, int roleId)
         {
             if (userId <= 0)

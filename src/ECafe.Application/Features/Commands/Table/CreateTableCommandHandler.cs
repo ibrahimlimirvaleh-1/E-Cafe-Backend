@@ -14,7 +14,7 @@ namespace ECafe.Application.Features.Commands.Table
 
         public async Task<int> Handle(CreateTableCommand request, CancellationToken cancellationToken)
         {
-            return await _tableService.CreateAsync(request);
+            return await _tableService.CreateAsync(request.RestaurantId, request);
         }
     }
 }

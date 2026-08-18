@@ -29,9 +29,17 @@ namespace ECafe.Api.BackgroundServices
             await CleanupAsync(stoppingToken);
 
             using var timer = new PeriodicTimer(_interval);
-            while (await timer.WaitForNextTickAsync(stoppingToken))
+
+            try
             {
-                await CleanupAsync(stoppingToken);
+                while (await timer.WaitForNextTickAsync(stoppingToken))
+                {
+                    await CleanupAsync(stoppingToken);
+                }
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                _logger.LogDebug("Unattached file cleanup service stopped.");
             }
         }
 

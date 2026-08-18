@@ -74,7 +74,7 @@ services:
       MinIO__SecretKey: ${MINIO_ROOT_PASSWORD:-replace-with-local-minio-password}
       MinIO__BucketName: ${MINIO_BUCKET_NAME:-ecafefiles}
       MinIO__UseSSL: "false"
-      FileStorage__PublicBaseUrl: ${ECAFE_PUBLIC_API_BASE_URL:-http://localhost:8080}
+      FileStorage__PublicBaseUrl: ${ECAFE_PUBLIC_API_BASE_URL:-http://localhost:8081}
 
       # JWT
       Jwt__Key: ${ECAFE_JWT_KEY:-replace-with-long-random-jwt-key}
@@ -94,7 +94,7 @@ services:
       Redis__Connection: ecafe-redis:6379
 
     ports:
-      - "${ECAFE_API_PORT:-8080}:8080"
+      - "${ECAFE_API_PORT:-8081}:8080"
 
   ecafe-frontend:
     build:

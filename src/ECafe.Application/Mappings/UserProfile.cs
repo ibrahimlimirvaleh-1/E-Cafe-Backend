@@ -34,6 +34,19 @@ namespace ECafe.Application.Mappings
                 .ForMember(dest => dest.FileId, opt => opt.Ignore())
                 .ForMember(dest => dest.File, opt => opt.Ignore());
 
+            CreateMap<UpdateStaffRequest, User>()
+                .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Name.Trim()))
+                .ForMember(dest => dest.Surname, opt => opt.MapFrom(src => src.Surname.Trim()))
+                .ForMember(dest => dest.Email, opt => opt.MapFrom(src => src.Email.Trim().ToLowerInvariant()))
+                .ForMember(dest => dest.Phone, opt => opt.MapFrom(src => src.Phone.Trim()))
+                .ForMember(dest => dest.FileId, opt => opt.Ignore())
+                .ForMember(dest => dest.File, opt => opt.Ignore())
+                .ForMember(dest => dest.Password, opt => opt.Ignore())
+                .ForMember(dest => dest.PasswordSetAt, opt => opt.Ignore())
+                .ForMember(dest => dest.RoleId, opt => opt.Ignore())
+                .ForMember(dest => dest.Role, opt => opt.Ignore())
+                .ForMember(dest => dest.UserRestaurant, opt => opt.Ignore());
+
             CreateMap<Role, RoleDto>();
 
             CreateMap<User, GetAllUserResponseDto>();

@@ -11,6 +11,10 @@ namespace ECafe.Application.Mappings
             CreateMap<CreateTableRequest, Table>()
                 .ForMember(dest => dest.IsActive, opt => opt.MapFrom(_ => true))
                 .ForMember(dest => dest.IsEmpty, opt => opt.MapFrom(_ => true));
+
+            CreateMap<UpdateTableRequest, Table>()
+                .ForMember(dest => dest.RestaurantId, opt => opt.Ignore())
+                .ForMember(dest => dest.IsEmpty, opt => opt.Ignore());
         }
     }
 }

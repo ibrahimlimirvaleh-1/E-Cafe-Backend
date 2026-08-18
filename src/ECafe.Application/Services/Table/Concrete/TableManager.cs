@@ -1,4 +1,5 @@
 using AutoMapper;
+using ECafe.Application.Common.Exceptions;
 using ECafe.Application.DTOs.Table;
 using ECafe.Application.Repositories.Table;
 using ECafe.Application.Services;
@@ -30,20 +31,21 @@ namespace ECafe.Application.Services.Table.Concrete
             _mapper = mapper;
         }
 
-        public async Task<int> CreateAsync(CreateTableRequest request)
+        public async Task<int> CreateAsync(int restaurantId, CreateTableRequest request)
         {
             if (request is null)
                 throw new BusinessRuleException("Request is required.");
 
-            EnsureCurrentUserCanAccessRestaurant(request.RestaurantId);
-            await _restaurantContractService.EnsureRestaurantHasActiveContractAsync(request.RestaurantId);
+            if (restaurantId <= 0)
+                throw new BusinessRuleException(ErrorCode.InvalidRestaurantId);
 
-            var existTable = await _tableRepository.CheckExistAsync(x => x.TableNo == request.TableNo && x.RestaurantId == request.RestaurantId);
+            EnsureCurrentUserCanAccessRestaurant(restaurantId);
+            await _restaurantContractService.EnsureRestaurantHasActiveContractAsync(restaurantId);
 
-            if (existTable)
-                throw new InvalidOperationException("Table with the same number already exists.");
+            await EnsureTableNumberIsUniqueAsync(restaurantId, request.TableNo);
 
             var table = _mapper.Map<Domain.Entities.Table>(request);
+            table.RestaurantId = restaurantId;
 
             await _tableRepository.Add(table);
             await _tableRepository.SaveChangesAsync();
@@ -54,7 +56,7 @@ namespace ECafe.Application.Services.Table.Concrete
         public async Task<List<TableResponse>> GetByRestaurantAsync(int restaurantId)
         {
             if (restaurantId <= 0)
-                throw new BusinessRuleException("Invalid restaurant ID!");
+                throw new BusinessRuleException(ErrorCode.InvalidRestaurantId);
 
             EnsureCurrentUserCanAccessRestaurant(restaurantId);
 
@@ -74,6 +76,89 @@ namespace ECafe.Application.Services.Table.Concrete
                 .ToListAsync();
 
             return tables;
+        }
+
+        public async Task<TableResponse> UpdateAsync(int restaurantId, int tableId, UpdateTableRequest request)
+        {
+            if (request is null)
+                throw new BusinessRuleException(ErrorCode.RequestCannotBeNull);
+
+            if (restaurantId <= 0)
+                throw new BusinessRuleException(ErrorCode.InvalidRestaurantId);
+
+            EnsureCurrentUserCanAccessRestaurant(restaurantId);
+            await _restaurantContractService.EnsureRestaurantHasActiveContractAsync(restaurantId);
+
+            var table = await GetTrackedTableAsync(restaurantId, tableId);
+            await EnsureTableNumberIsUniqueAsync(restaurantId, request.TableNo, tableId);
+
+            _mapper.Map(request, table);
+            await _tableRepository.SaveChangesAsync();
+
+            return MapTableResponse(table);
+        }
+
+        public async Task<TableResponse> DeactivateAsync(int restaurantId, int tableId)
+        {
+            if (restaurantId <= 0)
+                throw new BusinessRuleException(ErrorCode.InvalidRestaurantId);
+
+            EnsureCurrentUserCanAccessRestaurant(restaurantId);
+
+            var table = await GetTrackedTableAsync(restaurantId, tableId);
+            table.IsActive = false;
+
+            await _tableRepository.SaveChangesAsync();
+
+            return MapTableResponse(table);
+        }
+
+        public async Task<TableResponse> DeleteAsync(int restaurantId, int tableId)
+        {
+            if (restaurantId <= 0)
+                throw new BusinessRuleException(ErrorCode.InvalidRestaurantId);
+
+            EnsureCurrentUserCanAccessRestaurant(restaurantId);
+
+            var table = await GetTrackedTableAsync(restaurantId, tableId);
+            await _tableRepository.Delete(table);
+            await _tableRepository.SaveChangesAsync();
+
+            return MapTableResponse(table);
+        }
+
+        private async Task EnsureTableNumberIsUniqueAsync(int restaurantId, int tableNo, int? excludeTableId = null)
+        {
+            var tableExists = await _tableRepository.CheckExistAsync(x =>
+                x.RestaurantId == restaurantId &&
+                x.TableNo == tableNo &&
+                (!excludeTableId.HasValue || x.Id != excludeTableId.Value));
+
+            if (tableExists)
+                throw new BusinessRuleException(ErrorCode.TableAlreadyExists, new { tableNo });
+        }
+
+        private async Task<Domain.Entities.Table> GetTrackedTableAsync(int restaurantId, int tableId)
+        {
+            var table = await _tableRepository
+                .QueryTracked(x => x.RestaurantId == restaurantId && x.Id == tableId)
+                .FirstOrDefaultAsync();
+
+            return table ?? throw new NotFoundException(ErrorCode.TableNotFound);
+        }
+
+        private static TableResponse MapTableResponse(Domain.Entities.Table table)
+        {
+            return new TableResponse
+            {
+                Id = table.Id,
+                RestaurantId = table.RestaurantId,
+                TableNo = table.TableNo,
+                Name = table.Name,
+                Capacity = table.Capacity,
+                IsActive = table.IsActive,
+                IsEmpty = table.IsEmpty
+            };
         }
     }
 }
