@@ -1,4 +1,4 @@
-﻿using ECafe.Application.Repositories.UserRestaurant;
+using ECafe.Application.Repositories.UserRestaurant;
 using ECafe.Domain.Enums;
 using ECafe.Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
@@ -31,6 +31,28 @@ namespace ECafe.Infrastructure.Repositories.UserRestaurant
                     x.Restaurant.IsActive)
                 .Include(x => x.Restaurant)
                 .FirstOrDefaultAsync();
+
+        public Task<Domain.Entities.UserRestaurant?> GetActiveStaffAssignmentAsync(int restaurantId, int staffId)
+            => QueryTracked(x =>
+                    x.RestaurantId == restaurantId &&
+                    x.UserId == staffId &&
+                    x.IsActive &&
+                    x.Restaurant.IsActive &&
+                    x.User.IsActive &&
+                    x.User.RoleId != (int)RoleCode.Customer &&
+                    x.User.RoleId != (int)RoleCode.SuperAdmin)
+                .Include(x => x.Restaurant)
+                .Include(x => x.User)
+                .ThenInclude(u => u.Role)
+                .FirstOrDefaultAsync();
+
+        public Task<bool> HasAnyOtherActiveAssignmentAsync(int userId, int excludedUserRestaurantId)
+            => Query(x =>
+                    x.UserId == userId &&
+                    x.Id != excludedUserRestaurantId &&
+                    x.IsActive &&
+                    x.Restaurant.IsActive)
+                .AnyAsync();
 
         public Task<Domain.Entities.UserRestaurant?> GetActiveOwnerByRestaurantAsync(int restaurantId)
             => Query(x =>

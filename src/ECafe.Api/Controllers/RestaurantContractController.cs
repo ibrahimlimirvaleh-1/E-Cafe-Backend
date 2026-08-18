@@ -31,6 +31,14 @@ namespace ECafe.Api.Controllers
             => Ok(await Mediator.Send(new GetRestaurantContractsQuery(restaurantId)));
 
         [HasPermission(Domain.Enums.PermissionCode.ViewRestaurantContracts)]
+        [HttpGet("api/v1/restaurants/{restaurantId}/contracts/paged")]
+        public async Task<IActionResult> GetPagedByRestaurant(int restaurantId, [FromQuery] GetPagedRestaurantContractsQuery query)
+        {
+            query.RestaurantId = restaurantId;
+            return Ok(await Mediator.Send(query));
+        }
+
+        [HasPermission(Domain.Enums.PermissionCode.ViewRestaurantContracts)]
         [HttpGet("api/v1/restaurants/{restaurantId}/contracts/active")]
         public async Task<IActionResult> GetActive(int restaurantId)
             => Ok(await Mediator.Send(new GetActiveRestaurantContractQuery(restaurantId)));

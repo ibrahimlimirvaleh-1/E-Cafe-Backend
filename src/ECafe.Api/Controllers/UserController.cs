@@ -1,4 +1,5 @@
 using ECafe.Application.Features.Commands.User.Create;
+using ECafe.Application.Features.Commands.User.DeactivateStaff;
 using ECafe.Application.Features.Commands.User.Delete;
 using ECafe.Application.Features.Commands.User.UpdateProfile;
 using ECafe.Application.Features.Commands.User.UpdateRole;
@@ -32,6 +33,14 @@ namespace ECafe.Api.Controllers
         {
             var command = new DeleteUserCommand { Id = userId };
             await Mediator.Send(command);
+            return Ok();
+        }
+
+        [HasPermission(Domain.Enums.PermissionCode.ManageStaff)]
+        [HttpPatch("api/v1/restaurants/{restaurantId:int}/staff/{staffId:int}/deactivate")]
+        public async Task<IActionResult> DeactivateStaff(int restaurantId, int staffId)
+        {
+            await Mediator.Send(new DeactivateStaffCommand(restaurantId, staffId));
             return Ok();
         }
 

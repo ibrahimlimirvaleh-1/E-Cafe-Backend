@@ -17,6 +17,7 @@ namespace ECafe.Application.Common.Audit
 
         public const string CategoryCreated = "CategoryCreated";
         public const string ItemCreated = "ItemCreated";
+        public const string StaffDeactivated = "StaffDeactivated";
 
         public const string ReservationCreated = "ReservationCreated";
         public const string OrderCreated = "OrderCreated";
@@ -36,6 +37,7 @@ namespace ECafe.Application.Common.Audit
             new(17, ContractTerminated, "Müqavilə ləğv edildi"),
             new(30, CategoryCreated, "Kateqoriya yaradıldı"),
             new(31, ItemCreated, "Menyu elementi yaradıldı"),
+            new(32, StaffDeactivated, "İşçi deaktiv edildi"),
             new(40, ReservationCreated, "Rezervasiya yaradıldı"),
             new(50, OrderCreated, "Sifariş yaradıldı")
         ];

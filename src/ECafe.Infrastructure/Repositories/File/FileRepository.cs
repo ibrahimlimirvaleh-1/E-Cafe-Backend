@@ -43,6 +43,11 @@ namespace ECafe.Infrastructure.Repositories.File
                 .Include(file => file.RestaurantContracts)
                 .FirstOrDefaultAsync(file => file.Token == token);
 
+        public Task<Domain.Entities.File?> GetPublicByTokenAsync(string token)
+            => _context.Files
+                .Include(file => file.FileType)
+                .FirstOrDefaultAsync(file => file.Token == token);
+
         public Task<bool> IsAttachedAsync(int fileId)
             => _context.Files
                 .AnyAsync(file =>

@@ -1,5 +1,6 @@
 using ECafe.Application.DTOs.RestaurantContract;
 using ECafe.Application.DTOs.Workflow;
+using ECafe.Shared.DTOs;
 
 namespace ECafe.Application.Services.RestaurantContract.Abstract
 {
@@ -10,6 +11,10 @@ namespace ECafe.Application.Services.RestaurantContract.Abstract
         Task UpdateAsync(int restaurantId, int contractId, UpdateRestaurantContractRequest request);
 
         Task<List<RestaurantContractResponse>> GetByRestaurantAsync(int restaurantId);
+
+        Task<PaginatedList<RestaurantContractResponse>> GetPagedByRestaurantAsync(
+            int restaurantId,
+            RestaurantContractFilterRequest request);
 
         Task<RestaurantContractResponse> GetActiveAsync(int restaurantId);
 

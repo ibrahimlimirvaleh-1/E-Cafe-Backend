@@ -11,6 +11,8 @@ namespace ECafe.Application.Services.User.Abstract
 
         public Task DeleteAsync(int userId);
 
+        public Task DeactivateStaffAsync(int restaurantId, int staffId);
+
         public Task<AuthResponseDto> UpdateRoleAsync(int userId, int roleId);
 
         public Task<PaginatedList<GetAllUserResponseDto>> GetAllAsync(int? restaurantId, PaginationFilter filter);

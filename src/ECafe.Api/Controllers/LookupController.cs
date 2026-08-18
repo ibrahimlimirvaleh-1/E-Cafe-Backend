@@ -50,6 +50,14 @@ namespace ECafe.Api.Controllers
         public IActionResult GetInventoryMovementTypes()
             => Ok(MapEnum<InventoryMovementTypeCode>());
 
+        [HttpGet("api/v1/lookups/outbox-statuses")]
+        public IActionResult GetOutboxStatuses()
+            => Ok(MapEnum<OutboxMessageStatus>());
+
+        [HttpGet("api/v1/lookups/notification-channels")]
+        public IActionResult GetNotificationChannels()
+            => Ok(MapEnum<OutboxMessageChannel>());
+
         private static List<LookupItemResponse> MapEnum<TEnum>()
             where TEnum : struct, Enum
             => Enum.GetValues<TEnum>()
