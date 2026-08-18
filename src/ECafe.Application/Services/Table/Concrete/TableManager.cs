@@ -30,20 +30,21 @@ namespace ECafe.Application.Services.Table.Concrete
             _mapper = mapper;
         }
 
-        public async Task<int> CreateAsync(CreateTableRequest request)
+        public async Task<int> CreateAsync(int restaurantId, CreateTableRequest request)
         {
             if (request is null)
                 throw new BusinessRuleException("Request is required.");
 
-            EnsureCurrentUserCanAccessRestaurant(request.RestaurantId);
-            await _restaurantContractService.EnsureRestaurantHasActiveContractAsync(request.RestaurantId);
+            if (restaurantId <= 0)
+                throw new BusinessRuleException(ErrorCode.InvalidRestaurantId);
 
-            var existTable = await _tableRepository.CheckExistAsync(x => x.TableNo == request.TableNo && x.RestaurantId == request.RestaurantId);
+            EnsureCurrentUserCanAccessRestaurant(restaurantId);
+            await _restaurantContractService.EnsureRestaurantHasActiveContractAsync(restaurantId);
 
-            if (existTable)
-                throw new InvalidOperationException("Table with the same number already exists.");
+            await EnsureTableNumberIsUniqueAsync(restaurantId, request.TableNo);
 
             var table = _mapper.Map<Domain.Entities.Table>(request);
+            table.RestaurantId = restaurantId;
 
             await _tableRepository.Add(table);
             await _tableRepository.SaveChangesAsync();
@@ -74,6 +75,16 @@ namespace ECafe.Application.Services.Table.Concrete
                 .ToListAsync();
 
             return tables;
+        }
+
+        private async Task EnsureTableNumberIsUniqueAsync(int restaurantId, int tableNo)
+        {
+            var tableExists = await _tableRepository.CheckExistAsync(x =>
+                x.RestaurantId == restaurantId &&
+                x.TableNo == tableNo);
+
+            if (tableExists)
+                throw new BusinessRuleException(ErrorCode.TableAlreadyExists, new { tableNo });
         }
     }
 }

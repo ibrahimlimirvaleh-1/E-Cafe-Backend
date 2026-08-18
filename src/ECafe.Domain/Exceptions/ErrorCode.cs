@@ -30,6 +30,7 @@ public enum ErrorCode
     InventoryStockCannotBeNegative = 2007,
     InventoryUnitConversionNotAllowed = 2008,
     InventoryMovementNotFound = 2009,
+    TableAlreadyExists = 2010,
 
     InvalidFileToken = 3000,
     FileNotFound = 3001,
