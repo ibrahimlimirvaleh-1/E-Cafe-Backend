@@ -3,6 +3,7 @@ using ECafe.Application.Features.Commands.User.DeactivateStaff;
 using ECafe.Application.Features.Commands.User.Delete;
 using ECafe.Application.Features.Commands.User.UpdateProfile;
 using ECafe.Application.Features.Commands.User.UpdateRole;
+using ECafe.Application.Features.Commands.User.UpdateStaff;
 using ECafe.Application.Features.Queries.Restaurant.GetAll;
 using ECafe.Application.Features.Queries.User.GetAll;
 using ECafe.Application.Features.Queries.User.GetProfile;
@@ -42,6 +43,16 @@ namespace ECafe.Api.Controllers
         {
             await Mediator.Send(new DeactivateStaffCommand(restaurantId, staffId));
             return Ok();
+        }
+
+        [HasPermission(Domain.Enums.PermissionCode.ManageStaff)]
+        [HttpPut("api/v1/restaurants/{restaurantId:int}/staff/{staffId:int}")]
+        public async Task<IActionResult> UpdateStaff(int restaurantId, int staffId, [FromForm] UpdateStaffCommand command)
+        {
+            command.RestaurantId = restaurantId;
+            command.StaffId = staffId;
+
+            return Ok(await Mediator.Send(command));
         }
 
         [HasPermission(Domain.Enums.PermissionCode.ManageStaff)]

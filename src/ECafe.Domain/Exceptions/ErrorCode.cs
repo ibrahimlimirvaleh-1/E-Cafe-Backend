@@ -31,6 +31,7 @@ public enum ErrorCode
     InventoryUnitConversionNotAllowed = 2008,
     InventoryMovementNotFound = 2009,
     TableAlreadyExists = 2010,
+    TableNotFound = 2011,
 
     InvalidFileToken = 3000,
     FileNotFound = 3001,

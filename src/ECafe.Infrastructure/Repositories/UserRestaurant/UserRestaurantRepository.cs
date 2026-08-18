@@ -44,6 +44,8 @@ namespace ECafe.Infrastructure.Repositories.UserRestaurant
                 .Include(x => x.Restaurant)
                 .Include(x => x.User)
                 .ThenInclude(u => u.Role)
+                .Include(x => x.User)
+                .ThenInclude(u => u.File)
                 .FirstOrDefaultAsync();
 
         public Task<bool> HasAnyOtherActiveAssignmentAsync(int userId, int excludedUserRestaurantId)
