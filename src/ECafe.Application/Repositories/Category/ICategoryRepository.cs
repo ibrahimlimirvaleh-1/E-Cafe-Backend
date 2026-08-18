@@ -1,4 +1,4 @@
-﻿using ECafe.Application.Repository;
+using ECafe.Application.Repository;
 
 namespace ECafe.Application.Repositories.Category
 {
@@ -7,5 +7,7 @@ namespace ECafe.Application.Repositories.Category
         Task<List<Domain.Entities.Category>> GetCategoriesByRestaurantIdAsync(int restaurantId);
 
         Task<int> GetMaxSortOrderByRestaurantIdAsync(int restaurantId);
+
+        Task<Domain.Entities.Category?> GetByRestaurantAsync(int restaurantId, int categoryId);
     }
 }

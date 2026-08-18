@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using ECafe.Application.Common.Audit;
 using ECafe.Application.DTOs.Category;
 using ECafe.Application.Repositories.Category;
@@ -10,6 +10,7 @@ using ECafe.Application.Services.RestaurantContract.Abstract;
 using ECafe.Domain.Entities;
 using ECafe.Domain.Exceptions;
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using ECafe.Shared.Extensions;
 public class CategoryManager : BaseManager, ICategoryService
@@ -72,6 +73,91 @@ public class CategoryManager : BaseManager, ICategoryService
         return category.Id;
     }
 
+    public async Task<GetAllCategoryResponse> UpdateCategoryAsync(
+        int restaurantId,
+        int categoryId,
+        UpdateCategoryRequest request)
+    {
+        if (request is null)
+            throw new BusinessRuleException("Request is null!");
+
+        await EnsureCategoryMutationContextAsync(restaurantId);
+
+        var category = await GetTrackedCategoryAsync(restaurantId, categoryId);
+        category.Name = request.Name.Trim();
+        category.Slug = category.Name.GenerateSlug();
+        category.SortOrder = await ResolveSortOrderAsync(restaurantId, request.SortOrder);
+        category.IsActive = request.IsActive;
+
+        await _categoryRepository.SaveChangesAsync();
+
+        await _auditLogService.RecordRestaurantActionAsync(
+            restaurantId,
+            AuditActions.CategoryUpdated,
+            new
+            {
+                categoryId = category.Id,
+                category.Name,
+                category.Slug,
+                category.SortOrder,
+                category.IsActive
+            },
+            AuditEntityTypes.Category,
+            category.Id,
+            category.Name);
+
+        return Mapper.Map<GetAllCategoryResponse>(category);
+    }
+
+    public async Task<GetAllCategoryResponse> DeactivateCategoryAsync(int restaurantId, int categoryId)
+    {
+        await EnsureCategoryMutationContextAsync(restaurantId);
+
+        var category = await GetTrackedCategoryAsync(restaurantId, categoryId);
+        category.IsActive = false;
+
+        await _categoryRepository.SaveChangesAsync();
+
+        await _auditLogService.RecordRestaurantActionAsync(
+            restaurantId,
+            AuditActions.CategoryDeactivated,
+            new
+            {
+                categoryId = category.Id,
+                category.Name
+            },
+            AuditEntityTypes.Category,
+            category.Id,
+            category.Name);
+
+        return Mapper.Map<GetAllCategoryResponse>(category);
+    }
+
+    public async Task<GetAllCategoryResponse> DeleteCategoryAsync(int restaurantId, int categoryId)
+    {
+        await EnsureCategoryMutationContextAsync(restaurantId);
+
+        var category = await GetTrackedCategoryAsync(restaurantId, categoryId);
+        category.IsActive = false;
+
+        await _categoryRepository.Delete(category);
+        await _categoryRepository.SaveChangesAsync();
+
+        await _auditLogService.RecordRestaurantActionAsync(
+            restaurantId,
+            AuditActions.CategoryDeleted,
+            new
+            {
+                categoryId = category.Id,
+                category.Name
+            },
+            AuditEntityTypes.Category,
+            category.Id,
+            category.Name);
+
+        return Mapper.Map<GetAllCategoryResponse>(category);
+    }
+
     public async Task<List<GetAllCategoryResponse>> GetCategoriesByRestaurantIdAsync(int restaurantId)
     {
         if (restaurantId <= 0)
@@ -95,5 +181,30 @@ public class CategoryManager : BaseManager, ICategoryService
 
         var maxSortOrder = await _categoryRepository.GetMaxSortOrderByRestaurantIdAsync(restaurantId);
         return maxSortOrder + 1;
+    }
+
+    private async Task EnsureCategoryMutationContextAsync(int restaurantId)
+    {
+        if (restaurantId <= 0)
+            throw new BusinessRuleException("Invalid restaurant ID!");
+
+        var restaurantExists = await _restaurantRepository
+            .Query(x => x.Id == restaurantId && x.IsActive)
+            .AnyAsync();
+
+        if (!restaurantExists)
+            throw new BusinessRuleException("Restaurant not found!");
+
+        EnsureCurrentUserCanAccessRestaurant(restaurantId);
+        await _restaurantContractService.EnsureRestaurantHasActiveContractAsync(restaurantId);
+    }
+
+    private async Task<Category> GetTrackedCategoryAsync(int restaurantId, int categoryId)
+    {
+        if (categoryId <= 0)
+            throw new BusinessRuleException("Invalid category ID!");
+
+        var category = await _categoryRepository.GetByRestaurantAsync(restaurantId, categoryId);
+        return category ?? throw new BusinessRuleException("Category not found!");
     }
 }

@@ -16,6 +16,9 @@ namespace ECafe.Application.Common.Audit
         public const string ContractTerminated = "ContractTerminated";
 
         public const string CategoryCreated = "CategoryCreated";
+        public const string CategoryUpdated = "CategoryUpdated";
+        public const string CategoryDeactivated = "CategoryDeactivated";
+        public const string CategoryDeleted = "CategoryDeleted";
         public const string ItemCreated = "ItemCreated";
         public const string StaffUpdated = "StaffUpdated";
         public const string StaffDeactivated = "StaffDeactivated";
@@ -40,6 +43,9 @@ namespace ECafe.Application.Common.Audit
             new(16, ContractExpired, "Müqavilənin müddəti bitdi"),
             new(17, ContractTerminated, "Müqavilə ləğv edildi"),
             new(30, CategoryCreated, "Kateqoriya yaradıldı"),
+            new(37, CategoryUpdated, "Kateqoriya yeniləndi"),
+            new(38, CategoryDeactivated, "Kateqoriya deaktiv edildi"),
+            new(39, CategoryDeleted, "Kateqoriya silindi"),
             new(31, ItemCreated, "Menyu elementi yaradıldı"),
             new(33, StaffUpdated, "İşçi yeniləndi"),
             new(32, StaffDeactivated, "İşçi deaktiv edildi"),
