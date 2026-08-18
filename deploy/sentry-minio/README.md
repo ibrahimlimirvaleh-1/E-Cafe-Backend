@@ -40,7 +40,7 @@ Bu dəyərlər lokal faylda doldurulmalıdır:
 
 ## URL-lər
 
-- ECafe API: `http://localhost:8080`
+- ECafe API: `http://localhost:8081`
 - ECafe Frontend: `http://localhost:5173`
 - MinIO API: `http://localhost:9000`
 - MinIO Console: `http://localhost:9011`
@@ -66,3 +66,17 @@ docker compose down -v
 ```
 
 `down -v` database və MinIO datalarını silir. Demo data lazımdırsa bu komandadan ehtiyatla istifadə edin.
+
+## Local debug və Docker portları
+
+Local debug zamanı Visual Studio profili `http://localhost:8080` istifadə edir. Docker API default olaraq hostda `http://localhost:8081` portuna çıxarılır ki, Visual Studio ilə eyni anda işləyə bilsin.
+
+Frontend hansı API-yə qoşulacağını öz `.env.local` faylında seçməlidir:
+
+```bash
+# Visual Studio Local API
+VITE_DEV_API_PROXY_TARGET=http://localhost:8080
+
+# Docker API
+VITE_DEV_API_PROXY_TARGET=http://localhost:8081
+```
