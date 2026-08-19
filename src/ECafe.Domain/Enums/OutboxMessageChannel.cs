@@ -8,6 +8,9 @@ namespace ECafe.Domain.Enums
         Email = 1,
 
         [Description("App bildirişi")]
-        InApp = 2
+        InApp = 2,
+
+        [Description("SMS")]
+        Sms = 3
     }
 }

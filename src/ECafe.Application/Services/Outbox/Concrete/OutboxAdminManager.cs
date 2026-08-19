@@ -35,10 +35,10 @@ namespace ECafe.Application.Services.Outbox.Concrete
             filter.PageSize = PaginationFilterNormalizer.NormalizePageSize(filter.PageSize, defaultPageSize: 20);
 
             var now = DateTime.UtcNow;
-            var query = _outboxRepository.Query(x => x.EventType == OutboxEventTypes.EmailNotificationRequested);
+            var query = _outboxRepository.Query(x => IsNotificationEvent(x.EventType));
 
-            if (filter.ChannelId.HasValue && filter.ChannelId.Value != (int)OutboxMessageChannel.Email)
-                query = query.Where(_ => false);
+            if (filter.ChannelId.HasValue)
+                query = ApplyChannelFilter(query, filter.ChannelId.Value);
 
             if (!string.IsNullOrWhiteSpace(filter.Search))
             {
@@ -77,13 +77,13 @@ namespace ECafe.Application.Services.Outbox.Concrete
 
         public async Task<OutboxMessageResponse> GetMessageAsync(Guid id)
         {
-            var outboxEvent = await GetEmailOutboxEventAsync(id, tracked: false);
+            var outboxEvent = await GetNotificationOutboxEventAsync(id, tracked: false);
             return Map(outboxEvent, DateTime.UtcNow);
         }
 
         public async Task<OutboxMessageResponse> RetryAsync(Guid id)
         {
-            var outboxEvent = await GetEmailOutboxEventAsync(id, tracked: true);
+            var outboxEvent = await GetNotificationOutboxEventAsync(id, tracked: true);
             var now = DateTime.UtcNow;
             var status = GetStatus(outboxEvent, now);
 
@@ -104,15 +104,25 @@ namespace ECafe.Application.Services.Outbox.Concrete
             return Map(outboxEvent, now);
         }
 
-        private async Task<Domain.Entities.OutboxEvent> GetEmailOutboxEventAsync(Guid id, bool tracked)
+        private async Task<Domain.Entities.OutboxEvent> GetNotificationOutboxEventAsync(Guid id, bool tracked)
         {
             var query = tracked ? _outboxRepository.QueryTracked() : _outboxRepository.Query();
             var outboxEvent = await query.FirstOrDefaultAsync(x =>
                 x.Id == id &&
-                x.EventType == OutboxEventTypes.EmailNotificationRequested);
+                IsNotificationEvent(x.EventType));
 
             return outboxEvent ?? throw new ECafe.Application.Common.Exceptions.NotFoundException(ErrorCode.OutboxMessageNotFound);
         }
+
+        private static IQueryable<Domain.Entities.OutboxEvent> ApplyChannelFilter(
+            IQueryable<Domain.Entities.OutboxEvent> query,
+            int channelId)
+            => channelId switch
+            {
+                (int)OutboxMessageChannel.Email => query.Where(x => x.EventType == OutboxEventTypes.EmailNotificationRequested),
+                (int)OutboxMessageChannel.Sms => query.Where(x => x.EventType == OutboxEventTypes.SmsNotificationRequested),
+                _ => query.Where(_ => false)
+            };
 
         private IQueryable<Domain.Entities.OutboxEvent> ApplyStatusFilter(
             IQueryable<Domain.Entities.OutboxEvent> query,
@@ -132,8 +142,9 @@ namespace ECafe.Application.Services.Outbox.Concrete
 
         private OutboxMessageResponse Map(Domain.Entities.OutboxEvent outboxEvent, DateTime now)
         {
-            var payload = DeserializePayload(outboxEvent.Payload);
+            var payload = DeserializePayload(outboxEvent);
             var status = GetStatus(outboxEvent, now);
+            var channel = GetChannel(outboxEvent.EventType);
 
             return new OutboxMessageResponse
             {
@@ -141,11 +152,11 @@ namespace ECafe.Application.Services.Outbox.Concrete
                 EventType = outboxEvent.EventType,
                 AggregateType = outboxEvent.AggregateType,
                 AggregateId = outboxEvent.AggregateId,
-                ChannelId = (int)OutboxMessageChannel.Email,
-                Channel = "Email",
+                ChannelId = (int)channel,
+                Channel = GetChannelName(channel),
                 StatusId = (int)status,
                 Status = GetStatusName(status),
-                Recipient = payload?.ToEmail ?? "-",
+                Recipient = payload?.Recipient ?? "-",
                 RecipientName = payload?.ToName ?? "-",
                 Subject = payload?.Subject ?? outboxEvent.EventType,
                 RetryCount = outboxEvent.RetryCount,
@@ -160,11 +171,43 @@ namespace ECafe.Application.Services.Outbox.Concrete
             };
         }
 
-        private static EmailNotificationOutboxPayload? DeserializePayload(string payload)
+        private static NotificationPayloadView? DeserializePayload(Domain.Entities.OutboxEvent outboxEvent)
         {
             try
             {
-                return JsonSerializer.Deserialize<EmailNotificationOutboxPayload>(payload, JsonOptions);
+                if (outboxEvent.EventType == OutboxEventTypes.EmailNotificationRequested)
+                {
+                    var emailPayload = JsonSerializer.Deserialize<EmailNotificationOutboxPayload>(
+                        outboxEvent.Payload,
+                        JsonOptions);
+
+                    return emailPayload is null
+                        ? null
+                        : new NotificationPayloadView(
+                            emailPayload.ToEmail,
+                            emailPayload.ToName,
+                            emailPayload.Subject,
+                            emailPayload.RelatedEntityType,
+                            emailPayload.RelatedEntityId);
+                }
+
+                if (outboxEvent.EventType == OutboxEventTypes.SmsNotificationRequested)
+                {
+                    var smsPayload = JsonSerializer.Deserialize<SmsNotificationOutboxPayload>(
+                        outboxEvent.Payload,
+                        JsonOptions);
+
+                    return smsPayload is null
+                        ? null
+                        : new NotificationPayloadView(
+                            smsPayload.ToPhone,
+                            smsPayload.ToName,
+                            smsPayload.Subject,
+                            smsPayload.RelatedEntityType,
+                            smsPayload.RelatedEntityId);
+                }
+
+                return null;
             }
             catch (JsonException)
             {
@@ -201,6 +244,24 @@ namespace ECafe.Application.Services.Outbox.Concrete
                 _ => status.ToString()
             };
 
+        private static bool IsNotificationEvent(string eventType)
+            => eventType == OutboxEventTypes.EmailNotificationRequested ||
+               eventType == OutboxEventTypes.SmsNotificationRequested;
+
+        private static OutboxMessageChannel GetChannel(string eventType)
+            => eventType == OutboxEventTypes.SmsNotificationRequested
+                ? OutboxMessageChannel.Sms
+                : OutboxMessageChannel.Email;
+
+        private static string GetChannelName(OutboxMessageChannel channel)
+            => channel switch
+            {
+                OutboxMessageChannel.Email => "Email",
+                OutboxMessageChannel.Sms => "SMS",
+                OutboxMessageChannel.InApp => "App bildirişi",
+                _ => channel.ToString()
+            };
+
         private static int GetPositiveIntSetting(IConfiguration configuration, string key, int fallback)
         {
             var value = configuration[key];
@@ -208,5 +269,12 @@ namespace ECafe.Application.Services.Outbox.Concrete
                 ? parsed
                 : fallback;
         }
+
+        private sealed record NotificationPayloadView(
+            string Recipient,
+            string ToName,
+            string Subject,
+            string? RelatedEntityType,
+            long? RelatedEntityId);
     }
 }

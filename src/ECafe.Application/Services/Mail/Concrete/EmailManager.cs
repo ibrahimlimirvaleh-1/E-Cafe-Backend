@@ -47,7 +47,11 @@ namespace ECafe.Application.Services
                 $"Salam {name},\n\n{body}");
         }
 
-        private async Task SendAsync(string toEmail, string subject, string body)
+        public async Task SendAsync(
+            string toEmail,
+            string subject,
+            string body,
+            CancellationToken cancellationToken = default)
         {
             var smtpHost = GetRequiredEmailSetting("SmtpHost");
             var smtpPortValue = GetRequiredEmailSetting("SmtpPort");
@@ -84,9 +88,9 @@ namespace ECafe.Application.Services
                 throw new InvalidOperationException("SMTP connection must use TLS.");
 
             client.AuthenticationMechanisms.Remove("XOAUTH2");
-            await client.AuthenticateAsync(smtpUser, smtpPass);
-            await client.SendAsync(message);
-            await client.DisconnectAsync(true);
+            await client.AuthenticateAsync(smtpUser, smtpPass, cancellationToken);
+            await client.SendAsync(message, cancellationToken);
+            await client.DisconnectAsync(true, cancellationToken);
         }
 
         private string GetRequiredEmailSetting(string key)

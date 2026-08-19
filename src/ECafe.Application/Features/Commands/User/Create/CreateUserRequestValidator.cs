@@ -1,4 +1,5 @@
 using ECafe.Application.Features.Commands.User.Create;
+using ECafe.Application.Common.Validation;
 using FluentValidation;
 
 public sealed class CreateUserCommandValidator : AbstractValidator<CreateUserCommand>
@@ -19,8 +20,7 @@ public sealed class CreateUserCommandValidator : AbstractValidator<CreateUserCom
             .MaximumLength(100).WithMessage("Email must be at most 100 characters.");
 
         RuleFor(x => x.Phone)
-            .NotEmpty().WithMessage("Phone is required.")
-            .MaximumLength(20).WithMessage("Phone must be at most 20 characters.");
+            .MustBePhoneNumber();
 
         RuleFor(x => x.RestaurantId)
             .GreaterThan(0).WithMessage("RestaurantId must be greater than 0.");

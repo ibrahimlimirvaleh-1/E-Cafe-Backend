@@ -37,6 +37,7 @@ public enum ErrorCode
     InvalidFileToken = 3000,
     FileNotFound = 3001,
     FileStorageUnavailable = 3002,
+    NotificationProviderUnavailable = 3003,
 
     OutboxMessageNotFound = 4000,
     OutboxMessageAlreadySent = 4001,

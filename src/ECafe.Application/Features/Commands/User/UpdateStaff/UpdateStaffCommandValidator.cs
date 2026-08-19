@@ -1,3 +1,4 @@
+using ECafe.Application.Common.Validation;
 using FluentValidation;
 
 namespace ECafe.Application.Features.Commands.User.UpdateStaff
@@ -35,10 +36,7 @@ namespace ECafe.Application.Features.Commands.User.UpdateStaff
                 .WithMessage("Email cannot exceed 256 characters.");
 
             RuleFor(x => x.Phone)
-                .NotEmpty()
-                .WithMessage("Phone is required.")
-                .MaximumLength(32)
-                .WithMessage("Phone cannot exceed 32 characters.");
+                .MustBePhoneNumber();
 
             RuleFor(x => x.ServiceFeePercent)
                 .GreaterThanOrEqualTo(0)
