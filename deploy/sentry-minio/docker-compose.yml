@@ -94,6 +94,9 @@ services:
       Email__Password: ${ECAFE_EMAIL_PASSWORD:-}
       Email__From: ${ECAFE_EMAIL_FROM:-}
       Email__FromName: ${ECAFE_EMAIL_FROM_NAME:-E-Cafe Admin}
+      Email__SecureSocketOption: ${ECAFE_EMAIL_SECURE_SOCKET_OPTION:-StartTls}
+      Email__TimeoutSeconds: ${ECAFE_EMAIL_TIMEOUT_SECONDS:-30}
+      Email__LocalDomain: ${ECAFE_EMAIL_LOCAL_DOMAIN:-localhost}
 
       # Redis
       Redis__Connection: ecafe-redis:6379

@@ -1,8 +1,9 @@
 ﻿using AutoMapper;
+using MailKit.Net.Smtp;
+using MailKit.Security;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
-using System.Net;
-using System.Net.Mail;
+using MimeKit;
 
 namespace ECafe.Application.Services
 {
@@ -61,23 +62,31 @@ namespace ECafe.Application.Services
             if (string.IsNullOrWhiteSpace(fromEmail))
                 fromEmail = smtpUser;
 
-            using var client = new SmtpClient(smtpHost, smtpPort)
+            var message = new MimeMessage();
+            message.From.Add(new MailboxAddress(fromName, fromEmail));
+            message.To.Add(MailboxAddress.Parse(toEmail));
+            message.Subject = subject;
+            message.Body = new TextPart("plain")
             {
-                Credentials = new NetworkCredential(smtpUser, smtpPass),
-                EnableSsl = true
+                Text = body
             };
 
-            var mail = new MailMessage
-            {
-                From = new MailAddress(fromEmail!, fromName),
-                Subject = subject,
-                Body = body,
-                IsBodyHtml = false
-            };
+            using var client = new SmtpClient();
+            client.Timeout = GetEmailTimeoutMilliseconds();
+            client.LocalDomain = GetEmailLocalDomain();
 
-            mail.To.Add(toEmail);
+            await client.ConnectAsync(
+                smtpHost,
+                smtpPort,
+                GetSecureSocketOptions(smtpPort));
 
-            await client.SendMailAsync(mail);
+            if (!client.IsSecure)
+                throw new InvalidOperationException("SMTP connection must use TLS.");
+
+            client.AuthenticationMechanisms.Remove("XOAUTH2");
+            await client.AuthenticateAsync(smtpUser, smtpPass);
+            await client.SendAsync(message);
+            await client.DisconnectAsync(true);
         }
 
         private string GetRequiredEmailSetting(string key)
@@ -87,6 +96,39 @@ namespace ECafe.Application.Services
                 throw new InvalidOperationException($"Email:{key} configuration is required.");
 
             return value.Trim();
+        }
+
+        private SecureSocketOptions GetSecureSocketOptions(int smtpPort)
+        {
+            var configuredValue = _configuration["Email:SecureSocketOption"];
+            if (!string.IsNullOrWhiteSpace(configuredValue)
+                && Enum.TryParse<SecureSocketOptions>(configuredValue, ignoreCase: true, out var configuredOption))
+            {
+                return configuredOption;
+            }
+
+            return smtpPort switch
+            {
+                465 => SecureSocketOptions.SslOnConnect,
+                587 => SecureSocketOptions.StartTls,
+                _ => SecureSocketOptions.Auto
+            };
+        }
+
+        private int GetEmailTimeoutMilliseconds()
+        {
+            var value = _configuration["Email:TimeoutSeconds"];
+            return int.TryParse(value, out var seconds) && seconds > 0
+                ? seconds * 1000
+                : 30000;
+        }
+
+        private string GetEmailLocalDomain()
+        {
+            var value = _configuration["Email:LocalDomain"];
+            return string.IsNullOrWhiteSpace(value)
+                ? "localhost"
+                : value.Trim();
         }
     }
 }
