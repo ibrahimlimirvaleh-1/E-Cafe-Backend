@@ -24,6 +24,7 @@ public sealed class ErrorMessageProvider : IErrorMessageProvider
         [ErrorCode.AccountTemporarilyLocked] = "Account is temporarily locked because of too many failed login attempts. Please try again later.",
         [ErrorCode.RefreshTokenInvalid] = "Refresh token is invalid or expired.",
         [ErrorCode.RefreshTokenReuseDetected] = "Refresh token reuse was detected. All sessions were signed out for security.",
+        [ErrorCode.DuplicateResource] = "This record already exists.",
 
         [ErrorCode.RestaurantNotFound] = "Restaurant not found.",
         [ErrorCode.UnitNotFound] = "Unit not found.",
@@ -34,7 +35,7 @@ public sealed class ErrorMessageProvider : IErrorMessageProvider
         [ErrorCode.InventoryMovementQuantityMustBeGreaterThanZero] = "Quantity must be greater than zero.",
         [ErrorCode.InventoryStockCannotBeNegative] = "Stock cannot be negative.",
         [ErrorCode.InventoryUnitConversionNotAllowed] = "Unit conversion is not allowed between different unit groups.",
-        [ErrorCode.TableAlreadyExists] = "Table number {tableNo} already exists in this restaurant.",
+        [ErrorCode.TableAlreadyExists] = "A table with this number already exists in this restaurant.",
         [ErrorCode.TableNotFound] = "Table not found.",
 
         [ErrorCode.InvalidFileToken] = "Invalid file token.",

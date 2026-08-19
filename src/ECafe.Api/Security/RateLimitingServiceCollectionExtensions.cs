@@ -30,7 +30,7 @@ public static class RateLimitingServiceCollectionExtensions
                 {
                     statusCode = StatusCodes.Status429TooManyRequests,
                     code = ErrorCode.TooManyRequests.ToString(),
-                    message = "Too many requests. Please try again later.",
+                    message = "Çox sayda sorğu göndərildi. Bir az sonra yenidən cəhd edin.",
                     traceId = context.HttpContext.TraceIdentifier,
                     retryAfterSeconds,
                     timestamp = DateTime.UtcNow

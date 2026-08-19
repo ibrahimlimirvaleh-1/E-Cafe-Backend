@@ -82,6 +82,11 @@ services:
       Jwt__Audience: ${ECAFE_JWT_AUDIENCE:-ecafe-users}
       Jwt__AccessTokenLifetimeMinutes: ${ECAFE_JWT_ACCESS_TOKEN_LIFETIME_MINUTES:-15}
 
+      # Browser access
+      Cors__AllowedOrigins__0: ${ECAFE_FRONTEND_ORIGIN:-http://localhost:5173}
+      Cors__AllowedOrigins__1: ${ECAFE_FRONTEND_ORIGIN_ALT:-http://127.0.0.1:5173}
+      ForwardedHeaders__KnownProxies__0: ${ECAFE_KNOWN_PROXY_0:-}
+
       # Email
       Email__SmtpHost: ${ECAFE_EMAIL_SMTP_HOST:-smtp.gmail.com}
       Email__SmtpPort: ${ECAFE_EMAIL_SMTP_PORT:-587}

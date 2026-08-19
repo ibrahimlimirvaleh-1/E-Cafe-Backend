@@ -14,6 +14,7 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.SwaggerUI;
+using System.Net;
 using System.Text;
 using System.Text.Json;
 
@@ -94,8 +95,53 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
     options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
-    options.KnownNetworks.Clear();
-    options.KnownProxies.Clear();
+
+    if (builder.Environment.IsDevelopment() || builder.Environment.IsEnvironment("Local"))
+    {
+        options.KnownNetworks.Clear();
+        options.KnownProxies.Clear();
+        return;
+    }
+
+    var knownProxies = builder.Configuration
+        .GetSection("ForwardedHeaders:KnownProxies")
+        .Get<string[]>() ?? [];
+
+    foreach (var proxy in knownProxies)
+    {
+        if (IPAddress.TryParse(proxy, out var address))
+            options.KnownProxies.Add(address);
+    }
+});
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("EcafeCors", policy =>
+    {
+        var allowedOrigins = builder.Configuration
+            .GetSection("Cors:AllowedOrigins")
+            .Get<string[]>() ?? [];
+
+        if (allowedOrigins.Length > 0)
+        {
+            policy.WithOrigins(allowedOrigins)
+                .AllowAnyHeader()
+                .AllowAnyMethod();
+
+            return;
+        }
+
+        if (builder.Environment.IsDevelopment() || builder.Environment.IsEnvironment("Local"))
+        {
+            policy.WithOrigins(
+                    "http://localhost:5173",
+                    "http://127.0.0.1:5173",
+                    "http://localhost:8081",
+                    "http://127.0.0.1:8081")
+                .AllowAnyHeader()
+                .AllowAnyMethod();
+        }
+    });
 });
 
 builder.Services.AddApplication();
@@ -171,6 +217,7 @@ var app = builder.Build();
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseForwardedHeaders();
+app.UseMiddleware<SecurityHeadersMiddleware>();
 
 if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Local"))
 {
@@ -195,6 +242,7 @@ if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Local"))
 app.UseHttpsRedirection();
 
 app.UseRouting();
+app.UseCors("EcafeCors");
 app.UseAuthentication();
 app.UseRateLimiter();
 app.UseAuthorization();

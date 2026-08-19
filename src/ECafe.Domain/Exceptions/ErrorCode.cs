@@ -19,6 +19,7 @@ public enum ErrorCode
     AccountTemporarilyLocked = 1106,
     RefreshTokenInvalid = 1107,
     RefreshTokenReuseDetected = 1108,
+    DuplicateResource = 1109,
 
     RestaurantNotFound = 2000,
     UnitNotFound = 2001,
