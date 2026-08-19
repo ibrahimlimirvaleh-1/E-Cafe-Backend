@@ -133,6 +133,30 @@ public class CategoryManager : BaseManager, ICategoryService
         return Mapper.Map<GetAllCategoryResponse>(category);
     }
 
+    public async Task<GetAllCategoryResponse> ActivateCategoryAsync(int restaurantId, int categoryId)
+    {
+        await EnsureCategoryMutationContextAsync(restaurantId);
+
+        var category = await GetTrackedCategoryAsync(restaurantId, categoryId);
+        category.IsActive = true;
+
+        await _categoryRepository.SaveChangesAsync();
+
+        await _auditLogService.RecordRestaurantActionAsync(
+            restaurantId,
+            AuditActions.CategoryActivated,
+            new
+            {
+                categoryId = category.Id,
+                category.Name
+            },
+            AuditEntityTypes.Category,
+            category.Id,
+            category.Name);
+
+        return Mapper.Map<GetAllCategoryResponse>(category);
+    }
+
     public async Task<GetAllCategoryResponse> DeleteCategoryAsync(int restaurantId, int categoryId)
     {
         await EnsureCategoryMutationContextAsync(restaurantId);

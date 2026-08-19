@@ -14,7 +14,6 @@ namespace ECafe.Infrastructure.Repositories.Category
         {
             return Query()
                 .Where(c => c.RestaurantId == restaurantId &&
-                                                c.IsActive &&
                                                 c.Restaurant.IsActive)
                 .OrderBy(c => c.SortOrder)
                 .ToListAsync();

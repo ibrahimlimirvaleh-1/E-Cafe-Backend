@@ -10,6 +10,8 @@ namespace ECafe.Application.Repositories.UserRestaurant
 
         public Task<Domain.Entities.UserRestaurant?> GetActiveStaffAssignmentAsync(int restaurantId, int staffId);
 
+        public Task<Domain.Entities.UserRestaurant?> GetStaffAssignmentAsync(int restaurantId, int staffId);
+
         public Task<bool> HasAnyOtherActiveAssignmentAsync(int userId, int excludedUserRestaurantId);
 
         public Task<Domain.Entities.UserRestaurant?> GetActiveOwnerByRestaurantAsync(int restaurantId);

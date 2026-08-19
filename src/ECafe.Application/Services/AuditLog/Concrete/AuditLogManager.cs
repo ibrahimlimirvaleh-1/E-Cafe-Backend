@@ -1,5 +1,6 @@
 using AutoMapper;
 using ECafe.Application.Common.Audit;
+using ECafe.Application.Common.Dates;
 using ECafe.Application.Common.Outbox;
 using ECafe.Application.Common.Pagination;
 using ECafe.Application.DTOs.AuditLog;
@@ -166,13 +167,13 @@ namespace ECafe.Application.Services.AuditLog.Concrete
 
             if (filter.DateFrom.HasValue)
             {
-                var dateFromUtc = NormalizeUtc(filter.DateFrom.Value);
+                var dateFromUtc = DateTimeRangeNormalizer.ToUtcRangeStart(filter.DateFrom.Value);
                 query = query.Where(x => (x.OccurredAt ?? x.CreatedAt) >= dateFromUtc);
             }
 
             if (filter.DateTo.HasValue)
             {
-                var dateToUtc = NormalizeUtcDateTo(filter.DateTo.Value);
+                var dateToUtc = DateTimeRangeNormalizer.ToUtcRangeEnd(filter.DateTo.Value);
                 query = query.Where(x => (x.OccurredAt ?? x.CreatedAt) <= dateToUtc);
             }
 
@@ -251,25 +252,6 @@ namespace ECafe.Application.Services.AuditLog.Concrete
             };
 
             await _auditLogRepository.Add(auditLog);
-        }
-
-        private static DateTime NormalizeUtc(DateTime value)
-        {
-            if (value.Kind == DateTimeKind.Utc)
-                return value;
-
-            if (value.Kind == DateTimeKind.Local)
-                return value.ToUniversalTime();
-
-            return DateTime.SpecifyKind(value, DateTimeKind.Utc);
-        }
-
-        private static DateTime NormalizeUtcDateTo(DateTime value)
-        {
-            var utc = NormalizeUtc(value);
-            return utc.TimeOfDay == TimeSpan.Zero
-                ? utc.Date.AddDays(1).AddTicks(-1)
-                : utc;
         }
 
         private static List<AuditLogDetailResponse> BuildDetails(string? metadata)

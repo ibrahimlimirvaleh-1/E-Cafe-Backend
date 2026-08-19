@@ -46,6 +46,11 @@ namespace ECafe.Api.Controllers
         }
 
         [HasPermission(Domain.Enums.PermissionCode.ManageTables)]
+        [HttpPatch("api/v1/restaurants/{restaurantId}/tables/{tableId}/activate")]
+        public async Task<IActionResult> ActivateTable(int restaurantId, int tableId)
+            => Ok(await Mediator.Send(new ActivateTableCommand(restaurantId, tableId)));
+
+        [HasPermission(Domain.Enums.PermissionCode.ManageTables)]
         [HttpPatch("api/v1/restaurants/{restaurantId}/tables/{tableId}/deactivate")]
         public async Task<IActionResult> DeactivateTable(int restaurantId, int tableId)
             => Ok(await Mediator.Send(new DeactivateTableCommand(restaurantId, tableId)));

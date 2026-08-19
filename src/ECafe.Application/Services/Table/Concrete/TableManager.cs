@@ -1,8 +1,10 @@
 using AutoMapper;
+using ECafe.Application.Common.Audit;
 using ECafe.Application.Common.Exceptions;
 using ECafe.Application.DTOs.Table;
 using ECafe.Application.Repositories.Table;
 using ECafe.Application.Services;
+using ECafe.Application.Services.AuditLog.Abstract;
 using ECafe.Application.Services.RestaurantContract.Abstract;
 using ECafe.Application.Services.Table.Abstract;
 using ECafe.Domain.Exceptions;
@@ -16,6 +18,7 @@ namespace ECafe.Application.Services.Table.Concrete
     {
         private readonly ITableRepository _tableRepository;
         private readonly IRestaurantContractService _restaurantContractService;
+        private readonly IAuditLogService _auditLogService;
         private readonly IMapper _mapper;
 
         public TableManager(
@@ -23,11 +26,13 @@ namespace ECafe.Application.Services.Table.Concrete
             IMapper mapper,
             IConfiguration configuration,
             ITableRepository tableRepository,
-            IRestaurantContractService restaurantContractService)
+            IRestaurantContractService restaurantContractService,
+            IAuditLogService auditLogService)
             : base(httpContextAccessor, mapper, configuration)
         {
             _tableRepository = tableRepository;
             _restaurantContractService = restaurantContractService;
+            _auditLogService = auditLogService;
             _mapper = mapper;
         }
 
@@ -61,7 +66,7 @@ namespace ECafe.Application.Services.Table.Concrete
             EnsureCurrentUserCanAccessRestaurant(restaurantId);
 
             var tables = await _tableRepository
-                .Query(x => x.RestaurantId == restaurantId && x.IsActive)
+                .Query(x => x.RestaurantId == restaurantId)
                 .OrderBy(x => x.TableNo)
                 .Select(x => new TableResponse
                 {
@@ -98,6 +103,35 @@ namespace ECafe.Application.Services.Table.Concrete
             return MapTableResponse(table);
         }
 
+        public async Task<TableResponse> ActivateAsync(int restaurantId, int tableId)
+        {
+            if (restaurantId <= 0)
+                throw new BusinessRuleException(ErrorCode.InvalidRestaurantId);
+
+            EnsureCurrentUserCanAccessRestaurant(restaurantId);
+            await _restaurantContractService.EnsureRestaurantHasActiveContractAsync(restaurantId);
+
+            var table = await GetTrackedTableAsync(restaurantId, tableId);
+            table.IsActive = true;
+
+            await _tableRepository.SaveChangesAsync();
+
+            await _auditLogService.RecordRestaurantActionAsync(
+                restaurantId,
+                AuditActions.TableActivated,
+                new
+                {
+                    table.Id,
+                    table.TableNo,
+                    table.Name
+                },
+                AuditEntityTypes.Table,
+                table.Id,
+                table.Name);
+
+            return MapTableResponse(table);
+        }
+
         public async Task<TableResponse> DeactivateAsync(int restaurantId, int tableId)
         {
             if (restaurantId <= 0)
@@ -109,6 +143,19 @@ namespace ECafe.Application.Services.Table.Concrete
             table.IsActive = false;
 
             await _tableRepository.SaveChangesAsync();
+
+            await _auditLogService.RecordRestaurantActionAsync(
+                restaurantId,
+                AuditActions.TableDeactivated,
+                new
+                {
+                    table.Id,
+                    table.TableNo,
+                    table.Name
+                },
+                AuditEntityTypes.Table,
+                table.Id,
+                table.Name);
 
             return MapTableResponse(table);
         }
