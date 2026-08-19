@@ -10,6 +10,8 @@ namespace ECafe.Application.Services.Category.Abstract
 
         Task<GetAllCategoryResponse> UpdateCategoryAsync(int restaurantId, int categoryId, UpdateCategoryRequest request);
 
+        Task<GetAllCategoryResponse> ActivateCategoryAsync(int restaurantId, int categoryId);
+
         Task<GetAllCategoryResponse> DeactivateCategoryAsync(int restaurantId, int categoryId);
 
         Task<GetAllCategoryResponse> DeleteCategoryAsync(int restaurantId, int categoryId);

@@ -229,8 +229,12 @@ namespace ECafe.Application.Services.Restaurant.Concrete
         public async Task<List<StaffPublicResponseDto>> GetRestaurantPublicStaffAsync(int restaurantId)
         {
             var staffs = await GetRestaurantStaffEntitiesAsync(restaurantId);
-            var activeCounts = await GetActiveTableSessionCountsAsync(restaurantId, staffs);
-            var tasks = staffs.Select(staff => MapToPublicDtoAsync(staff, activeCounts.GetValueOrDefault(staff.UserId)));
+            var activeStaffs = staffs
+                .Where(staff => staff.IsActive && staff.User.IsActive)
+                .ToList();
+
+            var activeCounts = await GetActiveTableSessionCountsAsync(restaurantId, activeStaffs);
+            var tasks = activeStaffs.Select(staff => MapToPublicDtoAsync(staff, activeCounts.GetValueOrDefault(staff.UserId)));
             return (await Task.WhenAll(tasks)).ToList();
         }
 

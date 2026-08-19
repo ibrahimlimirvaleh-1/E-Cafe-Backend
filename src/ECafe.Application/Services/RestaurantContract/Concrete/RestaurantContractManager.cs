@@ -1,5 +1,6 @@
 using AutoMapper;
 using ECafe.Application.Common.Audit;
+using ECafe.Application.Common.Dates;
 using ECafe.Application.Common.Pagination;
 using ECafe.Application.DTOs.Auth;
 using ECafe.Application.DTOs.Notification;
@@ -268,10 +269,16 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             }
 
             if (request.EndDateFrom.HasValue)
-                query = query.Where(x => x.EndDate.HasValue && x.EndDate.Value >= request.EndDateFrom.Value);
+            {
+                var endDateFromUtc = DateTimeRangeNormalizer.ToUtcRangeStart(request.EndDateFrom.Value);
+                query = query.Where(x => x.EndDate.HasValue && x.EndDate.Value >= endDateFromUtc);
+            }
 
             if (request.EndDateTo.HasValue)
-                query = query.Where(x => x.EndDate.HasValue && x.EndDate.Value <= request.EndDateTo.Value);
+            {
+                var endDateToUtc = DateTimeRangeNormalizer.ToUtcRangeEnd(request.EndDateTo.Value);
+                query = query.Where(x => x.EndDate.HasValue && x.EndDate.Value <= endDateToUtc);
+            }
 
             if (request.ExpiringInDays.HasValue && request.ExpiringInDays.Value > 0)
             {

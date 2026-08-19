@@ -1,4 +1,5 @@
 using System.Text.Json;
+using ECafe.Application.Common.Dates;
 using ECafe.Application.Common.Outbox;
 using ECafe.Application.Common.Pagination;
 using ECafe.Application.DTOs.Outbox;
@@ -48,10 +49,16 @@ namespace ECafe.Application.Services.Outbox.Concrete
             }
 
             if (filter.DateFrom.HasValue)
-                query = query.Where(x => x.OccurredAt >= NormalizeUtc(filter.DateFrom.Value));
+            {
+                var dateFromUtc = DateTimeRangeNormalizer.ToUtcRangeStart(filter.DateFrom.Value);
+                query = query.Where(x => x.OccurredAt >= dateFromUtc);
+            }
 
             if (filter.DateTo.HasValue)
-                query = query.Where(x => x.OccurredAt <= NormalizeUtcDateTo(filter.DateTo.Value));
+            {
+                var dateToUtc = DateTimeRangeNormalizer.ToUtcRangeEnd(filter.DateTo.Value);
+                query = query.Where(x => x.OccurredAt <= dateToUtc);
+            }
 
             if (filter.StatusId.HasValue)
             {
@@ -183,17 +190,6 @@ namespace ECafe.Application.Services.Outbox.Concrete
             => status is OutboxMessageStatus.Pending or OutboxMessageStatus.Processing
                 ? outboxEvent.LockedUntil
                 : null;
-
-        private static DateTime NormalizeUtc(DateTime value)
-            => value.Kind == DateTimeKind.Utc ? value : DateTime.SpecifyKind(value, DateTimeKind.Utc);
-
-        private static DateTime NormalizeUtcDateTo(DateTime value)
-        {
-            var utc = NormalizeUtc(value);
-            return utc.TimeOfDay == TimeSpan.Zero
-                ? utc.Date.AddDays(1).AddTicks(-1)
-                : utc;
-        }
 
         private static string GetStatusName(OutboxMessageStatus status)
             => status switch

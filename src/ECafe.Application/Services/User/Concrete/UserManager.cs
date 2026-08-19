@@ -115,6 +115,41 @@ namespace ECafe.Application.Services.User.Concrete
             await _userRepository.SaveChangesAsync();
         }
 
+        public async Task ActivateStaffAsync(int restaurantId, int staffId)
+        {
+            if (restaurantId <= 0)
+                throw new BusinessRuleException("Invalid restaurant id");
+
+            if (staffId <= 0)
+                throw new BusinessRuleException("Invalid staff id");
+
+            EnsureCurrentUserCanAccessRestaurant(restaurantId);
+
+            var staffAssignment = await _userRestaurantRepository.GetStaffAssignmentAsync(restaurantId, staffId);
+            if (staffAssignment is null)
+                throw new BusinessRuleException("Staff assignment not found.");
+
+            staffAssignment.IsActive = true;
+            staffAssignment.User.IsActive = true;
+
+            await _auditLogService.RecordRestaurantActionAsync(
+                restaurantId,
+                AuditActions.StaffActivated,
+                new
+                {
+                    StaffId = staffAssignment.UserId,
+                    StaffName = $"{staffAssignment.User.Name} {staffAssignment.User.Surname}",
+                    staffAssignment.User.Email,
+                    RoleName = GetRoleDescription(staffAssignment.User.RoleId),
+                    RestaurantName = staffAssignment.Restaurant.Name
+                },
+                AuditEntityTypes.User,
+                staffAssignment.UserId,
+                $"{staffAssignment.User.Name} {staffAssignment.User.Surname}");
+
+            await _userRestaurantRepository.SaveChangesAsync();
+        }
+
         public async Task DeactivateStaffAsync(int restaurantId, int staffId)
         {
             if (restaurantId <= 0)

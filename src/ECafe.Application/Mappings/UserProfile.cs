@@ -87,7 +87,7 @@ namespace ECafe.Application.Mappings
                 .ForMember(dest => dest.Role, opt => opt.MapFrom(src => src.User.Role.Name))
                 .ForMember(dest => dest.Email, opt => opt.MapFrom(src => src.User.Email))
                 .ForMember(dest => dest.Phone, opt => opt.MapFrom(src => src.User.Phone))
-                .ForMember(dest => dest.IsActive, opt => opt.MapFrom(src => src.User.IsActive))
+                .ForMember(dest => dest.IsActive, opt => opt.MapFrom(src => src.IsActive && src.User.IsActive))
                 .ForMember(dest => dest.ServiceFeePercent, opt => opt.MapFrom(src => src.ServiceFeePercent))
                 .ForMember(dest => dest.MaxActiveTableCount, opt => opt.MapFrom(src => src.MaxActiveTableCount))
                 .ForMember(dest => dest.EffectiveMaxActiveTableCount, opt => opt.MapFrom(src =>

@@ -11,6 +11,8 @@ namespace ECafe.Application.Services.User.Abstract
 
         public Task DeleteAsync(int userId);
 
+        public Task ActivateStaffAsync(int restaurantId, int staffId);
+
         public Task DeactivateStaffAsync(int restaurantId, int staffId);
 
         public Task<StaffDetailResponseDto> UpdateStaffAsync(int restaurantId, int staffId, UpdateStaffRequest request);

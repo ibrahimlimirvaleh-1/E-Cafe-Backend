@@ -32,6 +32,17 @@ namespace ECafe.Api.Controllers
         }
 
         [HasPermission(PermissionCode.ManageCatalog)]
+        [HttpPatch("api/v1/restaurants/{restaurantId}/categories/{categoryId}/activate")]
+        public async Task<IActionResult> Activate(int restaurantId, int categoryId)
+        {
+            return Ok(await Mediator.Send(new ActivateCategoryCommand
+            {
+                RestaurantId = restaurantId,
+                CategoryId = categoryId
+            }));
+        }
+
+        [HasPermission(PermissionCode.ManageCatalog)]
         [HttpPatch("api/v1/restaurants/{restaurantId}/categories/{categoryId}/deactivate")]
         public async Task<IActionResult> Deactivate(int restaurantId, int categoryId)
         {

@@ -8,6 +8,8 @@ namespace ECafe.Application.Services.Table.Abstract
 
         Task<TableResponse> UpdateAsync(int restaurantId, int tableId, UpdateTableRequest request);
 
+        Task<TableResponse> ActivateAsync(int restaurantId, int tableId);
+
         Task<TableResponse> DeactivateAsync(int restaurantId, int tableId);
 
         Task<TableResponse> DeleteAsync(int restaurantId, int tableId);
