@@ -1,4 +1,5 @@
 using FluentValidation;
+using ECafe.Application.Common.Validation;
 
 namespace ECafe.Application.Features.Commands.Auth.Register
 {
@@ -20,9 +21,7 @@ namespace ECafe.Application.Features.Commands.Auth.Register
                 .MaximumLength(150).WithMessage("Email must be at most 150 characters.");
 
             RuleFor(x => x.Phone)
-                .NotEmpty().WithMessage("Phone is required.")
-                .MaximumLength(30).WithMessage("Phone must be at most 30 characters.")
-                .Matches(@"^\+?[0-9\s\-\(\)]{7,30}$").WithMessage("Phone format is invalid.");
+                .MustBePhoneNumber();
 
             RuleFor(x => x.Password)
                 .NotEmpty().WithMessage("Password is required.")

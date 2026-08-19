@@ -1,3 +1,4 @@
+using ECafe.Application.Common.Validation;
 using FluentValidation;
 
 namespace ECafe.Application.Features.Commands.Restaurant
@@ -6,6 +7,9 @@ namespace ECafe.Application.Features.Commands.Restaurant
     {
         public UpdateRestaurantCommandValidator()
         {
+            RuleFor(x => x.Phone)
+                .MustBePhoneNumber("Restaurant phone");
+
             RuleFor(x => x.DefaultWaiterTableLimit)
                 .GreaterThan(0)
                 .When(x => x.DefaultWaiterTableLimit.HasValue)

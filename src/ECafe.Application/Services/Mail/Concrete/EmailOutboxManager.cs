@@ -1,6 +1,7 @@
 using ECafe.Application.Common.Audit;
 using ECafe.Application.Common.Outbox;
 using ECafe.Application.Repository;
+using ECafe.Application.Services.Sms.Abstract;
 using ECafe.Domain.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -15,16 +16,19 @@ namespace ECafe.Application.Services
 
         private readonly IBaseRepository<Domain.Entities.OutboxEvent> _outboxRepository;
         private readonly IEmailService _emailService;
+        private readonly ISmsService _smsService;
         private readonly TimeSpan _lockDuration;
         private readonly int _maxRetryCount;
 
         public EmailOutboxManager(
             IBaseRepository<Domain.Entities.OutboxEvent> outboxRepository,
             IEmailService emailService,
+            ISmsService smsService,
             IConfiguration configuration)
         {
             _outboxRepository = outboxRepository;
             _emailService = emailService;
+            _smsService = smsService;
             _lockDuration = TimeSpan.FromSeconds(GetPositiveIntSetting(configuration, "EmailOutbox:LockSeconds", 300));
             _maxRetryCount = GetPositiveIntSetting(configuration, "EmailOutbox:MaxRetryCount", 5);
         }
@@ -48,10 +52,11 @@ namespace ECafe.Application.Services
             if (contractId <= 0)
                 throw new BusinessRuleException("Invalid contract ID.");
 
+            var normalizedToName = string.IsNullOrWhiteSpace(toName) ? "İstifadəçi" : toName.Trim();
             var payload = new EmailNotificationOutboxPayload
             {
                 ToEmail = toEmail.Trim(),
-                ToName = string.IsNullOrWhiteSpace(toName) ? "İstifadəçi" : toName.Trim(),
+                ToName = normalizedToName,
                 Subject = subject.Trim(),
                 Body = body.Trim(),
                 RelatedEntityType = AuditEntityTypes.Contract,
@@ -98,10 +103,11 @@ namespace ECafe.Application.Services
                 throw new BusinessRuleException("Invalid email aggregate ID.");
 
             var normalizedAggregateType = aggregateType.Trim();
+            var normalizedToName = string.IsNullOrWhiteSpace(toName) ? "Istifadeci" : toName.Trim();
             var payload = new EmailNotificationOutboxPayload
             {
                 ToEmail = toEmail.Trim(),
-                ToName = string.IsNullOrWhiteSpace(toName) ? "Istifadeci" : toName.Trim(),
+                ToName = normalizedToName,
                 Subject = subject.Trim(),
                 Body = body.Trim(),
                 RelatedEntityType = string.IsNullOrWhiteSpace(relatedEntityType)
@@ -131,7 +137,8 @@ namespace ECafe.Application.Services
 
             var now = DateTime.UtcNow;
             var outboxEvents = await _outboxRepository.QueryTracked(x =>
-                    x.EventType == OutboxEventTypes.EmailNotificationRequested &&
+                    (x.EventType == OutboxEventTypes.EmailNotificationRequested ||
+                     x.EventType == OutboxEventTypes.SmsNotificationRequested) &&
                     x.ProcessedAt == null &&
                     x.RetryCount < _maxRetryCount &&
                     (x.LockedUntil == null || x.LockedUntil <= now))
@@ -179,21 +186,48 @@ namespace ECafe.Application.Services
 
         private async Task ProcessOutboxEventAsync(Domain.Entities.OutboxEvent outboxEvent)
         {
-            if (outboxEvent.EventType != OutboxEventTypes.EmailNotificationRequested)
-                throw new BusinessRuleException($"Unsupported outbox event type: {outboxEvent.EventType}");
+            if (outboxEvent.EventType == OutboxEventTypes.EmailNotificationRequested)
+            {
+                var payload = JsonSerializer.Deserialize<EmailNotificationOutboxPayload>(
+                    outboxEvent.Payload,
+                    JsonOptions);
 
-            var payload = JsonSerializer.Deserialize<EmailNotificationOutboxPayload>(
-                outboxEvent.Payload,
-                JsonOptions);
+                if (payload is null)
+                    throw new BusinessRuleException("Email outbox payload is invalid.");
 
-            if (payload is null)
-                throw new BusinessRuleException("Email outbox payload is invalid.");
+                await _emailService.SendContractNotificationAsync(
+                    payload.ToEmail,
+                    payload.ToName,
+                    payload.Subject,
+                    payload.Body);
 
-            await _emailService.SendContractNotificationAsync(
-                payload.ToEmail,
-                payload.ToName,
-                payload.Subject,
-                payload.Body);
+                return;
+            }
+
+            if (outboxEvent.EventType == OutboxEventTypes.SmsNotificationRequested)
+            {
+                var payload = JsonSerializer.Deserialize<SmsNotificationOutboxPayload>(
+                    outboxEvent.Payload,
+                    JsonOptions);
+
+                if (payload is null)
+                    throw new BusinessRuleException("SMS outbox payload is invalid.");
+
+                await _smsService.SendAsync(
+                    payload.ToPhone,
+                    BuildSmsContent(payload.Subject, payload.Body),
+                    outboxEvent.Id.ToString());
+
+                return;
+            }
+
+            throw new BusinessRuleException($"Unsupported outbox event type: {outboxEvent.EventType}");
+        }
+
+        private static string BuildSmsContent(string subject, string body)
+        {
+            var content = $"{subject}: {body}".ReplaceLineEndings(" ").Trim();
+            return content.Length <= 320 ? content : $"{content[..317]}...";
         }
 
         private static TimeSpan GetRetryDelay(int retryCount)

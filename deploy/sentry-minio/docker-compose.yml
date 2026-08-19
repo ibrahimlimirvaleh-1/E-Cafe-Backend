@@ -88,15 +88,22 @@ services:
       ForwardedHeaders__KnownProxies__0: ${ECAFE_KNOWN_PROXY_0:-}
 
       # Email
-      Email__SmtpHost: ${ECAFE_EMAIL_SMTP_HOST:-smtp.gmail.com}
+      Email__SmtpHost: ${ECAFE_EMAIL_SMTP_HOST:-smtp-relay.brevo.com}
       Email__SmtpPort: ${ECAFE_EMAIL_SMTP_PORT:-587}
       Email__Username: ${ECAFE_EMAIL_USERNAME:-}
       Email__Password: ${ECAFE_EMAIL_PASSWORD:-}
       Email__From: ${ECAFE_EMAIL_FROM:-}
-      Email__FromName: ${ECAFE_EMAIL_FROM_NAME:-E-Cafe Admin}
+      Email__FromName: ${ECAFE_EMAIL_FROM_NAME:-ECafe}
       Email__SecureSocketOption: ${ECAFE_EMAIL_SECURE_SOCKET_OPTION:-StartTls}
       Email__TimeoutSeconds: ${ECAFE_EMAIL_TIMEOUT_SECONDS:-30}
       Email__LocalDomain: ${ECAFE_EMAIL_LOCAL_DOMAIN:-localhost}
+
+      # SMS
+      Sms__Enabled: ${ECAFE_SMS_ENABLED:-false}
+      Sms__Provider: ${ECAFE_SMS_PROVIDER:-Fake}
+      Sms__BaseUrl: ${ECAFE_SMS_BASE_URL:-https://1sms.az/api/v1}
+      Sms__ApiKey: ${ECAFE_SMS_API_KEY:-}
+      Sms__Sender: ${ECAFE_SMS_SENDER:-1sms.az}
 
       # Redis
       Redis__Connection: ecafe-redis:6379

@@ -759,7 +759,8 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
                 owner.Email,
                 owner.Name,
                 "Müqavilə təsdiqi gözləyir",
-                $"Restoranınız üçün {contract.ContractNumber} nömrəli müqavilə hazırlanıb. Zəhmət olmasa sistemə daxil olub müqaviləni oxuyun və təsdiqləyin.");
+                $"Restoranınız üçün {contract.ContractNumber} nömrəli müqavilə hazırlanıb. Zəhmət olmasa sistemə daxil olub müqaviləni oxuyun və təsdiqləyin.",
+                contract.Id);
 
         private Task SendContractActivatedEmailAsync(
             Domain.Entities.User owner,
@@ -768,7 +769,8 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
                 owner.Email,
                 owner.Name,
                 "Müqavilə aktivləşdirildi",
-                $"{contract.ContractNumber} nömrəli müqaviləniz aktivləşdirildi.");
+                $"{contract.ContractNumber} nömrəli müqaviləniz aktivləşdirildi.",
+                contract.Id);
 
         private Task NotifyOwnerContractPendingApprovalAsync(
             Domain.Entities.RestaurantContract contract,

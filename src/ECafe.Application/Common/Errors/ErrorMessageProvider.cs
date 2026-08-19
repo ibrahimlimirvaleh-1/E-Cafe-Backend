@@ -41,6 +41,7 @@ public sealed class ErrorMessageProvider : IErrorMessageProvider
         [ErrorCode.InvalidFileToken] = "Invalid file token.",
         [ErrorCode.FileNotFound] = "File not found.",
         [ErrorCode.FileStorageUnavailable] = "File storage is temporarily unavailable.",
+        [ErrorCode.NotificationProviderUnavailable] = "Notification provider is temporarily unavailable.",
 
         [ErrorCode.OutboxMessageNotFound] = "Outbox message not found.",
         [ErrorCode.OutboxMessageAlreadySent] = "Outbox message has already been sent.",
