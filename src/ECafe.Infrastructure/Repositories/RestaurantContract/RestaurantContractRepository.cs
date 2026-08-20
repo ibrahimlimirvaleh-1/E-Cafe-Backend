@@ -69,6 +69,18 @@ namespace ECafe.Infrastructure.Repositories.RestaurantContract
                 .Take(batchSize)
                 .ToListAsync();
 
+        public Task<List<Domain.Entities.RestaurantContract>> GetContractsNeedingExpiryReminderAsync(DateTime nowUtc, int batchSize)
+            => QueryTracked(x =>
+                    x.StatusId == ActiveStatusId &&
+                    x.EndDate.HasValue &&
+                    x.EndDate.Value > nowUtc &&
+                    x.ExpiryReminderAt.HasValue &&
+                    x.ExpiryReminderAt.Value <= nowUtc &&
+                    !x.ExpiryReminderSentAt.HasValue)
+                .OrderBy(x => x.ExpiryReminderAt)
+                .Take(batchSize)
+                .ToListAsync();
+
         private static int ActiveStatusId =>
             ((int)StatusType.Contract * 1000) + (int)ContractStatus.Active;
 

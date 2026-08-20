@@ -12,9 +12,17 @@ public partial class RestaurantContract : AuditableSoftDeletableEntity<int>
 
     public DateTime? EndDate { get; set; }
 
+    public decimal Amount { get; set; }
+
     public decimal? CommissionPercent { get; set; }
 
     public int? StaffSettlementPeriod { get; set; }
+
+    public int ExpiryReminderDaysBefore { get; set; }
+
+    public DateTime? ExpiryReminderAt { get; set; }
+
+    public DateTime? ExpiryReminderSentAt { get; set; }
 
     public int PaymentPolicyId { get; set; }
 

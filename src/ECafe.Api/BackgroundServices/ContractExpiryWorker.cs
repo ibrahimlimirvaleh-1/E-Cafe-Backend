@@ -44,8 +44,12 @@ namespace ECafe.Api.BackgroundServices
             {
                 using var scope = _scopeFactory.CreateScope();
                 var contractService = scope.ServiceProvider.GetRequiredService<IRestaurantContractService>();
+                var reminderCount = await contractService.SendExpiryRemindersAsync(_batchSize);
                 var expiredCount = await contractService.ExpireActiveContractsAsync(_batchSize);
                 var activatedCount = await contractService.ActivateDueScheduledContractsAsync(_batchSize);
+
+                if (reminderCount > 0)
+                    _logger.LogInformation("Sent expiry reminder for {ReminderCount} restaurant contract(s).", reminderCount);
 
                 if (expiredCount > 0)
                     _logger.LogInformation("Expired {ExpiredCount} restaurant contract(s).", expiredCount);

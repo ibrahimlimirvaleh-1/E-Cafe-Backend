@@ -53,6 +53,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
                 PdfLine.Section("Muqavile sertleri"),
                 PdfLine.Body($"Baslama tarixi: {FormatDate(data.StartDate)}"),
                 PdfLine.Body($"Bitme tarixi: {FormatDate(data.EndDate)}"),
+                PdfLine.Body($"Muqavile meblegi: {FormatAmount(data.Amount)}"),
                 PdfLine.Body($"Komissiya: {FormatPercent(data.CommissionPercent)}"),
                 PdfLine.Body($"Personal hesablasma dovru: {FormatSettlementPeriod(data.StaffSettlementPeriod)}"),
                 PdfLine.Body($"Odenis siyaseti ID: {data.PaymentPolicyId}"),
@@ -157,6 +158,9 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
 
         private static string FormatPercent(decimal? value)
             => value.HasValue ? $"{value:0.##}%" : "-";
+
+        private static string FormatAmount(decimal value)
+            => $"{value:0.##} AZN";
 
         private static string FormatSettlementPeriod(int? value)
             => value.HasValue ? $"{value} gun" : "-";

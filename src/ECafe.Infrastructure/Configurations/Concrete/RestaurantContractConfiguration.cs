@@ -20,10 +20,19 @@ namespace ECafe.Infrastructure.Configurations.Concrete
                 .HasColumnName("contract_number");
             builder.Property(e => e.StartDate).HasColumnName("start_date");
             builder.Property(e => e.EndDate).HasColumnName("end_date");
+            builder.Property(e => e.Amount)
+                .HasPrecision(18, 2)
+                .HasDefaultValue(0m)
+                .HasColumnName("amount");
             builder.Property(e => e.CommissionPercent)
                 .HasPrecision(5, 2)
                 .HasColumnName("commission_percent");
             builder.Property(e => e.StaffSettlementPeriod).HasColumnName("staff_settlement_period");
+            builder.Property(e => e.ExpiryReminderDaysBefore)
+                .HasDefaultValue(1)
+                .HasColumnName("expiry_reminder_days_before");
+            builder.Property(e => e.ExpiryReminderAt).HasColumnName("expiry_reminder_at");
+            builder.Property(e => e.ExpiryReminderSentAt).HasColumnName("expiry_reminder_sent_at");
             builder.Property(e => e.PaymentPolicyId)
                 .HasDefaultValue((int)ContractPaymentPolicy.OnlineOnly)
                 .HasColumnName("payment_policy_id");
@@ -40,6 +49,9 @@ namespace ECafe.Infrastructure.Configurations.Concrete
                 .IsUnique()
                 .HasFilter("status_id = 6003 AND \"IsDeleted\" = false")
                 .HasDatabaseName("restaurant_contracts_one_active_per_restaurant_key");
+
+            builder.HasIndex(e => new { e.StatusId, e.ExpiryReminderAt, e.ExpiryReminderSentAt })
+                .HasDatabaseName("ix_restaurant_contracts_expiry_reminder");
 
             builder.HasOne(e => e.Restaurant)
                 .WithMany(e => e.Contracts)

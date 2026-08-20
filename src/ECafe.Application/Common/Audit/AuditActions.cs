@@ -14,6 +14,7 @@ namespace ECafe.Application.Common.Audit
         public const string ContractScheduled = "ContractScheduled";
         public const string ContractExpired = "ContractExpired";
         public const string ContractTerminated = "ContractTerminated";
+        public const string ContractExpiryReminderSent = "ContractExpiryReminderSent";
 
         public const string CategoryCreated = "CategoryCreated";
         public const string CategoryUpdated = "CategoryUpdated";
@@ -45,6 +46,7 @@ namespace ECafe.Application.Common.Audit
             new(15, ContractScheduled, "Müqavilə planlandı"),
             new(16, ContractExpired, "Müqavilənin müddəti bitdi"),
             new(17, ContractTerminated, "Müqavilə ləğv edildi"),
+            new(18, ContractExpiryReminderSent, "Müqavilə bitmə xatırlatması göndərildi"),
             new(30, CategoryCreated, "Kateqoriya yaradıldı"),
             new(37, CategoryUpdated, "Kateqoriya yeniləndi"),
             new(41, CategoryActivated, "Kateqoriya aktiv edildi"),

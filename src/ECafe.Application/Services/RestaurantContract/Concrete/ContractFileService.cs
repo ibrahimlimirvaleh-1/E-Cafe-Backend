@@ -111,6 +111,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
                 Email = restaurant.Email,
                 StartDate = request.StartDate,
                 EndDate = request.EndDate,
+                Amount = request.Amount,
                 CommissionPercent = request.CommissionPercent,
                 StaffSettlementPeriod = request.StaffSettlementPeriod,
                 PaymentPolicyId = request.PaymentPolicyId

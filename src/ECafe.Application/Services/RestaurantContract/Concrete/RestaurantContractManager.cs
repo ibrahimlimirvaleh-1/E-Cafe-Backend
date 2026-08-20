@@ -84,6 +84,8 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             EnsureCurrentUserCanAccessRestaurant(restaurantId);
 
             ValidateEditableContractDates(request.StartDate, request.EndDate);
+            ValidateContractAmount(request.Amount);
+            ValidateExpiryReminderDaysBefore(request.ExpiryReminderDaysBefore);
             ValidatePercent(request.CommissionPercent, nameof(request.CommissionPercent));
             await EnsureRestaurantDoesNotHaveActiveContractAsync(restaurantId);
 
@@ -102,8 +104,11 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
                 ContractNumber = contractNumber,
                 StartDate = request.StartDate,
                 EndDate = request.EndDate,
+                Amount = request.Amount,
                 CommissionPercent = request.CommissionPercent,
                 StaffSettlementPeriod = request.StaffSettlementPeriod,
+                ExpiryReminderDaysBefore = request.ExpiryReminderDaysBefore,
+                ExpiryReminderAt = CalculateExpiryReminderAt(request.EndDate, request.ExpiryReminderDaysBefore),
                 PaymentPolicyId = request.PaymentPolicyId,
                 StatusId = ContractStatusId(ContractStatus.Draft),
                 File = generatedFile
@@ -121,8 +126,11 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
                     contract.ContractNumber,
                     contract.StartDate,
                     contract.EndDate,
+                    contract.Amount,
                     contract.CommissionPercent,
                     contract.StaffSettlementPeriod,
+                    contract.ExpiryReminderDaysBefore,
+                    contract.ExpiryReminderAt,
                     contract.PaymentPolicyId,
                     contract.FileId
                 },
@@ -146,14 +154,19 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
 
             EnsureCurrentUserCanAccessRestaurant(restaurantId);
             ValidateEditableContractDates(request.StartDate, request.EndDate);
+            ValidateContractAmount(request.Amount);
+            ValidateExpiryReminderDaysBefore(request.ExpiryReminderDaysBefore);
             ValidatePercent(request.CommissionPercent, nameof(request.CommissionPercent));
 
             var contract = await GetTrackedContractAsync(restaurantId, contractId);
             var previousStatusId = contract.StatusId;
             var previousStartDate = contract.StartDate;
             var previousEndDate = contract.EndDate;
+            var previousAmount = contract.Amount;
             var previousCommissionPercent = contract.CommissionPercent;
             var previousStaffSettlementPeriod = contract.StaffSettlementPeriod;
+            var previousExpiryReminderDaysBefore = contract.ExpiryReminderDaysBefore;
+            var previousExpiryReminderAt = contract.ExpiryReminderAt;
             var previousPaymentPolicyId = contract.PaymentPolicyId;
             var previousFileId = contract.FileId;
             var draftStatusId = ContractStatusId(ContractStatus.Draft);
@@ -174,8 +187,12 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
 
             contract.StartDate = request.StartDate;
             contract.EndDate = request.EndDate;
+            contract.Amount = request.Amount;
             contract.CommissionPercent = request.CommissionPercent;
             contract.StaffSettlementPeriod = request.StaffSettlementPeriod;
+            contract.ExpiryReminderDaysBefore = request.ExpiryReminderDaysBefore;
+            contract.ExpiryReminderAt = CalculateExpiryReminderAt(request.EndDate, request.ExpiryReminderDaysBefore);
+            contract.ExpiryReminderSentAt = null;
             contract.PaymentPolicyId = request.PaymentPolicyId;
             contract.File = await _contractFileService.GenerateAndUploadAsync(restaurant, contract.ContractNumber, request);
 
@@ -201,10 +218,16 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
                         contract.StartDate,
                         previousEndDate,
                         contract.EndDate,
+                        previousAmount,
+                        contract.Amount,
                         previousCommissionPercent,
                         contract.CommissionPercent,
                         previousStaffSettlementPeriod,
                         contract.StaffSettlementPeriod,
+                        previousExpiryReminderDaysBefore,
+                        contract.ExpiryReminderDaysBefore,
+                        previousExpiryReminderAt,
+                        contract.ExpiryReminderAt,
                         previousPaymentPolicyId,
                         contract.PaymentPolicyId,
                         previousFileId,
@@ -592,6 +615,54 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
 
             return activatedContracts.Count;
         }
+
+        public async Task<int> SendExpiryRemindersAsync(int batchSize)
+        {
+            if (batchSize <= 0)
+                batchSize = 100;
+
+            var nowUtc = DateTime.UtcNow;
+            var contracts = await _contractRepository.GetContractsNeedingExpiryReminderAsync(nowUtc, batchSize);
+            var sentCount = 0;
+
+            foreach (var contract in contracts)
+            {
+                var owner = await _userRestaurantRepository.GetActiveOwnerByRestaurantAsync(contract.RestaurantId);
+                if (owner is null)
+                    continue;
+
+                var remainingDays = CalculateRemainingDays(nowUtc, contract.EndDate);
+                await EnqueueContractExpiryReminderEmailAsync(owner.User, contract, remainingDays);
+                await NotifyOwnerContractExpiryReminderAsync(contract, owner.UserId, remainingDays);
+
+                contract.ExpiryReminderSentAt = nowUtc;
+                await _contractRepository.Update(contract);
+                sentCount++;
+
+                await _auditLogService.RecordRestaurantActionAsync(
+                    contract.RestaurantId,
+                    AuditActions.ContractExpiryReminderSent,
+                    new
+                    {
+                        contractId = contract.Id,
+                        contract.ContractNumber,
+                        contract.EndDate,
+                        contract.Amount,
+                        remainingDays,
+                        reminderSentAt = nowUtc
+                    },
+                    AuditEntityTypes.Contract,
+                    contract.Id,
+                    contract.ContractNumber);
+            }
+
+            if (sentCount == 0)
+                return 0;
+
+            await _contractRepository.SaveChangesAsync();
+            return sentCount;
+        }
+
         private async Task<Domain.Entities.RestaurantContract> GetTrackedContractAsync(int restaurantId, int contractId)
         {
             if (restaurantId <= 0)
@@ -616,8 +687,12 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
                 ContractNumber = contract.ContractNumber,
                 StartDate = contract.StartDate,
                 EndDate = contract.EndDate,
+                Amount = contract.Amount,
                 CommissionPercent = contract.CommissionPercent,
                 StaffSettlementPeriod = contract.StaffSettlementPeriod,
+                ExpiryReminderDaysBefore = contract.ExpiryReminderDaysBefore,
+                ExpiryReminderAt = contract.ExpiryReminderAt,
+                ExpiryReminderSentAt = contract.ExpiryReminderSentAt,
                 PaymentPolicyId = contract.PaymentPolicyId,
                 StatusId = contract.StatusId,
                 StatusName = contract.Status?.Name,
@@ -740,6 +815,17 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
                 $"{contract.ContractNumber} nömrəli müqaviləniz aktivləşdirildi.",
                 contract.Id);
 
+        private Task EnqueueContractExpiryReminderEmailAsync(
+            Domain.Entities.User owner,
+            Domain.Entities.RestaurantContract contract,
+            int remainingDays)
+            => _emailOutboxService.EnqueueContractNotificationAsync(
+                owner.Email,
+                owner.Name,
+                "Müqavilənin müddəti bitmək üzrədir",
+                BuildExpiryReminderMessage(contract, remainingDays),
+                contract.Id);
+
         private Task EnqueueContractOwnerApprovedEmailAsync(
             Domain.Entities.User admin,
             Domain.Entities.RestaurantContract contract,
@@ -801,6 +887,17 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
                 NotificationType.ContractTerminated,
                 "Müqavilə ləğv edildi",
                 $"{contract.ContractNumber} nömrəli müqaviləniz ləğv edildi.");
+
+        private Task NotifyOwnerContractExpiryReminderAsync(
+            Domain.Entities.RestaurantContract contract,
+            int ownerUserId,
+            int remainingDays)
+            => CreateContractNotificationAsync(
+                ownerUserId,
+                contract,
+                NotificationType.ContractExpiryReminder,
+                "Müqavilənin müddəti bitmək üzrədir",
+                BuildExpiryReminderMessage(contract, remainingDays));
 
         private async Task NotifyOwnerContractExpiredAsync(Domain.Entities.RestaurantContract contract)
         {
@@ -873,6 +970,16 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
                 contractNumber = contract.ContractNumber
             }, NotificationJsonOptions);
 
+        private static string BuildExpiryReminderMessage(
+            Domain.Entities.RestaurantContract contract,
+            int remainingDays)
+        {
+            var endDate = contract.EndDate?.ToString("yyyy-MM-dd HH:mm") ?? "-";
+            var amount = FormatMoney(contract.Amount);
+
+            return $"{contract.ContractNumber} nömrəli müqavilənin bitməsinə {remainingDays} gün qalıb. Bitmə vaxtı: {endDate}. Məbləğ: {amount}.";
+        }
+
         private static string LimitNotificationMessage(string message)
             => message.Length <= 1000 ? message : message[..1000];
 
@@ -941,15 +1048,47 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
                 throw new BusinessRuleException($"{fieldName} must be between 0 and 100!");
         }
 
+        private static void ValidateContractAmount(decimal amount)
+        {
+            if (amount <= 0)
+                throw new BusinessRuleException("Contract amount must be greater than zero.");
+        }
+
+        private static void ValidateExpiryReminderDaysBefore(int daysBefore)
+        {
+            if (daysBefore is < 1 or > 365)
+                throw new BusinessRuleException("Expiry reminder days before must be between 1 and 365.");
+        }
+
+        private static DateTime CalculateExpiryReminderAt(DateTime endDate, int daysBefore)
+            => endDate.AddDays(-daysBefore);
+
+        private static int CalculateRemainingDays(DateTime nowUtc, DateTime? endDate)
+        {
+            if (!endDate.HasValue || endDate.Value <= nowUtc)
+                return 0;
+
+            return Math.Max(1, (int)Math.Ceiling((endDate.Value - nowUtc).TotalDays));
+        }
+
+        private static string FormatMoney(decimal amount)
+            => $"{amount:0.##} AZN";
+
         private static List<AuditChangedField> BuildContractChangeDetails(
             DateTime previousStartDate,
             DateTime currentStartDate,
             DateTime? previousEndDate,
             DateTime? currentEndDate,
+            decimal previousAmount,
+            decimal currentAmount,
             decimal? previousCommissionPercent,
             decimal? currentCommissionPercent,
             int? previousStaffSettlementPeriod,
             int? currentStaffSettlementPeriod,
+            int previousExpiryReminderDaysBefore,
+            int currentExpiryReminderDaysBefore,
+            DateTime? previousExpiryReminderAt,
+            DateTime? currentExpiryReminderAt,
             int previousPaymentPolicyId,
             int currentPaymentPolicyId,
             int? previousFileId,
@@ -961,8 +1100,11 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
 
             AddChange(changes, "Başlama tarixi", previousStartDate, currentStartDate);
             AddChange(changes, "Bitmə tarixi", previousEndDate, currentEndDate);
+            AddChange(changes, "Müqavilə məbləği", previousAmount, currentAmount);
             AddChange(changes, "Komissiya faizi", previousCommissionPercent, currentCommissionPercent);
             AddChange(changes, "Hesablaşma dövrü", previousStaffSettlementPeriod, currentStaffSettlementPeriod);
+            AddChange(changes, "Xatırlatma günü", previousExpiryReminderDaysBefore, currentExpiryReminderDaysBefore);
+            AddChange(changes, "Xatırlatma vaxtı", previousExpiryReminderAt, currentExpiryReminderAt);
             AddChange(changes, "Ödəniş siyasəti", previousPaymentPolicyId, currentPaymentPolicyId);
             AddChange(changes, "Müqavilə faylı", previousFileId, currentFileId);
             AddChange(changes, "Status", previousStatusId, currentStatusId);

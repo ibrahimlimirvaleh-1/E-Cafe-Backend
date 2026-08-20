@@ -10,6 +10,7 @@
         ReservationCreated = 6,
         OrderCreated = 7,
         OrderReady = 8,
-        InventoryLowStock = 9
+        InventoryLowStock = 9,
+        ContractExpiryReminder = 10
     }
 }
