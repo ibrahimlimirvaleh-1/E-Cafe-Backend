@@ -37,5 +37,7 @@ namespace ECafe.Application.Services.RestaurantContract.Abstract
         Task<int> ExpireActiveContractsAsync(int batchSize);
 
         Task<int> ActivateDueScheduledContractsAsync(int batchSize);
+
+        Task<int> SendExpiryRemindersAsync(int batchSize);
     }
 }

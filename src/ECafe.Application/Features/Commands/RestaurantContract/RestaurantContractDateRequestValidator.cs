@@ -24,6 +24,14 @@ namespace ECafe.Application.Features.Commands.RestaurantContract
             RuleFor(x => x.CommissionPercent)
                 .InclusiveBetween(0, 100)
                 .When(x => x.CommissionPercent.HasValue);
+
+            RuleFor(x => x.Amount)
+                .GreaterThan(0)
+                .WithMessage("Contract amount must be greater than zero.");
+
+            RuleFor(x => x.ExpiryReminderDaysBefore)
+                .InclusiveBetween(1, 365)
+                .WithMessage("Expiry reminder days before must be between 1 and 365.");
         }
     }
 }
