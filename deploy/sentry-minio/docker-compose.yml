@@ -103,6 +103,7 @@ services:
       Sms__Provider: ${ECAFE_SMS_PROVIDER:-Fake}
       Sms__BaseUrl: ${ECAFE_SMS_BASE_URL:-https://1sms.az/api/v1}
       Sms__ApiKey: ${ECAFE_SMS_API_KEY:-}
+      Sms__ApiKeyHeader: ${ECAFE_SMS_API_KEY_HEADER:-X-API-Key}
       Sms__Sender: ${ECAFE_SMS_SENDER:-1sms.az}
 
       # Redis

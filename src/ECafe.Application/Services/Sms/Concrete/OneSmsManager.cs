@@ -11,6 +11,7 @@ namespace ECafe.Application.Services.Sms.Concrete;
 public sealed class OneSmsManager : ISmsService
 {
     private const int MaxSenderLength = 32;
+    private const string DefaultApiKeyHeaderName = "X-API-Key";
 
     private static readonly HttpClient HttpClient = new()
     {
@@ -38,13 +39,14 @@ public sealed class OneSmsManager : ISmsService
         var sender = GetValidatedSender();
         var baseUrl = GetBaseUrl();
         var recipient = NormalizeAzerbaijanRecipient(toPhone);
+        var apiKeyHeaderName = GetApiKeyHeaderName();
 
         var request = new HttpRequestMessage(
             HttpMethod.Post,
             new Uri(baseUrl, "sms/notification"));
 
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-        request.Headers.Add("X-API-Key", apiKey);
+        AddApiKeyHeader(request, apiKeyHeaderName, apiKey);
 
         if (!string.IsNullOrWhiteSpace(idempotencyKey))
             request.Headers.Add("X-Idempotency-Key", idempotencyKey.Trim());
@@ -61,20 +63,27 @@ public sealed class OneSmsManager : ISmsService
 
         using var response = await HttpClient.SendAsync(request, cancellationToken);
         var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+        var providerAccepted = IsAcceptedByProvider(responseBody, out var providerResponse);
 
-        if (!response.IsSuccessStatusCode)
+        if (!response.IsSuccessStatusCode || !providerAccepted)
         {
             _logger.LogWarning(
-                "1sms.az SMS send failed. StatusCode: {StatusCode}, Sender: {Sender}, Recipient: {Recipient}, Response: {Response}",
+                "1sms.az SMS send failed. StatusCode: {StatusCode}, Sender: {Sender}, Recipient: {Recipient}, ProviderSuccess: {ProviderSuccess}, Response: {Response}",
                 (int)response.StatusCode,
                 sender,
                 MaskPhone(recipient),
+                providerResponse?.Success,
                 responseBody);
 
             throw new ServiceUnavailableException(ErrorCode.NotificationProviderUnavailable);
         }
 
-        _logger.LogInformation("1sms.az SMS sent. Recipient: {Recipient}", MaskPhone(recipient));
+        _logger.LogInformation(
+            "1sms.az SMS sent. Recipient: {Recipient}, TaskId: {TaskId}, Cost: {Cost}, Balance: {Balance}",
+            MaskPhone(recipient),
+            providerResponse?.TaskId,
+            providerResponse?.Cost,
+            providerResponse?.Balance);
     }
 
     private Uri GetBaseUrl()
@@ -115,6 +124,44 @@ public sealed class OneSmsManager : ISmsService
         return sender;
     }
 
+    private string GetApiKeyHeaderName()
+    {
+        var configuredHeader = _configuration["Sms:ApiKeyHeader"];
+        return string.IsNullOrWhiteSpace(configuredHeader)
+            ? DefaultApiKeyHeaderName
+            : configuredHeader.Trim();
+    }
+
+    private static void AddApiKeyHeader(HttpRequestMessage request, string headerName, string apiKey)
+    {
+        if (headerName.Equals("Authorization", StringComparison.OrdinalIgnoreCase))
+        {
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
+            return;
+        }
+
+        request.Headers.Add(headerName, apiKey);
+    }
+
+    private static bool IsAcceptedByProvider(string responseBody, out OneSmsNotificationResponse? providerResponse)
+    {
+        providerResponse = null;
+
+        if (string.IsNullOrWhiteSpace(responseBody))
+            return false;
+
+        try
+        {
+            providerResponse = JsonSerializer.Deserialize<OneSmsNotificationResponse>(responseBody, JsonOptions);
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+
+        return providerResponse is { Success: true, SentCount: > 0 };
+    }
+
     private static string NormalizeAzerbaijanRecipient(string phone)
     {
         var digits = new string(phone.Where(char.IsDigit).ToArray());
@@ -142,5 +189,18 @@ public sealed class OneSmsManager : ISmsService
             return "****";
 
         return $"{new string('*', Math.Max(0, phone.Length - 4))}{phone[^4..]}";
+    }
+
+    private sealed class OneSmsNotificationResponse
+    {
+        public bool Success { get; set; }
+
+        public int SentCount { get; set; }
+
+        public string? TaskId { get; set; }
+
+        public decimal? Cost { get; set; }
+
+        public decimal? Balance { get; set; }
     }
 }

@@ -130,6 +130,59 @@ namespace ECafe.Application.Services
             await _outboxRepository.SaveChangesAsync();
         }
 
+        public async Task EnqueueSmsAsync(
+            string toPhone,
+            string toName,
+            string subject,
+            string body,
+            string aggregateType,
+            long aggregateId,
+            string? relatedEntityType = null,
+            long? relatedEntityId = null)
+        {
+            if (string.IsNullOrWhiteSpace(toPhone))
+                throw new BusinessRuleException("SMS recipient phone is required.");
+
+            if (string.IsNullOrWhiteSpace(subject))
+                throw new BusinessRuleException("SMS subject is required.");
+
+            if (string.IsNullOrWhiteSpace(body))
+                throw new BusinessRuleException("SMS body is required.");
+
+            if (string.IsNullOrWhiteSpace(aggregateType))
+                throw new BusinessRuleException("SMS aggregate type is required.");
+
+            if (aggregateId <= 0)
+                throw new BusinessRuleException("Invalid SMS aggregate ID.");
+
+            var normalizedAggregateType = aggregateType.Trim();
+            var normalizedToName = string.IsNullOrWhiteSpace(toName) ? "Istifadeci" : toName.Trim();
+            var payload = new SmsNotificationOutboxPayload
+            {
+                ToPhone = toPhone.Trim(),
+                ToName = normalizedToName,
+                Subject = subject.Trim(),
+                Body = body.Trim(),
+                RelatedEntityType = string.IsNullOrWhiteSpace(relatedEntityType)
+                    ? normalizedAggregateType
+                    : relatedEntityType.Trim(),
+                RelatedEntityId = relatedEntityId ?? aggregateId
+            };
+
+            var outboxEvent = new Domain.Entities.OutboxEvent
+            {
+                Id = Guid.NewGuid(),
+                EventType = OutboxEventTypes.SmsNotificationRequested,
+                AggregateType = normalizedAggregateType,
+                AggregateId = aggregateId,
+                Payload = JsonSerializer.Serialize(payload, JsonOptions),
+                OccurredAt = DateTime.UtcNow
+            };
+
+            await _outboxRepository.Add(outboxEvent);
+            await _outboxRepository.SaveChangesAsync();
+        }
+
         public async Task<int> ProcessPendingAsync(int batchSize, CancellationToken cancellationToken = default)
         {
             if (batchSize <= 0)

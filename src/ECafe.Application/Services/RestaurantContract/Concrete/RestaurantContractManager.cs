@@ -1,6 +1,7 @@
 using AutoMapper;
 using ECafe.Application.Common.Audit;
 using ECafe.Application.Common.Dates;
+using ECafe.Application.Common.Outbox;
 using ECafe.Application.Common.Pagination;
 using ECafe.Application.DTOs.Auth;
 using ECafe.Application.DTOs.Notification;
@@ -633,6 +634,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
 
                 var remainingDays = CalculateRemainingDays(nowUtc, contract.EndDate);
                 await EnqueueContractExpiryReminderEmailAsync(owner.User, contract, remainingDays);
+                await EnqueueContractExpiryReminderSmsAsync(owner.User, contract, remainingDays);
                 await NotifyOwnerContractExpiryReminderAsync(contract, owner.UserId, remainingDays);
 
                 contract.ExpiryReminderSentAt = nowUtc;
@@ -825,6 +827,25 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
                 "Müqavilənin müddəti bitmək üzrədir",
                 BuildExpiryReminderMessage(contract, remainingDays),
                 contract.Id);
+
+        private Task EnqueueContractExpiryReminderSmsAsync(
+            Domain.Entities.User owner,
+            Domain.Entities.RestaurantContract contract,
+            int remainingDays)
+        {
+            if (string.IsNullOrWhiteSpace(owner.Phone))
+                return Task.CompletedTask;
+
+            return _emailOutboxService.EnqueueSmsAsync(
+                owner.Phone,
+                owner.Name,
+                "Müqavilə xatırlatması",
+                BuildExpiryReminderMessage(contract, remainingDays),
+                OutboxAggregateTypes.Contract,
+                contract.Id,
+                AuditEntityTypes.Contract,
+                contract.Id);
+        }
 
         private Task EnqueueContractOwnerApprovedEmailAsync(
             Domain.Entities.User admin,
