@@ -251,19 +251,22 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             if (request is null)
                 throw new BusinessRuleException("Request is required!");
 
-            await EnsureRestaurantDoesNotExistAsync(request.Name, request.Email, request.Phone);
-
             var restaurantGroup = await ResolveRestaurantGroupAsync(
                 request.RestaurantGroupId,
                 request.RestaurantGroupName,
                 request.RestaurantGroupLegalName);
+            var branchName = NormalizeRequiredBranchName(request.BranchName);
+            var restaurantName = GenerateRestaurantName(restaurantGroup, branchName);
+
+            await EnsureRestaurantDoesNotExistAsync(restaurantName, request.Email, request.Phone);
 
             var restaurant = Mapper.Map<Domain.Entities.Restaurant>(request);
+            restaurant.Name = restaurantName;
             restaurant.Files = [];
-            restaurant.BranchName = NormalizeBranchName(request.BranchName, request.Name, restaurantGroup is not null);
+            restaurant.BranchName = branchName;
             restaurant.RestaurantGroup = restaurantGroup;
 
-            await EnsureBranchDoesNotExistAsync(restaurantGroup?.Id, restaurant.BranchName);
+            await EnsureBranchDoesNotExistAsync(restaurantGroup?.Id, branchName);
             await AttachRestaurantFilesAsync(restaurant, request.FileIds);
 
             await _restaurantRepository.Add(restaurant);
@@ -311,8 +314,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
 
             var restaurant = await GetTrackedRestaurantAsync(restaurantId);
 
-            await EnsureRestaurantDoesNotExistAsync(request.Name, request.Email, request.Phone, restaurantId);
-
+            var targetRestaurantGroup = restaurant.RestaurantGroup;
             if (request.RestaurantGroupId.GetValueOrDefault() > 0 ||
                 !string.IsNullOrWhiteSpace(request.RestaurantGroupName))
             {
@@ -325,16 +327,16 @@ namespace ECafe.Application.Services.Restaurant.Concrete
                 restaurant.RestaurantGroupId = restaurantGroup is null || restaurantGroup.Id == 0
                     ? null
                     : restaurantGroup.Id;
+                targetRestaurantGroup = restaurantGroup;
             }
 
-            var branchName = NormalizeBranchName(
-                request.BranchName,
-                request.Name,
-                restaurant.RestaurantGroup is not null || restaurant.RestaurantGroupId.HasValue);
+            var branchName = NormalizeRequiredBranchName(request.BranchName ?? restaurant.BranchName);
+            var restaurantName = GenerateRestaurantName(targetRestaurantGroup, branchName);
             var groupIdForDuplicateCheck = restaurant.RestaurantGroupId;
             await EnsureBranchDoesNotExistAsync(groupIdForDuplicateCheck, branchName, restaurantId);
+            await EnsureRestaurantDoesNotExistAsync(restaurantName, request.Email, request.Phone, restaurantId);
 
-            restaurant.Name = request.Name.Trim();
+            restaurant.Name = restaurantName;
             restaurant.Location = request.Location.Trim();
             restaurant.Phone = request.Phone.Trim();
             restaurant.Email = request.Email.Trim().ToLowerInvariant();
@@ -722,12 +724,22 @@ namespace ECafe.Application.Services.Restaurant.Concrete
                 throw new BusinessRuleException("Branch with this name already exists in the selected restaurant group!");
         }
 
-        private static string? NormalizeBranchName(string? branchName, string fallbackName, bool hasRestaurantGroup)
+        private static string NormalizeRequiredBranchName(string? branchName)
         {
-            if (!string.IsNullOrWhiteSpace(branchName))
-                return branchName.Trim();
+            if (string.IsNullOrWhiteSpace(branchName))
+                throw new BusinessRuleException("Branch name is required!");
 
-            return hasRestaurantGroup ? fallbackName.Trim() : null;
+            return branchName.Trim();
+        }
+
+        private static string GenerateRestaurantName(Domain.Entities.RestaurantGroup? restaurantGroup, string branchName)
+        {
+            var groupName = restaurantGroup?.Name?.Trim();
+
+            if (string.IsNullOrWhiteSpace(groupName))
+                throw new BusinessRuleException("Restaurant group is required!");
+
+            return $"{groupName} {branchName}".Trim();
         }
 
         private async Task<StaffPublicResponseDto> MapToPublicDtoAsync(UserRestaurant staff, int activeTableSessionCount)

@@ -10,6 +10,10 @@ namespace ECafe.Application.Features.Commands.Restaurant
             RuleFor(x => x.Phone)
                 .MustBePhoneNumber("Restaurant phone");
 
+            RuleFor(x => x.BranchName)
+                .NotEmpty()
+                .WithMessage("Branch name is required.");
+
             RuleFor(x => x.DefaultWaiterTableLimit)
                 .GreaterThan(0)
                 .When(x => x.DefaultWaiterTableLimit.HasValue)

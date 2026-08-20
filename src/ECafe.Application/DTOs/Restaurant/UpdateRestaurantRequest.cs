@@ -2,8 +2,6 @@ namespace ECafe.Application.DTOs.Restaurant
 {
     public class UpdateRestaurantRequest
     {
-        public string Name { get; set; } = null!;
-
         public string Location { get; set; } = null!;
 
         public string Phone { get; set; } = null!;

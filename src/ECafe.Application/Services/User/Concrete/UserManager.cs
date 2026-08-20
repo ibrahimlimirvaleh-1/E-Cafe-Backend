@@ -81,6 +81,8 @@ namespace ECafe.Application.Services.User.Concrete
             await EnsureRestaurantExistsAsync(request.RestaurantId);
             EnsureCurrentUserCanAccessRestaurant(request.RestaurantId);
             await EnsureRoleExistsAsync(request.RoleId);
+            EnsureOnlySuperAdminCanManageOwnerRole(request.RoleId);
+            await EnsureRestaurantOwnerSlotAvailableAsync(request.RestaurantId, request.RoleId);
             await EnsureUserDoesNotExistAsync(request.Email);
 
             var file = await GetAttachableFileAsync(request.FileId);
@@ -129,6 +131,13 @@ namespace ECafe.Application.Services.User.Concrete
             if (staffAssignment is null)
                 throw new BusinessRuleException("Staff assignment not found.");
 
+            EnsureOnlySuperAdminCanManageOwnerRole(staffAssignment.User.RoleId);
+
+            await EnsureRestaurantOwnerSlotAvailableAsync(
+                restaurantId,
+                staffAssignment.User.RoleId,
+                staffAssignment.UserId);
+
             staffAssignment.IsActive = true;
             staffAssignment.User.IsActive = true;
 
@@ -166,6 +175,8 @@ namespace ECafe.Application.Services.User.Concrete
             var staffAssignment = await _userRestaurantRepository.GetActiveStaffAssignmentAsync(restaurantId, staffId);
             if (staffAssignment is null)
                 throw new BusinessRuleException("Active staff assignment not found.");
+
+            EnsureOnlySuperAdminCanManageOwnerRole(staffAssignment.User.RoleId);
 
             staffAssignment.IsActive = false;
 
@@ -208,6 +219,8 @@ namespace ECafe.Application.Services.User.Concrete
             var staffAssignment = await _userRestaurantRepository.GetActiveStaffAssignmentAsync(restaurantId, staffId);
             if (staffAssignment is null)
                 throw new BusinessRuleException("Active staff assignment not found.");
+
+            EnsureOnlySuperAdminCanManageOwnerRole(staffAssignment.User.RoleId);
 
             var email = request.Email.Trim().ToLowerInvariant();
             var phone = request.Phone.Trim();
@@ -269,7 +282,9 @@ namespace ECafe.Application.Services.User.Concrete
             if (role is null)
                 throw new BusinessRuleException("Role not found");
 
+            EnsureOnlySuperAdminCanManageOwnerRole(roleId);
             await EnsureRestaurantScopedRoleHasRestaurantAsync(userId, roleId);
+            await EnsureRestaurantOwnerSlotAvailableForRoleChangeAsync(userId, roleId);
 
             var user = await _userRepository.GetByIdAsync(userId);
             if (user is null)
@@ -411,6 +426,8 @@ namespace ECafe.Application.Services.User.Concrete
             if (IsCurrentUserSuperAdmin())
                 return;
 
+            EnsureOnlySuperAdminCanManageOwnerRole(user.RoleId);
+
             var restaurantId = user.UserRestaurant is { IsActive: true }
                 ? (int?)user.UserRestaurant.RestaurantId
                 : null;
@@ -473,6 +490,38 @@ namespace ECafe.Application.Services.User.Concrete
                 (int)RoleCode.Manager or
                 (int)RoleCode.Waiter or
                 (int)RoleCode.Kitchen;
+
+        private void EnsureOnlySuperAdminCanManageOwnerRole(int roleId)
+        {
+            if (roleId != (int)RoleCode.Owner || IsCurrentUserSuperAdmin())
+                return;
+
+            throw new ForbiddenException("Only platform admin can manage restaurant owner accounts.");
+        }
+
+        private async Task EnsureRestaurantOwnerSlotAvailableForRoleChangeAsync(int userId, int roleId)
+        {
+            if (roleId != (int)RoleCode.Owner)
+                return;
+
+            var assignment = await _userRestaurantRepository.GetActiveByUserIdAsync(userId);
+            if (assignment is null)
+                return;
+
+            await EnsureRestaurantOwnerSlotAvailableAsync(assignment.RestaurantId, roleId, userId);
+        }
+
+        private async Task EnsureRestaurantOwnerSlotAvailableAsync(int restaurantId, int roleId, int? excludedUserId = null)
+        {
+            if (roleId != (int)RoleCode.Owner)
+                return;
+
+            var activeOwner = await _userRestaurantRepository.GetActiveOwnerByRestaurantAsync(restaurantId);
+            if (activeOwner is null || activeOwner.UserId == excludedUserId)
+                return;
+
+            throw new BusinessRuleException("Restaurant already has an active owner.");
+        }
 
         private async Task<ProfileResponseDto> MapToProfileResponseAsync(Domain.Entities.User user)
         {
