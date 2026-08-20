@@ -35,7 +35,9 @@ namespace ECafe.Application.Services.Outbox.Concrete
             filter.PageSize = PaginationFilterNormalizer.NormalizePageSize(filter.PageSize, defaultPageSize: 20);
 
             var now = DateTime.UtcNow;
-            var query = _outboxRepository.Query(x => IsNotificationEvent(x.EventType));
+            var query = _outboxRepository.Query(x =>
+                x.EventType == OutboxEventTypes.EmailNotificationRequested ||
+                x.EventType == OutboxEventTypes.SmsNotificationRequested);
 
             if (filter.ChannelId.HasValue)
                 query = ApplyChannelFilter(query, filter.ChannelId.Value);
@@ -109,7 +111,8 @@ namespace ECafe.Application.Services.Outbox.Concrete
             var query = tracked ? _outboxRepository.QueryTracked() : _outboxRepository.Query();
             var outboxEvent = await query.FirstOrDefaultAsync(x =>
                 x.Id == id &&
-                IsNotificationEvent(x.EventType));
+                (x.EventType == OutboxEventTypes.EmailNotificationRequested ||
+                 x.EventType == OutboxEventTypes.SmsNotificationRequested));
 
             return outboxEvent ?? throw new ECafe.Application.Common.Exceptions.NotFoundException(ErrorCode.OutboxMessageNotFound);
         }
@@ -243,10 +246,6 @@ namespace ECafe.Application.Services.Outbox.Concrete
                 OutboxMessageStatus.Failed => "Uğursuz",
                 _ => status.ToString()
             };
-
-        private static bool IsNotificationEvent(string eventType)
-            => eventType == OutboxEventTypes.EmailNotificationRequested ||
-               eventType == OutboxEventTypes.SmsNotificationRequested;
 
         private static OutboxMessageChannel GetChannel(string eventType)
             => eventType == OutboxEventTypes.SmsNotificationRequested
