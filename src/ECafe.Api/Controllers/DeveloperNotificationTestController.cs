@@ -1,6 +1,8 @@
 using ECafe.Application.Features.Commands.Developer.SendTestEmail;
 using ECafe.Application.Features.Commands.Developer.SendTestSms;
 using ECafe.Application.Common.Exceptions;
+using ECafe.Application.Features.Queries.Developer.GetSmsBalance;
+using ECafe.Application.Features.Queries.Developer.GetSmsStatus;
 using ECafe.Domain.Enums;
 using ECafe.Infrastructure.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -29,6 +31,23 @@ public sealed class DeveloperNotificationTestController : BaseController
     {
         EnsureDeveloperTestEndpointIsAllowed();
         return Ok(await Mediator.Send(command));
+    }
+
+    [HttpGet("api/v1/developer/test/sms/balance")]
+    public async Task<IActionResult> GetSmsBalance()
+    {
+        EnsureDeveloperTestEndpointIsAllowed();
+        return Ok(await Mediator.Send(new GetSmsBalanceQuery()));
+    }
+
+    [HttpGet("api/v1/developer/test/sms/status/{messageId}")]
+    public async Task<IActionResult> GetSmsStatus([FromRoute] string messageId)
+    {
+        EnsureDeveloperTestEndpointIsAllowed();
+        return Ok(await Mediator.Send(new GetSmsStatusQuery
+        {
+            MessageId = messageId
+        }));
     }
 
     private void EnsureDeveloperTestEndpointIsAllowed()

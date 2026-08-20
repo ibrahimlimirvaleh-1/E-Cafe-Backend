@@ -7,4 +7,10 @@ public interface ISmsService
         string message,
         string? idempotencyKey = null,
         CancellationToken cancellationToken = default);
+
+    Task<SmsBalanceResponse> GetBalanceAsync(CancellationToken cancellationToken = default);
+
+    Task<SmsDeliveryStatusResponse> GetStatusAsync(
+        string messageId,
+        CancellationToken cancellationToken = default);
 }

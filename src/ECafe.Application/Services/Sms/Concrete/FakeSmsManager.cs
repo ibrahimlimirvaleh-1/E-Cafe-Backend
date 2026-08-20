@@ -26,4 +26,37 @@ public sealed class FakeSmsManager : ISmsService
 
         return Task.CompletedTask;
     }
+
+    public Task<SmsBalanceResponse> GetBalanceAsync(CancellationToken cancellationToken = default)
+        => Task.FromResult(new SmsBalanceResponse
+        {
+            Balance = 0,
+            Apis = new SmsApiPermissionsResponse
+            {
+                Otp = true,
+                Bulk = true,
+                Advertising = false
+            },
+            Available = new SmsApiPermissionsResponse
+            {
+                Otp = true,
+                Bulk = true,
+                Advertising = false
+            },
+            TestMode = true,
+            LimitedSms = true
+        });
+
+    public Task<SmsDeliveryStatusResponse> GetStatusAsync(
+        string messageId,
+        CancellationToken cancellationToken = default)
+        => Task.FromResult(new SmsDeliveryStatusResponse
+        {
+            MessageId = messageId.Trim(),
+            StatusCode = 2,
+            StatusText = "Fake provider delivered",
+            Date = DateTime.UtcNow,
+            IsFinal = true,
+            IsDelivered = true
+        });
 }

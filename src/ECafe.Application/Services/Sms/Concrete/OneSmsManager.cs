@@ -1,4 +1,5 @@
 using System.Net.Http.Headers;
+using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using ECafe.Application.Services.Sms.Abstract;
@@ -84,6 +85,99 @@ public sealed class OneSmsManager : ISmsService
             providerResponse?.TaskId,
             providerResponse?.Cost,
             providerResponse?.Balance);
+    }
+
+    public async Task<SmsBalanceResponse> GetBalanceAsync(CancellationToken cancellationToken = default)
+    {
+        var request = CreateAuthenticatedRequest(HttpMethod.Get, "balance");
+
+        using var response = await HttpClient.SendAsync(request, cancellationToken);
+        var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            _logger.LogWarning(
+                "1sms.az balance request failed. StatusCode: {StatusCode}, Response: {Response}",
+                (int)response.StatusCode,
+                responseBody);
+
+            throw new ServiceUnavailableException(ErrorCode.NotificationProviderUnavailable);
+        }
+
+        try
+        {
+            var balance = JsonSerializer.Deserialize<SmsBalanceResponse>(responseBody, JsonOptions);
+            return balance ?? throw new JsonException("Empty 1sms.az balance response.");
+        }
+        catch (JsonException exception)
+        {
+            _logger.LogWarning(
+                exception,
+                "1sms.az balance response could not be parsed. Response: {Response}",
+                responseBody);
+
+            throw new ServiceUnavailableException(ErrorCode.NotificationProviderUnavailable);
+        }
+    }
+
+    public async Task<SmsDeliveryStatusResponse> GetStatusAsync(
+        string messageId,
+        CancellationToken cancellationToken = default)
+    {
+        var normalizedMessageId = NormalizeMessageId(messageId);
+        var request = CreateAuthenticatedRequest(
+            HttpMethod.Get,
+            $"sms/status/{Uri.EscapeDataString(normalizedMessageId)}");
+
+        using var response = await HttpClient.SendAsync(request, cancellationToken);
+        var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            _logger.LogWarning(
+                "1sms.az status request failed. StatusCode: {StatusCode}, MessageId: {MessageId}, Response: {Response}",
+                (int)response.StatusCode,
+                normalizedMessageId,
+                responseBody);
+
+            throw new ServiceUnavailableException(ErrorCode.NotificationProviderUnavailable);
+        }
+
+        try
+        {
+            var providerStatus = JsonSerializer.Deserialize<OneSmsStatusResponse>(responseBody, JsonOptions)
+                ?? throw new JsonException("Empty 1sms.az status response.");
+
+            return new SmsDeliveryStatusResponse
+            {
+                MessageId = providerStatus.MessageId ?? normalizedMessageId,
+                StatusCode = providerStatus.StatusCode,
+                StatusText = providerStatus.StatusText ?? string.Empty,
+                Date = ParseProviderDate(providerStatus.Date),
+                IsFinal = IsFinalStatus(providerStatus.StatusCode),
+                IsDelivered = providerStatus.StatusCode == 2
+            };
+        }
+        catch (JsonException exception)
+        {
+            _logger.LogWarning(
+                exception,
+                "1sms.az status response could not be parsed. MessageId: {MessageId}, Response: {Response}",
+                normalizedMessageId,
+                responseBody);
+
+            throw new ServiceUnavailableException(ErrorCode.NotificationProviderUnavailable);
+        }
+    }
+
+    private HttpRequestMessage CreateAuthenticatedRequest(HttpMethod method, string relativePath)
+    {
+        var request = new HttpRequestMessage(method, new Uri(GetBaseUrl(), relativePath));
+
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        AddApiKeyHeader(request, GetApiKeyHeaderName(), GetRequiredSetting("ApiKey"));
+
+        return request;
     }
 
     private Uri GetBaseUrl()
@@ -183,6 +277,46 @@ public sealed class OneSmsManager : ISmsService
         return $"+{digits}";
     }
 
+    private static string NormalizeMessageId(string messageId)
+    {
+        if (string.IsNullOrWhiteSpace(messageId))
+            throw new InvalidOperationException("SMS message ID is required.");
+
+        return messageId.Trim();
+    }
+
+    private static DateTime? ParseProviderDate(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return null;
+
+        var formats = new[]
+        {
+            "yyyy-MM-dd HH:mm:ss",
+            "yyyy-MM-ddTHH:mm:ss",
+            "yyyy-MM-ddTHH:mm:ss.FFFFFFFK"
+        };
+
+        if (DateTime.TryParseExact(
+                value.Trim(),
+                formats,
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.AssumeLocal,
+                out var parsed))
+            return parsed;
+
+        return DateTime.TryParse(
+            value,
+            CultureInfo.InvariantCulture,
+            DateTimeStyles.AssumeLocal,
+            out parsed)
+            ? parsed
+            : null;
+    }
+
+    private static bool IsFinalStatus(int statusCode)
+        => statusCode is 2 or 3 or 5 or 8 or 9;
+
     private static string MaskPhone(string phone)
     {
         if (phone.Length <= 4)
@@ -202,5 +336,16 @@ public sealed class OneSmsManager : ISmsService
         public decimal? Cost { get; set; }
 
         public decimal? Balance { get; set; }
+    }
+
+    private sealed class OneSmsStatusResponse
+    {
+        public string? MessageId { get; set; }
+
+        public int StatusCode { get; set; }
+
+        public string? StatusText { get; set; }
+
+        public string? Date { get; set; }
     }
 }

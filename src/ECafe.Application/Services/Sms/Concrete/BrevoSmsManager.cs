@@ -74,6 +74,14 @@ public sealed class BrevoSmsManager : ISmsService
         _logger.LogInformation("Brevo SMS sent. Recipient: {Recipient}", MaskPhone(recipient));
     }
 
+    public Task<SmsBalanceResponse> GetBalanceAsync(CancellationToken cancellationToken = default)
+        => throw new ServiceUnavailableException(ErrorCode.NotificationProviderUnavailable);
+
+    public Task<SmsDeliveryStatusResponse> GetStatusAsync(
+        string messageId,
+        CancellationToken cancellationToken = default)
+        => throw new ServiceUnavailableException(ErrorCode.NotificationProviderUnavailable);
+
     private Uri GetBaseUrl()
     {
         var configuredBaseUrl = _configuration["Sms:BaseUrl"];
