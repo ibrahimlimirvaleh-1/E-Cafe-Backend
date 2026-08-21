@@ -14,6 +14,7 @@ using ECafe.Application.Repositories.UserRestaurant;
 using ECafe.Application.Services.AuditLog.Abstract;
 using ECafe.Application.Services.FileAccess.Abstract;
 using ECafe.Application.Services.Notification.Abstract;
+using ECafe.Application.Services.Realtime.Abstract;
 using ECafe.Application.Services.RestaurantContract.Abstract;
 using ECafe.Application.Services.Workflow.Abstract;
 using ECafe.Domain.Enums;
@@ -45,6 +46,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
         private readonly IWorkflowActionService _workflowActionService;
         private readonly IEmailOutboxService _emailOutboxService;
         private readonly IFileAccessUrlService _fileAccessUrlService;
+        private readonly IUserRealtimeNotifier _userRealtimeNotifier;
 
         public RestaurantContractManager(
             IHttpContextAccessor httpContextAccessor,
@@ -59,7 +61,8 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             INotificationService notificationService,
             IWorkflowActionService workflowActionService,
             IEmailOutboxService emailOutboxService,
-            IFileAccessUrlService fileAccessUrlService)
+            IFileAccessUrlService fileAccessUrlService,
+            IUserRealtimeNotifier userRealtimeNotifier)
             : base(httpContextAccessor, mapper, configuration)
         {
             _contractRepository = contractRepository;
@@ -72,6 +75,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             _workflowActionService = workflowActionService;
             _emailOutboxService = emailOutboxService;
             _fileAccessUrlService = fileAccessUrlService;
+            _userRealtimeNotifier = userRealtimeNotifier;
         }
 
         public async Task<int> CreateAsync(int restaurantId, CreateRestaurantContractRequest request)
@@ -507,6 +511,10 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             await _contractRepository.SaveChangesAsync();
 
             await NotifyOwnerContractTerminatedAsync(contract, owner.UserId);
+            await NotifyRestaurantUsersContractAccessChangedAsync(
+                contract.RestaurantId,
+                "ContractTerminated",
+                $"{contract.ContractNumber} nömrəli müqavilə ləğv edildi. Restoran üzrə icazələr yenilənir.");
 
             await _auditLogService.RecordRestaurantActionAsync(
                 restaurantId,
@@ -550,6 +558,10 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             foreach (var contract in expiredContracts)
             {
                 await NotifyOwnerContractExpiredAsync(contract);
+                await NotifyRestaurantUsersContractAccessChangedAsync(
+                    contract.RestaurantId,
+                    "ContractExpired",
+                    $"{contract.ContractNumber} nömrəli müqavilənin müddəti bitdi. Restoran üzrə icazələr yenilənir.");
 
                 await _auditLogService.RecordRestaurantActionAsync(
                     contract.RestaurantId,
@@ -598,6 +610,10 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
                 var owner = await GetRestaurantOwnerAsync(contract.RestaurantId);
                 await EnqueueContractActivatedEmailAsync(owner.User, contract);
                 await NotifyOwnerContractActivatedAsync(contract, owner.UserId);
+                await NotifyRestaurantUsersContractAccessChangedAsync(
+                    contract.RestaurantId,
+                    "ContractActivated",
+                    $"{contract.ContractNumber} nömrəli müqavilə aktivləşdirildi. Restoran üzrə icazələr yenilənir.");
 
                 await _auditLogService.RecordRestaurantActionAsync(
                     contract.RestaurantId,
@@ -932,6 +948,31 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
                 NotificationType.ContractExpired,
                 "Müqavilənin müddəti bitdi",
                 $"{contract.ContractNumber} nömrəli müqavilənizin müddəti bitdi.");
+        }
+
+        private async Task NotifyRestaurantUsersContractAccessChangedAsync(
+            int restaurantId,
+            string reason,
+            string message)
+        {
+            var assignments = await _userRestaurantRepository.GetActiveByRestaurantAndRolesAsync(
+                restaurantId,
+                new[]
+                {
+                    (int)RoleCode.Owner,
+                    (int)RoleCode.Manager,
+                    (int)RoleCode.Waiter,
+                    (int)RoleCode.Kitchen
+                });
+
+            foreach (var assignment in assignments)
+            {
+                await _userRealtimeNotifier.NotifyRestaurantAccessChangedAsync(
+                    assignment.UserId,
+                    restaurantId,
+                    reason,
+                    message);
+            }
         }
 
         private async Task NotifyAdminsContractOwnerApprovedAsync(

@@ -300,23 +300,32 @@ namespace ECafe.Application.Services.User.Concrete
             if (user is null)
                 throw new BusinessRuleException("User not found");
 
+            var roleChanged = user.RoleId != roleId;
             user.RoleId = roleId;
 
             var roleName = GetRoleDescription(roleId);
 
+            if (roleChanged)
+                await RevokeActiveRefreshTokensAsync(userId);
+
             await _userRepository.SaveChangesAsync();
 
-            await _emailOutboxService.EnqueueEmailAsync(
-                user.Email,
-                $"{user.Name} {user.Surname}",
-                "İstifadəçi qeydiyyatı tamamlandı",
-                $"{user.Name} {user.Surname} rolunuz dəyişdirildi. Yeni rolunuz: {roleName}",
-                OutboxAggregateTypes.User,
-                user.Id,
-                AuditEntityTypes.User,
-                user.Id);
+            if (roleChanged)
+            {
+                await _emailOutboxService.EnqueueEmailAsync(
+                    user.Email,
+                    $"{user.Name} {user.Surname}",
+                    "Rolunuz dəyişdirildi",
+                    $"{user.Name} {user.Surname}, sistemdə rolunuz dəyişdirildi. Yeni rolunuz: {roleName}. Təhlükəsizlik üçün yenidən giriş etməyiniz tələb olunur.",
+                    OutboxAggregateTypes.User,
+                    user.Id,
+                    AuditEntityTypes.User,
+                    user.Id);
 
-            if (userId != GetCurrentUserId())
+                await NotifyUserRoleChangedAsync(userId, roleName);
+            }
+
+            if (userId != GetCurrentUserId() || roleChanged)
             {
                 return Mapper.Map<AuthResponseDto>(new AuthTokenMapData
                 {
@@ -594,6 +603,12 @@ namespace ECafe.Application.Services.User.Concrete
         {
             const string message = "Hesabınız deaktiv edilib. Sistemə girişiniz dayandırıldı.";
             return _userRealtimeNotifier.NotifyUserDeactivatedAsync(userId, message);
+        }
+
+        private Task NotifyUserRoleChangedAsync(int userId, string roleName)
+        {
+            var message = $"Rolunuz {roleName} olaraq dəyişdirildi. Təhlükəsizlik üçün yenidən giriş edin.";
+            return _userRealtimeNotifier.NotifyUserRoleChangedAsync(userId, message);
         }
 
         private static string HashRefreshToken(string refreshToken)
