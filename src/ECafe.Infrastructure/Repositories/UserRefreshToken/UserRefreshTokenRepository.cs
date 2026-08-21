@@ -16,6 +16,8 @@ namespace ECafe.Infrastructure.Repositories.UserRefreshToken
             return QueryTracked()
                 .Include(t => t.User)
                     .ThenInclude(u => u.Role)
+                    .ThenInclude(r => r.RolePermissions)
+                    .ThenInclude(rp => rp.Permission)
                 .Include(t => t.User)
                     .ThenInclude(u => u.File)
                 .Include(t => t.User)

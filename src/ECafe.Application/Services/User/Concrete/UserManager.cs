@@ -309,9 +309,6 @@ namespace ECafe.Application.Services.User.Concrete
 
             var roleName = GetRoleDescription(roleId);
 
-            if (roleChanged)
-                await RevokeActiveRefreshTokensAsync(userId);
-
             await _userRepository.SaveChangesAsync();
 
             if (roleChanged)
@@ -320,7 +317,7 @@ namespace ECafe.Application.Services.User.Concrete
                     user.Email,
                     $"{user.Name} {user.Surname}",
                     "Rolunuz dəyişdirildi",
-                    $"{user.Name} {user.Surname}, sistemdə rolunuz dəyişdirildi. Yeni rolunuz: {roleName}. Təhlükəsizlik üçün yenidən giriş etməyiniz tələb olunur.",
+                    $"{user.Name} {user.Surname}, sistemdə rolunuz dəyişdirildi. Yeni rolunuz: {roleName}. Aktiv sessiyanız avtomatik yenilənəcək.",
                     OutboxAggregateTypes.User,
                     user.Id,
                     AuditEntityTypes.User,
@@ -611,7 +608,7 @@ namespace ECafe.Application.Services.User.Concrete
 
         private Task NotifyUserRoleChangedAsync(int userId, string roleName)
         {
-            var message = $"Rolunuz {roleName} olaraq dəyişdirildi. Təhlükəsizlik üçün yenidən giriş edin.";
+            var message = $"Rolunuz {roleName} olaraq dəyişdirildi. Sessiya məlumatları yenilənir.";
             return _userRealtimeNotifier.NotifyUserRoleChangedAsync(userId, message);
         }
 
