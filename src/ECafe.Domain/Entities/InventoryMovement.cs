@@ -9,7 +9,7 @@ namespace ECafe.Domain.Entities
         public decimal QuantityChange { get; set; }
         public int UnitId { get; set; }
         public int MovementTypeId { get; set; }
-        public string Reason { get; set; } = null!;
+        public string? Reason { get; set; }
         public int? RelatedOrderId { get; set; }
         public int? RelatedOrderItemId { get; set; }
 

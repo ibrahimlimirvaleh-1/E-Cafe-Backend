@@ -56,6 +56,25 @@ namespace ECafe.Api.Controllers
             => Ok(await Mediator.Send(new DeactivateTableCommand(restaurantId, tableId)));
 
         [HasPermission(Domain.Enums.PermissionCode.ManageTables)]
+        [HttpPost("api/v1/restaurants/{restaurantId}/tables/{tableId}/copy")]
+        public async Task<IActionResult> CopyTable(int restaurantId, int tableId, [FromBody] CopyTableRequest request)
+        {
+            request ??= new CopyTableRequest();
+
+            var command = new CopyTableCommand
+            {
+                RestaurantId = restaurantId,
+                TableId = tableId,
+                TableNo = request.TableNo,
+                Name = request.Name,
+                CopyCount = request.CopyCount,
+                Copies = request.Copies ?? new List<CopyTableItemRequest>()
+            };
+
+            return Ok(await Mediator.Send(command));
+        }
+
+        [HasPermission(Domain.Enums.PermissionCode.ManageTables)]
         [HttpDelete("api/v1/restaurants/{restaurantId}/tables/{tableId}")]
         public async Task<IActionResult> DeleteTable(int restaurantId, int tableId)
             => Ok(await Mediator.Send(new DeleteTableCommand(restaurantId, tableId)));

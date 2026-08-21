@@ -12,7 +12,7 @@ namespace ECafe.Application.Mappings
                 .ForMember(dest => dest.QuantityChange, opt => opt.Ignore())
                 .ForMember(dest => dest.UnitId, opt => opt.MapFrom(src => src.UnitId))
                 .ForMember(dest => dest.MovementTypeId, opt => opt.MapFrom(src => src.MovementTypeId))
-                .ForMember(dest => dest.Reason, opt => opt.MapFrom(src => src.Reason.Trim()))
+                .ForMember(dest => dest.Reason, opt => opt.MapFrom(src => string.IsNullOrWhiteSpace(src.Reason) ? null : src.Reason.Trim()))
                 .ForMember(dest => dest.RestaurantId, opt => opt.Ignore())
                 .ForMember(dest => dest.InventoryItemId, opt => opt.Ignore())
                 .ForMember(dest => dest.RelatedOrderId, opt => opt.Ignore())

@@ -11,7 +11,9 @@ namespace ECafe.Application.Features.Commands.InventoryMovement.Create
             RuleFor(x => x.Quantity).GreaterThan(0);
             RuleFor(x => x.UnitId).GreaterThan(0);
             RuleFor(x => x.MovementTypeId).GreaterThan(0);
-            RuleFor(x => x.Reason).NotEmpty().MaximumLength(500);
+            RuleFor(x => x.Reason)
+                .MaximumLength(500)
+                .When(x => !string.IsNullOrWhiteSpace(x.Reason));
         }
     }
 }

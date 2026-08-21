@@ -11,7 +11,7 @@
         public int MovementTypeId { get; set; }
         public string MovementType { get; set; } = null!;
         public string RelatedOrderId { get; set; } = null!;
-        public string Reason { get; set; } = null!;
+        public string? Reason { get; set; }
 
         public DateTime CreatedAt { get; set; }
 

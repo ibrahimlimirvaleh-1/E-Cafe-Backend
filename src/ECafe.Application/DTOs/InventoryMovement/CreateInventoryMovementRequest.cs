@@ -5,6 +5,6 @@
         public decimal Quantity { get; set; }
         public int UnitId { get; set; }
         public int MovementTypeId { get; set; }
-        public string Reason { get; set; } = null!;
+        public string? Reason { get; set; }
     }
 }

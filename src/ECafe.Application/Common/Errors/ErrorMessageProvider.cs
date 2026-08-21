@@ -35,7 +35,7 @@ public sealed class ErrorMessageProvider : IErrorMessageProvider
         [ErrorCode.InventoryMovementQuantityMustBeGreaterThanZero] = "Quantity must be greater than zero.",
         [ErrorCode.InventoryStockCannotBeNegative] = "Stock cannot be negative.",
         [ErrorCode.InventoryUnitConversionNotAllowed] = "Unit conversion is not allowed between different unit groups.",
-        [ErrorCode.TableAlreadyExists] = "A table with this number already exists in this restaurant.",
+        [ErrorCode.TableAlreadyExists] = "Bu restoran üçün {tableNo} nömrəli masa artıq mövcuddur.",
         [ErrorCode.TableNotFound] = "Table not found.",
 
         [ErrorCode.InvalidFileToken] = "Invalid file token.",

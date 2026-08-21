@@ -15,5 +15,7 @@ namespace ECafe.Application.Services.Table.Abstract
         Task<TableResponse> DeleteAsync(int restaurantId, int tableId);
 
         Task<List<TableResponse>> GetByRestaurantAsync(int restaurantId);
+
+        Task<List<TableResponse>> CopyTableAsync(int restaurantId, int tableId, CopyTableRequest request);
     }
 }
