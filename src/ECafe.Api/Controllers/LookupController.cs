@@ -1,18 +1,41 @@
 using ECafe.Application.Common.Audit;
 using ECafe.Application.DTOs.Lookup;
+using ECafe.Application.Repositories.Role;
 using ECafe.Domain.Enums;
 using ECafe.Shared.Extensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace ECafe.Api.Controllers
 {
     [Authorize]
     public class LookupController : BaseController
     {
+        private readonly IRoleRepository _roleRepository;
+
+        public LookupController(IRoleRepository roleRepository)
+        {
+            _roleRepository = roleRepository;
+        }
+
         [HttpGet("api/v1/lookups/roles")]
-        public IActionResult GetRoles()
-            => Ok(MapEnum<RoleCode>());
+        public async Task<IActionResult> GetRoles()
+        {
+            var roles = await _roleRepository.Query()
+                .OrderBy(role => role.Id)
+                .ToListAsync();
+
+            return Ok(roles.Select(role => new RoleLookupItemResponse
+            {
+                Id = role.Id,
+                Code = Enum.IsDefined(typeof(RoleCode), role.Id)
+                    ? ((RoleCode)role.Id).ToString()
+                    : role.Id.ToString(),
+                Name = role.Name,
+                IsStaffAssignable = role.IsStaffAssignable
+            }));
+        }
 
         [HttpGet("api/v1/lookups/item-statuses")]
         public IActionResult GetItemStatuses()
@@ -84,6 +107,5 @@ namespace ECafe.Api.Controllers
                 .ToList();
         }
 
-       
     }
 }

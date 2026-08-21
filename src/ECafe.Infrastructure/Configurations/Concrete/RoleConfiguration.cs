@@ -1,4 +1,4 @@
-﻿using ECafe.Domain.Entities;
+using ECafe.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -19,6 +19,10 @@ namespace ECafe.Infrastructure.Configurations.Concrete
             builder.Property(e => e.Name)
                 .HasMaxLength(50)
                 .HasColumnName("name");
+
+            builder.Property(e => e.IsStaffAssignable)
+                .HasColumnName("is_staff_assignable")
+                .HasDefaultValue(false);
 
         }
     }

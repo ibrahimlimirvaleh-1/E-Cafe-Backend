@@ -282,6 +282,9 @@ namespace ECafe.Application.Services.User.Concrete
             if (roleId <= 0)
                 throw new BusinessRuleException("Invalid role id");
 
+            if (roleId == (int)RoleCode.Customer)
+                throw new BusinessRuleException("Customer is not staff");
+
             var userDetails = await _userRepository.GetProfileByIdAsync(userId);
             if (userDetails is null)
                 throw new BusinessRuleException("User not found");

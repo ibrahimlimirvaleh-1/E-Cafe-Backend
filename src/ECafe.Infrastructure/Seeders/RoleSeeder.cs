@@ -1,4 +1,4 @@
-﻿using ECafe.Domain.Enums;
+using ECafe.Domain.Enums;
 using ECafe.Shared.Extensions;
 using Microsoft.EntityFrameworkCore;
 
@@ -13,7 +13,11 @@ namespace ECafe.Infrastructure.Seeders
                 .Select(role => new Domain.Entities.Role
                 {
                     Id = (int)role,
-                    Name = role.GetName()
+                    Name = role.GetName(),
+                    IsStaffAssignable = role is RoleCode.Owner
+                        or RoleCode.Manager
+                        or RoleCode.Waiter
+                        or RoleCode.Kitchen
                 })
                 .ToList();
 
