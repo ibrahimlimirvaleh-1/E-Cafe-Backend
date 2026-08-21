@@ -86,13 +86,13 @@ public sealed class ExceptionHandlingMiddleware
             _ => CreateInternalErrorResponse(context)
         };
 
-    private static ApiErrorResponse CreateValidationErrorResponse(
+    private ApiErrorResponse CreateValidationErrorResponse(
         HttpContext context,
         ValidationException exception)
         => new(
             StatusCode: (int)HttpStatusCode.BadRequest,
             Code: ErrorCode.ValidationFailed.ToString(),
-            Message: "Validation failed",
+            Message: _errorMessageProvider.GetMessage(ErrorCode.ValidationFailed),
             TraceId: context.TraceIdentifier,
             Timestamp: DateTime.UtcNow,
             Errors: exception.Errors.Select(error => new ValidationErrorResponse(error.PropertyName, error.ErrorMessage)));
@@ -107,11 +107,11 @@ public sealed class ExceptionHandlingMiddleware
             TraceId: context.TraceIdentifier,
             Timestamp: DateTime.UtcNow);
 
-    private static ApiErrorResponse CreateInternalErrorResponse(HttpContext context)
+    private ApiErrorResponse CreateInternalErrorResponse(HttpContext context)
         => new(
             StatusCode: (int)HttpStatusCode.InternalServerError,
             Code: ErrorCode.InternalServerError.ToString(),
-            Message: "Internal server error",
+            Message: _errorMessageProvider.GetMessage(ErrorCode.InternalServerError),
             TraceId: context.TraceIdentifier,
             Timestamp: DateTime.UtcNow);
 

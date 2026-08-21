@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using ECafe.Application.Common.Exceptions;
 using ECafe.Application.DTOs.Auth;
 using ECafe.Application.Common.Validation;
@@ -51,7 +51,7 @@ namespace ECafe.Application.Services.Auth.Concrete
         public async Task<AuthResponseDto> LoginAsync(LoginRequestDto request)
         {
             if (request is null)
-                throw new BusinessRuleException("request is not null!");
+                throw new BusinessRuleException(ErrorCode.RequestCannotBeNull);
 
             var normalizedEmail = request.Email.Trim().ToLowerInvariant();
             await _loginAttemptService.EnsureNotLockedOutAsync(normalizedEmail);
@@ -106,7 +106,7 @@ namespace ECafe.Application.Services.Auth.Concrete
         public async Task<AuthResponseDto> RefreshAsync(RefreshTokenRequestDto request)
         {
             if (request is null || string.IsNullOrWhiteSpace(request.RefreshToken))
-                throw new BusinessRuleException("Refresh token is required.");
+                throw new BusinessRuleException(ErrorCode.RefreshTokenInvalid);
 
             var refreshTokenHash = HashRefreshToken(request.RefreshToken);
             var storedToken = await _refreshTokenRepository.GetByTokenHashTrackedAsync(refreshTokenHash);
@@ -129,7 +129,7 @@ namespace ECafe.Application.Services.Auth.Concrete
         public async Task LogoutAsync(LogoutRequestDto request)
         {
             if (request is null || string.IsNullOrWhiteSpace(request.RefreshToken))
-                throw new BusinessRuleException("Refresh token is required.");
+                throw new BusinessRuleException(ErrorCode.RefreshTokenInvalid);
 
             var refreshTokenHash = HashRefreshToken(request.RefreshToken);
             var storedToken = await _refreshTokenRepository.GetByTokenHashTrackedAsync(refreshTokenHash);
@@ -168,11 +168,11 @@ namespace ECafe.Application.Services.Auth.Concrete
 
             var emailExists = await _userRepository.CheckExistAsync(x => x.Email == normalizedEmail);
             if (emailExists)
-                throw new BusinessRuleException("Bu email ilə istifadəçi artıq mövcuddur");
+                throw new BusinessRuleException(ErrorCode.UserEmailAlreadyExists);
 
             var phoneExists = await _userRepository.CheckExistAsync(x => x.Phone == normalizedPhone);
             if (phoneExists)
-                throw new BusinessRuleException("Bu telefon nömrəsi ilə istifadəçi artıq mövcuddur");
+                throw new BusinessRuleException(ErrorCode.UserPhoneAlreadyExists);
         }
 
         private async Task<Domain.Entities.File?> GetAttachableFileAsync(int? fileId)
@@ -182,7 +182,7 @@ namespace ECafe.Application.Services.Auth.Concrete
 
             var file = await _fileRepository.GetAttachableByIdAsync(fileId.Value);
             if (file is null)
-                throw new BusinessRuleException("File not found or already attached.");
+                throw new BusinessRuleException(ErrorCode.FileNotFoundOrAlreadyAttached);
 
             file.FileTypeId = (int)FileTypeCode.UserProfileImage;
 

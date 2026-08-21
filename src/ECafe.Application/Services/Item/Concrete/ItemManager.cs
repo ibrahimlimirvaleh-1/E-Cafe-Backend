@@ -57,7 +57,7 @@ namespace ECafe.Application.Services.Item.Concrete
         public async Task<int> CreateAsync(CreateItemRequest request)
         {
             if (request is null)
-                throw new BusinessRuleException("Request cannot be null.");
+                throw new BusinessRuleException(ErrorCode.RequestCannotBeNull);
 
             await _validator.ValidateAndThrowAsync(request);
 
@@ -131,7 +131,7 @@ namespace ECafe.Application.Services.Item.Concrete
                 var category = await GetCategoryAsync(categoryId);
 
                 if (targetRestaurantId > 0 && category.RestaurantId != targetRestaurantId)
-                    throw new BusinessRuleException("Category does not belong to the selected restaurant.");
+                    throw new BusinessRuleException(ErrorCode.CategoryDoesNotBelongToRestaurant);
 
                 targetRestaurantId = category.RestaurantId;
             }
@@ -190,7 +190,7 @@ namespace ECafe.Application.Services.Item.Concrete
         {
             var restaurant = await _restaurantRepository.GetByIdAsync(restaurantId);
             if (restaurant is null)
-                throw new BusinessRuleException("Restaurant not found!");
+                throw new BusinessRuleException(ErrorCode.RestaurantNotFound);
         }
 
         private async Task<Domain.Entities.Category> EnsureCategoryBelongsToRestaurantAsync(int categoryId, int restaurantId)
@@ -198,7 +198,7 @@ namespace ECafe.Application.Services.Item.Concrete
             var category = await GetCategoryAsync(categoryId);
 
             if (category.RestaurantId != restaurantId)
-                throw new BusinessRuleException("Category does not belong to the selected restaurant.");
+                throw new BusinessRuleException(ErrorCode.CategoryDoesNotBelongToRestaurant);
 
             return category;
         }
@@ -207,7 +207,7 @@ namespace ECafe.Application.Services.Item.Concrete
         {
             var category = await _categoryRepository.GetByIdAsync(categoryId);
             if (category is null)
-                throw new BusinessRuleException("Category not found!");
+                throw new BusinessRuleException(ErrorCode.CategoryNotFound);
 
             return category;
         }
@@ -220,7 +220,7 @@ namespace ECafe.Application.Services.Item.Concrete
                 x.Name == itemName);
 
             if (existItem)
-                throw new BusinessRuleException("Item with the same name already exists in this category.");
+                throw new BusinessRuleException(ErrorCode.ItemAlreadyExistsInCategory);
         }
 
         private async Task<Domain.Entities.File?> GetAttachableFileAsync(int? fileId)
@@ -230,7 +230,7 @@ namespace ECafe.Application.Services.Item.Concrete
 
             var file = await _fileRepository.GetAttachableByIdAsync(fileId.Value);
             if (file is null)
-                throw new BusinessRuleException("File not found or already attached.");
+                throw new BusinessRuleException(ErrorCode.FileNotFoundOrAlreadyAttached);
 
             file.FileTypeId = (int)FileTypeCode.MenuItemImage;
 

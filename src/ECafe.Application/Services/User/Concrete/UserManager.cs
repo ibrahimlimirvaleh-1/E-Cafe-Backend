@@ -81,7 +81,7 @@ namespace ECafe.Application.Services.User.Concrete
         public async Task CreateUserAsync(CreateUserRequest request)
         {
             if (request is null)
-                throw new BusinessRuleException("Request is required");
+                throw new BusinessRuleException(ErrorCode.RequestCannotBeNull);
 
             await EnsureRestaurantExistsAsync(request.RestaurantId);
             EnsureCurrentUserCanAccessRestaurant(request.RestaurantId);
@@ -105,18 +105,18 @@ namespace ECafe.Application.Services.User.Concrete
         public async Task DeleteAsync(int userId)
         {
             if (userId <= 0)
-                throw new BusinessRuleException("Invalid user id");
+                throw new BusinessRuleException(ErrorCode.InvalidUserId);
 
             var userDetails = await _userRepository.GetProfileByIdAsync(userId);
 
             if (userDetails is null)
-                throw new BusinessRuleException("User not found");
+                throw new BusinessRuleException(ErrorCode.UserNotFound);
 
             EnsureCanManageTargetUser(userDetails);
 
             var user = await _userRepository.GetByIdAsync(userId);
             if (user is null)
-                throw new BusinessRuleException("User not found");
+                throw new BusinessRuleException(ErrorCode.UserNotFound);
 
             await RevokeActiveRefreshTokensAsync(userId);
             await _userRepository.Delete(user);
@@ -127,16 +127,16 @@ namespace ECafe.Application.Services.User.Concrete
         public async Task ActivateStaffAsync(int restaurantId, int staffId)
         {
             if (restaurantId <= 0)
-                throw new BusinessRuleException("Invalid restaurant id");
+                throw new BusinessRuleException(ErrorCode.InvalidRestaurantId);
 
             if (staffId <= 0)
-                throw new BusinessRuleException("Invalid staff id");
+                throw new BusinessRuleException(ErrorCode.InvalidStaffId);
 
             EnsureCurrentUserCanAccessRestaurant(restaurantId);
 
             var staffAssignment = await _userRestaurantRepository.GetStaffAssignmentAsync(restaurantId, staffId);
             if (staffAssignment is null)
-                throw new BusinessRuleException("Staff assignment not found.");
+                throw new BusinessRuleException(ErrorCode.StaffAssignmentNotFound);
 
             EnsureOnlySuperAdminCanManageOwnerRole(staffAssignment.User.RoleId);
 
@@ -169,19 +169,19 @@ namespace ECafe.Application.Services.User.Concrete
         public async Task DeactivateStaffAsync(int restaurantId, int staffId)
         {
             if (restaurantId <= 0)
-                throw new BusinessRuleException("Invalid restaurant id");
+                throw new BusinessRuleException(ErrorCode.InvalidRestaurantId);
 
             if (staffId <= 0)
-                throw new BusinessRuleException("Invalid staff id");
+                throw new BusinessRuleException(ErrorCode.InvalidStaffId);
 
             EnsureCurrentUserCanAccessRestaurant(restaurantId);
 
             if (staffId == GetCurrentUserId())
-                throw new BusinessRuleException("You cannot deactivate your own account.");
+                throw new BusinessRuleException(ErrorCode.CannotDeactivateOwnAccount);
 
             var staffAssignment = await _userRestaurantRepository.GetActiveStaffAssignmentAsync(restaurantId, staffId);
             if (staffAssignment is null)
-                throw new BusinessRuleException("Active staff assignment not found.");
+                throw new BusinessRuleException(ErrorCode.ActiveStaffAssignmentNotFound);
 
             EnsureOnlySuperAdminCanManageOwnerRole(staffAssignment.User.RoleId);
 
@@ -214,19 +214,19 @@ namespace ECafe.Application.Services.User.Concrete
         public async Task<StaffDetailResponseDto> UpdateStaffAsync(int restaurantId, int staffId, UpdateStaffRequest request)
         {
             if (request is null)
-                throw new BusinessRuleException("Request is required");
+                throw new BusinessRuleException(ErrorCode.RequestCannotBeNull);
 
             if (restaurantId <= 0)
-                throw new BusinessRuleException("Invalid restaurant id");
+                throw new BusinessRuleException(ErrorCode.InvalidRestaurantId);
 
             if (staffId <= 0)
-                throw new BusinessRuleException("Invalid staff id");
+                throw new BusinessRuleException(ErrorCode.InvalidStaffId);
 
             EnsureCurrentUserCanAccessRestaurant(restaurantId);
 
             var staffAssignment = await _userRestaurantRepository.GetActiveStaffAssignmentAsync(restaurantId, staffId);
             if (staffAssignment is null)
-                throw new BusinessRuleException("Active staff assignment not found.");
+                throw new BusinessRuleException(ErrorCode.ActiveStaffAssignmentNotFound);
 
             EnsureOnlySuperAdminCanManageOwnerRole(staffAssignment.User.RoleId);
 
@@ -234,7 +234,7 @@ namespace ECafe.Application.Services.User.Concrete
             var phone = PhoneNumberValidationExtensions.NormalizeAzerbaijanPhoneNumber(request.Phone);
             var conflict = await _userRepository.GetProfileConflictAsync(staffId, email, phone);
             if (conflict is not null)
-                throw new BusinessRuleException("Email or phone already belongs to another user.");
+                throw new BusinessRuleException(ErrorCode.EmailOrPhoneAlreadyUsed);
 
             var file = await GetAttachableFileAsync(request.FileId);
 
@@ -278,23 +278,23 @@ namespace ECafe.Application.Services.User.Concrete
         public async Task<AuthResponseDto> UpdateRoleAsync(int userId, int roleId)
         {
             if (userId <= 0)
-                throw new BusinessRuleException("Invalid user id");
+                throw new BusinessRuleException(ErrorCode.InvalidUserId);
 
             if (roleId <= 0)
-                throw new BusinessRuleException("Invalid role id");
+                throw new BusinessRuleException(ErrorCode.InvalidRoleId);
 
             if (roleId == (int)RoleCode.Customer)
-                throw new BusinessRuleException("Customer is not staff");
+                throw new BusinessRuleException(ErrorCode.CustomerCannotBeStaff);
 
             var userDetails = await _userRepository.GetProfileByIdAsync(userId);
             if (userDetails is null)
-                throw new BusinessRuleException("User not found");
+                throw new BusinessRuleException(ErrorCode.UserNotFound);
 
             EnsureCanManageTargetUser(userDetails);
 
             var role = await _roleRepository.GetByIdAsync(roleId);
             if (role is null)
-                throw new BusinessRuleException("Role not found");
+                throw new BusinessRuleException(ErrorCode.RoleNotFound);
 
             EnsureOnlySuperAdminCanManageOwnerRole(roleId);
             await EnsureRestaurantScopedRoleHasRestaurantAsync(userId, roleId);
@@ -302,7 +302,7 @@ namespace ECafe.Application.Services.User.Concrete
 
             var user = await _userRepository.GetByIdAsync(userId);
             if (user is null)
-                throw new BusinessRuleException("User not found");
+                throw new BusinessRuleException(ErrorCode.UserNotFound);
 
             var roleChanged = user.RoleId != roleId;
             user.RoleId = roleId;
@@ -337,7 +337,7 @@ namespace ECafe.Application.Services.User.Concrete
 
             var tokenUser = await _userRepository.GetByIdWithAuthDetailsTrackedAsync(userId);
             if (tokenUser is null)
-                throw new BusinessRuleException("User not found");
+                throw new BusinessRuleException(ErrorCode.UserNotFound);
 
             return await CreateAndStoreTokenResponseAsync(tokenUser);
         }
@@ -372,12 +372,12 @@ namespace ECafe.Application.Services.User.Concrete
         public async Task<ProfileResponseDto> GetProfileAsync(int userId)
         {
             if (userId <= 0)
-                throw new BusinessRuleException("Invalid user id");
+                throw new BusinessRuleException(ErrorCode.InvalidUserId);
 
             var user = await _userRepository.GetProfileByIdAsync(userId);
 
             if (user is null)
-                throw new BusinessRuleException("User not found");
+                throw new BusinessRuleException(ErrorCode.UserNotFound);
 
             return await MapToProfileResponseAsync(user);
         }
@@ -385,15 +385,15 @@ namespace ECafe.Application.Services.User.Concrete
         public async Task UpdateProfileAsync(int userId, UpdateProfileRequest request)
         {
             if (userId <= 0)
-                throw new BusinessRuleException("Invalid user id");
+                throw new BusinessRuleException(ErrorCode.InvalidUserId);
 
             if (request is null)
-                throw new BusinessRuleException("Request is required");
+                throw new BusinessRuleException(ErrorCode.RequestCannotBeNull);
 
             var user = await _userRepository.GetProfileByIdTrackedAsync(userId);
 
             if (user is null)
-                throw new BusinessRuleException("User not found");
+                throw new BusinessRuleException(ErrorCode.UserNotFound);
 
             var email = request.Email.Trim().ToLowerInvariant();
             var phone = PhoneNumberValidationExtensions.NormalizeAzerbaijanPhoneNumber(request.Phone);
@@ -401,10 +401,10 @@ namespace ECafe.Application.Services.User.Concrete
             var conflictingUser = await _userRepository.GetProfileConflictAsync(userId, email, phone);
 
             if (conflictingUser?.Email == email)
-                throw new BusinessRuleException("User with this email already exists");
+                throw new BusinessRuleException(ErrorCode.UserEmailAlreadyExists);
 
             if (conflictingUser?.Phone == phone)
-                throw new BusinessRuleException("User with this phone already exists");
+                throw new BusinessRuleException(ErrorCode.UserPhoneAlreadyExists);
 
             Mapper.Map(request, user);
 
@@ -418,17 +418,17 @@ namespace ECafe.Application.Services.User.Concrete
         public async Task<StaffDetailResponseDto> GetStaffDetailAsync(int restaurantId, int staffId)
         {
             if (restaurantId <= 0)
-                throw new BusinessRuleException("Invalid restaurant ID!");
+                throw new BusinessRuleException(ErrorCode.InvalidRestaurantId);
 
             if (staffId <= 0)
-                throw new BusinessRuleException("Invalid staff id");
+                throw new BusinessRuleException(ErrorCode.InvalidStaffId);
 
             EnsureCurrentUserCanAccessRestaurant(restaurantId);
 
             var staff = await _userRepository.GetStaffDetailAsync(restaurantId, staffId);
 
             if (staff is null)
-                throw new BusinessRuleException("Staff not found");
+                throw new BusinessRuleException(ErrorCode.StaffNotFound);
 
             return await MapToStaffDetailResponseAsync(staff);
         }
@@ -438,7 +438,7 @@ namespace ECafe.Application.Services.User.Concrete
             var restaurant = await _restaurantRepository.GetByIdAsync(restaurantId);
 
             if (restaurant is null)
-                throw new BusinessRuleException("Restaurant not found");
+                throw new BusinessRuleException(ErrorCode.RestaurantNotFound);
         }
 
         private void EnsureCanManageTargetUser(Domain.Entities.User user)
@@ -462,7 +462,7 @@ namespace ECafe.Application.Services.User.Concrete
             var role = await _roleRepository.GetByIdAsync(roleId);
 
             if (role is null)
-                throw new BusinessRuleException("Role not found");
+                throw new BusinessRuleException(ErrorCode.RoleNotFound);
         }
 
         private async Task EnsureUserDoesNotExistAsync(string email)
@@ -470,7 +470,7 @@ namespace ECafe.Application.Services.User.Concrete
             var existingUser = await _userRepository.GetByEmailAsync(email.Trim().ToLowerInvariant());
 
             if (existingUser is not null)
-                throw new BusinessRuleException("User with this email already exists");
+                throw new BusinessRuleException(ErrorCode.UserEmailAlreadyExists);
         }
 
         private async Task<Domain.Entities.File?> GetAttachableFileAsync(int? fileId)
@@ -480,7 +480,7 @@ namespace ECafe.Application.Services.User.Concrete
 
             var file = await _fileRepository.GetAttachableByIdAsync(fileId.Value);
             if (file is null)
-                throw new BusinessRuleException("File not found or already attached.");
+                throw new BusinessRuleException(ErrorCode.FileNotFoundOrAlreadyAttached);
 
             file.FileTypeId = (int)FileTypeCode.UserProfileImage;
 
@@ -490,7 +490,7 @@ namespace ECafe.Application.Services.User.Concrete
         private static string GetRoleDescription(int roleId)
         {
             if (!Enum.IsDefined(typeof(RoleCode), roleId))
-                throw new BusinessRuleException("Invalid role id");
+                throw new BusinessRuleException(ErrorCode.InvalidRoleId);
 
             return ((RoleCode)roleId).GetDescription();
         }
@@ -502,7 +502,7 @@ namespace ECafe.Application.Services.User.Concrete
 
             var userRestaurant = await _userRestaurantRepository.GetActiveByUserIdAsync(userId);
             if (userRestaurant is null)
-                throw new BusinessRuleException("Restaurant-scoped role requires an active restaurant assignment.");
+                throw new BusinessRuleException(ErrorCode.RestaurantScopedRoleRequiresAssignment);
         }
 
         private static bool IsRestaurantScopedRole(int roleId)
@@ -540,7 +540,7 @@ namespace ECafe.Application.Services.User.Concrete
             if (activeOwner is null || activeOwner.UserId == excludedUserId)
                 return;
 
-            throw new BusinessRuleException("Restaurant already has an active owner.");
+            throw new BusinessRuleException(ErrorCode.RestaurantAlreadyHasActiveOwner);
         }
 
         private async Task<ProfileResponseDto> MapToProfileResponseAsync(Domain.Entities.User user)

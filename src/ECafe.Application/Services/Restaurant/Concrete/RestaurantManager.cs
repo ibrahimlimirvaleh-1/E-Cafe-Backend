@@ -134,13 +134,13 @@ namespace ECafe.Application.Services.Restaurant.Concrete
         public async Task<GetByIdRestaurantResponse> GetRestaurantAsync(int restaurantId)
         {
             if (restaurantId <= 0)
-                throw new BusinessRuleException("Invalid restaurant ID!");
+                throw new BusinessRuleException(ErrorCode.InvalidRestaurantId);
 
             EnsureCurrentUserCanAccessRestaurant(restaurantId);
 
             var restaurant = await _restaurantRepository.GetRestaurantInfoAsync(restaurantId);
             if (restaurant is null)
-                throw new BusinessRuleException("Restaurant not found!");
+                throw new BusinessRuleException(ErrorCode.RestaurantNotFound);
 
             var response = Mapper.Map<GetByIdRestaurantResponse>(restaurant);
 
@@ -250,7 +250,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
         public async Task<int> RegisterRestaurantAsync(RegisterRestaurantRequest request)
         {
             if (request is null)
-                throw new BusinessRuleException("Request is required!");
+                throw new BusinessRuleException(ErrorCode.RequestCannotBeNull);
 
             var restaurantGroup = await ResolveRestaurantGroupAsync(
                 request.RestaurantGroupId,
@@ -306,10 +306,10 @@ namespace ECafe.Application.Services.Restaurant.Concrete
         public async Task UpdateRestaurantAsync(int restaurantId, UpdateRestaurantRequest request)
         {
             if (restaurantId <= 0)
-                throw new BusinessRuleException("Invalid restaurant ID!");
+                throw new BusinessRuleException(ErrorCode.InvalidRestaurantId);
 
             if (request is null)
-                throw new BusinessRuleException("Request is required!");
+                throw new BusinessRuleException(ErrorCode.RequestCannotBeNull);
 
             EnsureCurrentUserCanAccessRestaurant(restaurantId);
 
@@ -380,7 +380,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
         public async Task DeactivateRestaurantAsync(int restaurantId)
         {
             if (restaurantId <= 0)
-                throw new BusinessRuleException("Invalid restaurant ID!");
+                throw new BusinessRuleException(ErrorCode.InvalidRestaurantId);
 
             EnsureCurrentUserCanAccessRestaurant(restaurantId);
 
@@ -465,7 +465,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
         {
             var uniqueFileIds = fileIds.Distinct().ToList();
             if (uniqueFileIds.Any(fileId => fileId <= 0))
-                throw new BusinessRuleException("Invalid file ID!");
+                throw new BusinessRuleException(ErrorCode.InvalidFileId);
 
             var files = await _fileRepository.GetAttachableByIdsAsync(uniqueFileIds);
             var foundIds = files.Select(file => file.Id).ToHashSet();
@@ -516,11 +516,11 @@ namespace ECafe.Application.Services.Restaurant.Concrete
         private async Task<Domain.Entities.Restaurant> GetPublicRestaurantEntityAsync(int restaurantId)
         {
             if (restaurantId <= 0)
-                throw new BusinessRuleException("Invalid restaurant ID!");
+                throw new BusinessRuleException(ErrorCode.InvalidRestaurantId);
 
             var restaurant = await _restaurantRepository.GetPublicRestaurantInfoAsync(restaurantId);
             if (restaurant is null)
-                throw new BusinessRuleException("Public restaurant not found!");
+                throw new BusinessRuleException(ErrorCode.PublicRestaurantNotFound);
 
             return restaurant;
         }
@@ -611,7 +611,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
         private async Task<List<UserRestaurant>> GetRestaurantStaffEntitiesAsync(int restaurantId)
         {
             if (restaurantId <= 0)
-                throw new BusinessRuleException("Invalid restaurant ID!");
+                throw new BusinessRuleException(ErrorCode.InvalidRestaurantId);
 
             EnsureCurrentUserCanAccessRestaurant(restaurantId);
 
@@ -629,7 +629,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
                 .FirstOrDefaultAsync();
 
             if (restaurant is null)
-                throw new BusinessRuleException("Restaurant not found!");
+                throw new BusinessRuleException(ErrorCode.RestaurantNotFound);
 
             return restaurant;
         }
@@ -650,13 +650,13 @@ namespace ECafe.Application.Services.Restaurant.Concrete
                 query = query.Where(x => x.Id != excludedRestaurantId.Value);
 
             if (await query.AnyAsync(x => x.Email == normalizedEmail))
-                throw new BusinessRuleException("Restaurant with this email already exists!");
+                throw new BusinessRuleException(ErrorCode.RestaurantEmailAlreadyExists);
 
             if (await query.AnyAsync(x => x.Name == normalizedName))
-                throw new BusinessRuleException("Restaurant with this name already exists!");
+                throw new BusinessRuleException(ErrorCode.RestaurantNameAlreadyExists);
 
             if (await query.AnyAsync(x => x.Phone == normalizedPhone))
-                throw new BusinessRuleException("Restaurant with this phone already exists!");
+                throw new BusinessRuleException(ErrorCode.RestaurantPhoneAlreadyExists);
         }
 
         private async Task<Domain.Entities.RestaurantGroup?> ResolveRestaurantGroupAsync(
@@ -667,7 +667,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             var groupId = restaurantGroupId.GetValueOrDefault();
 
             if (groupId < 0)
-                throw new BusinessRuleException("Invalid restaurant group ID!");
+                throw new BusinessRuleException(ErrorCode.InvalidRestaurantGroupId);
 
             if (groupId > 0)
             {
@@ -676,10 +676,10 @@ namespace ECafe.Application.Services.Restaurant.Concrete
                     .FirstOrDefaultAsync();
 
                 if (existingGroup is null)
-                    throw new BusinessRuleException("Restaurant group not found!");
+                    throw new BusinessRuleException(ErrorCode.RestaurantGroupNotFound);
 
                 if (!existingGroup.IsActive)
-                    throw new BusinessRuleException("Restaurant group is inactive!");
+                    throw new BusinessRuleException(ErrorCode.RestaurantGroupInactive);
 
                 return existingGroup;
             }
@@ -693,7 +693,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
                 .CheckExistAsync(x => x.Name == groupName);
 
             if (groupNameExists)
-                throw new BusinessRuleException("Restaurant group with this name already exists!");
+                throw new BusinessRuleException(ErrorCode.RestaurantGroupNameAlreadyExists);
 
             return new Domain.Entities.RestaurantGroup
             {
@@ -722,13 +722,13 @@ namespace ECafe.Application.Services.Restaurant.Concrete
                 query = query.Where(x => x.Id != excludedRestaurantId.Value);
 
             if (await query.AnyAsync())
-                throw new BusinessRuleException("Branch with this name already exists in the selected restaurant group!");
+                throw new BusinessRuleException(ErrorCode.BranchAlreadyExistsInRestaurantGroup);
         }
 
         private static string NormalizeRequiredBranchName(string? branchName)
         {
             if (string.IsNullOrWhiteSpace(branchName))
-                throw new BusinessRuleException("Branch name is required!");
+                throw new BusinessRuleException(ErrorCode.BranchNameRequired);
 
             return branchName.Trim();
         }
@@ -738,7 +738,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             var groupName = restaurantGroup?.Name?.Trim();
 
             if (string.IsNullOrWhiteSpace(groupName))
-                throw new BusinessRuleException("Restaurant group is required!");
+                throw new BusinessRuleException(ErrorCode.RestaurantGroupRequired);
 
             return $"{groupName} {branchName}".Trim();
         }

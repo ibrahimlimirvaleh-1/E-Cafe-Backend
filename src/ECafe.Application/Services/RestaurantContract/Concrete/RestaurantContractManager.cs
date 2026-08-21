@@ -81,10 +81,10 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
         public async Task<int> CreateAsync(int restaurantId, CreateRestaurantContractRequest request)
         {
             if (restaurantId <= 0)
-                throw new BusinessRuleException("Invalid restaurant ID!");
+                throw new BusinessRuleException(ErrorCode.InvalidRestaurantId);
 
             if (request is null)
-                throw new BusinessRuleException("Contract request is required!");
+                throw new BusinessRuleException(ErrorCode.ContractRequestRequired);
 
             EnsureCurrentUserCanAccessRestaurant(restaurantId);
 
@@ -98,7 +98,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
                 .Include(x => x.RestaurantGroup)
                 .FirstOrDefaultAsync();
             if (restaurant is null)
-                throw new BusinessRuleException("Restaurant not found!");
+                throw new BusinessRuleException(ErrorCode.RestaurantNotFound);
 
             var contractNumber = await GenerateContractNumberAsync(restaurantId, request.StartDate);
             var generatedFile = await _contractFileService.GenerateAndUploadAsync(restaurant, contractNumber, request);
@@ -149,13 +149,13 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
         public async Task UpdateAsync(int restaurantId, int contractId, UpdateRestaurantContractRequest request)
         {
             if (restaurantId <= 0)
-                throw new BusinessRuleException("Invalid restaurant ID!");
+                throw new BusinessRuleException(ErrorCode.InvalidRestaurantId);
 
             if (contractId <= 0)
-                throw new BusinessRuleException("Invalid contract ID!");
+                throw new BusinessRuleException(ErrorCode.InvalidContractId);
 
             if (request is null)
-                throw new BusinessRuleException("Contract request is required!");
+                throw new BusinessRuleException(ErrorCode.ContractRequestRequired);
 
             EnsureCurrentUserCanAccessRestaurant(restaurantId);
             ValidateEditableContractDates(request.StartDate, request.EndDate);
@@ -188,7 +188,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
                 .Include(x => x.RestaurantGroup)
                 .FirstOrDefaultAsync();
             if (restaurant is null)
-                throw new BusinessRuleException("Restaurant not found!");
+                throw new BusinessRuleException(ErrorCode.RestaurantNotFound);
 
             contract.StartDate = request.StartDate;
             contract.EndDate = request.EndDate;
@@ -251,7 +251,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
         public async Task<List<RestaurantContractResponse>> GetByRestaurantAsync(int restaurantId)
         {
             if (restaurantId <= 0)
-                throw new BusinessRuleException("Invalid restaurant ID!");
+                throw new BusinessRuleException(ErrorCode.InvalidRestaurantId);
 
             EnsureCurrentUserCanAccessRestaurant(restaurantId);
 
@@ -271,7 +271,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             RestaurantContractFilterRequest request)
         {
             if (restaurantId <= 0)
-                throw new BusinessRuleException("Invalid restaurant ID!");
+                throw new BusinessRuleException(ErrorCode.InvalidRestaurantId);
 
             EnsureCurrentUserCanAccessRestaurant(restaurantId);
 
@@ -346,7 +346,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
 
             var contract = await _contractRepository.GetActiveByRestaurantAsync(restaurantId);
             if (contract is null)
-                throw new BusinessRuleException("Restaurant does not have an active contract!");
+                throw new BusinessRuleException(ErrorCode.RestaurantActiveContractRequired);
 
             return await MapToResponseAsync(contract);
         }
@@ -470,7 +470,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             var owner = await GetRestaurantOwnerAsync(restaurantId);
             var currentUserId = GetCurrentUserId();
             if (owner.UserId != currentUserId)
-                throw new BusinessRuleException("Only the restaurant owner can approve this contract.");
+                throw new BusinessRuleException(ErrorCode.OnlyRestaurantOwnerCanApproveContract);
 
             contract.StatusId = ContractStatusId(ContractStatus.OwnerApproved);
             contract.SignedAt = DateTime.UtcNow;
@@ -533,7 +533,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
         public async Task EnsureRestaurantHasActiveContractAsync(int restaurantId)
         {
             if (!await _contractRepository.HasActiveContractAsync(restaurantId))
-                throw new BusinessRuleException("Restaurant does not have an active contract!");
+                throw new BusinessRuleException(ErrorCode.RestaurantActiveContractRequired);
         }
 
         public async Task<int> ExpireActiveContractsAsync(int batchSize)
@@ -684,14 +684,14 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
         private async Task<Domain.Entities.RestaurantContract> GetTrackedContractAsync(int restaurantId, int contractId)
         {
             if (restaurantId <= 0)
-                throw new BusinessRuleException("Invalid restaurant ID!");
+                throw new BusinessRuleException(ErrorCode.InvalidRestaurantId);
 
             if (contractId <= 0)
-                throw new BusinessRuleException("Invalid contract ID!");
+                throw new BusinessRuleException(ErrorCode.InvalidContractId);
 
             var contract = await _contractRepository.GetTrackedByRestaurantAsync(restaurantId, contractId);
             if (contract is null)
-                throw new BusinessRuleException("Restaurant contract not found!");
+                throw new BusinessRuleException(ErrorCode.ContractNotFound);
 
             return contract;
         }
@@ -756,13 +756,13 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
         private async Task EnsureRestaurantDoesNotHaveActiveContractAsync(int restaurantId)
         {
             if (await _contractRepository.HasActiveContractAsync(restaurantId))
-                throw new BusinessRuleException("Restaurant already has an active contract. Terminate or expire the current contract before creating a new one.");
+                throw new BusinessRuleException(ErrorCode.RestaurantAlreadyHasActiveContract);
         }
 
         private async Task EnsureRestaurantDoesNotHaveAnotherActiveContractAsync(int restaurantId, int contractId, DateTime nowUtc)
         {
             if (await HasAnotherActiveContractAsync(restaurantId, contractId, nowUtc))
-                throw new BusinessRuleException("Restaurant already has an active contract!");
+                throw new BusinessRuleException(ErrorCode.RestaurantAlreadyHasActiveContract);
         }
 
         private Task<bool> HasAnotherActiveContractAsync(int restaurantId, int contractId, DateTime nowUtc)
@@ -798,17 +798,17 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
         private static void EnsureOwnerAcceptedContractTerms(bool hasAcceptedContractTerms, string? acceptanceText)
         {
             if (!hasAcceptedContractTerms)
-                throw new BusinessRuleException("Contract terms must be accepted.");
+                throw new BusinessRuleException(ErrorCode.ContractTermsMustBeAccepted);
 
             if (string.IsNullOrWhiteSpace(acceptanceText))
-                throw new BusinessRuleException("Contract acceptance text is required.");
+                throw new BusinessRuleException(ErrorCode.ContractAcceptanceTextRequired);
         }
 
         private async Task<Domain.Entities.UserRestaurant> GetRestaurantOwnerAsync(int restaurantId)
         {
             var owner = await _userRestaurantRepository.GetActiveOwnerByRestaurantAsync(restaurantId);
             if (owner is null)
-                throw new BusinessRuleException("Restaurant owner is not assigned.");
+                throw new BusinessRuleException(ErrorCode.RestaurantOwnerNotAssigned);
 
             return owner;
         }
@@ -1061,7 +1061,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
                     return contractNumber;
             }
 
-            throw new BusinessRuleException("Could not generate a unique contract number.");
+            throw new BusinessRuleException(ErrorCode.ContractNumberGenerationFailed);
         }
 
         private static void ValidateEditableContractDates(DateTime startDate, DateTime? endDate)
@@ -1069,7 +1069,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             ValidateContractDateRange(startDate, endDate);
 
             if (startDate.Date < DateTime.UtcNow.Date)
-                throw new BusinessRuleException("Contract start date cannot be in the past.");
+                throw new BusinessRuleException(ErrorCode.ContractStartDateCannotBeInPast);
         }
 
         private static void ValidatePersistedContractDates(DateTime startDate, DateTime? endDate)
@@ -1080,28 +1080,28 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             ValidateContractDateRange(startDate, endDate);
 
             if (endDate!.Value <= DateTime.UtcNow)
-                throw new BusinessRuleException("Expired contract cannot be activated.");
+                throw new BusinessRuleException(ErrorCode.ExpiredContractCannotBeActivated);
         }
 
         private static void ValidateContractDateRange(DateTime startDate, DateTime? endDate)
         {
             if (startDate == default)
-                throw new BusinessRuleException("Contract start date is required!");
+                throw new BusinessRuleException(ErrorCode.ContractStartDateRequired);
 
             if (!endDate.HasValue)
-                throw new BusinessRuleException("Contract end date is required!");
+                throw new BusinessRuleException(ErrorCode.ContractEndDateRequired);
 
             if (endDate.Value <= startDate)
-                throw new BusinessRuleException("Contract end date must be later than start date!");
+                throw new BusinessRuleException(ErrorCode.ContractEndDateMustBeAfterStartDate);
         }
 
         private static void EnsureContractHasNotExpired(DateTime? endDate)
         {
             if (!endDate.HasValue)
-                throw new BusinessRuleException("Contract end date is required!");
+                throw new BusinessRuleException(ErrorCode.ContractEndDateRequired);
 
             if (endDate.Value <= DateTime.UtcNow)
-                throw new BusinessRuleException("Expired contract cannot continue in the approval flow.");
+                throw new BusinessRuleException(ErrorCode.ExpiredContractCannotContinueApprovalFlow);
         }
 
         private static void ValidatePercent(decimal? value, string fieldName)
@@ -1113,13 +1113,13 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
         private static void ValidateContractAmount(decimal amount)
         {
             if (amount <= 0)
-                throw new BusinessRuleException("Contract amount must be greater than zero.");
+                throw new BusinessRuleException(ErrorCode.ContractAmountMustBeGreaterThanZero);
         }
 
         private static void ValidateExpiryReminderDaysBefore(int daysBefore)
         {
             if (daysBefore is < 1 or > 365)
-                throw new BusinessRuleException("Expiry reminder days before must be between 1 and 365.");
+                throw new BusinessRuleException(ErrorCode.ContractExpiryReminderDaysInvalid);
         }
 
         private static DateTime CalculateExpiryReminderAt(DateTime endDate, int daysBefore)

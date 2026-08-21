@@ -22,11 +22,11 @@ namespace ECafe.Application.Features.Queries.File
         public async Task<FileResponse> Handle(GetFileMetadataQuery request, CancellationToken cancellationToken)
         {
             if (request.FileId <= 0)
-                throw new BusinessRuleException("Invalid file ID!");
+                throw new BusinessRuleException(ErrorCode.InvalidFileId);
 
             var file = await _fileRepository.GetWithUsageByIdAsync(request.FileId);
             if (file is null)
-                throw new BusinessRuleException("File not found!");
+                throw new BusinessRuleException(ErrorCode.FileNotFound);
 
             var urls = await _fileAccessUrlService.BuildUrlsAsync(file, cancellationToken);
 

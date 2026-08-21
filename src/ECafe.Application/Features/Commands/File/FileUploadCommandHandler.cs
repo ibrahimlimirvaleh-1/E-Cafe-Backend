@@ -46,7 +46,7 @@ namespace ECafe.Application.Features.Commands.File
 
             var fileType = await GetFileTypeAsync(request.FileTypeId, cancellationToken);
             if (fileType is null)
-                throw new BusinessRuleException("File type not found.");
+                throw new BusinessRuleException(ErrorCode.FileTypeNotFound);
 
             var token = await _minioService.UploadFileAsync(new UploadFileDto(file), BuildUploadPolicy(fileType));
             var url = fileType.IsPublic

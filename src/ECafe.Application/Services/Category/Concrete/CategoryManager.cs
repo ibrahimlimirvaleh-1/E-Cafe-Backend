@@ -35,11 +35,11 @@ public class CategoryManager : BaseManager, ICategoryService
     public async Task<int> CreateCategoryAsync(CreateCategoryRequest request)
     {
         if (request is null)
-            throw new BusinessRuleException("Request is null!");
+            throw new BusinessRuleException(ErrorCode.RequestCannotBeNull);
 
         var restaurant = await _restaurantRepository.GetByIdAsync(request.RestaurantId);
         if (restaurant is null)
-            throw new BusinessRuleException("Restaurant not found!");
+            throw new BusinessRuleException(ErrorCode.RestaurantNotFound);
 
         EnsureCurrentUserCanAccessRestaurant(request.RestaurantId);
 
@@ -74,7 +74,7 @@ public class CategoryManager : BaseManager, ICategoryService
         UpdateCategoryRequest request)
     {
         if (request is null)
-            throw new BusinessRuleException("Request is null!");
+            throw new BusinessRuleException(ErrorCode.RequestCannotBeNull);
 
         await EnsureCategoryMutationContextAsync(restaurantId);
 
@@ -180,14 +180,14 @@ public class CategoryManager : BaseManager, ICategoryService
     public async Task<List<GetAllCategoryResponse>> GetCategoriesByRestaurantIdAsync(int restaurantId)
     {
         if (restaurantId <= 0)
-            throw new BusinessRuleException("Invalid restaurant ID!");
+            throw new BusinessRuleException(ErrorCode.InvalidRestaurantId);
 
         EnsureCurrentUserCanAccessRestaurant(restaurantId);
 
         var categories = await _categoryRepository.GetCategoriesByRestaurantIdAsync(restaurantId);
 
         if (!categories.Any())
-            throw new BusinessRuleException("Category is empty");
+            throw new BusinessRuleException(ErrorCode.CategoryIsEmpty);
 
         return Mapper.Map<List<GetAllCategoryResponse>>(categories);
     }
@@ -205,14 +205,14 @@ public class CategoryManager : BaseManager, ICategoryService
     private async Task EnsureCategoryMutationContextAsync(int restaurantId)
     {
         if (restaurantId <= 0)
-            throw new BusinessRuleException("Invalid restaurant ID!");
+            throw new BusinessRuleException(ErrorCode.InvalidRestaurantId);
 
         var restaurantExists = await _restaurantRepository
             .Query(x => x.Id == restaurantId && x.IsActive)
             .AnyAsync();
 
         if (!restaurantExists)
-            throw new BusinessRuleException("Restaurant not found!");
+            throw new BusinessRuleException(ErrorCode.RestaurantNotFound);
 
         EnsureCurrentUserCanAccessRestaurant(restaurantId);
     }
@@ -220,9 +220,9 @@ public class CategoryManager : BaseManager, ICategoryService
     private async Task<Category> GetTrackedCategoryAsync(int restaurantId, int categoryId)
     {
         if (categoryId <= 0)
-            throw new BusinessRuleException("Invalid category ID!");
+            throw new BusinessRuleException(ErrorCode.InvalidCategoryId);
 
         var category = await _categoryRepository.GetByRestaurantAsync(restaurantId, categoryId);
-        return category ?? throw new BusinessRuleException("Category not found!");
+        return category ?? throw new BusinessRuleException(ErrorCode.CategoryNotFound);
     }
 }
