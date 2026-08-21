@@ -81,6 +81,10 @@ namespace ECafe.Infrastructure.Repositories.User
                 .FirstOrDefaultAsync(u => u.Id == userId);
         }
 
+        public Task<bool> IsActiveAsync(int userId)
+            => Query()
+                .AnyAsync(u => u.Id == userId && u.IsActive);
+
         public Task<Domain.Entities.User?> GetStaffDetailAsync(int restaurantId, int staffId)
         {
             return UserWithDetailsQuery()

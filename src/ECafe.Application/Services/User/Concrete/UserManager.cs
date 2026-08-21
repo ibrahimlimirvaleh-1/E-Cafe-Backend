@@ -16,6 +16,7 @@ using ECafe.Application.Repositories.UserRestaurant;
 using ECafe.Application.Services.Auth.Abstract;
 using ECafe.Application.Services.AuditLog.Abstract;
 using ECafe.Application.Services.MinIO.Abstracts;
+using ECafe.Application.Services.Realtime.Abstract;
 using ECafe.Application.Services.User.Abstract;
 using ECafe.Domain.Enums;
 using ECafe.Domain.Exceptions;
@@ -42,6 +43,7 @@ namespace ECafe.Application.Services.User.Concrete
         private readonly IUserRestaurantRepository _userRestaurantRepository;
         private readonly IPasswordSetupService _passwordSetupService;
         private readonly IAuditLogService _auditLogService;
+        private readonly IUserRealtimeNotifier _userRealtimeNotifier;
 
         public UserManager(
             IHttpContextAccessor httpContextAccessor,
@@ -57,7 +59,8 @@ namespace ECafe.Application.Services.User.Concrete
             IUserRefreshTokenRepository refreshTokenRepository,
             IUserRestaurantRepository userRestaurantRepository,
             IPasswordSetupService passwordSetupService,
-            IAuditLogService auditLogService)
+            IAuditLogService auditLogService,
+            IUserRealtimeNotifier userRealtimeNotifier)
             : base(httpContextAccessor, mapper, configuration)
         {
             _restaurantRepository = restaurantRepository;
@@ -71,6 +74,7 @@ namespace ECafe.Application.Services.User.Concrete
             _userRestaurantRepository = userRestaurantRepository;
             _passwordSetupService = passwordSetupService;
             _auditLogService = auditLogService;
+            _userRealtimeNotifier = userRealtimeNotifier;
         }
 
         public async Task CreateUserAsync(CreateUserRequest request)
@@ -113,8 +117,10 @@ namespace ECafe.Application.Services.User.Concrete
             if (user is null)
                 throw new BusinessRuleException("User not found");
 
+            await RevokeActiveRefreshTokensAsync(userId);
             await _userRepository.Delete(user);
             await _userRepository.SaveChangesAsync();
+            await NotifyUserSessionTerminatedAsync(userId);
         }
 
         public async Task ActivateStaffAsync(int restaurantId, int staffId)
@@ -201,6 +207,7 @@ namespace ECafe.Application.Services.User.Concrete
                 $"{staffAssignment.User.Name} {staffAssignment.User.Surname}");
 
             await _userRestaurantRepository.SaveChangesAsync();
+            await NotifyUserSessionTerminatedAsync(staffId);
         }
 
         public async Task<StaffDetailResponseDto> UpdateStaffAsync(int restaurantId, int staffId, UpdateStaffRequest request)
@@ -260,6 +267,9 @@ namespace ECafe.Application.Services.User.Concrete
                 $"{staffAssignment.User.Name} {staffAssignment.User.Surname}");
 
             await _userRestaurantRepository.SaveChangesAsync();
+
+            if (!request.IsActive)
+                await NotifyUserSessionTerminatedAsync(staffId);
 
             return await MapToStaffDetailResponseAsync(staffAssignment.User);
         }
@@ -578,6 +588,12 @@ namespace ECafe.Application.Services.User.Concrete
                 refreshToken.RevokedAt = nowUtc;
                 refreshToken.RevokedByIp = ipAddress;
             }
+        }
+
+        private Task NotifyUserSessionTerminatedAsync(int userId)
+        {
+            const string message = "Hesabınız deaktiv edilib. Sistemə girişiniz dayandırıldı.";
+            return _userRealtimeNotifier.NotifyUserDeactivatedAsync(userId, message);
         }
 
         private static string HashRefreshToken(string refreshToken)

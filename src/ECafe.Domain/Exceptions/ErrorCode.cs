@@ -20,6 +20,7 @@ public enum ErrorCode
     RefreshTokenInvalid = 1107,
     RefreshTokenReuseDetected = 1108,
     DuplicateResource = 1109,
+    UserDeactivated = 1110,
 
     RestaurantNotFound = 2000,
     UnitNotFound = 2001,

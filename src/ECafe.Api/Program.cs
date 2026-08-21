@@ -1,8 +1,11 @@
 using ECafe.Api.BackgroundServices;
 using ECafe.Api.Middlewares;
+using ECafe.Api.Realtime;
 using ECafe.Api.Security;
+using ECafe.Api.Services.Realtime;
 using ECafe.Api.Swagger;
 using ECafe.Application;
+using ECafe.Application.Services.Realtime.Abstract;
 using ECafe.Application.Services.Jwt.Concrete;
 using ECafe.Infrastructure;
 using ECafe.Infrastructure.Authorization;
@@ -11,6 +14,7 @@ using ECafe.Shared.Services.Jwt.Abstract;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.SwaggerUI;
@@ -126,7 +130,8 @@ builder.Services.AddCors(options =>
         {
             policy.WithOrigins(allowedOrigins)
                 .AllowAnyHeader()
-                .AllowAnyMethod();
+                .AllowAnyMethod()
+                .AllowCredentials();
 
             return;
         }
@@ -139,13 +144,15 @@ builder.Services.AddCors(options =>
                     "http://localhost:8081",
                     "http://127.0.0.1:8081")
                 .AllowAnyHeader()
-                .AllowAnyMethod();
+                .AllowAnyMethod()
+                .AllowCredentials();
         }
     });
 });
 
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddSignalR();
 
 var jwtKey = GetRequiredConfigurationValue(builder.Configuration, "Jwt:Key");
 var jwtIssuer = GetRequiredConfigurationValue(builder.Configuration, "Jwt:Issuer");
@@ -171,6 +178,18 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
         options.Events = new JwtBearerEvents
         {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"].ToString();
+
+                if (!string.IsNullOrWhiteSpace(accessToken)
+                    && context.HttpContext.Request.Path.StartsWithSegments("/hubs/user-events"))
+                {
+                    context.Token = accessToken;
+                }
+
+                return Task.CompletedTask;
+            },
             OnChallenge = async context =>
             {
                 context.HandleResponse();
@@ -201,6 +220,8 @@ builder.Services.AddStackExchangeRedisCache(options =>
 
 builder.Services.AddScoped<IJwtService, JwtManager>();
 builder.Services.AddScoped<IPermissionCacheService, PermissionCacheService>();
+builder.Services.AddScoped<IUserRealtimeNotifier, UserRealtimeNotifier>();
+builder.Services.AddSingleton<IUserIdProvider, UserIdProvider>();
 
 builder.Services.AddMemoryCache();
 
@@ -244,10 +265,12 @@ app.UseHttpsRedirection();
 app.UseRouting();
 app.UseCors("EcafeCors");
 app.UseAuthentication();
+app.UseMiddleware<ActiveUserMiddleware>();
 app.UseRateLimiter();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<UserEventsHub>("/hubs/user-events");
 
 app.Run();
 

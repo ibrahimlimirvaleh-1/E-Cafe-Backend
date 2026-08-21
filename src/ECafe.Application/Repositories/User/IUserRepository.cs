@@ -20,6 +20,8 @@ namespace ECafe.Application.Repositories.User
 
         Task<Domain.Entities.User?> GetProfileByIdTrackedAsync(int userId);
 
+        Task<bool> IsActiveAsync(int userId);
+
         Task<Domain.Entities.User?> GetStaffDetailAsync(int restaurantId, int staffId);
 
         Task<Domain.Entities.User?> GetProfileConflictAsync(int userId, string email, string phone);

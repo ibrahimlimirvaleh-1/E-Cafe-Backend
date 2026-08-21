@@ -25,6 +25,7 @@ public sealed class ErrorMessageProvider : IErrorMessageProvider
         [ErrorCode.RefreshTokenInvalid] = "Refresh token is invalid or expired.",
         [ErrorCode.RefreshTokenReuseDetected] = "Refresh token reuse was detected. All sessions were signed out for security.",
         [ErrorCode.DuplicateResource] = "This record already exists.",
+        [ErrorCode.UserDeactivated] = "Hesabınız deaktiv edilib. Sistemə girişiniz dayandırıldı.",
 
         [ErrorCode.RestaurantNotFound] = "Restaurant not found.",
         [ErrorCode.UnitNotFound] = "Unit not found.",
