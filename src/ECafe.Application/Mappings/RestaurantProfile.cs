@@ -1,4 +1,5 @@
 using AutoMapper;
+using ECafe.Application.Common.Validation;
 using ECafe.Application.DTOs.Restaurant;
 using ECafe.Application.DTOs.Restaurant.Public;
 using ECafe.Domain.Entities;
@@ -76,7 +77,7 @@ namespace ECafe.Application.Mappings
             CreateMap<RegisterRestaurantRequest, Restaurant>()
                 .ForMember(dest => dest.Name, opt => opt.Ignore())
                 .ForMember(dest => dest.Location, opt => opt.MapFrom(src => src.Location.Trim()))
-                .ForMember(dest => dest.Phone, opt => opt.MapFrom(src => src.Phone.Trim()))
+                .ForMember(dest => dest.Phone, opt => opt.MapFrom(src => PhoneNumberValidationExtensions.NormalizeAzerbaijanPhoneNumber(src.Phone)))
                 .ForMember(dest => dest.Email, opt => opt.MapFrom(src => src.Email.Trim().ToLowerInvariant()))
                 .ForMember(dest => dest.BranchName, opt => opt.MapFrom(src => string.IsNullOrWhiteSpace(src.BranchName) ? null : src.BranchName.Trim()))
                 .ForMember(dest => dest.RatingAverage, opt => opt.MapFrom(_ => 0))

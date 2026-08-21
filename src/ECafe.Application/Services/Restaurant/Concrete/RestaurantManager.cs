@@ -2,6 +2,7 @@ using AutoMapper;
 using ECafe.Application.Common.Audit;
 using ECafe.Application.Common.Outbox;
 using ECafe.Application.Common.Pagination;
+using ECafe.Application.Common.Validation;
 using ECafe.Application.DTOs.Restaurant;
 using ECafe.Application.DTOs.Restaurant.Public;
 using ECafe.Application.DTOs.User.Staff;
@@ -338,7 +339,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
 
             restaurant.Name = restaurantName;
             restaurant.Location = request.Location.Trim();
-            restaurant.Phone = request.Phone.Trim();
+            restaurant.Phone = PhoneNumberValidationExtensions.NormalizeAzerbaijanPhoneNumber(request.Phone);
             restaurant.Email = request.Email.Trim().ToLowerInvariant();
             restaurant.BranchName = branchName;
             restaurant.DepositAmount = request.DepositAmount;
@@ -641,7 +642,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
         {
             var normalizedName = name.Trim();
             var normalizedEmail = email.Trim().ToLowerInvariant();
-            var normalizedPhone = phone.Trim();
+            var normalizedPhone = PhoneNumberValidationExtensions.NormalizeAzerbaijanPhoneNumber(phone);
 
             var query = _restaurantRepository.Query();
 

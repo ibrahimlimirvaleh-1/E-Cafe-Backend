@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using ECafe.Application.Common.Validation;
 using ECafe.Application.Services.Sms.Abstract;
 using ECafe.Domain.Exceptions;
 using Microsoft.Extensions.Configuration;
@@ -123,15 +124,14 @@ public sealed class BrevoSmsManager : ISmsService
 
     private static string NormalizeRecipient(string phone)
     {
-        var digits = new string(phone.Where(char.IsDigit).ToArray());
-
-        if (digits.StartsWith('0') && digits.Length == 10)
-            digits = $"994{digits[1..]}";
-
-        if (digits.Length is < 7 or > 15)
+        try
+        {
+            return PhoneNumberValidationExtensions.NormalizeAzerbaijanPhoneNumber(phone).TrimStart('+');
+        }
+        catch (ArgumentException)
+        {
             throw new InvalidOperationException("SMS recipient phone number is invalid.");
-
-        return digits;
+        }
     }
 
     private static string MaskPhone(string phone)

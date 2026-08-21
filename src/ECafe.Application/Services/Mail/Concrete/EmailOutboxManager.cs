@@ -1,5 +1,6 @@
 using ECafe.Application.Common.Audit;
 using ECafe.Application.Common.Outbox;
+using ECafe.Application.Common.Validation;
 using ECafe.Application.Repository;
 using ECafe.Application.Services.Sms.Abstract;
 using ECafe.Domain.Exceptions;
@@ -159,7 +160,7 @@ namespace ECafe.Application.Services
             var normalizedToName = string.IsNullOrWhiteSpace(toName) ? "Istifadeci" : toName.Trim();
             var payload = new SmsNotificationOutboxPayload
             {
-                ToPhone = toPhone.Trim(),
+                ToPhone = PhoneNumberValidationExtensions.NormalizeAzerbaijanPhoneNumber(toPhone),
                 ToName = normalizedToName,
                 Subject = subject.Trim(),
                 Body = body.Trim(),

@@ -4,6 +4,7 @@ using ECafe.Application.Common.Audit;
 using ECafe.Application.Common.Exceptions;
 using ECafe.Application.Common.Outbox;
 using ECafe.Application.Common.Pagination;
+using ECafe.Application.Common.Validation;
 using ECafe.Application.DTOs.Auth;
 using ECafe.Application.DTOs.User;
 using ECafe.Application.DTOs.User.Staff;
@@ -230,7 +231,7 @@ namespace ECafe.Application.Services.User.Concrete
             EnsureOnlySuperAdminCanManageOwnerRole(staffAssignment.User.RoleId);
 
             var email = request.Email.Trim().ToLowerInvariant();
-            var phone = request.Phone.Trim();
+            var phone = PhoneNumberValidationExtensions.NormalizeAzerbaijanPhoneNumber(request.Phone);
             var conflict = await _userRepository.GetProfileConflictAsync(staffId, email, phone);
             if (conflict is not null)
                 throw new BusinessRuleException("Email or phone already belongs to another user.");
@@ -398,7 +399,7 @@ namespace ECafe.Application.Services.User.Concrete
                 throw new BusinessRuleException("User not found");
 
             var email = request.Email.Trim().ToLowerInvariant();
-            var phone = request.Phone.Trim();
+            var phone = PhoneNumberValidationExtensions.NormalizeAzerbaijanPhoneNumber(request.Phone);
 
             var conflictingUser = await _userRepository.GetProfileConflictAsync(userId, email, phone);
 

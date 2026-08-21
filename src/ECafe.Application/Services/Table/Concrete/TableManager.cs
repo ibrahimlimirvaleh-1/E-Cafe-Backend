@@ -5,7 +5,6 @@ using ECafe.Application.DTOs.Table;
 using ECafe.Application.Repositories.Table;
 using ECafe.Application.Services;
 using ECafe.Application.Services.AuditLog.Abstract;
-using ECafe.Application.Services.RestaurantContract.Abstract;
 using ECafe.Application.Services.Table.Abstract;
 using ECafe.Domain.Entities;
 using ECafe.Domain.Exceptions;
@@ -18,7 +17,6 @@ namespace ECafe.Application.Services.Table.Concrete
     public class TableManager : BaseManager, ITableService
     {
         private readonly ITableRepository _tableRepository;
-        private readonly IRestaurantContractService _restaurantContractService;
         private readonly IAuditLogService _auditLogService;
         private readonly IMapper _mapper;
 
@@ -27,12 +25,10 @@ namespace ECafe.Application.Services.Table.Concrete
             IMapper mapper,
             IConfiguration configuration,
             ITableRepository tableRepository,
-            IRestaurantContractService restaurantContractService,
             IAuditLogService auditLogService)
             : base(httpContextAccessor, mapper, configuration)
         {
             _tableRepository = tableRepository;
-            _restaurantContractService = restaurantContractService;
             _auditLogService = auditLogService;
             _mapper = mapper;
         }
@@ -46,7 +42,6 @@ namespace ECafe.Application.Services.Table.Concrete
                 throw new BusinessRuleException(ErrorCode.InvalidRestaurantId);
 
             EnsureCurrentUserCanAccessRestaurant(restaurantId);
-            await _restaurantContractService.EnsureRestaurantHasActiveContractAsync(restaurantId);
 
             await EnsureTableNumberIsUniqueAsync(restaurantId, request.TableNo);
 
@@ -93,7 +88,6 @@ namespace ECafe.Application.Services.Table.Concrete
                 throw new BusinessRuleException(ErrorCode.InvalidRestaurantId);
 
             EnsureCurrentUserCanAccessRestaurant(restaurantId);
-            await _restaurantContractService.EnsureRestaurantHasActiveContractAsync(restaurantId);
 
             var table = await GetTrackedTableAsync(restaurantId, tableId);
             await EnsureTableNumberIsUniqueAsync(restaurantId, request.TableNo, tableId);
@@ -110,7 +104,6 @@ namespace ECafe.Application.Services.Table.Concrete
                 throw new BusinessRuleException(ErrorCode.InvalidRestaurantId);
 
             EnsureCurrentUserCanAccessRestaurant(restaurantId);
-            await _restaurantContractService.EnsureRestaurantHasActiveContractAsync(restaurantId);
 
             var table = await GetTrackedTableAsync(restaurantId, tableId);
             table.IsActive = true;
@@ -184,7 +177,6 @@ namespace ECafe.Application.Services.Table.Concrete
                 throw new BusinessRuleException(ErrorCode.InvalidRestaurantId);
 
             EnsureCurrentUserCanAccessRestaurant(restaurantId);
-            await _restaurantContractService.EnsureRestaurantHasActiveContractAsync(restaurantId);
 
             var table = await GetTrackedTableAsync(restaurantId, tableId);
             var copyInputs = NormalizeCopyInputs(request);

@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using ECafe.Application.Common.Exceptions;
 using ECafe.Application.DTOs.Auth;
+using ECafe.Application.Common.Validation;
 using ECafe.Application.Repositories.File;
 using ECafe.Application.Repositories.User;
 using ECafe.Application.Repositories.UserRefreshToken;
@@ -163,7 +164,7 @@ namespace ECafe.Application.Services.Auth.Concrete
         private async Task EnsureUserDoesNotExistAsync(string email, string phone)
         {
             var normalizedEmail = email.Trim().ToLowerInvariant();
-            var normalizedPhone = phone.Trim();
+            var normalizedPhone = PhoneNumberValidationExtensions.NormalizeAzerbaijanPhoneNumber(phone);
 
             var emailExists = await _userRepository.CheckExistAsync(x => x.Email == normalizedEmail);
             if (emailExists)

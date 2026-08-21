@@ -10,7 +10,6 @@ using ECafe.Application.Repositories.Restaurant;
 using ECafe.Application.Services.AuditLog.Abstract;
 using ECafe.Application.Services.Item.Abstract;
 using ECafe.Application.Services.MinIO.Abstracts;
-using ECafe.Application.Services.RestaurantContract.Abstract;
 using ECafe.Domain.Enums;
 using ECafe.Domain.Exceptions;
 using ECafe.Shared.DTOs;
@@ -29,7 +28,6 @@ namespace ECafe.Application.Services.Item.Concrete
         private readonly IFileRepository _fileRepository;
         private readonly IBaseRepository<Domain.Entities.Status> _statusRepository;
         private readonly IValidator<CreateItemRequest> _validator;
-        private readonly IRestaurantContractService _restaurantContractService;
         private readonly IAuditLogService _auditLogService;
         private readonly IMinioService _minioService;
 
@@ -42,7 +40,6 @@ namespace ECafe.Application.Services.Item.Concrete
                            IFileRepository fileRepository,
                            IBaseRepository<Domain.Entities.Status> statusRepository,
                            IValidator<CreateItemRequest> validator,
-                           IRestaurantContractService restaurantContractService,
                            IAuditLogService auditLogService,
                            IMinioService minioService)
                            : base(httpContextAccessor, mapper, configuration)
@@ -53,7 +50,6 @@ namespace ECafe.Application.Services.Item.Concrete
             _fileRepository = fileRepository;
             _statusRepository = statusRepository;
             _validator = validator;
-            _restaurantContractService = restaurantContractService;
             _auditLogService = auditLogService;
             _minioService = minioService;
         }
@@ -69,7 +65,6 @@ namespace ECafe.Application.Services.Item.Concrete
 
             await EnsureRestaurantExistsAsync(request.RestaurantId);
             EnsureCurrentUserCanAccessRestaurant(request.RestaurantId);
-            await _restaurantContractService.EnsureRestaurantHasActiveContractAsync(request.RestaurantId);
             var category = await EnsureCategoryBelongsToRestaurantAsync(request.CategoryId, request.RestaurantId);
             await EnsureItemNameIsUniqueAsync(request.RestaurantId, request.CategoryId, itemName);
             var status = await _statusRepository.GetByIdAsync(request.StatusId);

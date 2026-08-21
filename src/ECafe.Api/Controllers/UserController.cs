@@ -85,7 +85,6 @@ namespace ECafe.Api.Controllers
         }
 
         [HasPermission(Domain.Enums.PermissionCode.ViewRestaurantInfo)]
-        //[RequireActiveRestaurantContract]
         [HttpGet("api/v1/staff/{restaurantId}")]
         public async Task<IActionResult> GetStaff(int restaurantId)
         {
@@ -113,7 +112,6 @@ namespace ECafe.Api.Controllers
         }
 
         [HasPermission(Domain.Enums.PermissionCode.ViewRestaurantInfo)]
-        [RequireActiveRestaurantContract]
         [HttpGet("api/v1/staff/{restaurantId}/detail/{staffId}")]
 
         public async Task<IActionResult> GetStaffDetail(int restaurantId, int staffId)

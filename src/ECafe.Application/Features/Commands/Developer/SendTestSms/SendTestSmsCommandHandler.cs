@@ -1,3 +1,4 @@
+using ECafe.Application.Common.Validation;
 using ECafe.Application.DTOs.Developer;
 using ECafe.Application.Services.Sms.Abstract;
 using MediatR;
@@ -17,7 +18,7 @@ public sealed class SendTestSmsCommandHandler : IRequestHandler<SendTestSmsComma
         SendTestSmsCommand request,
         CancellationToken cancellationToken)
     {
-        var recipient = request.ToPhone.Trim();
+        var recipient = PhoneNumberValidationExtensions.NormalizeAzerbaijanPhoneNumber(request.ToPhone);
         await _smsService.SendAsync(
             recipient,
             request.Message.Trim(),

@@ -2,6 +2,7 @@ using System.Net.Http.Headers;
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
+using ECafe.Application.Common.Validation;
 using ECafe.Application.Services.Sms.Abstract;
 using ECafe.Domain.Exceptions;
 using Microsoft.Extensions.Configuration;
@@ -258,23 +259,14 @@ public sealed class OneSmsManager : ISmsService
 
     private static string NormalizeAzerbaijanRecipient(string phone)
     {
-        var digits = new string(phone.Where(char.IsDigit).ToArray());
-
-        if (digits.StartsWith("00994"))
+        try
+        {
+            return PhoneNumberValidationExtensions.NormalizeAzerbaijanPhoneNumber(phone);
+        }
+        catch (ArgumentException)
+        {
             throw new InvalidOperationException("SMS recipient phone number is invalid.");
-
-        if (digits.StartsWith("9940"))
-            throw new InvalidOperationException("SMS recipient phone number is invalid.");
-
-        if (digits.StartsWith('0') && digits.Length == 10)
-            digits = $"994{digits[1..]}";
-        else if (digits.Length == 9)
-            digits = $"994{digits}";
-
-        if (!digits.StartsWith("994") || digits.Length != 12)
-            throw new InvalidOperationException("SMS recipient phone number is invalid.");
-
-        return $"+{digits}";
+        }
     }
 
     private static string NormalizeMessageId(string messageId)

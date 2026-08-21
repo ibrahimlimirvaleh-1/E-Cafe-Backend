@@ -6,7 +6,6 @@ using ECafe.Application.Repositories.Restaurant;
 using ECafe.Application.Services;
 using ECafe.Application.Services.AuditLog.Abstract;
 using ECafe.Application.Services.Category.Abstract;
-using ECafe.Application.Services.RestaurantContract.Abstract;
 using ECafe.Domain.Entities;
 using ECafe.Domain.Exceptions;
 using Microsoft.AspNetCore.Http;
@@ -17,7 +16,6 @@ public class CategoryManager : BaseManager, ICategoryService
 {
     private readonly ICategoryRepository _categoryRepository;
     private readonly IRestaurantRepository _restaurantRepository;
-    private readonly IRestaurantContractService _restaurantContractService;
     private readonly IAuditLogService _auditLogService;
 
     public CategoryManager(
@@ -26,13 +24,11 @@ public class CategoryManager : BaseManager, ICategoryService
         IConfiguration configuration,
         ICategoryRepository categoryRepository,
         IRestaurantRepository restaurantRepository,
-        IRestaurantContractService restaurantContractService,
         IAuditLogService auditLogService)
         : base(httpContextAccessor, mapper, configuration)
     {
         _categoryRepository = categoryRepository;
         _restaurantRepository = restaurantRepository;
-        _restaurantContractService = restaurantContractService;
         _auditLogService = auditLogService;
     }
 
@@ -46,7 +42,6 @@ public class CategoryManager : BaseManager, ICategoryService
             throw new BusinessRuleException("Restaurant not found!");
 
         EnsureCurrentUserCanAccessRestaurant(request.RestaurantId);
-        await _restaurantContractService.EnsureRestaurantHasActiveContractAsync(request.RestaurantId);
 
         var category = Mapper.Map<Category>(request);
         category.Slug = request.Name.GenerateSlug();
@@ -220,7 +215,6 @@ public class CategoryManager : BaseManager, ICategoryService
             throw new BusinessRuleException("Restaurant not found!");
 
         EnsureCurrentUserCanAccessRestaurant(restaurantId);
-        await _restaurantContractService.EnsureRestaurantHasActiveContractAsync(restaurantId);
     }
 
     private async Task<Category> GetTrackedCategoryAsync(int restaurantId, int categoryId)
