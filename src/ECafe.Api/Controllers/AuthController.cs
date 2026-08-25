@@ -80,7 +80,7 @@ namespace ECafe.Api.Controllers
 
         [HttpPost("api/v1/user/refresh")]
         [EnableRateLimiting(RateLimitPolicyNames.AuthRefresh)]
-        public async Task<IActionResult> Refresh([FromBody] RefreshTokenCommand? command)
+        public async Task<IActionResult> Refresh([FromBody(EmptyBodyBehavior = Microsoft.AspNetCore.Mvc.ModelBinding.EmptyBodyBehavior.Allow)] RefreshTokenCommand? command)
         {
             command ??= new RefreshTokenCommand();
             command.RefreshToken = ResolveRefreshToken(command.RefreshToken);

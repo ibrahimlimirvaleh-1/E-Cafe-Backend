@@ -102,6 +102,7 @@ namespace ECafe.Application
             services.AddScoped<ICategoryService, CategoryManager>();
             services.AddScoped<IItemService, ItemManager>();
             services.AddScoped<IFileAccessUrlService, FileAccessUrlService>();
+            services.AddScoped<IFileAccessPolicy, FileAccessPolicy>();
             services.AddScoped<IWorkflowActionService, WorkflowActionManager>();
             services.AddScoped<INotificationService, NotificationManager>();
             services.AddScoped<IOutboxAdminService, OutboxAdminManager>();

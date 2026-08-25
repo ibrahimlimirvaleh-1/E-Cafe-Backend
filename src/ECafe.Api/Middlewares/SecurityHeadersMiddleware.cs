@@ -2,7 +2,7 @@ namespace ECafe.Api.Middlewares;
 
 public sealed class SecurityHeadersMiddleware
 {
-    private const string DefaultContentSecurityPolicy =
+    private const string ProductionContentSecurityPolicy =
         "default-src 'self'; " +
         "base-uri 'self'; " +
         "frame-ancestors 'none'; " +
@@ -12,6 +12,9 @@ public sealed class SecurityHeadersMiddleware
         "style-src 'self' 'unsafe-inline'; " +
         "script-src 'self'; " +
         "connect-src 'self'";
+
+    private const string LocalContentSecurityPolicy =
+        ProductionContentSecurityPolicy + " http://localhost:8080 http://localhost:8081 https://localhost:7256 ws://localhost:8080 ws://localhost:8081 wss://localhost:7256";
 
     private readonly RequestDelegate _next;
     private readonly IConfiguration _configuration;
@@ -54,10 +57,15 @@ public sealed class SecurityHeadersMiddleware
             return;
 
         var csp = _configuration["SecurityHeaders:ContentSecurityPolicy"];
-        headers.TryAdd("Content-Security-Policy", string.IsNullOrWhiteSpace(csp) ? DefaultContentSecurityPolicy : csp);
+        headers.TryAdd("Content-Security-Policy", string.IsNullOrWhiteSpace(csp) ? GetDefaultContentSecurityPolicy() : csp);
     }
 
     private bool ShouldSkipCsp(HttpContext context)
         => (_environment.IsDevelopment() || _environment.IsEnvironment("Local"))
            && context.Request.Path.StartsWithSegments("/swagger");
+
+    private string GetDefaultContentSecurityPolicy()
+        => _environment.IsDevelopment() || _environment.IsEnvironment("Local")
+            ? LocalContentSecurityPolicy
+            : ProductionContentSecurityPolicy;
 }

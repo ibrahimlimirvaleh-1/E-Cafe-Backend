@@ -152,7 +152,24 @@ builder.Services.AddCors(options =>
 
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
-builder.Services.AddSignalR();
+var signalRBuilder = builder.Services.AddSignalR(options =>
+{
+    options.EnableDetailedErrors = builder.Environment.IsDevelopment() || builder.Environment.IsEnvironment("Local");
+    options.KeepAliveInterval = TimeSpan.FromSeconds(15);
+    options.ClientTimeoutInterval = TimeSpan.FromSeconds(60);
+});
+
+var useSignalRRedisBackplane = builder.Configuration.GetValue("SignalR:UseRedisBackplane", false);
+var signalRRedisConnection = builder.Configuration["SignalR:Redis:Connection"]
+    ?? builder.Configuration["Redis:Connection"];
+
+if (useSignalRRedisBackplane && !string.IsNullOrWhiteSpace(signalRRedisConnection))
+{
+    signalRBuilder.AddStackExchangeRedis(signalRRedisConnection, options =>
+    {
+        options.Configuration.ChannelPrefix = StackExchange.Redis.RedisChannel.Literal("ecafe:signalr");
+    });
+}
 
 var jwtKey = GetRequiredConfigurationValue(builder.Configuration, "Jwt:Key");
 var jwtIssuer = GetRequiredConfigurationValue(builder.Configuration, "Jwt:Issuer");
