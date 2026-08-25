@@ -56,6 +56,14 @@ public static class RateLimitingServiceCollectionExtensions
             AddFixedWindowPolicy(
                 options,
                 configuration,
+                RateLimitPolicyNames.AuthPasswordReset,
+                "RateLimiting:AuthPasswordReset",
+                permitLimit: 3,
+                windowSeconds: 300);
+
+            AddFixedWindowPolicy(
+                options,
+                configuration,
                 RateLimitPolicyNames.FileUpload,
                 "RateLimiting:FileUpload",
                 permitLimit: 20,
