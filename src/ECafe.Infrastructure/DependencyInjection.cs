@@ -7,6 +7,7 @@ using ECafe.Application.Repositories.InventoryMovementType;
 using ECafe.Application.Repositories.Item;
 using ECafe.Application.Repositories.LoginAttempt;
 using ECafe.Application.Repositories.Notification;
+using ECafe.Application.Repositories.PasswordResetToken;
 using ECafe.Application.Repositories.Recipe;
 using ECafe.Application.Repositories.Restaurant;
 using ECafe.Application.Repositories.RestaurantContract;
@@ -32,6 +33,7 @@ using ECafe.Infrastructure.Repositories.InventoryMovementType;
 using ECafe.Infrastructure.Repositories.Item;
 using ECafe.Infrastructure.Repositories.LoginAttempt;
 using ECafe.Infrastructure.Repositories.Notification;
+using ECafe.Infrastructure.Repositories.PasswordResetToken;
 using ECafe.Infrastructure.Repositories.Recipe;
 using ECafe.Infrastructure.Repositories.Restaurant;
 using ECafe.Infrastructure.Repositories.RestaurantContract;
@@ -68,6 +70,7 @@ namespace ECafe.Infrastructure
 
             services.AddScoped(typeof(IBaseRepository<>), typeof(BaseRepository<>));
             services.AddScoped<IUserRepository, UserRepository>();
+            services.AddScoped<IPasswordResetTokenRepository, PasswordResetTokenRepository>();
             services.AddScoped<IUserPasswordSetupTokenRepository, UserPasswordSetupTokenRepository>();
             services.AddScoped<IUserRefreshTokenRepository, UserRefreshTokenRepository>();
             services.AddScoped<ILoginAttemptRepository, LoginAttemptRepository>();

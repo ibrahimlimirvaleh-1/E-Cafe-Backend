@@ -68,6 +68,7 @@ namespace ECafe.Application
             services.AddScoped<IAuthService, AuthManager>();
             services.AddScoped<ILoginAttemptService, LoginAttemptManager>();
             services.AddScoped<IPasswordSetupService, PasswordSetupManager>();
+            services.AddScoped<IPasswordResetService, PasswordResetManager>();
             services.AddScoped<IEmailService, EmailManager>();
             services.AddScoped<ISmsService>(provider =>
             {

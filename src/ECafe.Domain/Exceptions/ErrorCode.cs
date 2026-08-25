@@ -41,6 +41,8 @@ public enum ErrorCode
     FileNotFoundOrAlreadyAttached = 1128,
     RestaurantScopedRoleRequiresAssignment = 1129,
     RestaurantAlreadyHasActiveOwner = 1130,
+    PasswordResetTokenInvalidOrExpired = 1131,
+    PasswordResetNewPasswordMustBeDifferent = 1132,
 
     RestaurantNotFound = 2000,
     UnitNotFound = 2001,

@@ -46,6 +46,8 @@ public sealed class ErrorMessageProvider : IErrorMessageProvider
         [ErrorCode.FileNotFoundOrAlreadyAttached] = "File not found or already attached.",
         [ErrorCode.RestaurantScopedRoleRequiresAssignment] = "Restaurant-scoped role requires an active restaurant assignment.",
         [ErrorCode.RestaurantAlreadyHasActiveOwner] = "Restaurant already has an active owner.",
+        [ErrorCode.PasswordResetTokenInvalidOrExpired] = "Password reset link is invalid or expired.",
+        [ErrorCode.PasswordResetNewPasswordMustBeDifferent] = "New password must be different from the current password.",
 
         [ErrorCode.RestaurantNotFound] = "Restaurant not found.",
         [ErrorCode.UnitNotFound] = "Unit not found.",

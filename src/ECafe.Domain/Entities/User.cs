@@ -47,4 +47,6 @@ public partial class User : AuditableSoftDeletableEntity<int>
 
     public ICollection<UserPasswordSetupToken> PasswordSetupTokens { get; set; } = new List<UserPasswordSetupToken>();
 
+    public ICollection<PasswordResetToken> PasswordResetTokens { get; set; } = new List<PasswordResetToken>();
+
 }
