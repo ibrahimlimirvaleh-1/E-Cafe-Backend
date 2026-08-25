@@ -10,13 +10,16 @@ namespace ECafe.Application.Features.Queries.File
     {
         private readonly IFileRepository _fileRepository;
         private readonly IFileAccessUrlService _fileAccessUrlService;
+        private readonly IFileAccessPolicy _fileAccessPolicy;
 
         public GetFileMetadataQueryHandler(
             IFileRepository fileRepository,
-            IFileAccessUrlService fileAccessUrlService)
+            IFileAccessUrlService fileAccessUrlService,
+            IFileAccessPolicy fileAccessPolicy)
         {
             _fileRepository = fileRepository;
             _fileAccessUrlService = fileAccessUrlService;
+            _fileAccessPolicy = fileAccessPolicy;
         }
 
         public async Task<FileResponse> Handle(GetFileMetadataQuery request, CancellationToken cancellationToken)
@@ -27,6 +30,8 @@ namespace ECafe.Application.Features.Queries.File
             var file = await _fileRepository.GetWithUsageByIdAsync(request.FileId);
             if (file is null)
                 throw new BusinessRuleException(ErrorCode.FileNotFound);
+
+            _fileAccessPolicy.EnsureCurrentUserCanAccess(file);
 
             var urls = await _fileAccessUrlService.BuildUrlsAsync(file, cancellationToken);
 
