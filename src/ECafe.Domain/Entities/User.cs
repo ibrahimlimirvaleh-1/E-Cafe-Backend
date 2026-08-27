@@ -21,6 +21,9 @@ public partial class User : AuditableSoftDeletableEntity<int>
     public int RoleId { get; set; }
 
     public decimal? Rating { get; set; }
+
+    public int SessionVersion { get; set; }
+
     public virtual File? File { get; set; }
 
     public virtual ICollection<Order> Orders { get; set; } = new List<Order>();

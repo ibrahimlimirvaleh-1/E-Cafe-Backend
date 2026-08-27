@@ -19,8 +19,19 @@ public sealed class ActiveUserMiddleware
         {
             var userId = GetUserId(context.User);
 
-            if (userId.HasValue && !await userRepository.IsActiveAsync(userId.Value))
-                throw new UnauthorizedException(ErrorCode.UserDeactivated);
+            if (userId.HasValue)
+            {
+                var sessionVersion = GetSessionVersion(context.User);
+                if (!sessionVersion.HasValue)
+                    throw new UnauthorizedException(ErrorCode.SessionInvalid);
+
+                var sessionState = await userRepository.GetSessionStateAsync(userId.Value);
+                if (sessionState is null || !sessionState.Value.IsActive)
+                    throw new UnauthorizedException(ErrorCode.UserDeactivated);
+
+                if (sessionState.Value.SessionVersion != sessionVersion.Value)
+                    throw new UnauthorizedException(ErrorCode.SessionInvalid);
+            }
         }
 
         await _next(context);
@@ -32,5 +43,11 @@ public sealed class ActiveUserMiddleware
                     ?? principal.FindFirstValue(ClaimTypes.NameIdentifier);
 
         return int.TryParse(value, out var userId) ? userId : null;
+    }
+
+    private static int? GetSessionVersion(ClaimsPrincipal principal)
+    {
+        var value = principal.FindFirstValue("sessionVersion");
+        return int.TryParse(value, out var sessionVersion) ? sessionVersion : null;
     }
 }

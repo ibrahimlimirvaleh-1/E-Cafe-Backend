@@ -85,6 +85,22 @@ namespace ECafe.Infrastructure.Repositories.User
             => Query()
                 .AnyAsync(u => u.Id == userId && u.IsActive);
 
+        public async Task<(bool IsActive, int SessionVersion)?> GetSessionStateAsync(int userId)
+        {
+            var state = await Query()
+                .Where(u => u.Id == userId)
+                .Select(u => new
+                {
+                    u.IsActive,
+                    u.SessionVersion
+                })
+                .FirstOrDefaultAsync();
+
+            return state is null
+                ? null
+                : (state.IsActive, state.SessionVersion);
+        }
+
         public Task<Domain.Entities.User?> GetStaffDetailAsync(int restaurantId, int staffId)
         {
             return UserWithDetailsQuery()

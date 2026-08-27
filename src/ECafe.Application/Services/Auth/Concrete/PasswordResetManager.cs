@@ -92,6 +92,7 @@ public class PasswordResetManager : IPasswordResetService
 
         resetToken.User.Password = BCrypt.Net.BCrypt.HashPassword(request.Password);
         resetToken.User.PasswordSetAt = nowUtc;
+        resetToken.User.SessionVersion++;
         resetToken.UsedAt = nowUtc;
 
         await RevokeActiveRefreshTokensAsync(resetToken.UserId, nowUtc);
