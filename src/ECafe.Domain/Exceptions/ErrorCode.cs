@@ -43,6 +43,7 @@ public enum ErrorCode
     RestaurantAlreadyHasActiveOwner = 1130,
     PasswordResetTokenInvalidOrExpired = 1131,
     PasswordResetNewPasswordMustBeDifferent = 1132,
+    SessionInvalid = 1133,
 
     RestaurantNotFound = 2000,
     UnitNotFound = 2001,

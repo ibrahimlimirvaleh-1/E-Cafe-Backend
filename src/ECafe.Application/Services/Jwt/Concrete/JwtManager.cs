@@ -37,6 +37,7 @@ namespace ECafe.Application.Services.Jwt.Concrete
                     new Claim("surname", user.Surname),
                     new Claim("email", user.Email),
                     new Claim("isActive", user.IsActive.ToString()),
+                    new Claim("sessionVersion", user.SessionVersion.ToString()),
                 };
 
             if (fileUrl != null)

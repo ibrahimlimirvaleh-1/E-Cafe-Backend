@@ -48,6 +48,7 @@ public sealed class ErrorMessageProvider : IErrorMessageProvider
         [ErrorCode.RestaurantAlreadyHasActiveOwner] = "Restaurant already has an active owner.",
         [ErrorCode.PasswordResetTokenInvalidOrExpired] = "Password reset link is invalid or expired.",
         [ErrorCode.PasswordResetNewPasswordMustBeDifferent] = "New password must be different from the current password.",
+        [ErrorCode.SessionInvalid] = "Sessiya məlumatları yenilənib. Zəhmət olmasa yenidən daxil olun.",
 
         [ErrorCode.RestaurantNotFound] = "Restaurant not found.",
         [ErrorCode.UnitNotFound] = "Unit not found.",

@@ -118,6 +118,7 @@ namespace ECafe.Application.Services.User.Concrete
             if (user is null)
                 throw new BusinessRuleException(ErrorCode.UserNotFound);
 
+            user.SessionVersion++;
             await RevokeActiveRefreshTokensAsync(userId);
             await _userRepository.Delete(user);
             await _userRepository.SaveChangesAsync();
@@ -190,6 +191,7 @@ namespace ECafe.Application.Services.User.Concrete
             if (!await _userRestaurantRepository.HasAnyOtherActiveAssignmentAsync(staffId, staffAssignment.Id))
                 staffAssignment.User.IsActive = false;
 
+            staffAssignment.User.SessionVersion++;
             await RevokeActiveRefreshTokensAsync(staffId);
 
             await _auditLogService.RecordRestaurantActionAsync(
@@ -249,6 +251,7 @@ namespace ECafe.Application.Services.User.Concrete
             {
                 staffAssignment.IsActive = false;
                 staffAssignment.User.IsActive = false;
+                staffAssignment.User.SessionVersion++;
                 await RevokeActiveRefreshTokensAsync(staffId);
             }
 
@@ -306,6 +309,8 @@ namespace ECafe.Application.Services.User.Concrete
 
             var roleChanged = user.RoleId != roleId;
             user.RoleId = roleId;
+            if (roleChanged)
+                user.SessionVersion++;
 
             var roleName = GetRoleDescription(roleId);
 

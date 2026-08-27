@@ -147,17 +147,19 @@ namespace ECafe.Application.Services.Auth.Concrete
         public async Task LogoutAllAsync()
         {
             var currentUserId = GetCurrentUserId();
-            var activeTokens = await _refreshTokenRepository.GetActiveByUserIdTrackedAsync(currentUserId, DateTime.UtcNow);
+            var currentUser = await _userRepository.GetByIdAsync(currentUserId);
+            if (currentUser is null)
+                throw new UnauthorizedException(ErrorCode.SessionInvalid);
 
-            if (activeTokens.Count == 0)
-                return;
+            currentUser.SessionVersion++;
+            var activeTokens = await _refreshTokenRepository.GetActiveByUserIdTrackedAsync(currentUserId, DateTime.UtcNow);
 
             foreach (var token in activeTokens)
             {
                 RevokeRefreshToken(token);
             }
 
-            await _refreshTokenRepository.SaveChangesAsync();
+            await _userRepository.SaveChangesAsync();
         }
 
         #region Helpers
@@ -262,6 +264,7 @@ namespace ECafe.Application.Services.Auth.Concrete
 
         private async Task HandleRefreshTokenReuseAsync(Domain.Entities.UserRefreshToken reusedToken)
         {
+            reusedToken.User.SessionVersion++;
             await RevokeAllActiveRefreshTokensAsync(reusedToken.UserId);
             await _refreshTokenRepository.SaveChangesAsync();
             await EnqueueRefreshTokenReuseEmailAsync(reusedToken.User);

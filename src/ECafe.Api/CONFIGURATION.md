@@ -22,10 +22,30 @@ For production, set environment variables instead. ASP.NET Core maps double unde
 ```powershell
 $env:ConnectionStrings__ECafeDb="Host=...;Port=...;Database=...;Username=...;Password=..."
 $env:Jwt__Key="..."
+$env:Jwt__AccessTokenLifetimeMinutes="10"
 $env:MinIO__AccessKey="..."
 $env:MinIO__SecretKey="..."
 $env:Email__Password="..."
 $env:Sentry__Dsn="..."
+$env:Cors__AllowedOrigins__0="https://admin.ecafe.example"
+$env:Cors__AllowedOrigins__1="https://ecafe.example"
+$env:AllowedHosts="api.ecafe.example"
+$env:ForwardedHeaders__KnownProxies__0="10.0.0.10"
+$env:SignalR__UseRedisBackplane="true"
+$env:SignalR__Redis__Connection="prod-redis:6379,password=...,ssl=True,abortConnect=False"
 ```
+
+Use `appsettings.Production.example.json` as a checklist only. Do not copy real
+secrets into source-controlled JSON files.
+
+Frontend production image can use the stricter nginx configuration without
+affecting local Docker usage:
+
+```powershell
+docker build --build-arg NGINX_CONF=nginx.prod.conf -t ecafe-frontend:prod .
+```
+
+Before production deploy, replace example domains such as `ecafe.example` with
+the real API, admin, and public site domains.
 
 Rotate any credential that was previously committed to `appsettings*.json`.

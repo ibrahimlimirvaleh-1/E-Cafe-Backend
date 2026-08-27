@@ -22,6 +22,8 @@ namespace ECafe.Application.Repositories.User
 
         Task<bool> IsActiveAsync(int userId);
 
+        Task<(bool IsActive, int SessionVersion)?> GetSessionStateAsync(int userId);
+
         Task<Domain.Entities.User?> GetStaffDetailAsync(int restaurantId, int staffId);
 
         Task<Domain.Entities.User?> GetProfileConflictAsync(int userId, string email, string phone);
