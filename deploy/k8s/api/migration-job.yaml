@@ -1,0 +1,19 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ecafe-api-migration
+  namespace: ecafe
+spec:
+  backoffLimit: 1
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: migrator
+          image: ghcr.io/your-org/ecafe-api-migrator:CHANGE_ME
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: ecafe-api-config
+            - secretRef:
+                name: ecafe-api-secrets

@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ecafe-api
+  namespace: ecafe
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: ecafe-api
+  template:
+    metadata:
+      labels:
+        app: ecafe-api
+    spec:
+      containers:
+        - name: api
+          image: ghcr.io/your-org/ecafe-api:CHANGE_ME
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: ecafe-api-config
+            - secretRef:
+                name: ecafe-api-secrets
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi

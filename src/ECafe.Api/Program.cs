@@ -9,10 +9,12 @@ using ECafe.Application.Services.Realtime.Abstract;
 using ECafe.Application.Services.Jwt.Concrete;
 using ECafe.Infrastructure;
 using ECafe.Infrastructure.Authorization;
+using ECafe.Infrastructure.Context;
 using ECafe.Infrastructure.Redis;
 using ECafe.Shared.Services.Jwt.Abstract;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.IdentityModel.Tokens;
@@ -288,6 +290,26 @@ app.UseAuthorization();
 
 app.MapControllers();
 app.MapHub<UserEventsHub>("/hubs/user-events");
+app.MapGet("/health/live", () => Results.Ok(new
+{
+    status = "Healthy",
+    service = "ECafe.Api",
+    timestamp = DateTime.UtcNow
+})).AllowAnonymous();
+
+app.MapGet("/health/ready", async (ECafeDbContext dbContext, CancellationToken cancellationToken) =>
+{
+    var canConnect = await dbContext.Database.CanConnectAsync(cancellationToken);
+
+    return canConnect
+        ? Results.Ok(new
+        {
+            status = "Healthy",
+            checks = new[] { new { name = "database", status = "Healthy" } },
+            timestamp = DateTime.UtcNow
+        })
+        : Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
+}).AllowAnonymous();
 
 app.Run();
 
