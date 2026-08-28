@@ -1,0 +1,16 @@
+**/bin/
+**/obj/
+.git/
+.github/
+.vs/
+.idea/
+.vscode/
+docs/
+deploy/sentry-minio/.env
+deploy/sentry-minio/.env.local
+src/ECafe.Api/appsettings.Local.json
+**/*.user
+**/*.suo
+*.log
+.env
+.env.*

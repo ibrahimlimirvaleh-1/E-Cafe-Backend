@@ -15,7 +15,7 @@ public sealed class ActiveUserMiddleware
 
     public async Task Invoke(HttpContext context, IUserRepository userRepository)
     {
-        if (context.User.Identity?.IsAuthenticated == true)
+        if (!ShouldSkipActiveUserCheck(context) && context.User.Identity?.IsAuthenticated == true)
         {
             var userId = GetUserId(context.User);
 
@@ -36,6 +36,9 @@ public sealed class ActiveUserMiddleware
 
         await _next(context);
     }
+
+    private static bool ShouldSkipActiveUserCheck(HttpContext context)
+        => context.Request.Path.Equals("/api/v1/user/refresh", StringComparison.OrdinalIgnoreCase);
 
     private static int? GetUserId(ClaimsPrincipal principal)
     {
