@@ -3724,10 +3724,12 @@ namespace ECafe.Infrastructure.Migrations
                     b.HasIndex(new[] { "RoleId" }, "IX_users_role_id");
 
                     b.HasIndex(new[] { "Email" }, "users_email_key")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("\"IsDeleted\" = false");
 
                     b.HasIndex(new[] { "Phone" }, "users_phone_key")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("\"IsDeleted\" = false");
 
                     b.ToTable("users", "auth");
                 });

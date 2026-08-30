@@ -88,7 +88,7 @@ namespace ECafe.Application.Services.User.Concrete
             await EnsureRoleExistsAsync(request.RoleId);
             EnsureOnlySuperAdminCanManageOwnerRole(request.RoleId);
             await EnsureRestaurantOwnerSlotAvailableAsync(request.RestaurantId, request.RoleId);
-            await EnsureUserDoesNotExistAsync(request.Email);
+            await EnsureUserDoesNotExistAsync(request.Email, request.Phone);
 
             var file = await GetAttachableFileAsync(request.FileId);
 
@@ -470,12 +470,18 @@ namespace ECafe.Application.Services.User.Concrete
                 throw new BusinessRuleException(ErrorCode.RoleNotFound);
         }
 
-        private async Task EnsureUserDoesNotExistAsync(string email)
+        private async Task EnsureUserDoesNotExistAsync(string email, string phone)
         {
-            var existingUser = await _userRepository.GetByEmailAsync(email.Trim().ToLowerInvariant());
+            var normalizedEmail = email.Trim().ToLowerInvariant();
+            var normalizedPhone = PhoneNumberValidationExtensions.NormalizeAzerbaijanPhoneNumber(phone);
 
-            if (existingUser is not null)
+            var emailExists = await _userRepository.CheckExistAsync(x => x.Email == normalizedEmail);
+            if (emailExists)
                 throw new BusinessRuleException(ErrorCode.UserEmailAlreadyExists);
+
+            var phoneExists = await _userRepository.CheckExistAsync(x => x.Phone == normalizedPhone);
+            if (phoneExists)
+                throw new BusinessRuleException(ErrorCode.UserPhoneAlreadyExists);
         }
 
         private async Task<Domain.Entities.File?> GetAttachableFileAsync(int? fileId)

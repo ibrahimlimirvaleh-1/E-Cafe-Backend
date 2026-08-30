@@ -12,9 +12,13 @@ namespace ECafe.Infrastructure.Configurations.Concrete
 
             builder.ToTable("users", "auth");
 
-            builder.HasIndex(e => e.Email, "users_email_key").IsUnique();
+            builder.HasIndex(e => e.Email, "users_email_key")
+                .IsUnique()
+                .HasFilter("\"IsDeleted\" = false");
 
-            builder.HasIndex(e => e.Phone, "users_phone_key").IsUnique();
+            builder.HasIndex(e => e.Phone, "users_phone_key")
+                .IsUnique()
+                .HasFilter("\"IsDeleted\" = false");
 
             builder.Property(e => e.Id).HasColumnName("id");
             builder.Property(e => e.Email)
