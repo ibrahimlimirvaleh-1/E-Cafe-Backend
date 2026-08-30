@@ -14,6 +14,7 @@ using ECafe.Application.Repositories.Role;
 using ECafe.Application.Repositories.User;
 using ECafe.Application.Repositories.UserRefreshToken;
 using ECafe.Application.Repositories.UserRestaurant;
+using ECafe.Application.Repository;
 using ECafe.Application.Services.Auth.Abstract;
 using ECafe.Application.Services.AuditLog.Abstract;
 using ECafe.Application.Services.MinIO.Abstracts;
@@ -45,6 +46,7 @@ namespace ECafe.Application.Services.User.Concrete
         private readonly IPasswordSetupService _passwordSetupService;
         private readonly IAuditLogService _auditLogService;
         private readonly IUserRealtimeNotifier _userRealtimeNotifier;
+        private readonly IApplicationDbTransactionFactory _transactionFactory;
 
         public UserManager(
             IHttpContextAccessor httpContextAccessor,
@@ -61,7 +63,8 @@ namespace ECafe.Application.Services.User.Concrete
             IUserRestaurantRepository userRestaurantRepository,
             IPasswordSetupService passwordSetupService,
             IAuditLogService auditLogService,
-            IUserRealtimeNotifier userRealtimeNotifier)
+            IUserRealtimeNotifier userRealtimeNotifier,
+            IApplicationDbTransactionFactory transactionFactory)
             : base(httpContextAccessor, mapper, configuration)
         {
             _restaurantRepository = restaurantRepository;
@@ -76,6 +79,7 @@ namespace ECafe.Application.Services.User.Concrete
             _passwordSetupService = passwordSetupService;
             _auditLogService = auditLogService;
             _userRealtimeNotifier = userRealtimeNotifier;
+            _transactionFactory = transactionFactory;
         }
 
         public async Task CreateUserAsync(CreateUserRequest request)
@@ -96,10 +100,22 @@ namespace ECafe.Application.Services.User.Concrete
             user.File = file;
             user.Password = CreateUnusablePasswordHash();
 
-            await _userRepository.Add(user);
-            await _userRepository.SaveChangesAsync();
+            await using var transaction = await _transactionFactory.BeginTransactionAsync();
 
-            await _passwordSetupService.SendSetupLinkAsync(user);
+            try
+            {
+                await _userRepository.Add(user);
+                await _userRepository.SaveChangesAsync();
+
+                await _passwordSetupService.SendSetupLinkAsync(user);
+
+                await transaction.CommitAsync();
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
         }
 
         public async Task DeleteAsync(int userId)
