@@ -17,6 +17,9 @@ namespace ECafe.Infrastructure.Configurations.Concrete
             builder.Property(e => e.TokenHash)
                 .HasMaxLength(64)
                 .HasColumnName("token_hash");
+            builder.Property(e => e.SessionId)
+                .HasMaxLength(64)
+                .HasColumnName("session_id");
             builder.Property(e => e.ExpiresAt).HasColumnName("expires_at");
             builder.Property(e => e.RevokedAt).HasColumnName("revoked_at");
             builder.Property(e => e.ReplacedByTokenHash)
@@ -36,6 +39,7 @@ namespace ECafe.Infrastructure.Configurations.Concrete
                 .IsUnique();
 
             builder.HasIndex(e => new { e.UserId, e.ExpiresAt }, "IX_user_refresh_tokens_user_id_expires_at");
+            builder.HasIndex(e => new { e.UserId, e.SessionId }, "IX_user_refresh_tokens_user_id_session_id");
 
             builder.HasOne(e => e.User)
                 .WithMany(u => u.RefreshTokens)
