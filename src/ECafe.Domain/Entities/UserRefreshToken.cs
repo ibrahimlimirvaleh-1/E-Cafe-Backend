@@ -8,6 +8,8 @@ namespace ECafe.Domain.Entities
 
         public string TokenHash { get; set; } = null!;
 
+        public string SessionId { get; set; } = null!;
+
         public DateTime ExpiresAt { get; set; }
 
         public DateTime? RevokedAt { get; set; }

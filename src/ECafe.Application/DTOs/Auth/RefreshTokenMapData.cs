@@ -6,6 +6,8 @@ namespace ECafe.Application.DTOs.Auth
 
         public string TokenHash { get; set; } = null!;
 
+        public string SessionId { get; set; } = null!;
+
         public DateTime ExpiresAt { get; set; }
 
         public string? CreatedByIp { get; set; }

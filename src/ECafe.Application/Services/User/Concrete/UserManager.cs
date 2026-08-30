@@ -601,6 +601,7 @@ namespace ECafe.Application.Services.User.Concrete
             {
                 UserId = user.Id,
                 TokenHash = HashRefreshToken(refreshToken),
+                SessionId = Guid.NewGuid().ToString("N"),
                 ExpiresAt = DateTime.UtcNow.AddDays(7),
                 CreatedByIp = HttpContextAccessor.HttpContext?.Connection.RemoteIpAddress?.ToString(),
                 UserAgent = HttpContextAccessor.HttpContext?.Request.Headers["User-Agent"].ToString()

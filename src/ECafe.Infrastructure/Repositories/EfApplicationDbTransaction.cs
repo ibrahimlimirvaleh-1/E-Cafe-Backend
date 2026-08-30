@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Storage;
 
 namespace ECafe.Infrastructure.Repositories
 {
-    internal sealed class EfApplicationDbTransaction : IApplicationDbTransaction
+    public sealed class EfApplicationDbTransaction : IApplicationDbTransaction
     {
         private readonly IDbContextTransaction _transaction;
 

@@ -228,7 +228,7 @@ namespace ECafe.Application.Services.Auth.Concrete
             if (user.File != null)
                 fileUrl = await _minioService.GenerateFileUrl(user.File.Token);
 
-            var refreshToken = await AddRefreshTokenAsync(user);
+            var refreshToken = await AddRefreshTokenAsync(user, CreateSessionId());
 
             await _refreshTokenRepository.SaveChangesAsync();
 
@@ -254,12 +254,15 @@ namespace ECafe.Application.Services.Auth.Concrete
 
             var refreshToken = _jwtService.GenerateRefreshToken();
             var refreshTokenHash = HashRefreshToken(refreshToken);
+            var sessionId = string.IsNullOrWhiteSpace(storedToken.SessionId)
+                ? CreateSessionId()
+                : storedToken.SessionId;
 
             storedToken.RevokedAt = DateTime.UtcNow;
             storedToken.RevokedByIp = GetRequestIp();
             storedToken.ReplacedByTokenHash = refreshTokenHash;
 
-            await AddRefreshTokenAsync(storedToken.User, refreshTokenHash);
+            await AddRefreshTokenAsync(storedToken.User, refreshTokenHash, sessionId);
             await _refreshTokenRepository.SaveChangesAsync();
 
             return Mapper.Map<AuthResponseDto>(new AuthTokenMapData
@@ -269,21 +272,23 @@ namespace ECafe.Application.Services.Auth.Concrete
             });
         }
 
-        private async Task<string> AddRefreshTokenAsync(Domain.Entities.User user)
+        private async Task<string> AddRefreshTokenAsync(Domain.Entities.User user, string sessionId)
         {
             var refreshToken = _jwtService.GenerateRefreshToken();
-            await AddRefreshTokenAsync(user, HashRefreshToken(refreshToken));
+            await AddRefreshTokenAsync(user, HashRefreshToken(refreshToken), sessionId);
             return refreshToken;
         }
 
         private async Task AddRefreshTokenAsync(
             Domain.Entities.User user,
-            string refreshTokenHash)
+            string refreshTokenHash,
+            string sessionId)
         {
             var refreshToken = Mapper.Map<Domain.Entities.UserRefreshToken>(new RefreshTokenMapData
             {
                 UserId = user.Id,
                 TokenHash = refreshTokenHash,
+                SessionId = sessionId,
                 ExpiresAt = DateTime.UtcNow.AddDays(7),
                 CreatedByIp = GetRequestIp(),
                 UserAgent = HttpContextAccessor.HttpContext?.Request.Headers["User-Agent"].ToString()
@@ -305,8 +310,16 @@ namespace ECafe.Application.Services.Auth.Concrete
                     ["wasRevoked"] = (reusedToken.RevokedAt is not null).ToString()
                 }));
 
-            reusedToken.User.SessionVersion++;
-            await RevokeAllActiveRefreshTokensAsync(reusedToken.UserId);
+            if (string.IsNullOrWhiteSpace(reusedToken.SessionId))
+            {
+                reusedToken.User.SessionVersion++;
+                await RevokeAllActiveRefreshTokensAsync(reusedToken.UserId);
+            }
+            else
+            {
+                await RevokeActiveRefreshTokensForSessionAsync(reusedToken.UserId, reusedToken.SessionId);
+            }
+
             await _refreshTokenRepository.SaveChangesAsync();
             await EnqueueRefreshTokenReuseEmailAsync(reusedToken.User);
 
@@ -316,6 +329,15 @@ namespace ECafe.Application.Services.Auth.Concrete
         private async Task RevokeAllActiveRefreshTokensAsync(int userId)
         {
             var activeTokens = await _refreshTokenRepository.GetActiveByUserIdTrackedAsync(userId, DateTime.UtcNow);
+            foreach (var token in activeTokens)
+            {
+                RevokeRefreshToken(token);
+            }
+        }
+
+        private async Task RevokeActiveRefreshTokensForSessionAsync(int userId, string sessionId)
+        {
+            var activeTokens = await _refreshTokenRepository.GetActiveByUserSessionTrackedAsync(userId, sessionId, DateTime.UtcNow);
             foreach (var token in activeTokens)
             {
                 RevokeRefreshToken(token);
@@ -356,6 +378,9 @@ namespace ECafe.Application.Services.Auth.Concrete
 
         private string? GetRequestIp()
             => HttpContextAccessor.HttpContext?.Connection.RemoteIpAddress?.ToString();
+
+        private static string CreateSessionId()
+            => Guid.NewGuid().ToString("N");
         #endregion
 
 

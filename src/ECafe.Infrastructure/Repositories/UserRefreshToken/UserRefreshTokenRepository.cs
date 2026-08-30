@@ -34,5 +34,15 @@ namespace ECafe.Infrastructure.Repositories.UserRefreshToken
                     t.ExpiresAt > nowUtc)
                 .ToListAsync();
         }
+
+        public Task<List<Domain.Entities.UserRefreshToken>> GetActiveByUserSessionTrackedAsync(int userId, string sessionId, DateTime nowUtc)
+        {
+            return QueryTracked(t =>
+                    t.UserId == userId &&
+                    t.SessionId == sessionId &&
+                    t.RevokedAt == null &&
+                    t.ExpiresAt > nowUtc)
+                .ToListAsync();
+        }
     }
 }
