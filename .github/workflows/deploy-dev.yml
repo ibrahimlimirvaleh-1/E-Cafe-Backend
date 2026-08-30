@@ -14,6 +14,8 @@ jobs:
   deploy:
     name: Deploy backend to Hetzner
     runs-on: ubuntu-latest
+    environment: dev
+    timeout-minutes: 30
 
     steps:
       - name: Deploy API and run migrations

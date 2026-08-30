@@ -1,0 +1,39 @@
+name: Backend CI
+
+on:
+  pull_request:
+    branches:
+      - dev
+      - test
+      - preprod
+      - main
+  push:
+    branches:
+      - "feature/**"
+      - "bugfix/**"
+      - "hotfix/**"
+
+concurrency:
+  group: backend-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Restore and build backend
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.0.x"
+
+      - name: Restore solution
+        run: dotnet restore ECafe.sln
+
+      - name: Build solution
+        run: dotnet build ECafe.sln --configuration Release --no-restore
