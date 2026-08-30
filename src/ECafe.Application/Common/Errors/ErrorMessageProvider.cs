@@ -93,7 +93,7 @@ public sealed class ErrorMessageProvider : IErrorMessageProvider
         [ErrorCode.ContractNotFound] = "Restaurant contract not found.",
         [ErrorCode.ContractTermsMustBeAccepted] = "Contract terms must be accepted.",
         [ErrorCode.ContractAcceptanceTextRequired] = "Contract acceptance text is required.",
-        [ErrorCode.RestaurantOwnerNotAssigned] = "Restaurant owner is not assigned.",
+        [ErrorCode.RestaurantOwnerNotAssigned] = "Restorana aktiv sahibkar təyin edilməyib. Müqaviləni təsdiqə göndərmək üçün əvvəl restoran sahibkarı əlavə edin.",
         [ErrorCode.ContractNumberGenerationFailed] = "Could not generate a unique contract number.",
         [ErrorCode.ContractStartDateCannotBeInPast] = "Contract start date cannot be in the past.",
         [ErrorCode.ExpiredContractCannotBeActivated] = "Expired contract cannot be activated.",

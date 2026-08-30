@@ -10,6 +10,7 @@ using ECafe.Application.Services.Auth.Abstract;
 using ECafe.Domain.Exceptions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 
 namespace ECafe.Application.Services.Auth.Concrete;
 
@@ -23,6 +24,7 @@ public class PasswordResetManager : IPasswordResetService
     private readonly IEmailOutboxService _emailOutboxService;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IConfiguration _configuration;
+    private readonly ILogger<PasswordResetManager> _logger;
 
     public PasswordResetManager(
         IUserRepository userRepository,
@@ -30,7 +32,8 @@ public class PasswordResetManager : IPasswordResetService
         IUserRefreshTokenRepository refreshTokenRepository,
         IEmailOutboxService emailOutboxService,
         IHttpContextAccessor httpContextAccessor,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        ILogger<PasswordResetManager> logger)
     {
         _userRepository = userRepository;
         _passwordResetTokenRepository = passwordResetTokenRepository;
@@ -38,6 +41,7 @@ public class PasswordResetManager : IPasswordResetService
         _emailOutboxService = emailOutboxService;
         _httpContextAccessor = httpContextAccessor;
         _configuration = configuration;
+        _logger = logger;
     }
 
     public async Task RequestPasswordResetAsync(ForgotPasswordRequest request)
@@ -45,8 +49,17 @@ public class PasswordResetManager : IPasswordResetService
         var normalizedEmail = request.Email.Trim().ToLowerInvariant();
         var user = await _userRepository.GetByEmailTrackedAsync(normalizedEmail);
 
-        if (user is null || !user.IsActive)
+        if (user is null)
+        {
+            _logger.LogInformation("Password reset requested for a non-existing email.");
             return;
+        }
+
+        if (!user.IsActive)
+        {
+            _logger.LogInformation("Password reset requested for inactive user {UserId}.", user.Id);
+            return;
+        }
 
         var nowUtc = DateTime.UtcNow;
         var activeTokens = await _passwordResetTokenRepository.GetActiveByUserIdTrackedAsync(user.Id, nowUtc);
@@ -70,6 +83,7 @@ public class PasswordResetManager : IPasswordResetService
         await _passwordResetTokenRepository.SaveChangesAsync();
 
         await EnqueueResetLinkEmailAsync(user, BuildResetUrl(plainToken));
+        _logger.LogInformation("Password reset email outbox event queued for user {UserId}.", user.Id);
     }
 
     public async Task ResetPasswordAsync(ResetPasswordRequest request)
