@@ -36,14 +36,31 @@ if (builder.Environment.IsEnvironment("Local"))
         .AddUserSecrets<Program>(optional: true);
 }
 
-builder.WebHost.UseSentry(options =>
+var sentryDsn = builder.Configuration["Sentry:Dsn"];
+var isSentryEnabled = builder.Configuration.GetValue("Sentry:Enabled", !string.IsNullOrWhiteSpace(sentryDsn));
+if (isSentryEnabled)
 {
-    options.Dsn = builder.Configuration["Sentry:Dsn"];
-    options.Environment = builder.Environment.EnvironmentName;
-    options.Debug = builder.Configuration.GetValue<bool>("Sentry:Debug");
-    options.EnableLogs = builder.Configuration.GetValue<bool>("Sentry:EnableLogs");
-    options.TracesSampleRate = builder.Configuration.GetValue<double?>("Sentry:TracesSampleRate") ?? 0.0;
-});
+    var hasValidSentryDsnFormat = Uri.TryCreate(sentryDsn, UriKind.Absolute, out var sentryDsnUri)
+        && (sentryDsnUri.Scheme == Uri.UriSchemeHttp || sentryDsnUri.Scheme == Uri.UriSchemeHttps)
+        && !string.IsNullOrWhiteSpace(sentryDsnUri.UserInfo)
+        && !string.IsNullOrWhiteSpace(sentryDsnUri.Host);
+
+    if (hasValidSentryDsnFormat)
+    {
+        builder.WebHost.UseSentry(options =>
+        {
+            options.Dsn = sentryDsn;
+            options.Environment = builder.Environment.EnvironmentName;
+            options.Debug = builder.Configuration.GetValue<bool>("Sentry:Debug");
+            options.EnableLogs = builder.Configuration.GetValue<bool>("Sentry:EnableLogs");
+            options.TracesSampleRate = builder.Configuration.GetValue<double?>("Sentry:TracesSampleRate") ?? 0.0;
+        });
+    }
+    else
+    {
+        Console.WriteLine("Sentry is disabled because the configured DSN is invalid.");
+    }
+}
 
 builder.Services.AddControllers();
 
