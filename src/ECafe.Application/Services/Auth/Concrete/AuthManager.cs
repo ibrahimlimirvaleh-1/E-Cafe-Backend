@@ -5,6 +5,7 @@ using ECafe.Application.Common.Validation;
 using ECafe.Application.Repositories.File;
 using ECafe.Application.Repositories.User;
 using ECafe.Application.Repositories.UserRefreshToken;
+using ECafe.Application.Repository;
 using ECafe.Application.Services;
 using ECafe.Application.Services.Auth.Abstract;
 using ECafe.Application.Services.Monitoring.Abstract;
@@ -29,6 +30,7 @@ namespace ECafe.Application.Services.Auth.Concrete
         private readonly ILoginAttemptService _loginAttemptService;
         private readonly IEmailOutboxService _emailOutboxService;
         private readonly ICriticalEventReporter _criticalEventReporter;
+        private readonly IApplicationDbTransactionFactory _transactionFactory;
         public AuthManager(IHttpContextAccessor httpContextAccessor,
                            IMapper mapper,
                            IConfiguration configuration,
@@ -39,7 +41,8 @@ namespace ECafe.Application.Services.Auth.Concrete
                            IFileRepository fileRepository,
                            ILoginAttemptService loginAttemptService,
                            IEmailOutboxService emailOutboxService,
-                           ICriticalEventReporter criticalEventReporter)
+                           ICriticalEventReporter criticalEventReporter,
+                           IApplicationDbTransactionFactory transactionFactory)
                            : base(httpContextAccessor, mapper, configuration)
         {
             _userRepository = userRepository;
@@ -50,6 +53,7 @@ namespace ECafe.Application.Services.Auth.Concrete
             _loginAttemptService = loginAttemptService;
             _emailOutboxService = emailOutboxService;
             _criticalEventReporter = criticalEventReporter;
+            _transactionFactory = transactionFactory;
         }
 
         public async Task<AuthResponseDto> LoginAsync(LoginRequestDto request)
@@ -101,10 +105,27 @@ namespace ECafe.Application.Services.Auth.Concrete
             user.File = file;
             user.PasswordSetAt = DateTime.UtcNow;
 
-            await _userRepository.Add(user);
-            await _userRepository.SaveChangesAsync();
+            await using var transaction = await _transactionFactory.BeginTransactionAsync();
 
-            return await CreateAndStoreTokenResponseAsync(user);
+            try
+            {
+                await _userRepository.Add(user);
+                await _userRepository.SaveChangesAsync();
+
+                var createdUser = await _userRepository.GetByIdWithAuthDetailsTrackedAsync(user.Id);
+                if (createdUser is null)
+                    throw new BusinessRuleException(ErrorCode.UserNotFound);
+
+                var response = await CreateAndStoreTokenResponseAsync(createdUser);
+                await transaction.CommitAsync();
+
+                return response;
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
         }
 
         public async Task<AuthResponseDto> RefreshAsync(RefreshTokenRequestDto request)
