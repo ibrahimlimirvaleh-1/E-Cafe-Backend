@@ -279,7 +279,7 @@ app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseForwardedHeaders();
 app.UseMiddleware<SecurityHeadersMiddleware>();
 
-if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Local"))
+if (!app.Environment.IsProduction())
 {
     app.UseSwagger();
     app.UseStaticFiles();
