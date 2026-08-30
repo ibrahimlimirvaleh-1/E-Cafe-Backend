@@ -1,4 +1,5 @@
 using System.Net;
+using ECafe.Application.Services.Monitoring.Abstract;
 using ECafe.Domain.Exceptions;
 using FluentValidation;
 using Sentry;
@@ -10,15 +11,18 @@ public sealed class ExceptionHandlingMiddleware
     private readonly RequestDelegate _next;
     private readonly ILogger<ExceptionHandlingMiddleware> _logger;
     private readonly IErrorMessageProvider _errorMessageProvider;
+    private readonly ICriticalEventReporter _criticalEventReporter;
 
     public ExceptionHandlingMiddleware(
         RequestDelegate next,
         ILogger<ExceptionHandlingMiddleware> logger,
-        IErrorMessageProvider errorMessageProvider)
+        IErrorMessageProvider errorMessageProvider,
+        ICriticalEventReporter criticalEventReporter)
     {
         _next = next;
         _logger = logger;
         _errorMessageProvider = errorMessageProvider;
+        _criticalEventReporter = criticalEventReporter;
     }
 
     public async Task Invoke(HttpContext context)
@@ -30,6 +34,7 @@ public sealed class ExceptionHandlingMiddleware
         catch (Exception ex)
         {
             LogException(context, ex);
+            await ReportCriticalApplicationExceptionAsync(context, ex);
             ReportUnexpectedException(context, ex);
 
             await WriteErrorResponseAsync(context, ex);
@@ -49,6 +54,54 @@ public sealed class ExceptionHandlingMiddleware
 
     private static bool IsHandledException(Exception exception)
         => exception is ValidationException or BaseException;
+
+    private Task ReportCriticalApplicationExceptionAsync(HttpContext context, Exception exception)
+    {
+        if (exception is not BaseException baseException || !IsCriticalApplicationError(baseException.Code))
+            return Task.CompletedTask;
+
+        return _criticalEventReporter.CaptureAsync(new CriticalEvent(
+            Category: ResolveCriticalCategory(baseException.Code),
+            Name: baseException.Code.ToString(),
+            Severity: ResolveCriticalSeverity(baseException.Code),
+            Properties: new Dictionary<string, string?>
+            {
+                ["statusCode"] = baseException.StatusCode.ToString(),
+                ["errorCode"] = baseException.Code.ToString(),
+                ["traceId"] = context.TraceIdentifier,
+                ["path"] = context.Request.Path,
+                ["method"] = context.Request.Method
+            }));
+    }
+
+    private static bool IsCriticalApplicationError(ErrorCode code)
+        => code is ErrorCode.RefreshTokenReuseDetected
+            or ErrorCode.AccountTemporarilyLocked
+            or ErrorCode.SessionInvalid
+            or ErrorCode.UserDeactivated
+            or ErrorCode.NotificationProviderUnavailable
+            or ErrorCode.FileStorageUnavailable;
+
+    private static string ResolveCriticalCategory(ErrorCode code)
+        => code switch
+        {
+            ErrorCode.RefreshTokenReuseDetected
+                or ErrorCode.AccountTemporarilyLocked
+                or ErrorCode.SessionInvalid
+                or ErrorCode.UserDeactivated => "auth",
+            ErrorCode.NotificationProviderUnavailable => "notification",
+            ErrorCode.FileStorageUnavailable => "storage",
+            _ => "application"
+        };
+
+    private static CriticalEventSeverity ResolveCriticalSeverity(ErrorCode code)
+        => code switch
+        {
+            ErrorCode.RefreshTokenReuseDetected => CriticalEventSeverity.Critical,
+            ErrorCode.NotificationProviderUnavailable
+                or ErrorCode.FileStorageUnavailable => CriticalEventSeverity.Error,
+            _ => CriticalEventSeverity.Warning
+        };
 
     private static void ReportUnexpectedException(HttpContext context, Exception exception)
     {

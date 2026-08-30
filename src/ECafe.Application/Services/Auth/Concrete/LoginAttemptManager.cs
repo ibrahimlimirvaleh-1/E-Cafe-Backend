@@ -1,6 +1,7 @@
 using ECafe.Application.Repositories.LoginAttempt;
 using ECafe.Application.Services.Auth.Abstract;
 using ECafe.Application.Common.Exceptions;
+using ECafe.Application.Services.Monitoring.Abstract;
 using ECafe.Domain.Exceptions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
@@ -11,6 +12,7 @@ public class LoginAttemptManager : ILoginAttemptService
 {
     private readonly ILoginAttemptRepository _loginAttemptRepository;
     private readonly IEmailOutboxService _emailOutboxService;
+    private readonly ICriticalEventReporter _criticalEventReporter;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly int _maxFailedAttempts;
     private readonly TimeSpan _failedAttemptWindow;
@@ -20,11 +22,13 @@ public class LoginAttemptManager : ILoginAttemptService
     public LoginAttemptManager(
         ILoginAttemptRepository loginAttemptRepository,
         IEmailOutboxService emailOutboxService,
+        ICriticalEventReporter criticalEventReporter,
         IHttpContextAccessor httpContextAccessor,
         IConfiguration configuration)
     {
         _loginAttemptRepository = loginAttemptRepository;
         _emailOutboxService = emailOutboxService;
+        _criticalEventReporter = criticalEventReporter;
         _httpContextAccessor = httpContextAccessor;
         _maxFailedAttempts = GetPositiveInt(configuration, "LoginSecurity:MaxFailedAttempts", 5);
         _failedAttemptWindow = TimeSpan.FromMinutes(GetPositiveInt(configuration, "LoginSecurity:FailedAttemptWindowMinutes", 15));
@@ -64,6 +68,21 @@ public class LoginAttemptManager : ILoginAttemptService
         });
 
         await _loginAttemptRepository.SaveChangesAsync();
+
+        if (shouldLock)
+        {
+            await _criticalEventReporter.CaptureAsync(new CriticalEvent(
+                Category: "auth",
+                Name: "login_lockout",
+                Severity: CriticalEventSeverity.Warning,
+                Properties: new Dictionary<string, string?>
+                {
+                    ["failureReason"] = failureReason,
+                    ["failedAttemptCount"] = (failedCount + 1).ToString(),
+                    ["maxFailedAttempts"] = _maxFailedAttempts.ToString(),
+                    ["lockoutMinutes"] = _lockoutDuration.TotalMinutes.ToString("0")
+                }));
+        }
 
         if (shouldLock && user is not null && _notifyOnLockout)
             await EnqueueLockoutEmailAsync(user, lockoutUntil!.Value);
