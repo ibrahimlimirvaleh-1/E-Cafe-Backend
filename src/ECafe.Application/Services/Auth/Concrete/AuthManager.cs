@@ -110,19 +110,24 @@ namespace ECafe.Application.Services.Auth.Concrete
         public async Task<AuthResponseDto> RefreshAsync(RefreshTokenRequestDto request)
         {
             if (request is null || string.IsNullOrWhiteSpace(request.RefreshToken))
-                throw new BusinessRuleException(ErrorCode.RefreshTokenInvalid);
+                throw new UnauthorizedException(ErrorCode.RefreshTokenInvalid);
 
             var refreshTokenHash = HashRefreshToken(request.RefreshToken);
             var storedToken = await _refreshTokenRepository.GetByTokenHashTrackedAsync(refreshTokenHash);
 
             if (storedToken is null)
-                throw new ForbiddenException(ErrorCode.RefreshTokenInvalid);
+                throw new UnauthorizedException(ErrorCode.RefreshTokenInvalid);
 
             if (storedToken.RevokedAt is not null)
-                await HandleRefreshTokenReuseAsync(storedToken);
+            {
+                if (!string.IsNullOrWhiteSpace(storedToken.ReplacedByTokenHash))
+                    await HandleRefreshTokenReuseAsync(storedToken);
+
+                throw new UnauthorizedException(ErrorCode.RefreshTokenInvalid);
+            }
 
             if (storedToken.ExpiresAt <= DateTime.UtcNow)
-                throw new ForbiddenException(ErrorCode.RefreshTokenInvalid);
+                throw new UnauthorizedException(ErrorCode.RefreshTokenInvalid);
 
             if (!storedToken.User.IsActive)
                 throw new ForbiddenException("User account is inactive.");
