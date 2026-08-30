@@ -69,6 +69,7 @@ namespace ECafe.Infrastructure
                     .AddInterceptors(serviceProvider.GetRequiredService<PermissionCacheInvalidationInterceptor>()));
 
             services.AddScoped(typeof(IBaseRepository<>), typeof(BaseRepository<>));
+            services.AddScoped<IApplicationDbTransactionFactory, EfApplicationDbTransactionFactory>();
             services.AddScoped<IUserRepository, UserRepository>();
             services.AddScoped<IPasswordResetTokenRepository, PasswordResetTokenRepository>();
             services.AddScoped<IUserPasswordSetupTokenRepository, UserPasswordSetupTokenRepository>();
