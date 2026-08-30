@@ -1,0 +1,42 @@
+name: Deploy Backend Dev
+
+on:
+  push:
+    branches:
+      - dev
+  workflow_dispatch:
+
+concurrency:
+  group: ecafe-backend-dev
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Deploy backend to Hetzner
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy API and run migrations
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.ECAFE_DEV_HOST }}
+          username: ${{ secrets.ECAFE_DEV_USER }}
+          key: ${{ secrets.ECAFE_DEV_SSH_KEY }}
+          script: |
+            set -euo pipefail
+
+            APP_PATH="${{ secrets.ECAFE_DEV_PATH }}"
+            if [ -z "$APP_PATH" ]; then
+              APP_PATH="/opt/ecafe"
+            fi
+
+            cd "$APP_PATH/backend"
+            git fetch origin
+            git checkout dev
+            git pull --ff-only origin dev
+
+            cd "$APP_PATH"
+            docker compose build api migrator
+            docker compose --profile migrate run --rm migrator
+            docker compose up -d api
+            docker compose ps
