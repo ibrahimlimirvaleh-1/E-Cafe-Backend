@@ -11,4 +11,5 @@ namespace ECafe.Api.Controllers
         protected IMediator Mediator =>
         _mediator ??= HttpContext.RequestServices.GetRequiredService<IMediator>();
     }
+
 }
