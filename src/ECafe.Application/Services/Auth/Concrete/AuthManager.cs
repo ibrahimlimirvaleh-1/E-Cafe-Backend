@@ -7,6 +7,7 @@ using ECafe.Application.Repositories.User;
 using ECafe.Application.Repositories.UserRefreshToken;
 using ECafe.Application.Services;
 using ECafe.Application.Services.Auth.Abstract;
+using ECafe.Application.Services.Monitoring.Abstract;
 using ECafe.Application.Services.MinIO.Abstracts;
 using ECafe.Domain.Enums;
 using ECafe.Domain.Exceptions;
@@ -27,6 +28,7 @@ namespace ECafe.Application.Services.Auth.Concrete
         private readonly IFileRepository _fileRepository;
         private readonly ILoginAttemptService _loginAttemptService;
         private readonly IEmailOutboxService _emailOutboxService;
+        private readonly ICriticalEventReporter _criticalEventReporter;
         public AuthManager(IHttpContextAccessor httpContextAccessor,
                            IMapper mapper,
                            IConfiguration configuration,
@@ -36,7 +38,8 @@ namespace ECafe.Application.Services.Auth.Concrete
                            IMinioService minioService,
                            IFileRepository fileRepository,
                            ILoginAttemptService loginAttemptService,
-                           IEmailOutboxService emailOutboxService)
+                           IEmailOutboxService emailOutboxService,
+                           ICriticalEventReporter criticalEventReporter)
                            : base(httpContextAccessor, mapper, configuration)
         {
             _userRepository = userRepository;
@@ -46,6 +49,7 @@ namespace ECafe.Application.Services.Auth.Concrete
             _fileRepository = fileRepository;
             _loginAttemptService = loginAttemptService;
             _emailOutboxService = emailOutboxService;
+            _criticalEventReporter = criticalEventReporter;
         }
 
         public async Task<AuthResponseDto> LoginAsync(LoginRequestDto request)
@@ -264,6 +268,17 @@ namespace ECafe.Application.Services.Auth.Concrete
 
         private async Task HandleRefreshTokenReuseAsync(Domain.Entities.UserRefreshToken reusedToken)
         {
+            await _criticalEventReporter.CaptureAsync(new CriticalEvent(
+                Category: "auth",
+                Name: "refresh_token_reuse",
+                Severity: CriticalEventSeverity.Critical,
+                Properties: new Dictionary<string, string?>
+                {
+                    ["errorCode"] = ErrorCode.RefreshTokenReuseDetected.ToString(),
+                    ["hasReplacementToken"] = (!string.IsNullOrWhiteSpace(reusedToken.ReplacedByTokenHash)).ToString(),
+                    ["wasRevoked"] = (reusedToken.RevokedAt is not null).ToString()
+                }));
+
             reusedToken.User.SessionVersion++;
             await RevokeAllActiveRefreshTokensAsync(reusedToken.UserId);
             await _refreshTokenRepository.SaveChangesAsync();

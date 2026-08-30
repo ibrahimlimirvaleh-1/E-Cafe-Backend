@@ -1,11 +1,13 @@
 using ECafe.Api.BackgroundServices;
 using ECafe.Api.Middlewares;
+using ECafe.Api.Monitoring;
 using ECafe.Api.Realtime;
 using ECafe.Api.Security;
 using ECafe.Api.Services.Realtime;
 using ECafe.Api.Swagger;
 using ECafe.Application;
 using ECafe.Application.Services.Realtime.Abstract;
+using ECafe.Application.Services.Monitoring.Abstract;
 using ECafe.Application.Services.Jwt.Concrete;
 using ECafe.Infrastructure;
 using ECafe.Infrastructure.Authorization;
@@ -170,6 +172,7 @@ builder.Services.AddCors(options =>
 });
 
 builder.Services.AddApplication();
+builder.Services.AddSingleton<ICriticalEventReporter, SentryCriticalEventReporter>();
 builder.Services.AddInfrastructure(builder.Configuration);
 var signalRBuilder = builder.Services.AddSignalR(options =>
 {

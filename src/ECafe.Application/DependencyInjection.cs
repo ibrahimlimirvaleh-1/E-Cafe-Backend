@@ -41,6 +41,8 @@ using ECafe.Application.Services.Recipe.Abstract;
 using ECafe.Application.Services.Recipe.Concrete;
 using ECafe.Application.Services.Sms.Abstract;
 using ECafe.Application.Services.Sms.Concrete;
+using ECafe.Application.Services.Monitoring.Abstract;
+using ECafe.Application.Services.Monitoring.Concrete;
 using Microsoft.Extensions.Configuration;
 
 namespace ECafe.Application
@@ -61,6 +63,7 @@ namespace ECafe.Application
             services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
 
             services.AddSingleton<IErrorMessageProvider, ErrorMessageProvider>();
+            services.AddSingleton<ICriticalEventReporter, NoopCriticalEventReporter>();
             services.AddScoped<IMinioService, MinioManager>();
             services.AddScoped<AuditLogManager>();
             services.AddScoped<IAuditLogService>(provider => provider.GetRequiredService<AuditLogManager>());

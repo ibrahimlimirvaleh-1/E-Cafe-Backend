@@ -2,6 +2,7 @@ using ECafe.Application.Common.Audit;
 using ECafe.Application.Common.Outbox;
 using ECafe.Application.Common.Validation;
 using ECafe.Application.Repository;
+using ECafe.Application.Services.Monitoring.Abstract;
 using ECafe.Application.Services.Sms.Abstract;
 using ECafe.Domain.Exceptions;
 using Microsoft.EntityFrameworkCore;
@@ -18,6 +19,7 @@ namespace ECafe.Application.Services
         private readonly IBaseRepository<Domain.Entities.OutboxEvent> _outboxRepository;
         private readonly IEmailService _emailService;
         private readonly ISmsService _smsService;
+        private readonly ICriticalEventReporter _criticalEventReporter;
         private readonly TimeSpan _lockDuration;
         private readonly int _maxRetryCount;
 
@@ -25,11 +27,13 @@ namespace ECafe.Application.Services
             IBaseRepository<Domain.Entities.OutboxEvent> outboxRepository,
             IEmailService emailService,
             ISmsService smsService,
+            ICriticalEventReporter criticalEventReporter,
             IConfiguration configuration)
         {
             _outboxRepository = outboxRepository;
             _emailService = emailService;
             _smsService = smsService;
+            _criticalEventReporter = criticalEventReporter;
             _lockDuration = TimeSpan.FromSeconds(GetPositiveIntSetting(configuration, "EmailOutbox:LockSeconds", 300));
             _maxRetryCount = GetPositiveIntSetting(configuration, "EmailOutbox:MaxRetryCount", 5);
         }
@@ -224,12 +228,16 @@ namespace ECafe.Application.Services
                 catch (Exception ex)
                 {
                     outboxEvent.RetryCount++;
+                    var retryLimitReached = outboxEvent.RetryCount >= _maxRetryCount;
                     outboxEvent.LockedUntil = outboxEvent.RetryCount >= _maxRetryCount
                         ? null
                         : DateTime.UtcNow.Add(GetRetryDelay(outboxEvent.RetryCount));
                     outboxEvent.LastError = ex.Message.Length > 2000
                         ? ex.Message[..2000]
                         : ex.Message;
+
+                    if (retryLimitReached)
+                        await ReportOutboxRetryLimitReachedAsync(outboxEvent, ex);
                 }
 
                 await _outboxRepository.SaveChangesAsync();
@@ -289,6 +297,21 @@ namespace ECafe.Application.Services
             var delayIndex = Math.Clamp(retryCount - 1, 0, DefaultRetryDelaySeconds.Length - 1);
             return TimeSpan.FromSeconds(DefaultRetryDelaySeconds[delayIndex]);
         }
+
+        private Task ReportOutboxRetryLimitReachedAsync(Domain.Entities.OutboxEvent outboxEvent, Exception exception)
+            => _criticalEventReporter.CaptureAsync(new CriticalEvent(
+                Category: "notification",
+                Name: "outbox_retry_limit_reached",
+                Severity: CriticalEventSeverity.Error,
+                Properties: new Dictionary<string, string?>
+                {
+                    ["outboxEventId"] = outboxEvent.Id.ToString(),
+                    ["eventType"] = outboxEvent.EventType,
+                    ["aggregateType"] = outboxEvent.AggregateType,
+                    ["retryCount"] = outboxEvent.RetryCount.ToString(),
+                    ["maxRetryCount"] = _maxRetryCount.ToString(),
+                    ["exceptionType"] = exception.GetType().Name
+                }));
 
         private static int GetPositiveIntSetting(IConfiguration configuration, string key, int fallback)
         {
