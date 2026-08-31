@@ -73,6 +73,12 @@ public enum ErrorCode
     RestaurantGroupRequired = 2025,
     RestaurantActiveContractRequired = 2026,
     RestaurantAlreadyHasActiveContract = 2027,
+    GeocodingAddressRequired = 2028,
+    GeocodingProviderNotConfigured = 2029,
+    GeocodingProviderUnavailable = 2030,
+    GeocodingAddressNotFound = 2031,
+    GeocodingProviderTimedOut = 2032,
+    GeocodingResponseInvalid = 2033,
 
     InvalidFileToken = 3000,
     FileNotFound = 3001,

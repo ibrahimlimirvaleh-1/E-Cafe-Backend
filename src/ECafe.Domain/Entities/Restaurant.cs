@@ -8,6 +8,12 @@ public partial class Restaurant : AuditableSoftDeletableEntity<int>
 
     public string Location { get; set; } = null!;
 
+    public double? Latitude { get; set; }
+
+    public double? Longitude { get; set; }
+
+    public string? PlaceId { get; set; }
+
     public string Phone { get; set; } = null!;
     public string Email { get; set; } = null!;
 
@@ -27,7 +33,6 @@ public partial class Restaurant : AuditableSoftDeletableEntity<int>
 
     public int StaffSettlementPeriod { get; set; }
 
-    public int? DefaultWaiterTableLimit { get; set; }
 
     public bool IsActive { get; set; }
 

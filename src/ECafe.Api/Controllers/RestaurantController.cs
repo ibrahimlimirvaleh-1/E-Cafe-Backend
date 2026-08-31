@@ -1,4 +1,5 @@
-﻿using ECafe.Application.Features.Commands.Restaurant;
+using ECafe.Application.Features.Commands.Restaurant;
+using ECafe.Application.Features.Queries.Geocoding;
 using ECafe.Application.Features.Queries.Restaurant.GetAll;
 using ECafe.Application.Features.Queries.Restaurant.GetById;
 using ECafe.Infrastructure.Authorization;
@@ -42,6 +43,11 @@ namespace ECafe.Api.Controllers
         [HttpGet("api/v1/restaurant/getById/{id}")]
         public async Task<IActionResult> GetByIdRestaurant(int id)
         => Ok(await Mediator.Send(new GetRestaurantQuery(id)));
+
+        [HasPermission(Domain.Enums.PermissionCode.ManageRestaurants)]
+        [HttpGet("api/v1/admin/restaurants/geocode")]
+        public async Task<IActionResult> GeocodeAddress([FromQuery] GeocodeAddressQuery query)
+        => Ok(await Mediator.Send(query));
 
     }
 }

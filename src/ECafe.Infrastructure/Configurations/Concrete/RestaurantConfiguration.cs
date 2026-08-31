@@ -11,9 +11,15 @@ namespace ECafe.Infrastructure.Configurations.Concrete
         {
             builder.HasKey(e => e.Id).HasName("restaurants_pkey");
 
-            builder.ToTable("restaurants", "core", t => t.HasCheckConstraint(
-                "ck_restaurants_default_waiter_table_limit_positive",
-                "default_waiter_table_limit IS NULL OR default_waiter_table_limit > 0"));
+            builder.ToTable("restaurants", "core", t =>
+            {
+                t.HasCheckConstraint(
+                    "ck_restaurants_latitude_range",
+                    "latitude IS NULL OR (latitude >= -90 AND latitude <= 90)");
+                t.HasCheckConstraint(
+                    "ck_restaurants_longitude_range",
+                    "longitude IS NULL OR (longitude >= -180 AND longitude <= 180)");
+            });
 
             builder.Property(e => e.Id).HasColumnName("id");
             builder.Property(e => e.IsActive)
@@ -22,6 +28,13 @@ namespace ECafe.Infrastructure.Configurations.Concrete
             builder.Property(e => e.Location)
                 .HasMaxLength(200)
                 .HasColumnName("location");
+            builder.Property(e => e.Latitude)
+                .HasColumnName("latitude");
+            builder.Property(e => e.Longitude)
+                .HasColumnName("longitude");
+            builder.Property(e => e.PlaceId)
+                .HasMaxLength(150)
+                .HasColumnName("place_id");
             builder.Property(e => e.Name)
                 .HasMaxLength(50)
                 .HasColumnName("name");
@@ -57,10 +70,6 @@ namespace ECafe.Infrastructure.Configurations.Concrete
             builder.Property(e => e.StaffSettlementPeriod)
                 .HasDefaultValue((int)StaffSettlementPeriod.Weekly)
                 .HasColumnName("staff_settlement_period");
-            builder.Property(e => e.DefaultWaiterTableLimit)
-                .HasColumnName("default_waiter_table_limit")
-                .IsRequired(false);
-
             builder.HasIndex(e => e.Email).HasDatabaseName("restaurants_email_key").IsUnique();
 
             builder.HasOne(e => e.RestaurantGroup)

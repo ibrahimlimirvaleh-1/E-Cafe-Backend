@@ -276,6 +276,9 @@ namespace ECafe.Application.Services.Restaurant.Concrete
                     restaurant.Name,
                     restaurant.BranchName,
                     restaurant.Location,
+                    restaurant.Latitude,
+                    restaurant.Longitude,
+                    restaurant.PlaceId,
                     restaurant.Phone,
                     restaurant.Email,
                     restaurant.RestaurantGroupId
@@ -333,6 +336,9 @@ namespace ECafe.Application.Services.Restaurant.Concrete
 
             restaurant.Name = restaurantName;
             restaurant.Location = request.Location.Trim();
+            restaurant.Latitude = request.Latitude;
+            restaurant.Longitude = request.Longitude;
+            restaurant.PlaceId = string.IsNullOrWhiteSpace(request.PlaceId) ? null : request.PlaceId.Trim();
             restaurant.Phone = PhoneNumberValidationExtensions.NormalizeAzerbaijanPhoneNumber(request.Phone);
             restaurant.Email = request.Email.Trim().ToLowerInvariant();
             restaurant.BranchName = branchName;
@@ -356,6 +362,9 @@ namespace ECafe.Application.Services.Restaurant.Concrete
                     restaurant.Name,
                     restaurant.BranchName,
                     restaurant.Location,
+                    restaurant.Latitude,
+                    restaurant.Longitude,
+                    restaurant.PlaceId,
                     restaurant.Phone,
                     restaurant.Email,
                     restaurant.DepositAmount,

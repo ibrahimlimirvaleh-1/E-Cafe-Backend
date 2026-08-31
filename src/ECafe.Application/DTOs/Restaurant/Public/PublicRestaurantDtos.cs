@@ -5,6 +5,9 @@ namespace ECafe.Application.DTOs.Restaurant.Public
         public int Id { get; set; }
         public string Name { get; set; } = null!;
         public string Location { get; set; } = null!;
+        public double? Latitude { get; set; }
+        public double? Longitude { get; set; }
+        public string? PlaceId { get; set; }
         public string Phone { get; set; } = null!;
         public int? RestaurantGroupId { get; set; }
         public string? RestaurantGroupName { get; set; }
@@ -29,6 +32,9 @@ namespace ECafe.Application.DTOs.Restaurant.Public
         public int Id { get; set; }
         public string Name { get; set; } = null!;
         public string Location { get; set; } = null!;
+        public double? Latitude { get; set; }
+        public double? Longitude { get; set; }
+        public string? PlaceId { get; set; }
         public string Phone { get; set; } = null!;
         public int? RestaurantGroupId { get; set; }
         public string? RestaurantGroupName { get; set; }
