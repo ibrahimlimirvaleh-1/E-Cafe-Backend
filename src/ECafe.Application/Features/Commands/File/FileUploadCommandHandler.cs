@@ -5,6 +5,7 @@ using ECafe.Application.DTOs.File;
 using ECafe.Application.Repositories.File;
 using ECafe.Application.Repositories.FileType;
 using ECafe.Application.Services.FileAccess.Abstract;
+using ECafe.Application.Services.ImageProcessing.Abstract;
 using ECafe.Application.Services.MinIO.Abstracts;
 using ECafe.Domain.Enums;
 using ECafe.Domain.Exceptions;
@@ -19,6 +20,7 @@ namespace ECafe.Application.Features.Commands.File
         private readonly IFileRepository _fileRepository;
         private readonly IFileTypeRepository _fileTypeRepository;
         private readonly IFileAccessUrlService _fileAccessUrlService;
+        private readonly IImageProcessingService _imageProcessingService;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IMapper _mapper;
 
@@ -27,6 +29,7 @@ namespace ECafe.Application.Features.Commands.File
             IFileRepository fileRepository,
             IFileTypeRepository fileTypeRepository,
             IFileAccessUrlService fileAccessUrlService,
+            IImageProcessingService imageProcessingService,
             IHttpContextAccessor httpContextAccessor,
             IMapper mapper)
         {
@@ -34,6 +37,7 @@ namespace ECafe.Application.Features.Commands.File
             _fileRepository = fileRepository;
             _fileTypeRepository = fileTypeRepository;
             _fileAccessUrlService = fileAccessUrlService;
+            _imageProcessingService = imageProcessingService;
             _httpContextAccessor = httpContextAccessor;
             _mapper = mapper;
         }
@@ -48,15 +52,33 @@ namespace ECafe.Application.Features.Commands.File
             if (fileType is null)
                 throw new BusinessRuleException(ErrorCode.FileTypeNotFound);
 
-            var token = await _minioService.UploadFileAsync(new UploadFileDto(file), BuildUploadPolicy(fileType));
+            var uploadPolicy = BuildUploadPolicy(fileType);
+            var fileTypeCode = ParseFileTypeCode(fileType.Id);
+            var processedFile = await _imageProcessingService.OptimizeForUploadAsync(
+                file,
+                uploadPolicy,
+                fileTypeCode,
+                cancellationToken);
+
+            var token = processedFile.IsOptimized
+                ? await _minioService.UploadFileAsync(new UploadGeneratedFileDto
+                {
+                    Bytes = processedFile.Bytes!,
+                    FileName = processedFile.FileName,
+                    ContentType = processedFile.ContentType,
+                    FileTypeId = fileType.Id
+                }, uploadPolicy)
+                : await _minioService.UploadFileAsync(new UploadFileDto(file), uploadPolicy);
+
             var url = fileType.IsPublic
                 ? await _minioService.GenerateFileUrl(token)
                 : string.Empty;
+
             var fileEntity = _mapper.Map<Domain.Entities.File>(new FileMapData
             {
                 Token = token,
-                FileName = file.FileName,
-                Size = file.Length,
+                FileName = processedFile.FileName,
+                Size = processedFile.Size,
                 Url = url,
                 FileTypeId = fileType.Id
             });
@@ -109,5 +131,10 @@ namespace ECafe.Application.Features.Commands.File
                 AllowedMimeTypes = fileType.AllowedMimeTypes,
                 MaxSizeMb = fileType.MaxSizeMb
             };
+
+        private static FileTypeCode ParseFileTypeCode(int id)
+            => Enum.IsDefined(typeof(FileTypeCode), id)
+                ? (FileTypeCode)id
+                : FileTypeCode.TemporaryUpload;
     }
 }

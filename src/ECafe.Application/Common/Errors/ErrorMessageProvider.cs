@@ -90,6 +90,10 @@ public sealed class ErrorMessageProvider : IErrorMessageProvider
         [ErrorCode.NotificationProviderUnavailable] = "Notification provider is temporarily unavailable.",
         [ErrorCode.FileTypeNotFound] = "File type not found.",
         [ErrorCode.AttachedFileCannotBeDeleted] = "Attached file cannot be deleted.",
+        [ErrorCode.FileTooLarge] = "Fayl çox böyükdür. Maksimum icazə verilən ölçü: {maxSizeMb} MB.",
+        [ErrorCode.UnsupportedFileType] = "Bu fayl formatı dəstəklənmir.",
+        [ErrorCode.FileExtensionMismatch] = "Faylın uzantısı seçilən fayl formatı ilə uyğun deyil.",
+        [ErrorCode.FileContentTypeMismatch] = "Faylın məzmunu seçilən fayl formatı ilə uyğun deyil.",
 
         [ErrorCode.OutboxMessageNotFound] = "Outbox message not found.",
         [ErrorCode.OutboxMessageAlreadySent] = "Outbox message has already been sent.",
