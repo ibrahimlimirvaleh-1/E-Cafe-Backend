@@ -312,8 +312,8 @@ namespace ECafe.Infrastructure.Services.MinIO
 
         private static FileUploadPolicy DefaultUploadPolicy => new()
         {
-            AllowedExtensions = ".jpg,.jpeg,.png,.webp,.pdf,.doc,.docx",
-            AllowedMimeTypes = "image/jpeg,image/png,image/webp,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            AllowedExtensions = ".jpg,.jpeg,.png,.webp,.avif,.pdf,.doc,.docx",
+            AllowedMimeTypes = "image/jpeg,image/png,image/webp,image/avif,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             MaxSizeMb = 10
         };
 
@@ -334,6 +334,19 @@ namespace ECafe.Infrastructure.Services.MinIO
                                 signature[9] == 0x45 &&
                                 signature[10] == 0x42 &&
                                 signature[11] == 0x50,
+                "image/avif" => signature.Length >= 12 &&
+                                signature[4] == 0x66 &&
+                                signature[5] == 0x74 &&
+                                signature[6] == 0x79 &&
+                                signature[7] == 0x70 &&
+                                ((signature[8] == 0x61 &&
+                                  signature[9] == 0x76 &&
+                                  signature[10] == 0x69 &&
+                                  signature[11] == 0x66) ||
+                                 (signature[8] == 0x61 &&
+                                  signature[9] == 0x76 &&
+                                  signature[10] == 0x69 &&
+                                  signature[11] == 0x73)),
                 "application/pdf" => StartsWith(signature, [0x25, 0x50, 0x44, 0x46]),
                 "application/msword" => StartsWith(signature, [0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1]),
                 "application/vnd.openxmlformats-officedocument.wordprocessingml.document" =>

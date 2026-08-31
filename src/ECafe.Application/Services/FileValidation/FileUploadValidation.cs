@@ -12,6 +12,7 @@ public static class FileUploadValidation
         ["image/jpeg"] = [".jpg", ".jpeg"],
         ["image/png"] = [".png"],
         ["image/webp"] = [".webp"],
+        ["image/avif"] = [".avif"],
         ["application/pdf"] = [".pdf"],
         ["application/msword"] = [".doc"],
         ["application/vnd.openxmlformats-officedocument.wordprocessingml.document"] = [".docx"]
@@ -45,12 +46,12 @@ public static class FileUploadValidation
             throw new BusinessRuleException(ErrorCode.FileTooLarge, new { maxSizeMb = policy.MaxSizeMb });
     }
 
-    public static bool AllowsWebpOutput(FileUploadPolicy policy)
-        => SplitAllowedValues(policy.AllowedMimeTypes).Contains("image/webp", StringComparer.OrdinalIgnoreCase) &&
-           SplitAllowedValues(policy.AllowedExtensions).Contains(".webp", StringComparer.OrdinalIgnoreCase);
+    public static bool AllowsImageOutput(FileUploadPolicy policy, string contentType, string extension)
+        => SplitAllowedValues(policy.AllowedMimeTypes).Contains(contentType, StringComparer.OrdinalIgnoreCase) &&
+           SplitAllowedValues(policy.AllowedExtensions).Contains(extension, StringComparer.OrdinalIgnoreCase);
 
     public static bool IsImageContentType(string? contentType)
-        => NormalizeContentType(contentType) is "image/jpeg" or "image/png" or "image/webp";
+        => NormalizeContentType(contentType) is "image/jpeg" or "image/png" or "image/webp" or "image/avif";
 
     public static string NormalizeContentType(string? contentType)
         => string.IsNullOrWhiteSpace(contentType)
