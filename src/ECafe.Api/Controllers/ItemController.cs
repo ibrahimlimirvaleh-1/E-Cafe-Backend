@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace ECafe.Api.Controllers
 {
+    [RequireActiveRestaurantContract]
     public class ItemController : BaseController
     {
         [HasPermission(PermissionCode.ManageCatalog)]

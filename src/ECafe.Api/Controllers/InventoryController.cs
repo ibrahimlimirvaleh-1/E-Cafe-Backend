@@ -15,6 +15,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace ECafe.Api.Controllers
 {
+    [RequireActiveRestaurantContract]
     public class InventoryController : BaseController
     {
         [HasPermission(PermissionCode.ViewInventory)]
