@@ -7,7 +7,7 @@ public class LogoutCommandValidator : AbstractValidator<LogoutCommand>
     public LogoutCommandValidator()
     {
         RuleFor(x => x.RefreshToken)
-            .NotEmpty()
-            .MaximumLength(1000);
+            .MaximumLength(1000)
+            .When(x => !string.IsNullOrWhiteSpace(x.RefreshToken));
     }
 }

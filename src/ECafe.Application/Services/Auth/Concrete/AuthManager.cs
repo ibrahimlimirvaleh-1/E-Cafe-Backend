@@ -162,7 +162,7 @@ namespace ECafe.Application.Services.Auth.Concrete
         public async Task LogoutAsync(LogoutRequestDto request)
         {
             if (request is null || string.IsNullOrWhiteSpace(request.RefreshToken))
-                throw new BusinessRuleException(ErrorCode.RefreshTokenInvalid);
+                return;
 
             var refreshTokenHash = HashRefreshToken(request.RefreshToken);
             var storedToken = await _refreshTokenRepository.GetByTokenHashTrackedAsync(refreshTokenHash);
