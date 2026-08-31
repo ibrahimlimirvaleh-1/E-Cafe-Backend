@@ -267,7 +267,6 @@ namespace ECafe.Application.Services.User.Concrete
                 staffAssignment.User.File = file;
 
             staffAssignment.ServiceFeePercent = request.ServiceFeePercent;
-            staffAssignment.MaxActiveTableCount = request.MaxActiveTableCount;
 
             if (!request.IsActive)
             {

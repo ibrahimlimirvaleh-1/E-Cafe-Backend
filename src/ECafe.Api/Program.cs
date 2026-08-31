@@ -72,7 +72,7 @@ builder.Services.AddSwaggerGen(options =>
         Title = "ECafe API",
         Version = "v1",
         Description = """
-        ECafe restoran kataloqu, stol/ofisiant seçimi, menyu və depozitli rezervasiya axınları üçün backend API-dir.
+        ECafe restoran kataloqu, masa seçimi, optional menyu və menecer tərəfindən təsdiqlənən depozitli rezervasiya axınları üçün backend API-dir.
 
         Swagger istifadə qaydası:
         1. Login endpoint-i ilə token al.

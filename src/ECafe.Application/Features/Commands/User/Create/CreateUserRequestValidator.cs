@@ -37,10 +37,5 @@ public sealed class CreateUserCommandValidator : AbstractValidator<CreateUserCom
             .GreaterThan(0)
             .When(x => x.FileId.HasValue)
             .WithMessage("FileId must be greater than 0.");
-
-        RuleFor(x => x.MaxActiveTableCount)
-            .GreaterThan(0)
-            .When(x => x.MaxActiveTableCount.HasValue)
-            .WithMessage("Max active table count must be greater than 0.");
     }
 }
