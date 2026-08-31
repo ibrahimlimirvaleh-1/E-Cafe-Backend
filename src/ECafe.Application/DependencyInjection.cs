@@ -9,6 +9,8 @@ using ECafe.Application.Services.FileAccess.Abstract;
 using ECafe.Application.Services.FileAccess.Concrete;
 using ECafe.Application.Services.Geocoding.Abstract;
 using ECafe.Application.Services.Geocoding.Concrete;
+using ECafe.Application.Services.ImageProcessing.Abstract;
+using ECafe.Application.Services.ImageProcessing.Concrete;
 using ECafe.Application.Services.Item.Abstract;
 using ECafe.Application.Services.Item.Concrete;
 using ECafe.Application.Services.MinIO.Abstracts;
@@ -108,6 +110,7 @@ namespace ECafe.Application
             services.AddScoped<IItemService, ItemManager>();
             services.AddScoped<IFileAccessUrlService, FileAccessUrlService>();
             services.AddScoped<IFileAccessPolicy, FileAccessPolicy>();
+            services.AddScoped<IImageProcessingService, ImageProcessingManager>();
             services.AddScoped<IGeocodingService, NominatimGeocodingService>();
             services.AddScoped<IWorkflowActionService, WorkflowActionManager>();
             services.AddScoped<INotificationService, NotificationManager>();

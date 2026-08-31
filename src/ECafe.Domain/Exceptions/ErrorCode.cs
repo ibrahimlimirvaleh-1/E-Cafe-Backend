@@ -86,6 +86,10 @@ public enum ErrorCode
     NotificationProviderUnavailable = 3003,
     FileTypeNotFound = 3004,
     AttachedFileCannotBeDeleted = 3005,
+    FileTooLarge = 3006,
+    UnsupportedFileType = 3007,
+    FileExtensionMismatch = 3008,
+    FileContentTypeMismatch = 3009,
 
     OutboxMessageNotFound = 4000,
     OutboxMessageAlreadySent = 4001,

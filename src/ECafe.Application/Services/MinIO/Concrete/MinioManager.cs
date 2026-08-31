@@ -2,6 +2,7 @@ using AutoMapper;
 using ECafe.Application.Common.Exceptions;
 using ECafe.Application.DTOs.File;
 using ECafe.Application.Services;
+using ECafe.Application.Services.FileValidation;
 using ECafe.Application.Services.MinIO.Abstracts;
 using ECafe.Domain.Exceptions;
 using Microsoft.AspNetCore.Http;
@@ -21,16 +22,6 @@ namespace ECafe.Infrastructure.Services.MinIO
         private readonly ILogger<MinioManager> _logger;
         private bool _bucketExists;
         private readonly SemaphoreSlim _bucketLock = new(1, 1);
-        private const long MaxUploadSize = 10 * 1024 * 1024;
-        private static readonly Dictionary<string, string[]> AllowedUploadTypes = new(StringComparer.OrdinalIgnoreCase)
-        {
-            ["image/jpeg"] = [".jpg", ".jpeg"],
-            ["image/png"] = [".png"],
-            ["image/webp"] = [".webp"],
-            ["application/pdf"] = [".pdf"],
-            ["application/msword"] = [".doc"],
-            ["application/vnd.openxmlformats-officedocument.wordprocessingml.document"] = [".docx"]
-        };
 
         public MinioManager(IHttpContextAccessor httpContextAccessor,
                             IMapper mapper,
@@ -89,11 +80,9 @@ namespace ECafe.Infrastructure.Services.MinIO
             if (request.File is null || request.File.Length == 0)
                 throw new ArgumentException("File is required.", nameof(request));
 
-            var maxUploadSize = GetMaxUploadSizeBytes(policy);
-            if (request.File.Length > maxUploadSize)
-                throw new BusinessRuleException($"File size must not exceed {policy.MaxSizeMb} MB.");
+            FileUploadValidation.EnsureSizeIsAllowed(request.File.Length, policy);
 
-            var contentType = ValidateUploadType(
+            var contentType = FileUploadValidation.ValidateFileNameAndContentType(
                 request.File.FileName,
                 request.File.ContentType,
                 policy);
@@ -111,7 +100,7 @@ namespace ECafe.Infrastructure.Services.MinIO
                     .WithObject(filename)
                     .WithStreamData(filestream)
                     .WithObjectSize(filestream.Length)
-                    .WithContentType(request.File.ContentType);
+                    .WithContentType(contentType);
 
                 await _minioClient.PutObjectAsync(putObjectArgs);
 
@@ -127,11 +116,12 @@ namespace ECafe.Infrastructure.Services.MinIO
             if (request.Bytes.Length == 0)
                 throw new ArgumentException("File bytes are required.", nameof(request));
 
-            var maxUploadSize = GetMaxUploadSizeBytes(policy);
-            if (request.Bytes.LongLength > maxUploadSize)
-                throw new BusinessRuleException($"File size must not exceed {policy.MaxSizeMb} MB.");
+            FileUploadValidation.EnsureSizeIsAllowed(request.Bytes.LongLength, policy);
 
-            ValidateUploadType(request.FileName, request.ContentType, policy);
+            var contentType = FileUploadValidation.ValidateFileNameAndContentType(
+                request.FileName,
+                request.ContentType,
+                policy);
 
             return await ExecuteMinioAsync("upload generated file", async () =>
             {
@@ -145,7 +135,7 @@ namespace ECafe.Infrastructure.Services.MinIO
                     .WithObject(filename)
                     .WithStreamData(fileStream)
                     .WithObjectSize(fileStream.Length)
-                    .WithContentType(request.ContentType);
+                    .WithContentType(contentType);
 
                 await _minioClient.PutObjectAsync(putObjectArgs);
 
@@ -323,55 +313,9 @@ namespace ECafe.Infrastructure.Services.MinIO
         private static FileUploadPolicy DefaultUploadPolicy => new()
         {
             AllowedExtensions = ".jpg,.jpeg,.png,.webp,.pdf,.doc,.docx",
-            AllowedMimeTypes = string.Join(',', AllowedUploadTypes.Keys),
+            AllowedMimeTypes = "image/jpeg,image/png,image/webp,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             MaxSizeMb = 10
         };
-
-        private static string ValidateUploadType(
-            string fileName,
-            string? contentType,
-            FileUploadPolicy policy)
-        {
-            var normalizedContentType = NormalizeContentType(contentType);
-            var allowedTypeMap = BuildAllowedUploadTypes(policy);
-
-            if (!allowedTypeMap.TryGetValue(normalizedContentType, out var extensions))
-                throw new BusinessRuleException("Unsupported file type.");
-
-            var extension = Path.GetExtension(fileName);
-            if (string.IsNullOrWhiteSpace(extension) ||
-                !extensions.Contains(extension, StringComparer.OrdinalIgnoreCase))
-                throw new BusinessRuleException("File extension does not match the allowed MIME type.");
-
-            return normalizedContentType;
-        }
-
-        private static Dictionary<string, string[]> BuildAllowedUploadTypes(FileUploadPolicy policy)
-        {
-            var extensions = SplitAllowedValues(policy.AllowedExtensions);
-            var mimeTypes = SplitAllowedValues(policy.AllowedMimeTypes);
-
-            return mimeTypes.ToDictionary(
-                mimeType => mimeType,
-                _ => extensions,
-                StringComparer.OrdinalIgnoreCase);
-        }
-
-        private static string[] SplitAllowedValues(string values)
-            => values
-                .Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .ToArray();
-
-        private static long GetMaxUploadSizeBytes(FileUploadPolicy policy)
-            => policy.MaxSizeMb > 0
-                ? policy.MaxSizeMb * 1024L * 1024L
-                : MaxUploadSize;
-
-        private static string NormalizeContentType(string? contentType)
-            => string.IsNullOrWhiteSpace(contentType)
-                ? string.Empty
-                : contentType.Split(';', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)[0];
 
         private static async Task ValidateFileSignatureAsync(IFormFile file, string contentType)
         {
@@ -400,7 +344,7 @@ namespace ECafe.Infrastructure.Services.MinIO
             };
 
             if (!isValid)
-                throw new BusinessRuleException("File content does not match the declared MIME type.");
+                throw new BusinessRuleException(ErrorCode.FileContentTypeMismatch);
         }
 
         private static bool StartsWith(ReadOnlySpan<byte> source, ReadOnlySpan<byte> expected)
