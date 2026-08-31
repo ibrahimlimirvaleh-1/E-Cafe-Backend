@@ -46,6 +46,8 @@ using ECafe.Infrastructure.Repositories.User;
 using ECafe.Infrastructure.Repositories.UserPasswordSetupToken;
 using ECafe.Infrastructure.Repositories.UserRefreshToken;
 using ECafe.Infrastructure.Repositories.UserRestaurant;
+using ECafe.Infrastructure.Redis;
+using ECafe.Application.Services.Auth.Abstract;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -92,6 +94,7 @@ namespace ECafe.Infrastructure
             services.AddScoped<IInventoryMovementTypeRepository, InventoryMovementTypeRepository>();
             services.AddScoped<IRecipeRepository, RecipeRepository>();
             services.AddScoped<IUnitRepository, UnitRepository>();
+            services.AddScoped<IUserSessionStateCache, UserSessionStateCache>();
             return services;
         }
     }

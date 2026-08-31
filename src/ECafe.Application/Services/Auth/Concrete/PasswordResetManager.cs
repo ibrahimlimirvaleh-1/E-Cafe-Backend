@@ -25,6 +25,7 @@ public class PasswordResetManager : IPasswordResetService
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IConfiguration _configuration;
     private readonly ILogger<PasswordResetManager> _logger;
+    private readonly IUserSessionStateCache _userSessionStateCache;
 
     public PasswordResetManager(
         IUserRepository userRepository,
@@ -33,7 +34,8 @@ public class PasswordResetManager : IPasswordResetService
         IEmailOutboxService emailOutboxService,
         IHttpContextAccessor httpContextAccessor,
         IConfiguration configuration,
-        ILogger<PasswordResetManager> logger)
+        ILogger<PasswordResetManager> logger,
+        IUserSessionStateCache userSessionStateCache)
     {
         _userRepository = userRepository;
         _passwordResetTokenRepository = passwordResetTokenRepository;
@@ -42,6 +44,7 @@ public class PasswordResetManager : IPasswordResetService
         _httpContextAccessor = httpContextAccessor;
         _configuration = configuration;
         _logger = logger;
+        _userSessionStateCache = userSessionStateCache;
     }
 
     public async Task RequestPasswordResetAsync(ForgotPasswordRequest request)
@@ -111,6 +114,7 @@ public class PasswordResetManager : IPasswordResetService
 
         await RevokeActiveRefreshTokensAsync(resetToken.UserId, nowUtc);
         await _passwordResetTokenRepository.SaveChangesAsync();
+        await _userSessionStateCache.InvalidateAsync(resetToken.UserId);
 
         await EnqueuePasswordChangedEmailAsync(resetToken.User);
     }

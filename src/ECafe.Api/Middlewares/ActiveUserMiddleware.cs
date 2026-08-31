@@ -1,5 +1,5 @@
 using System.Security.Claims;
-using ECafe.Application.Repositories.User;
+using ECafe.Application.Services.Auth.Abstract;
 using ECafe.Domain.Exceptions;
 
 namespace ECafe.Api.Middlewares;
@@ -13,7 +13,7 @@ public sealed class ActiveUserMiddleware
         _next = next;
     }
 
-    public async Task Invoke(HttpContext context, IUserRepository userRepository)
+    public async Task Invoke(HttpContext context, IUserSessionStateCache userSessionStateCache)
     {
         if (!ShouldSkipActiveUserCheck(context) && context.User.Identity?.IsAuthenticated == true)
         {
@@ -25,11 +25,11 @@ public sealed class ActiveUserMiddleware
                 if (!sessionVersion.HasValue)
                     throw new UnauthorizedException(ErrorCode.SessionInvalid);
 
-                var sessionState = await userRepository.GetSessionStateAsync(userId.Value);
-                if (sessionState is null || !sessionState.Value.IsActive)
+                var sessionState = await userSessionStateCache.GetAsync(userId.Value);
+                if (sessionState is null || !sessionState.IsActive)
                     throw new UnauthorizedException(ErrorCode.UserDeactivated);
 
-                if (sessionState.Value.SessionVersion != sessionVersion.Value)
+                if (sessionState.SessionVersion != sessionVersion.Value)
                     throw new UnauthorizedException(ErrorCode.SessionInvalid);
             }
         }

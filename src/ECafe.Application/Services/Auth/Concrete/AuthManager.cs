@@ -31,6 +31,7 @@ namespace ECafe.Application.Services.Auth.Concrete
         private readonly IEmailOutboxService _emailOutboxService;
         private readonly ICriticalEventReporter _criticalEventReporter;
         private readonly IApplicationDbTransactionFactory _transactionFactory;
+        private readonly IUserSessionStateCache _userSessionStateCache;
         public AuthManager(IHttpContextAccessor httpContextAccessor,
                            IMapper mapper,
                            IConfiguration configuration,
@@ -42,7 +43,8 @@ namespace ECafe.Application.Services.Auth.Concrete
                            ILoginAttemptService loginAttemptService,
                            IEmailOutboxService emailOutboxService,
                            ICriticalEventReporter criticalEventReporter,
-                           IApplicationDbTransactionFactory transactionFactory)
+                           IApplicationDbTransactionFactory transactionFactory,
+                           IUserSessionStateCache userSessionStateCache)
                            : base(httpContextAccessor, mapper, configuration)
         {
             _userRepository = userRepository;
@@ -54,6 +56,7 @@ namespace ECafe.Application.Services.Auth.Concrete
             _emailOutboxService = emailOutboxService;
             _criticalEventReporter = criticalEventReporter;
             _transactionFactory = transactionFactory;
+            _userSessionStateCache = userSessionStateCache;
         }
 
         public async Task<AuthResponseDto> LoginAsync(LoginRequestDto request)
@@ -190,6 +193,7 @@ namespace ECafe.Application.Services.Auth.Concrete
             }
 
             await _userRepository.SaveChangesAsync();
+            await _userSessionStateCache.InvalidateAsync(currentUserId);
         }
 
         #region Helpers
@@ -314,6 +318,7 @@ namespace ECafe.Application.Services.Auth.Concrete
             {
                 reusedToken.User.SessionVersion++;
                 await RevokeAllActiveRefreshTokensAsync(reusedToken.UserId);
+                await _userSessionStateCache.InvalidateAsync(reusedToken.UserId);
             }
             else
             {
