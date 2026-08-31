@@ -186,9 +186,6 @@ public class CategoryManager : BaseManager, ICategoryService
 
         var categories = await _categoryRepository.GetCategoriesByRestaurantIdAsync(restaurantId);
 
-        if (!categories.Any())
-            throw new BusinessRuleException(ErrorCode.CategoryIsEmpty);
-
         return Mapper.Map<List<GetAllCategoryResponse>>(categories);
     }
 
