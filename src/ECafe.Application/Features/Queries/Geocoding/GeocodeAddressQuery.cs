@@ -4,11 +4,13 @@ using MediatR;
 
 namespace ECafe.Application.Features.Queries.Geocoding;
 
-public sealed class GeocodeAddressQuery : IRequest<GeocodeAddressResponse>
+public sealed class GeocodeAddressQuery : IRequest<IReadOnlyList<GeocodeAddressResponse>>
 {
     public string Address { get; set; } = null!;
 
-    public sealed class Handler : IRequestHandler<GeocodeAddressQuery, GeocodeAddressResponse>
+    public int Limit { get; set; } = 5;
+
+    public sealed class Handler : IRequestHandler<GeocodeAddressQuery, IReadOnlyList<GeocodeAddressResponse>>
     {
         private readonly IGeocodingService _geocodingService;
 
@@ -17,7 +19,7 @@ public sealed class GeocodeAddressQuery : IRequest<GeocodeAddressResponse>
             _geocodingService = geocodingService;
         }
 
-        public Task<GeocodeAddressResponse> Handle(GeocodeAddressQuery request, CancellationToken cancellationToken)
-            => _geocodingService.GeocodeAddressAsync(request.Address, cancellationToken);
+        public Task<IReadOnlyList<GeocodeAddressResponse>> Handle(GeocodeAddressQuery request, CancellationToken cancellationToken)
+            => _geocodingService.SearchAddressesAsync(request.Address, request.Limit, cancellationToken);
     }
 }
