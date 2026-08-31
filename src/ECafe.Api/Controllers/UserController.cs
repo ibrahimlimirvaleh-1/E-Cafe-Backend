@@ -19,6 +19,7 @@ namespace ECafe.Api.Controllers
 
     public class UserController : BaseController
     {
+        [RequireActiveRestaurantContract]
         [HasPermission(Domain.Enums.PermissionCode.ManageStaff)]
         [HttpPost("api/v1/users")]
         public async Task<IActionResult> Create([FromForm] CreateUserCommand command)
@@ -29,6 +30,7 @@ namespace ECafe.Api.Controllers
 
 
 
+        [RequireActiveRestaurantContract]
         [HasPermission(Domain.Enums.PermissionCode.ManageStaff)]
         [HttpDelete("api/v1/users/{userId:int}")]
         public async Task<IActionResult> Delete(int userId)
@@ -38,6 +40,7 @@ namespace ECafe.Api.Controllers
             return Ok();
         }
 
+        [RequireActiveRestaurantContract]
         [HasPermission(Domain.Enums.PermissionCode.ManageStaff)]
         [HttpPatch("api/v1/restaurants/{restaurantId:int}/staff/{staffId:int}/activate")]
         public async Task<IActionResult> ActivateStaff(int restaurantId, int staffId)
@@ -46,6 +49,7 @@ namespace ECafe.Api.Controllers
             return Ok();
         }
 
+        [RequireActiveRestaurantContract]
         [HasPermission(Domain.Enums.PermissionCode.ManageStaff)]
         [HttpPatch("api/v1/restaurants/{restaurantId:int}/staff/{staffId:int}/deactivate")]
         public async Task<IActionResult> DeactivateStaff(int restaurantId, int staffId)
@@ -54,6 +58,7 @@ namespace ECafe.Api.Controllers
             return Ok();
         }
 
+        [RequireActiveRestaurantContract]
         [HasPermission(Domain.Enums.PermissionCode.ManageStaff)]
         [HttpPut("api/v1/restaurants/{restaurantId:int}/staff/{staffId:int}")]
         public async Task<IActionResult> UpdateStaff(int restaurantId, int staffId, [FromForm] UpdateStaffCommand command)
@@ -64,6 +69,7 @@ namespace ECafe.Api.Controllers
             return Ok(await Mediator.Send(command));
         }
 
+        [RequireActiveRestaurantContract]
         [HasPermission(Domain.Enums.PermissionCode.ManageStaff)]
         [HttpPatch("api/v1/users/{userId:int}/role")]
         public async Task<IActionResult> UpdateRole(int userId, [FromQuery] int roleId)
@@ -84,6 +90,7 @@ namespace ECafe.Api.Controllers
             return Ok(result);
         }
 
+        [RequireActiveRestaurantContract]
         [HasPermission(Domain.Enums.PermissionCode.ViewRestaurantInfo)]
         [HttpGet("api/v1/staff/{restaurantId}")]
         public async Task<IActionResult> GetStaff(int restaurantId)
@@ -111,6 +118,7 @@ namespace ECafe.Api.Controllers
             return Ok();
         }
 
+        [RequireActiveRestaurantContract]
         [HasPermission(Domain.Enums.PermissionCode.ViewRestaurantInfo)]
         [HttpGet("api/v1/staff/{restaurantId}/detail/{staffId}")]
 

@@ -43,7 +43,7 @@ namespace ECafe.Infrastructure.Authorization
             }
             catch (BusinessRuleException ex)
             {
-                throw new ForbiddenException(ex.Message);
+                throw new ForbiddenException(ex.Code, ex.Parameters);
             }
         }
 

@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace ECafe.Api.Controllers
 {
+    [RequireActiveRestaurantContract]
     public class RecipeController : BaseController
     {
         [HasPermission(PermissionCode.ViewRecipes)]
