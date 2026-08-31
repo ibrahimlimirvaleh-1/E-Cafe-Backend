@@ -65,6 +65,8 @@ public sealed class ErrorMessageProvider : IErrorMessageProvider
         [ErrorCode.CategoryIsEmpty] = "Category is empty.",
         [ErrorCode.CategoryDoesNotBelongToRestaurant] = "Category does not belong to the selected restaurant.",
         [ErrorCode.ItemAlreadyExistsInCategory] = "Item with the same name already exists in this category.",
+        [ErrorCode.InvalidItemId] = "Invalid menu item ID.",
+        [ErrorCode.ItemNotFound] = "Menu item not found.",
         [ErrorCode.PublicRestaurantNotFound] = "Public restaurant not found.",
         [ErrorCode.RestaurantEmailAlreadyExists] = "Restaurant with this email already exists.",
         [ErrorCode.RestaurantNameAlreadyExists] = "Restaurant with this name already exists.",
