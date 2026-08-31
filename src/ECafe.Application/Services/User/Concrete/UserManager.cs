@@ -47,6 +47,7 @@ namespace ECafe.Application.Services.User.Concrete
         private readonly IAuditLogService _auditLogService;
         private readonly IUserRealtimeNotifier _userRealtimeNotifier;
         private readonly IApplicationDbTransactionFactory _transactionFactory;
+        private readonly IUserSessionStateCache _userSessionStateCache;
 
         public UserManager(
             IHttpContextAccessor httpContextAccessor,
@@ -64,7 +65,8 @@ namespace ECafe.Application.Services.User.Concrete
             IPasswordSetupService passwordSetupService,
             IAuditLogService auditLogService,
             IUserRealtimeNotifier userRealtimeNotifier,
-            IApplicationDbTransactionFactory transactionFactory)
+            IApplicationDbTransactionFactory transactionFactory,
+            IUserSessionStateCache userSessionStateCache)
             : base(httpContextAccessor, mapper, configuration)
         {
             _restaurantRepository = restaurantRepository;
@@ -80,6 +82,7 @@ namespace ECafe.Application.Services.User.Concrete
             _auditLogService = auditLogService;
             _userRealtimeNotifier = userRealtimeNotifier;
             _transactionFactory = transactionFactory;
+            _userSessionStateCache = userSessionStateCache;
         }
 
         public async Task CreateUserAsync(CreateUserRequest request)
@@ -138,6 +141,7 @@ namespace ECafe.Application.Services.User.Concrete
             await RevokeActiveRefreshTokensAsync(userId);
             await _userRepository.Delete(user);
             await _userRepository.SaveChangesAsync();
+            await _userSessionStateCache.InvalidateAsync(userId);
             await NotifyUserSessionTerminatedAsync(userId);
         }
 
@@ -181,6 +185,7 @@ namespace ECafe.Application.Services.User.Concrete
                 $"{staffAssignment.User.Name} {staffAssignment.User.Surname}");
 
             await _userRestaurantRepository.SaveChangesAsync();
+            await _userSessionStateCache.InvalidateAsync(staffId);
         }
 
         public async Task DeactivateStaffAsync(int restaurantId, int staffId)
@@ -226,6 +231,7 @@ namespace ECafe.Application.Services.User.Concrete
                 $"{staffAssignment.User.Name} {staffAssignment.User.Surname}");
 
             await _userRestaurantRepository.SaveChangesAsync();
+            await _userSessionStateCache.InvalidateAsync(staffId);
             await NotifyUserSessionTerminatedAsync(staffId);
         }
 
@@ -289,7 +295,10 @@ namespace ECafe.Application.Services.User.Concrete
             await _userRestaurantRepository.SaveChangesAsync();
 
             if (!request.IsActive)
+            {
+                await _userSessionStateCache.InvalidateAsync(staffId);
                 await NotifyUserSessionTerminatedAsync(staffId);
+            }
 
             return await MapToStaffDetailResponseAsync(staffAssignment.User);
         }
@@ -334,6 +343,8 @@ namespace ECafe.Application.Services.User.Concrete
 
             if (roleChanged)
             {
+                await _userSessionStateCache.InvalidateAsync(userId);
+
                 await _emailOutboxService.EnqueueEmailAsync(
                     user.Email,
                     $"{user.Name} {user.Surname}",
