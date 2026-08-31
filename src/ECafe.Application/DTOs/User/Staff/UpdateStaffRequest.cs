@@ -15,7 +15,5 @@ namespace ECafe.Application.DTOs.User.Staff
         public int? FileId { get; set; }
 
         public decimal? ServiceFeePercent { get; set; }
-
-        public int? MaxActiveTableCount { get; set; }
     }
 }

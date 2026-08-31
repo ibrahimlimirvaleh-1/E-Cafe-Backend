@@ -17,11 +17,6 @@ namespace ECafe.Application.Features.Commands.Restaurant
             RuleFor(x => x)
                 .Must(x => x.RestaurantGroupId.GetValueOrDefault() > 0 || !string.IsNullOrWhiteSpace(x.RestaurantGroupName))
                 .WithMessage("Restaurant group is required.");
-
-            RuleFor(x => x.DefaultWaiterTableLimit)
-                .GreaterThan(0)
-                .When(x => x.DefaultWaiterTableLimit.HasValue)
-                .WithMessage("Default waiter table limit must be greater than 0.");
         }
     }
 }

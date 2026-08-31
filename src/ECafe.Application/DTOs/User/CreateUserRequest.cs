@@ -21,7 +21,5 @@ namespace ECafe.Application.DTOs.User
         public int RoleId { get; set; }
 
         public decimal? ServiceFeePercent { get; set; }
-
-        public int? MaxActiveTableCount { get; set; }
     }
 }

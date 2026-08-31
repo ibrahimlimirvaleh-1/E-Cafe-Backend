@@ -48,11 +48,6 @@ namespace ECafe.Application.Mappings
                 .ForMember(dest => dest.Surname, opt => opt.MapFrom(src => src.User.Surname))
                 .ForMember(dest => dest.Rating, opt => opt.MapFrom(src => src.User.Rating))
                 .ForMember(dest => dest.Role, opt => opt.MapFrom(src => src.User.Role.Name))
-                .ForMember(dest => dest.MaxActiveTableCount, opt => opt.MapFrom(src => src.MaxActiveTableCount))
-                .ForMember(dest => dest.EffectiveMaxActiveTableCount, opt => opt.MapFrom(src =>
-                    src.MaxActiveTableCount ?? src.Restaurant.DefaultWaiterTableLimit))
-                .ForMember(dest => dest.CanAcceptMoreTables, opt => opt.MapFrom(src =>
-                    !(src.MaxActiveTableCount ?? src.Restaurant.DefaultWaiterTableLimit).HasValue))
                 .ForMember(dest => dest.FileUrl, opt => opt.Ignore());
 
             CreateMap<Restaurant, GetByIdRestaurantResponse>()

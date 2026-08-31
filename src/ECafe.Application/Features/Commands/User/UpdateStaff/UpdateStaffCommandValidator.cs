@@ -42,11 +42,6 @@ namespace ECafe.Application.Features.Commands.User.UpdateStaff
                 .GreaterThanOrEqualTo(0)
                 .When(x => x.ServiceFeePercent.HasValue)
                 .WithMessage("Service fee percent cannot be negative.");
-
-            RuleFor(x => x.MaxActiveTableCount)
-                .GreaterThan(0)
-                .When(x => x.MaxActiveTableCount.HasValue)
-                .WithMessage("Max active table count must be greater than zero.");
         }
     }
 }
