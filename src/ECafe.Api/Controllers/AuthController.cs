@@ -99,8 +99,10 @@ namespace ECafe.Api.Controllers
             command ??= new LogoutCommand();
             command.RefreshToken = ResolveRefreshToken(command.RefreshToken);
 
-            await Mediator.Send(command);
             ClearRefreshTokenCookie();
+
+            if (!string.IsNullOrWhiteSpace(command.RefreshToken))
+                await Mediator.Send(command);
 
             return NoContent();
         }
@@ -110,8 +112,8 @@ namespace ECafe.Api.Controllers
         [EnableRateLimiting(RateLimitPolicyNames.AuthRefresh)]
         public async Task<IActionResult> LogoutAll()
         {
-            await Mediator.Send(new LogoutAllCommand());
             ClearRefreshTokenCookie();
+            await Mediator.Send(new LogoutAllCommand());
 
             return NoContent();
         }
@@ -139,7 +141,7 @@ namespace ECafe.Api.Controllers
 
         private void ClearRefreshTokenCookie()
         {
-            Response.Cookies.Delete(RefreshTokenCookieName, CreateRefreshTokenCookieOptions());
+            Response.Cookies.Delete(RefreshTokenCookieName, CreateRefreshTokenCookieDeleteOptions());
         }
 
         private CookieOptions CreateRefreshTokenCookieOptions()
@@ -153,6 +155,17 @@ namespace ECafe.Api.Controllers
                 SameSite = SameSiteMode.Lax,
                 Path = "/api/v1/user",
                 Expires = DateTimeOffset.UtcNow.AddDays(lifetimeDays)
+            };
+        }
+
+        private CookieOptions CreateRefreshTokenCookieDeleteOptions()
+        {
+            return new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = ShouldUseSecureCookie(),
+                SameSite = SameSiteMode.Lax,
+                Path = "/api/v1/user"
             };
         }
 
