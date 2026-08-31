@@ -10,6 +10,8 @@ public sealed class ImageProcessingOptions
 
     public int WebpQuality { get; set; } = 82;
 
+    public int AvifQuality { get; set; } = 74;
+
     public string OutputFormat { get; set; } = "webp";
 
     public string OptimizedFileTypeCodes { get; set; } = "RestaurantImage,MenuItemImage,UserProfileImage,TemporaryUpload";
