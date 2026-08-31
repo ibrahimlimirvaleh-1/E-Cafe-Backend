@@ -7,6 +7,12 @@
 
         public string Location { get; set; } = null!;
 
+        public double? Latitude { get; set; }
+
+        public double? Longitude { get; set; }
+
+        public string? PlaceId { get; set; }
+
         public string Phone { get; set; } = null!;
 
         public int? RestaurantGroupId { get; set; }

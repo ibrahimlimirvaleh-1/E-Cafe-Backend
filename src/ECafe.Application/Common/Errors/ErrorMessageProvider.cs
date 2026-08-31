@@ -77,6 +77,12 @@ public sealed class ErrorMessageProvider : IErrorMessageProvider
         [ErrorCode.RestaurantGroupRequired] = "Restaurant group is required.",
         [ErrorCode.RestaurantActiveContractRequired] = "Restaurant does not have an active contract.",
         [ErrorCode.RestaurantAlreadyHasActiveContract] = "Restaurant already has an active contract. Terminate or expire the current contract before creating a new one.",
+        [ErrorCode.GeocodingAddressRequired] = "Məkan yazın və yenidən yoxlayın.",
+        [ErrorCode.GeocodingProviderNotConfigured] = "Məkan axtarışı konfiqurasiya edilməyib.",
+        [ErrorCode.GeocodingProviderUnavailable] = "Məkan axtarışı müvəqqəti əlçatan deyil.",
+        [ErrorCode.GeocodingAddressNotFound] = "Bu ünvan xəritədə tapılmadı. Ünvanı bir az daha dəqiq yazın.",
+        [ErrorCode.GeocodingProviderTimedOut] = "Məkan axtarışı gec cavab verdi. Bir az sonra yenidən yoxlayın.",
+        [ErrorCode.GeocodingResponseInvalid] = "Məkan axtarışı cavabı oxunmadı. Bir az sonra yenidən yoxlayın.",
 
         [ErrorCode.InvalidFileToken] = "Invalid file token.",
         [ErrorCode.FileNotFound] = "File not found.",
