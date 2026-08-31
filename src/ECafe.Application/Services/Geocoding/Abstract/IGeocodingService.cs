@@ -4,5 +4,5 @@ namespace ECafe.Application.Services.Geocoding.Abstract;
 
 public interface IGeocodingService
 {
-    Task<GeocodeAddressResponse> GeocodeAddressAsync(string address, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<GeocodeAddressResponse>> SearchAddressesAsync(string address, int limit, CancellationToken cancellationToken = default);
 }

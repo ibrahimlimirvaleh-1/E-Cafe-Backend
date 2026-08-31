@@ -16,6 +16,8 @@ public sealed class NominatimGeocodingService : IGeocodingService
     private const int MaximumTimeoutSeconds = 30;
     private const int MinimumCacheMinutes = 1;
     private const int MaximumCacheMinutes = 10080;
+    private const int MinimumResultLimit = 1;
+    private const int MaximumResultLimit = 10;
 
     private static readonly HttpClient HttpClient = new();
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
@@ -29,21 +31,22 @@ public sealed class NominatimGeocodingService : IGeocodingService
         _options = ReadOptions(configuration);
     }
 
-    public async Task<GeocodeAddressResponse> GeocodeAddressAsync(string address, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<GeocodeAddressResponse>> SearchAddressesAsync(string address, int limit, CancellationToken cancellationToken = default)
     {
         var normalizedAddress = address.Trim();
         if (string.IsNullOrWhiteSpace(normalizedAddress))
             throw new BadRequestException(ErrorCode.GeocodingAddressRequired);
 
-        var cacheKey = $"geocoding:{normalizedAddress.ToLowerInvariant()}";
-        if (_cache.TryGetValue<GeocodeAddressResponse>(cacheKey, out var cached) && cached is not null)
+        var normalizedLimit = Math.Clamp(limit, MinimumResultLimit, MaximumResultLimit);
+        var cacheKey = $"geocoding:{normalizedAddress.ToLowerInvariant()}:{normalizedLimit}";
+        if (_cache.TryGetValue<IReadOnlyList<GeocodeAddressResponse>>(cacheKey, out var cached) && cached is not null)
             return cached;
 
         ValidateProviderConfiguration();
 
         using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeoutCts.CancelAfter(TimeSpan.FromSeconds(ResolveTimeoutSeconds()));
-        using var request = new HttpRequestMessage(HttpMethod.Get, BuildSearchUri(normalizedAddress));
+        using var request = new HttpRequestMessage(HttpMethod.Get, BuildSearchUri(normalizedAddress, normalizedLimit));
         request.Headers.TryAddWithoutValidation("User-Agent", _options.UserAgent!.Trim());
 
         try
@@ -54,24 +57,17 @@ public sealed class NominatimGeocodingService : IGeocodingService
 
             var body = await response.Content.ReadAsStringAsync(cancellationToken);
             var results = JsonSerializer.Deserialize<List<NominatimResult>>(body, JsonOptions) ?? [];
-            var match = results.FirstOrDefault();
+            var matches = results
+                .Select(MapResult)
+                .Where(result => result is not null)
+                .Select(result => result!)
+                .ToList();
 
-            if (match is null)
+            if (matches.Count == 0)
                 throw new NotFoundException(ErrorCode.GeocodingAddressNotFound);
 
-            if (!double.TryParse(match.Lat, out var latitude) || !double.TryParse(match.Lon, out var longitude))
-                throw new ServiceUnavailableException(ErrorCode.GeocodingResponseInvalid);
-
-            var result = new GeocodeAddressResponse
-            {
-                DisplayName = match.DisplayName,
-                Latitude = latitude,
-                Longitude = longitude,
-                PlaceId = match.PlaceId?.ToString()
-            };
-
-            _cache.Set(cacheKey, result, TimeSpan.FromMinutes(ResolveCacheMinutes()));
-            return result;
+            _cache.Set(cacheKey, matches, TimeSpan.FromMinutes(ResolveCacheMinutes()));
+            return matches;
         }
         catch (BaseException)
         {
@@ -91,13 +87,13 @@ public sealed class NominatimGeocodingService : IGeocodingService
         }
     }
 
-    private Uri BuildSearchUri(string address)
+    private Uri BuildSearchUri(string address, int limit)
     {
         var baseUrl = _options.BaseUrl!.TrimEnd('/');
         var query = new Dictionary<string, string?>
         {
             ["format"] = "jsonv2",
-            ["limit"] = "1",
+            ["limit"] = limit.ToString(),
             ["addressdetails"] = "1",
             ["q"] = address
         };
@@ -110,6 +106,24 @@ public sealed class NominatimGeocodingService : IGeocodingService
             .Select(item => $"{Uri.EscapeDataString(item.Key)}={Uri.EscapeDataString(item.Value!)}"));
 
         return new Uri($"{baseUrl}/search?{queryString}");
+    }
+
+    private static GeocodeAddressResponse? MapResult(NominatimResult result)
+    {
+        if (string.IsNullOrWhiteSpace(result.DisplayName)
+            || !double.TryParse(result.Lat, out var latitude)
+            || !double.TryParse(result.Lon, out var longitude))
+        {
+            return null;
+        }
+
+        return new GeocodeAddressResponse
+        {
+            DisplayName = result.DisplayName,
+            Latitude = latitude,
+            Longitude = longitude,
+            PlaceId = result.PlaceId?.ToString()
+        };
     }
 
     private static GeocodingOptions ReadOptions(IConfiguration configuration)
