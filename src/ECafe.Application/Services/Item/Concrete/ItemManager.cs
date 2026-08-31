@@ -28,6 +28,7 @@ namespace ECafe.Application.Services.Item.Concrete
         private readonly IFileRepository _fileRepository;
         private readonly IBaseRepository<Domain.Entities.Status> _statusRepository;
         private readonly IValidator<CreateItemRequest> _validator;
+        private readonly IValidator<UpdateItemRequest> _updateValidator;
         private readonly IAuditLogService _auditLogService;
         private readonly IMinioService _minioService;
 
@@ -40,6 +41,7 @@ namespace ECafe.Application.Services.Item.Concrete
                            IFileRepository fileRepository,
                            IBaseRepository<Domain.Entities.Status> statusRepository,
                            IValidator<CreateItemRequest> validator,
+                           IValidator<UpdateItemRequest> updateValidator,
                            IAuditLogService auditLogService,
                            IMinioService minioService)
                            : base(httpContextAccessor, mapper, configuration)
@@ -50,6 +52,7 @@ namespace ECafe.Application.Services.Item.Concrete
             _fileRepository = fileRepository;
             _statusRepository = statusRepository;
             _validator = validator;
+            _updateValidator = updateValidator;
             _auditLogService = auditLogService;
             _minioService = minioService;
         }
@@ -88,6 +91,117 @@ namespace ECafe.Application.Services.Item.Concrete
                     item.StatusId,
                     StatusName = status?.Name,
                     item.FileId
+                },
+                AuditEntityTypes.Item,
+                item.Id,
+                item.Name);
+
+            return item.Id;
+        }
+
+        public async Task<int> UpdateAsync(int restaurantId, int itemId, UpdateItemRequest request)
+        {
+            if (request is null)
+                throw new BusinessRuleException(ErrorCode.RequestCannotBeNull);
+
+            if (restaurantId <= 0)
+                throw new BusinessRuleException(ErrorCode.InvalidRestaurantId);
+
+            if (itemId <= 0)
+                throw new BusinessRuleException(ErrorCode.InvalidItemId);
+
+            await _updateValidator.ValidateAndThrowAsync(request);
+
+            await EnsureRestaurantExistsAsync(restaurantId);
+            EnsureCurrentUserCanAccessRestaurant(restaurantId);
+
+            var item = await GetTrackedItemAsync(restaurantId, itemId);
+            var category = await EnsureCategoryBelongsToRestaurantAsync(request.CategoryId, restaurantId);
+            var status = await _statusRepository.GetByIdAsync(request.StatusId);
+            var itemName = request.Name.Trim();
+
+            await EnsureItemNameIsUniqueAsync(restaurantId, request.CategoryId, itemName, itemId);
+
+            item.CategoryId = request.CategoryId;
+            item.StatusId = request.StatusId;
+            item.Name = itemName;
+            item.Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim();
+            item.BasePrice = request.BasePrice;
+            item.UnavailableReason = string.IsNullOrWhiteSpace(request.UnavailableReason) ? null : request.UnavailableReason.Trim();
+            item.SalesCount = request.SalesCount;
+            item.IsAvailable = request.StatusId != GetOutOfStockStatusId();
+
+            if (request.FileId.HasValue && request.FileId.Value != item.FileId)
+            {
+                item.File = await GetAttachableFileAsync(request.FileId);
+                item.FileId = request.FileId.Value;
+            }
+
+            await _itemRepository.SaveChangesAsync();
+
+            await _auditLogService.RecordRestaurantActionAsync(
+                restaurantId,
+                AuditActions.ItemUpdated,
+                new
+                {
+                    itemId = item.Id,
+                    item.Name,
+                    item.CategoryId,
+                    CategoryName = category.Name,
+                    item.BasePrice,
+                    item.StatusId,
+                    StatusName = status?.Name,
+                    item.FileId
+                },
+                AuditEntityTypes.Item,
+                item.Id,
+                item.Name);
+
+            return item.Id;
+        }
+
+        public async Task<int> DeactivateAsync(int restaurantId, int itemId)
+        {
+            var item = await GetItemForMutationAsync(restaurantId, itemId);
+
+            item.IsActive = false;
+            item.IsAvailable = false;
+            item.StatusId = GetOutOfStockStatusId();
+
+            await _itemRepository.SaveChangesAsync();
+
+            await _auditLogService.RecordRestaurantActionAsync(
+                restaurantId,
+                AuditActions.ItemDeactivated,
+                new
+                {
+                    itemId = item.Id,
+                    item.Name
+                },
+                AuditEntityTypes.Item,
+                item.Id,
+                item.Name);
+
+            return item.Id;
+        }
+
+        public async Task<int> DeleteAsync(int restaurantId, int itemId)
+        {
+            var item = await GetItemForMutationAsync(restaurantId, itemId);
+
+            item.IsActive = false;
+            item.IsAvailable = false;
+
+            await _itemRepository.Delete(item);
+            await _itemRepository.SaveChangesAsync();
+
+            await _auditLogService.RecordRestaurantActionAsync(
+                restaurantId,
+                AuditActions.ItemDeleted,
+                new
+                {
+                    itemId = item.Id,
+                    item.Name
                 },
                 AuditEntityTypes.Item,
                 item.Id,
@@ -212,16 +326,43 @@ namespace ECafe.Application.Services.Item.Concrete
             return category;
         }
 
-        private async Task EnsureItemNameIsUniqueAsync(int restaurantId, int categoryId, string itemName)
+        private async Task<Domain.Entities.Item> GetItemForMutationAsync(int restaurantId, int itemId)
+        {
+            if (restaurantId <= 0)
+                throw new BusinessRuleException(ErrorCode.InvalidRestaurantId);
+
+            if (itemId <= 0)
+                throw new BusinessRuleException(ErrorCode.InvalidItemId);
+
+            await EnsureRestaurantExistsAsync(restaurantId);
+            EnsureCurrentUserCanAccessRestaurant(restaurantId);
+
+            return await GetTrackedItemAsync(restaurantId, itemId);
+        }
+
+        private async Task<Domain.Entities.Item> GetTrackedItemAsync(int restaurantId, int itemId)
+        {
+            var item = await _itemRepository
+                .QueryTracked(x => x.RestaurantId == restaurantId && x.Id == itemId)
+                .FirstOrDefaultAsync();
+
+            return item ?? throw new BusinessRuleException(ErrorCode.ItemNotFound);
+        }
+
+        private async Task EnsureItemNameIsUniqueAsync(int restaurantId, int categoryId, string itemName, int? excludeItemId = null)
         {
             var existItem = await _itemRepository.CheckExistAsync(x =>
                 x.RestaurantId == restaurantId &&
                 x.CategoryId == categoryId &&
+                (!excludeItemId.HasValue || x.Id != excludeItemId.Value) &&
                 x.Name == itemName);
 
             if (existItem)
                 throw new BusinessRuleException(ErrorCode.ItemAlreadyExistsInCategory);
         }
+
+        private static int GetOutOfStockStatusId()
+            => ((int)StatusType.ItemStatus * 1000) + (int)ItemStatus.OutOfStock;
 
         private async Task<Domain.Entities.File?> GetAttachableFileAsync(int? fileId)
         {

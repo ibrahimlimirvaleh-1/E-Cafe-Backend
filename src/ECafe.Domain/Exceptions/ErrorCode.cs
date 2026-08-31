@@ -79,6 +79,8 @@ public enum ErrorCode
     GeocodingAddressNotFound = 2031,
     GeocodingProviderTimedOut = 2032,
     GeocodingResponseInvalid = 2033,
+    InvalidItemId = 2034,
+    ItemNotFound = 2035,
 
     InvalidFileToken = 3000,
     FileNotFound = 3001,

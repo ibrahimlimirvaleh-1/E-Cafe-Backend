@@ -1,4 +1,4 @@
-﻿namespace ECafe.Application.DTOs.Item
+namespace ECafe.Application.DTOs.Item
 {
     public class ItemDto
     {
@@ -7,6 +7,9 @@
         public string? Name { get; set; }
 
         public string? Description { get; set; }
+
+        public int CategoryId { get; set; }
+
         public string? CategoryName { get; set; }
 
         public int StatusId { get; set; }

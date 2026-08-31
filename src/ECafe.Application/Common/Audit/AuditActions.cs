@@ -22,6 +22,9 @@ namespace ECafe.Application.Common.Audit
         public const string CategoryDeactivated = "CategoryDeactivated";
         public const string CategoryDeleted = "CategoryDeleted";
         public const string ItemCreated = "ItemCreated";
+        public const string ItemUpdated = "ItemUpdated";
+        public const string ItemDeactivated = "ItemDeactivated";
+        public const string ItemDeleted = "ItemDeleted";
         public const string StaffUpdated = "StaffUpdated";
         public const string StaffActivated = "StaffActivated";
         public const string StaffDeactivated = "StaffDeactivated";
@@ -54,6 +57,9 @@ namespace ECafe.Application.Common.Audit
             new(38, CategoryDeactivated, "Kateqoriya deaktiv edildi"),
             new(39, CategoryDeleted, "Kateqoriya silindi"),
             new(31, ItemCreated, "Menyu elementi yaradıldı"),
+            new(51, ItemUpdated, "Menyu elementi yeniləndi"),
+            new(52, ItemDeactivated, "Menyu elementi deaktiv edildi"),
+            new(53, ItemDeleted, "Menyu elementi silindi"),
             new(33, StaffUpdated, "İşçi yeniləndi"),
             new(42, StaffActivated, "İşçi aktiv edildi"),
             new(32, StaffDeactivated, "İşçi deaktiv edildi"),
