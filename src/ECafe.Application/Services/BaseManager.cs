@@ -46,6 +46,12 @@ public abstract class BaseManager
         return userId;
     }
 
+    protected string? GetCurrentSessionId()
+    {
+        var sessionId = CurrentUser.FindFirst("sessionId")?.Value;
+        return string.IsNullOrWhiteSpace(sessionId) ? null : sessionId;
+    }
+
     protected void EnsureCurrentUserCanAccessRestaurant(int restaurantId)
     {
         if (restaurantId <= 0)

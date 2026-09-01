@@ -606,12 +606,13 @@ namespace ECafe.Application.Services.User.Concrete
         {
             var fileUrl = await GenerateFileUrlAsync(user.File);
             var refreshToken = _jwtService.GenerateRefreshToken();
+            var sessionId = Guid.NewGuid().ToString("N");
 
             await _refreshTokenRepository.Add(Mapper.Map<Domain.Entities.UserRefreshToken>(new RefreshTokenMapData
             {
                 UserId = user.Id,
                 TokenHash = HashRefreshToken(refreshToken),
-                SessionId = Guid.NewGuid().ToString("N"),
+                SessionId = sessionId,
                 ExpiresAt = DateTime.UtcNow.AddDays(7),
                 CreatedByIp = HttpContextAccessor.HttpContext?.Connection.RemoteIpAddress?.ToString(),
                 UserAgent = HttpContextAccessor.HttpContext?.Request.Headers["User-Agent"].ToString()
@@ -620,7 +621,7 @@ namespace ECafe.Application.Services.User.Concrete
 
             return Mapper.Map<AuthResponseDto>(new AuthTokenMapData
             {
-                AccessToken = _jwtService.GenerateToken(user, fileUrl),
+                AccessToken = _jwtService.GenerateToken(user, fileUrl, sessionId),
                 RefreshToken = refreshToken
             });
         }

@@ -28,7 +28,7 @@ namespace ECafe.Application.Services.Jwt.Concrete
             return Convert.ToBase64String(bytes);
         }
 
-        public string GenerateToken(Domain.Entities.User user, string? fileUrl = null)
+        public string GenerateToken(Domain.Entities.User user, string? fileUrl = null, string? sessionId = null)
         {
             var claims = new List<Claim>
                 {
@@ -39,6 +39,9 @@ namespace ECafe.Application.Services.Jwt.Concrete
                     new Claim("isActive", user.IsActive.ToString()),
                     new Claim("sessionVersion", user.SessionVersion.ToString()),
                 };
+
+            if (!string.IsNullOrWhiteSpace(sessionId))
+                claims.Add(new Claim("sessionId", sessionId));
 
             if (fileUrl != null)
                 claims.Add(new Claim("fileUrl", fileUrl));

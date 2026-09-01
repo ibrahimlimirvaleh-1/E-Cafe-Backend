@@ -6,5 +6,9 @@ public interface IUserSessionStateCache
 {
     Task<UserSessionState?> GetAsync(int userId);
 
+    Task<bool> IsSessionActiveAsync(int userId, string sessionId);
+
     Task InvalidateAsync(int userId);
+
+    Task InvalidateSessionAsync(int userId, string sessionId);
 }

@@ -73,6 +73,7 @@ namespace ECafe.Application
             services.AddScoped<IAuditLogService>(provider => provider.GetRequiredService<AuditLogManager>());
             services.AddScoped<IAuditOutboxProcessor>(provider => provider.GetRequiredService<AuditLogManager>());
             services.AddScoped<IAuthService, AuthManager>();
+            services.AddScoped<IUserSessionService, UserSessionManager>();
             services.AddScoped<ILoginAttemptService, LoginAttemptManager>();
             services.AddScoped<IPasswordSetupService, PasswordSetupManager>();
             services.AddScoped<IPasswordResetService, PasswordResetManager>();
