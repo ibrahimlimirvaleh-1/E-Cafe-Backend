@@ -174,6 +174,9 @@ namespace ECafe.Application.Services.Auth.Concrete
             {
                 RevokeRefreshToken(storedToken);
                 await _refreshTokenRepository.SaveChangesAsync();
+
+                if (!string.IsNullOrWhiteSpace(storedToken.SessionId))
+                    await _userSessionStateCache.InvalidateSessionAsync(storedToken.UserId, storedToken.SessionId);
             }
         }
 
@@ -232,13 +235,14 @@ namespace ECafe.Application.Services.Auth.Concrete
             if (user.File != null)
                 fileUrl = await _minioService.GenerateFileUrl(user.File.Token);
 
-            var refreshToken = await AddRefreshTokenAsync(user, CreateSessionId());
+            var sessionId = CreateSessionId();
+            var refreshToken = await AddRefreshTokenAsync(user, sessionId);
 
             await _refreshTokenRepository.SaveChangesAsync();
 
             return Mapper.Map<AuthResponseDto>(new AuthTokenMapData
             {
-                AccessToken = _jwtService.GenerateToken(user, fileUrl),
+                AccessToken = _jwtService.GenerateToken(user, fileUrl, sessionId),
                 RefreshToken = refreshToken
             });
         }
@@ -271,7 +275,7 @@ namespace ECafe.Application.Services.Auth.Concrete
 
             return Mapper.Map<AuthResponseDto>(new AuthTokenMapData
             {
-                AccessToken = _jwtService.GenerateToken(storedToken.User, fileUrl),
+                AccessToken = _jwtService.GenerateToken(storedToken.User, fileUrl, sessionId),
                 RefreshToken = refreshToken
             });
         }
@@ -323,6 +327,7 @@ namespace ECafe.Application.Services.Auth.Concrete
             else
             {
                 await RevokeActiveRefreshTokensForSessionAsync(reusedToken.UserId, reusedToken.SessionId);
+                await _userSessionStateCache.InvalidateSessionAsync(reusedToken.UserId, reusedToken.SessionId);
             }
 
             await _refreshTokenRepository.SaveChangesAsync();

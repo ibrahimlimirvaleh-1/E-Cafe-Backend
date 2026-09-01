@@ -6,6 +6,8 @@ namespace ECafe.Application.Repositories.UserRefreshToken
     {
         Task<Domain.Entities.UserRefreshToken?> GetByTokenHashTrackedAsync(string tokenHash);
         Task<List<Domain.Entities.UserRefreshToken>> GetActiveByUserIdTrackedAsync(int userId, DateTime nowUtc);
+        Task<List<Domain.Entities.UserRefreshToken>> GetActiveByUserIdAsync(int userId, DateTime nowUtc);
         Task<List<Domain.Entities.UserRefreshToken>> GetActiveByUserSessionTrackedAsync(int userId, string sessionId, DateTime nowUtc);
+        Task<bool> HasActiveUserSessionAsync(int userId, string sessionId, DateTime nowUtc);
     }
 }

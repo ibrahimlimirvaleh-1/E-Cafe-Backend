@@ -1,5 +1,6 @@
 using System.Text.Json;
 using ECafe.Application.Repositories.User;
+using ECafe.Application.Repositories.UserRefreshToken;
 using ECafe.Application.Services.Auth.Abstract;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Configuration;
@@ -13,17 +14,20 @@ public sealed class UserSessionStateCache : IUserSessionStateCache
 
     private readonly IDistributedCache _cache;
     private readonly IUserRepository _userRepository;
+    private readonly IUserRefreshTokenRepository _refreshTokenRepository;
     private readonly ILogger<UserSessionStateCache> _logger;
     private readonly TimeSpan _cacheLifetime;
 
     public UserSessionStateCache(
         IDistributedCache cache,
         IUserRepository userRepository,
+        IUserRefreshTokenRepository refreshTokenRepository,
         IConfiguration configuration,
         ILogger<UserSessionStateCache> logger)
     {
         _cache = cache;
         _userRepository = userRepository;
+        _refreshTokenRepository = refreshTokenRepository;
         _logger = logger;
         _cacheLifetime = TimeSpan.FromMinutes(GetCacheLifetimeMinutes(configuration));
     }
@@ -67,6 +71,41 @@ public sealed class UserSessionStateCache : IUserSessionStateCache
         return value;
     }
 
+    public async Task<bool> IsSessionActiveAsync(int userId, string sessionId)
+    {
+        var cacheKey = SessionKey(userId, sessionId);
+
+        try
+        {
+            var cached = await _cache.GetStringAsync(cacheKey);
+            if (bool.TryParse(cached, out var isActive))
+                return isActive;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "User session cache read failed for user {UserId}. Falling back to database.", userId);
+        }
+
+        var active = await _refreshTokenRepository.HasActiveUserSessionAsync(userId, sessionId, DateTime.UtcNow);
+
+        try
+        {
+            await _cache.SetStringAsync(
+                cacheKey,
+                active.ToString(),
+                new DistributedCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = _cacheLifetime
+                });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "User session cache write failed for user {UserId}.", userId);
+        }
+
+        return active;
+    }
+
     public async Task InvalidateAsync(int userId)
     {
         try
@@ -79,7 +118,21 @@ public sealed class UserSessionStateCache : IUserSessionStateCache
         }
     }
 
+    public async Task InvalidateSessionAsync(int userId, string sessionId)
+    {
+        try
+        {
+            await _cache.RemoveAsync(SessionKey(userId, sessionId));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "User session cache invalidation failed for user {UserId}.", userId);
+        }
+    }
+
     private static string Key(int userId) => $"user-session-state:{userId}";
+
+    private static string SessionKey(int userId, string sessionId) => $"user-session-active:{userId}:{sessionId}";
 
     private static int GetCacheLifetimeMinutes(IConfiguration configuration)
     {

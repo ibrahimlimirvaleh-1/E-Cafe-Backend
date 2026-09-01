@@ -35,6 +35,17 @@ namespace ECafe.Infrastructure.Repositories.UserRefreshToken
                 .ToListAsync();
         }
 
+        public Task<List<Domain.Entities.UserRefreshToken>> GetActiveByUserIdAsync(int userId, DateTime nowUtc)
+        {
+            return Query(t =>
+                    t.UserId == userId &&
+                    t.RevokedAt == null &&
+                    t.ExpiresAt > nowUtc &&
+                    t.SessionId != string.Empty)
+                .OrderByDescending(t => t.CreatedAt)
+                .ToListAsync();
+        }
+
         public Task<List<Domain.Entities.UserRefreshToken>> GetActiveByUserSessionTrackedAsync(int userId, string sessionId, DateTime nowUtc)
         {
             return QueryTracked(t =>
@@ -43,6 +54,16 @@ namespace ECafe.Infrastructure.Repositories.UserRefreshToken
                     t.RevokedAt == null &&
                     t.ExpiresAt > nowUtc)
                 .ToListAsync();
+        }
+
+        public Task<bool> HasActiveUserSessionAsync(int userId, string sessionId, DateTime nowUtc)
+        {
+            return Query(t =>
+                    t.UserId == userId &&
+                    t.SessionId == sessionId &&
+                    t.RevokedAt == null &&
+                    t.ExpiresAt > nowUtc)
+                .AnyAsync();
         }
     }
 }

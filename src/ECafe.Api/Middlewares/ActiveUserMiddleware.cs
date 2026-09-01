@@ -31,6 +31,13 @@ public sealed class ActiveUserMiddleware
 
                 if (sessionState.SessionVersion != sessionVersion.Value)
                     throw new UnauthorizedException(ErrorCode.SessionInvalid);
+
+                var sessionId = GetSessionId(context.User);
+                if (!string.IsNullOrWhiteSpace(sessionId) &&
+                    !await userSessionStateCache.IsSessionActiveAsync(userId.Value, sessionId))
+                {
+                    throw new UnauthorizedException(ErrorCode.SessionInvalid);
+                }
             }
         }
 
@@ -53,4 +60,7 @@ public sealed class ActiveUserMiddleware
         var value = principal.FindFirstValue("sessionVersion");
         return int.TryParse(value, out var sessionVersion) ? sessionVersion : null;
     }
+
+    private static string? GetSessionId(ClaimsPrincipal principal)
+        => principal.FindFirstValue("sessionId");
 }
