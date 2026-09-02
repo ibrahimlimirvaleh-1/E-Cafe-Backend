@@ -40,14 +40,14 @@ namespace ECafe.Application.Mappings
                 .ForMember(dest => dest.Surname, opt => opt.MapFrom(src => src.User.Surname))
                 .ForMember(dest => dest.Email, opt => opt.MapFrom(src => src.User.Email))
                 .ForMember(dest => dest.Phone, opt => opt.MapFrom(src => src.User.Phone))
-                .ForMember(dest => dest.Role, opt => opt.MapFrom(src => src.User.Role));
+                .ForMember(dest => dest.Role, opt => opt.MapFrom(src => src.Role));
 
             CreateMap<UserRestaurant, PublicStaffDto>()
                 .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.User.Id))
                 .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.User.Name))
                 .ForMember(dest => dest.Surname, opt => opt.MapFrom(src => src.User.Surname))
                 .ForMember(dest => dest.Rating, opt => opt.MapFrom(src => src.User.Rating))
-                .ForMember(dest => dest.Role, opt => opt.MapFrom(src => src.User.Role.Name))
+                .ForMember(dest => dest.Role, opt => opt.MapFrom(src => src.Role.Name))
                 .ForMember(dest => dest.FileUrl, opt => opt.Ignore());
 
             CreateMap<Restaurant, GetByIdRestaurantResponse>()

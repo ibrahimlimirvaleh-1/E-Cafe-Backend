@@ -44,7 +44,9 @@ public class WorkflowActionManager : BaseManager, IWorkflowActionService
             return [];
 
         var normalizedFlowCode = NormalizeFlowCode(flowCode);
-        var roleId = GetCurrentRoleId();
+        var roleId = restaurantId.HasValue
+            ? GetCurrentRoleId(restaurantId.Value)
+            : GetCurrentRoleId();
         var rules = await _workflowActionRuleRepository.Query(rule =>
                 rule.FlowCode == normalizedFlowCode &&
                 rule.StatusId == statusId &&
@@ -85,7 +87,9 @@ public class WorkflowActionManager : BaseManager, IWorkflowActionService
 
         var normalizedFlowCode = NormalizeFlowCode(flowCode);
         var normalizedActionCode = actionCode.Trim();
-        var roleId = GetCurrentRoleId();
+        var roleId = restaurantId.HasValue
+            ? GetCurrentRoleId(restaurantId.Value)
+            : GetCurrentRoleId();
 
         var exists = await _workflowActionRuleRepository.CheckExistAsync(rule =>
             rule.FlowCode == normalizedFlowCode &&
@@ -100,7 +104,7 @@ public class WorkflowActionManager : BaseManager, IWorkflowActionService
 
     private async Task<bool> IsCurrentUserAllowedForWorkflowContextAsync(int? restaurantId)
     {
-        if (GetCurrentRoleId() != (int)RoleCode.Owner || !restaurantId.HasValue)
+        if (!restaurantId.HasValue || GetCurrentRoleId(restaurantId.Value) != (int)RoleCode.Owner)
             return true;
 
         var owner = await _userRestaurantRepository.GetActiveOwnerByRestaurantAsync(restaurantId.Value);

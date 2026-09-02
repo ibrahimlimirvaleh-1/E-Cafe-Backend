@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using ECafe.Application.Common.Exceptions;
 using ECafe.Domain.Enums;
 using ECafe.Domain.Exceptions;
@@ -92,6 +92,30 @@ public abstract class BaseManager
             throw new ForbiddenException("Role context is required.");
 
         return roleId;
+    }
+
+    protected int GetCurrentRoleId(int restaurantId)
+    {
+        if (restaurantId <= 0)
+            throw new BusinessRuleException("Invalid restaurant ID!");
+
+        var restaurantRolesClaim = CurrentUser.FindFirst("restaurantRoles")?.Value;
+        if (!string.IsNullOrWhiteSpace(restaurantRolesClaim))
+        {
+            foreach (var assignment in restaurantRolesClaim.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            {
+                var parts = assignment.Split(':', 2, StringSplitOptions.TrimEntries);
+                if (parts.Length == 2 &&
+                    int.TryParse(parts[0], out var assignedRestaurantId) &&
+                    int.TryParse(parts[1], out var roleId) &&
+                    assignedRestaurantId == restaurantId)
+                {
+                    return roleId;
+                }
+            }
+        }
+
+        return GetCurrentRoleId();
     }
 }
 

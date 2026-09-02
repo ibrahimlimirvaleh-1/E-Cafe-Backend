@@ -63,6 +63,15 @@ namespace ECafe.Application.Services.Jwt.Concrete
             {
                 claims.Add(new Claim("restaurantId", assignedRestaurantIds[0].ToString()));
                 claims.Add(new Claim("restaurantIds", string.Join(",", assignedRestaurantIds)));
+
+                var restaurantRoles = user.UserRestaurants
+                    .Where(userRestaurant => userRestaurant.IsActive)
+                    .GroupBy(userRestaurant => userRestaurant.RestaurantId)
+                    .Select(group => $"{group.Key}:{group.First().RoleId}")
+                    .OrderBy(value => value)
+                    .ToList();
+
+                claims.Add(new Claim("restaurantRoles", string.Join(",", restaurantRoles)));
             }
 
             claims.Add(new Claim(ClaimTypes.Role, user.RoleId.ToString()));

@@ -20,6 +20,8 @@ namespace ECafe.Infrastructure.Repositories.User
                 .ThenInclude(rp => rp.Permission)
                 .Include(u => u.UserRestaurants)
                 .ThenInclude(ur => ur.Restaurant)
+                .Include(u => u.UserRestaurants)
+                .ThenInclude(ur => ur.Role)
                 .Where(u => u.Email == email).FirstOrDefaultAsync();
         }
 
@@ -40,6 +42,9 @@ namespace ECafe.Infrastructure.Repositories.User
             return await Query()
                 .Include(u => u.Role)
                 .Include(u => u.UserRestaurants)
+                .ThenInclude(ur => ur.Role)
+                .Include(u => u.UserRestaurants)
+                .ThenInclude(ur => ur.Restaurant)
                 .Where(u => u.UserRestaurants.Any(ur =>
                             ur.RestaurantId == restaurantId &&
                             ur.IsActive))
@@ -55,6 +60,9 @@ namespace ECafe.Infrastructure.Repositories.User
             var query = Query()
                 .Include(u => u.Role)
                 .Include(u => u.UserRestaurants)
+                .ThenInclude(ur => ur.Role)
+                .Include(u => u.UserRestaurants)
+                .ThenInclude(ur => ur.Restaurant)
                 .AsQueryable();
 
             if (restaurantId.HasValue && restaurantId.Value > 0)
@@ -126,7 +134,9 @@ namespace ECafe.Infrastructure.Repositories.User
                 .Include(u => u.Role)
                 .Include(u => u.File)
                 .Include(u => u.UserRestaurants)
-                .ThenInclude(ur => ur.Restaurant);
+                .ThenInclude(ur => ur.Restaurant)
+                .Include(u => u.UserRestaurants)
+                .ThenInclude(ur => ur.Role);
         }
 
         private IQueryable<Domain.Entities.User> UserWithAuthDetailsTrackedQuery()
@@ -137,7 +147,9 @@ namespace ECafe.Infrastructure.Repositories.User
                 .ThenInclude(rp => rp.Permission)
                 .Include(u => u.File)
                 .Include(u => u.UserRestaurants)
-                .ThenInclude(ur => ur.Restaurant);
+                .ThenInclude(ur => ur.Restaurant)
+                .Include(u => u.UserRestaurants)
+                .ThenInclude(ur => ur.Role);
         }
 
         public Task<Domain.Entities.User?> GetOwnerByEmailAsync(string email)

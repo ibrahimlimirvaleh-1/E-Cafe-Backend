@@ -38,6 +38,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
         private readonly IMinioService _minioService;
         private readonly IFileRepository _fileRepository;
         private readonly IAuditLogService _auditLogService;
+        private readonly IUserRestaurantAccessCache _userRestaurantAccessCache;
 
         private readonly IUserRepository _userRepository;
         private readonly IPasswordSetupService _passwordSetupService;
@@ -55,6 +56,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             IUserRestaurantRepository userRestaurantRepository,
             IFileRepository fileRepository,
             IAuditLogService auditLogService,
+            IUserRestaurantAccessCache userRestaurantAccessCache,
             ILogger<RestaurantManager> logger,
             IUserRepository userRepository,
             IPasswordSetupService passwordSetupService,
@@ -68,6 +70,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             _userRestaurantRepository = userRestaurantRepository;
             _fileRepository = fileRepository;
             _auditLogService = auditLogService;
+            _userRestaurantAccessCache = userRestaurantAccessCache;
             _logger = logger;
             _userRepository = userRepository;
             _passwordSetupService = passwordSetupService;
@@ -291,11 +294,13 @@ namespace ECafe.Application.Services.Restaurant.Concrete
                 {
                     RestaurantId = restaurant.Id,
                     UserId = owner.Id,
+                    RoleId = (int)RoleCode.Owner,
                     IsActive = true
                 };
 
                 await _userRestaurantRepository.Add(ownerRestaurant);
                 await _userRestaurantRepository.SaveChangesAsync();
+                await _userRestaurantAccessCache.InvalidateAsync(owner.Id, restaurant.Id);
 
                 if (isNewOwner)
                     await _passwordSetupService.SendSetupLinkAsync(owner);
@@ -431,11 +436,21 @@ namespace ECafe.Application.Services.Restaurant.Concrete
 
             restaurant.IsActive = false;
 
+            var affectedUserIds = restaurant.UserRestaurants
+                .Where(x => x.IsActive)
+                .Select(x => x.UserId)
+                .ToList();
+
             foreach (var userRestaurant in restaurant.UserRestaurants.Where(x => x.IsActive))
+            {
                 userRestaurant.IsActive = false;
+            }
 
             await _restaurantRepository.Update(restaurant);
             await _restaurantRepository.SaveChangesAsync();
+
+            foreach (var userId in affectedUserIds)
+                await _userRestaurantAccessCache.InvalidateAsync(userId, restaurant.Id);
 
             await _auditLogService.RecordRestaurantActionAsync(
                 restaurant.Id,
@@ -623,7 +638,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
                 .Where(staff =>
                     staff.IsActive &&
                     staff.User.IsActive &&
-                    staff.User.RoleId == (int)RoleCode.Waiter)
+                    staff.RoleId == (int)RoleCode.Waiter)
                 .OrderBy(staff => staff.User.Name)
                 .ThenBy(staff => staff.User.Surname)
                 .ToList();
@@ -665,6 +680,8 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             var restaurant = await _restaurantRepository.QueryTracked(x => x.Id == restaurantId)
                 .Include(x => x.RestaurantGroup)
                 .Include(x => x.Files)
+                .Include(x => x.UserRestaurants)
+                    .ThenInclude(x => x.Role)
                 .Include(x => x.UserRestaurants)
                     .ThenInclude(x => x.User)
                 .FirstOrDefaultAsync();

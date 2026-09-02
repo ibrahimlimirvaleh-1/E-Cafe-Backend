@@ -24,6 +24,7 @@ namespace ECafe.Application.Mappings
                     new()
                     {
                         RestaurantId = src.RestaurantId,
+                        RoleId = src.RoleId,
                         IsActive = true,
                         ServiceFeePercent = src.ServiceFeePercent
                     }
@@ -54,6 +55,14 @@ namespace ECafe.Application.Mappings
 
             CreateMap<User, GetAllUserResponseDto>();
 
+            CreateMap<UserRestaurant, GetAllUserResponseDto>()
+                .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.User.Id))
+                .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.User.Name))
+                .ForMember(dest => dest.Surname, opt => opt.MapFrom(src => src.User.Surname))
+                .ForMember(dest => dest.IsActive, opt => opt.MapFrom(src => src.IsActive && src.User.IsActive))
+                .ForMember(dest => dest.Rating, opt => opt.MapFrom(src => src.User.Rating))
+                .ForMember(dest => dest.Role, opt => opt.MapFrom(src => src.Role));
+
             CreateMap<User, ProfileResponseDto>()
                 .ForMember(dest => dest.Role, opt => opt.MapFrom(src => src.Role.Name))
                 .ForMember(dest => dest.RestaurantId, opt => opt.MapFrom(src => src.UserRestaurants
@@ -76,8 +85,8 @@ namespace ECafe.Application.Mappings
                 .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.User.Name))
                 .ForMember(dest => dest.Surname, opt => opt.MapFrom(src => src.User.Surname))
                 .ForMember(dest => dest.Rating, opt => opt.MapFrom(src => src.User.Rating))
-                .ForMember(dest => dest.RoleId, opt => opt.MapFrom(src => src.User.RoleId))
-                .ForMember(dest => dest.Role, opt => opt.MapFrom(src => src.User.Role.Name))
+                .ForMember(dest => dest.RoleId, opt => opt.MapFrom(src => src.RoleId))
+                .ForMember(dest => dest.Role, opt => opt.MapFrom(src => src.Role.Name))
                 .ForMember(dest => dest.ServiceFeePercent, opt => opt.MapFrom(src => src.ServiceFeePercent))
                 .ForMember(dest => dest.FileUrl, opt => opt.Ignore());
 
@@ -86,8 +95,8 @@ namespace ECafe.Application.Mappings
                 .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.User.Name))
                 .ForMember(dest => dest.Surname, opt => opt.MapFrom(src => src.User.Surname))
                 .ForMember(dest => dest.Rating, opt => opt.MapFrom(src => src.User.Rating))
-                .ForMember(dest => dest.RoleId, opt => opt.MapFrom(src => src.User.RoleId))
-                .ForMember(dest => dest.Role, opt => opt.MapFrom(src => src.User.Role.Name))
+                .ForMember(dest => dest.RoleId, opt => opt.MapFrom(src => src.RoleId))
+                .ForMember(dest => dest.Role, opt => opt.MapFrom(src => src.Role.Name))
                 .ForMember(dest => dest.Email, opt => opt.MapFrom(src => src.User.Email))
                 .ForMember(dest => dest.Phone, opt => opt.MapFrom(src => src.User.Phone))
                 .ForMember(dest => dest.IsActive, opt => opt.MapFrom(src => src.IsActive && src.User.IsActive))

@@ -8,6 +8,8 @@ namespace ECafe.Application.Repositories.UserRestaurant
 
         public Task<Domain.Entities.UserRestaurant?> GetActiveByUserIdAsync(int userId);
 
+        public Task<int?> GetActiveRoleIdAsync(int userId, int restaurantId);
+
         public Task<Domain.Entities.UserRestaurant?> GetActiveStaffAssignmentAsync(int restaurantId, int staffId);
 
         public Task<Domain.Entities.UserRestaurant?> GetStaffAssignmentAsync(int restaurantId, int staffId);
