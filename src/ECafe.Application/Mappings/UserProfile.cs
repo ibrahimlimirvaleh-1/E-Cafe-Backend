@@ -53,14 +53,19 @@ namespace ECafe.Application.Mappings
 
             CreateMap<Role, RoleDto>();
 
-            CreateMap<User, GetAllUserResponseDto>();
+            CreateMap<User, GetAllUserResponseDto>()
+                .ForMember(dest => dest.RoleName, opt => opt.MapFrom(src => src.Role.Name));
 
             CreateMap<UserRestaurant, GetAllUserResponseDto>()
                 .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.User.Id))
                 .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.User.Name))
                 .ForMember(dest => dest.Surname, opt => opt.MapFrom(src => src.User.Surname))
+                .ForMember(dest => dest.Email, opt => opt.MapFrom(src => src.User.Email))
+                .ForMember(dest => dest.Phone, opt => opt.MapFrom(src => src.User.Phone))
                 .ForMember(dest => dest.IsActive, opt => opt.MapFrom(src => src.IsActive && src.User.IsActive))
                 .ForMember(dest => dest.Rating, opt => opt.MapFrom(src => src.User.Rating))
+                .ForMember(dest => dest.RoleId, opt => opt.MapFrom(src => src.RoleId))
+                .ForMember(dest => dest.RoleName, opt => opt.MapFrom(src => src.Role.Name))
                 .ForMember(dest => dest.Role, opt => opt.MapFrom(src => src.Role));
 
             CreateMap<User, ProfileResponseDto>()
