@@ -78,10 +78,8 @@ namespace ECafe.Application.Services.FileAccess.Concrete
 
         private int? GetCurrentRestaurantId()
         {
-            var restaurantIdClaim = CurrentUser.FindFirst("restaurantId")?.Value;
-            return int.TryParse(restaurantIdClaim, out var restaurantId) && restaurantId > 0
-                ? restaurantId
-                : null;
+            var restaurantIds = GetCurrentRestaurantIds();
+            return restaurantIds.Count > 0 ? restaurantIds.First() : null;
         }
 
         private int GetCurrentUserId()
@@ -110,8 +108,27 @@ namespace ECafe.Application.Services.FileAccess.Concrete
             if (IsCurrentUserSuperAdmin())
                 return;
 
-            if (GetCurrentRestaurantId() != restaurantId)
+            if (!GetCurrentRestaurantIds().Contains(restaurantId))
                 throw new ForbiddenException(ErrorCode.AccessDenied);
+        }
+
+        private IReadOnlyCollection<int> GetCurrentRestaurantIds()
+        {
+            var restaurantIdsClaim = CurrentUser.FindFirst("restaurantIds")?.Value;
+            if (!string.IsNullOrWhiteSpace(restaurantIdsClaim))
+            {
+                return restaurantIdsClaim
+                    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                    .Select(value => int.TryParse(value, out var restaurantId) ? restaurantId : 0)
+                    .Where(restaurantId => restaurantId > 0)
+                    .Distinct()
+                    .ToList();
+            }
+
+            var restaurantIdClaim = CurrentUser.FindFirst("restaurantId")?.Value;
+            return int.TryParse(restaurantIdClaim, out var legacyRestaurantId) && legacyRestaurantId > 0
+                ? [legacyRestaurantId]
+                : [];
         }
     }
 }

@@ -46,18 +46,24 @@ namespace ECafe.Application.Services.Jwt.Concrete
             if (fileUrl != null)
                 claims.Add(new Claim("fileUrl", fileUrl));
 
-            var assignedRestaurantId = user.UserRestaurant is { IsActive: true }
-                ? user.UserRestaurant.RestaurantId
-                : 0;
+            var assignedRestaurantIds = user.UserRestaurants
+                .Where(userRestaurant => userRestaurant.IsActive)
+                .Select(userRestaurant => userRestaurant.RestaurantId)
+                .Distinct()
+                .OrderBy(restaurantId => restaurantId)
+                .ToList();
 
             if (RequiresActiveRestaurantAssignment(user.RoleId))
             {
-                if (assignedRestaurantId <= 0)
+                if (assignedRestaurantIds.Count == 0)
                     throw new BusinessRuleException("Restaurant-scoped role requires an active restaurant assignment.");
             }
 
-            if (assignedRestaurantId > 0)
-                claims.Add(new Claim("restaurantId", assignedRestaurantId.ToString()));
+            if (assignedRestaurantIds.Count > 0)
+            {
+                claims.Add(new Claim("restaurantId", assignedRestaurantIds[0].ToString()));
+                claims.Add(new Claim("restaurantIds", string.Join(",", assignedRestaurantIds)));
+            }
 
             claims.Add(new Claim(ClaimTypes.Role, user.RoleId.ToString()));
             claims.Add(new Claim("roleName", EnumExtensions.GetDescription((RoleCode)user.RoleId)));
@@ -80,7 +86,8 @@ namespace ECafe.Application.Services.Jwt.Concrete
         }
 
         private static bool RequiresActiveRestaurantAssignment(int roleId)
-            => roleId is (int)RoleCode.Manager or
+            => roleId is (int)RoleCode.Owner or
+                (int)RoleCode.Manager or
                 (int)RoleCode.Waiter or
                 (int)RoleCode.Kitchen;
 

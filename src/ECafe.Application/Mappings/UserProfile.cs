@@ -19,11 +19,14 @@ namespace ECafe.Application.Mappings
                 .ForMember(dest => dest.Password, opt => opt.Ignore())
                 .ForMember(dest => dest.PasswordSetAt, opt => opt.Ignore())
                 .ForMember(dest => dest.File, opt => opt.Ignore())
-                .ForMember(dest => dest.UserRestaurant, opt => opt.MapFrom(src => new UserRestaurant
+                .ForMember(dest => dest.UserRestaurants, opt => opt.MapFrom(src => new List<UserRestaurant>
                 {
-                    RestaurantId = src.RestaurantId,
-                    IsActive = true,
-                    ServiceFeePercent = src.ServiceFeePercent
+                    new()
+                    {
+                        RestaurantId = src.RestaurantId,
+                        IsActive = true,
+                        ServiceFeePercent = src.ServiceFeePercent
+                    }
                 }));
 
             CreateMap<UpdateProfileRequest, User>()
@@ -45,7 +48,7 @@ namespace ECafe.Application.Mappings
                 .ForMember(dest => dest.PasswordSetAt, opt => opt.Ignore())
                 .ForMember(dest => dest.RoleId, opt => opt.Ignore())
                 .ForMember(dest => dest.Role, opt => opt.Ignore())
-                .ForMember(dest => dest.UserRestaurant, opt => opt.Ignore());
+                .ForMember(dest => dest.UserRestaurants, opt => opt.Ignore());
 
             CreateMap<Role, RoleDto>();
 
@@ -53,12 +56,14 @@ namespace ECafe.Application.Mappings
 
             CreateMap<User, ProfileResponseDto>()
                 .ForMember(dest => dest.Role, opt => opt.MapFrom(src => src.Role.Name))
-                .ForMember(dest => dest.RestaurantId, opt => opt.MapFrom(src => src.UserRestaurant != null && src.UserRestaurant.IsActive
-                    ? (int?)src.UserRestaurant.RestaurantId
-                    : null))
-                .ForMember(dest => dest.RestaurantName, opt => opt.MapFrom(src => src.UserRestaurant != null && src.UserRestaurant.IsActive
-                    ? src.UserRestaurant.Restaurant.Name
-                    : null))
+                .ForMember(dest => dest.RestaurantId, opt => opt.MapFrom(src => src.UserRestaurants
+                    .Where(ur => ur.IsActive)
+                    .Select(ur => (int?)ur.RestaurantId)
+                    .FirstOrDefault()))
+                .ForMember(dest => dest.RestaurantName, opt => opt.MapFrom(src => src.UserRestaurants
+                    .Where(ur => ur.IsActive)
+                    .Select(ur => ur.Restaurant.Name)
+                    .FirstOrDefault()))
                 .ForMember(dest => dest.FileUrl, opt => opt.Ignore());
 
             CreateMap<User, StaffDetailResponseDto>()

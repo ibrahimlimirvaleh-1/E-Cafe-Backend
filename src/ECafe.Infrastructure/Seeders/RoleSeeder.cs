@@ -14,8 +14,7 @@ namespace ECafe.Infrastructure.Seeders
                 {
                     Id = (int)role,
                     Name = role.GetName(),
-                    IsStaffAssignable = role is RoleCode.Owner
-                        or RoleCode.Manager
+                    IsStaffAssignable = role is RoleCode.Manager
                         or RoleCode.Waiter
                         or RoleCode.Kitchen
                 })

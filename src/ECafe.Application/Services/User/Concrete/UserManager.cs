@@ -479,9 +479,10 @@ namespace ECafe.Application.Services.User.Concrete
 
             EnsureOnlySuperAdminCanManageOwnerRole(user.RoleId);
 
-            var restaurantId = user.UserRestaurant is { IsActive: true }
-                ? (int?)user.UserRestaurant.RestaurantId
-                : null;
+            var restaurantId = user.UserRestaurants
+                .Where(userRestaurant => userRestaurant.IsActive)
+                .Select(userRestaurant => (int?)userRestaurant.RestaurantId)
+                .FirstOrDefault();
             if (!restaurantId.HasValue)
                 throw new ForbiddenException("Target user is not assigned to a restaurant.");
 

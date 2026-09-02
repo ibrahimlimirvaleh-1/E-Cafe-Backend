@@ -9,8 +9,11 @@ using ECafe.Application.DTOs.User.Staff;
 using ECafe.Application.Repositories.File;
 using ECafe.Application.Repositories.Restaurant;
 using ECafe.Application.Repositories.RestaurantGroup;
+using ECafe.Application.Repositories.User;
 using ECafe.Application.Repositories.UserRestaurant;
+using ECafe.Application.Repository;
 using ECafe.Application.Services.AuditLog.Abstract;
+using ECafe.Application.Services.Auth.Abstract;
 using ECafe.Application.Services.MinIO.Abstracts;
 using ECafe.Application.Services.Restaurant.Abstract;
 using ECafe.Domain.Entities;
@@ -21,6 +24,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using System.Security.Cryptography;
 using File = ECafe.Domain.Entities.File;
 
 namespace ECafe.Application.Services.Restaurant.Concrete
@@ -34,6 +38,10 @@ namespace ECafe.Application.Services.Restaurant.Concrete
         private readonly IMinioService _minioService;
         private readonly IFileRepository _fileRepository;
         private readonly IAuditLogService _auditLogService;
+
+        private readonly IUserRepository _userRepository;
+        private readonly IPasswordSetupService _passwordSetupService;
+        private readonly IApplicationDbTransactionFactory _transactionFactory;
         private readonly ILogger<RestaurantManager> _logger;
 
         public RestaurantManager(
@@ -47,7 +55,10 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             IUserRestaurantRepository userRestaurantRepository,
             IFileRepository fileRepository,
             IAuditLogService auditLogService,
-            ILogger<RestaurantManager> logger)
+            ILogger<RestaurantManager> logger,
+            IUserRepository userRepository,
+            IPasswordSetupService passwordSetupService,
+            IApplicationDbTransactionFactory transactionFactory)
             : base(httpContextAccessor, mapper, configuration)
         {
             _restaurantRepository = restaurantRepository;
@@ -58,6 +69,9 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             _fileRepository = fileRepository;
             _auditLogService = auditLogService;
             _logger = logger;
+            _userRepository = userRepository;
+            _passwordSetupService = passwordSetupService;
+            _transactionFactory = transactionFactory;
         }
 
         public async Task<PaginatedList<GetAllRestaurantsResponse>> GetAllRestaurantsAsync(
@@ -254,6 +268,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             var restaurantName = GenerateRestaurantName(restaurantGroup, branchName);
 
             await EnsureRestaurantDoesNotExistAsync(restaurantName, request.Email, request.Phone);
+            await EnsureBranchDoesNotExistAsync(restaurantGroup?.Id, branchName);
 
             var restaurant = Mapper.Map<Domain.Entities.Restaurant>(request);
             restaurant.Name = restaurantName;
@@ -261,41 +276,68 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             restaurant.BranchName = branchName;
             restaurant.RestaurantGroup = restaurantGroup;
 
-            await EnsureBranchDoesNotExistAsync(restaurantGroup?.Id, branchName);
-            await AttachRestaurantFilesAsync(restaurant, request.FileIds);
+            await using var transaction = await _transactionFactory.BeginTransactionAsync();
 
-            await _restaurantRepository.Add(restaurant);
-            await _restaurantRepository.SaveChangesAsync();
+            try
+            {
+                var (owner, isNewOwner) = await ResolveRestaurantOwnerAsync(request);
 
-            await _auditLogService.RecordRestaurantActionAsync(
-                restaurant.Id,
-                AuditActions.RestaurantCreated,
-                new
+                await AttachRestaurantFilesAsync(restaurant, request.FileIds);
+
+                await _restaurantRepository.Add(restaurant);
+                await _restaurantRepository.SaveChangesAsync();
+
+                var ownerRestaurant = new Domain.Entities.UserRestaurant
                 {
-                    restaurant.Id,
-                    restaurant.Name,
-                    restaurant.BranchName,
-                    restaurant.Location,
-                    restaurant.Latitude,
-                    restaurant.Longitude,
-                    restaurant.PlaceId,
-                    restaurant.Phone,
-                    restaurant.Email,
-                    restaurant.RestaurantGroupId
-                },
-                AuditEntityTypes.Restaurant,
-                restaurant.Id,
-                restaurant.Name);
+                    RestaurantId = restaurant.Id,
+                    UserId = owner.Id,
+                    IsActive = true
+                };
 
-            await _emailOutboxService.EnqueueEmailAsync(
-                restaurant.Email,
-                restaurant.Name,
-                "Restoran qeydiyyatı tamamlandı",
-                $"{restaurant.Name} uğurla qeydiyyatdan keçdi.",
-                OutboxAggregateTypes.Restaurant,
-                restaurant.Id,
-                AuditEntityTypes.Restaurant,
-                restaurant.Id);
+                await _userRestaurantRepository.Add(ownerRestaurant);
+                await _userRestaurantRepository.SaveChangesAsync();
+
+                if (isNewOwner)
+                    await _passwordSetupService.SendSetupLinkAsync(owner);
+
+                await _auditLogService.RecordRestaurantActionAsync(
+                    restaurant.Id,
+                    AuditActions.RestaurantCreated,
+                    new
+                    {
+                        restaurant.Id,
+                        restaurant.Name,
+                        restaurant.BranchName,
+                        restaurant.Location,
+                        restaurant.Latitude,
+                        restaurant.Longitude,
+                        restaurant.PlaceId,
+                        restaurant.Phone,
+                        restaurant.Email,
+                        restaurant.RestaurantGroupId,
+                        OwnerId = owner.Id
+                    },
+                    AuditEntityTypes.Restaurant,
+                    restaurant.Id,
+                    restaurant.Name);
+
+                await _emailOutboxService.EnqueueEmailAsync(
+                    restaurant.Email,
+                    restaurant.Name,
+                    "Restoran qeydiyyatı tamamlandı",
+                    $"{restaurant.Name} uğurla qeydiyyatdan keçdi.",
+                    OutboxAggregateTypes.Restaurant,
+                    restaurant.Id,
+                    AuditEntityTypes.Restaurant,
+                    restaurant.Id);
+
+                await transaction.CommitAsync();
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
 
             return restaurant.Id;
         }
@@ -740,6 +782,108 @@ namespace ECafe.Application.Services.Restaurant.Concrete
                 throw new BusinessRuleException(ErrorCode.RestaurantGroupRequired);
 
             return $"{groupName} {branchName}".Trim();
+        }
+
+        private async Task<(Domain.Entities.User Owner, bool IsNewOwner)> ResolveRestaurantOwnerAsync(RegisterRestaurantRequest request)
+        {
+            var ownerRequest = request.Owner;
+            if (ownerRequest is null)
+                throw new BusinessRuleException("Restoran üçün sahibkar seçin və ya yeni sahibkar məlumatlarını daxil edin.");
+
+            var ownerId = ownerRequest.Id.GetValueOrDefault();
+
+            if (ownerId > 0)
+            {
+                var selectedOwner = await _userRepository.GetByIdAsync(ownerId);
+                EnsureUserCanOwnRestaurant(selectedOwner);
+                return (selectedOwner!, false);
+            }
+
+            var ownerEmail = ResolveOwnerEmail(ownerRequest);
+            if (ownerEmail is null)
+                throw new BusinessRuleException("Restoran üçün sahibkar seçin və ya yeni sahibkar emaili daxil edin.");
+
+            var existingOwner = await _userRepository.GetOwnerByEmailAsync(ownerEmail);
+            if (existingOwner is not null)
+            {
+                if (!existingOwner.IsActive)
+                    throw new BusinessRuleException("Seçilən sahibkar deaktivdir.");
+
+                return (existingOwner, false);
+            }
+
+            await EnsureNewOwnerCanBeCreatedAsync(ownerRequest, ownerEmail);
+
+            var owner = new Domain.Entities.User
+            {
+                Name = ownerRequest.FirstName!.Trim(),
+                Surname = ownerRequest.LastName!.Trim(),
+                Email = ownerEmail,
+                Phone = PhoneNumberValidationExtensions.NormalizeAzerbaijanPhoneNumber(ownerRequest.Phone!),
+                RoleId = (int)RoleCode.Owner,
+                IsActive = true,
+                Password = CreateUnusablePasswordHash()
+            };
+
+            await _userRepository.Add(owner);
+            await _userRepository.SaveChangesAsync();
+
+            return (owner, true);
+        }
+
+        private static void EnsureUserCanOwnRestaurant(Domain.Entities.User? owner)
+        {
+            if (owner is null)
+                throw new BusinessRuleException("Seçilən sahibkar tapılmadı.");
+
+            if (!owner.IsActive)
+                throw new BusinessRuleException("Seçilən sahibkar deaktivdir.");
+
+            if (owner.RoleId != (int)RoleCode.Owner)
+                throw new BusinessRuleException("Seçilən istifadəçi sahibkar rolunda deyil.");
+        }
+
+        private async Task EnsureNewOwnerCanBeCreatedAsync(RegisterRestaurantOwnerRequest ownerRequest, string ownerEmail)
+        {
+            if (string.IsNullOrWhiteSpace(ownerRequest.FirstName))
+                throw new BusinessRuleException("Yeni sahibkarın adı daxil edilməlidir.");
+
+            if (string.IsNullOrWhiteSpace(ownerRequest.LastName))
+                throw new BusinessRuleException("Yeni sahibkarın soyadı daxil edilməlidir.");
+
+            if (string.IsNullOrWhiteSpace(ownerRequest.Phone))
+                throw new BusinessRuleException("Yeni sahibkarın telefonu daxil edilməlidir.");
+
+            var emailExists = await _userRepository.CheckExistAsync(user => user.Email == ownerEmail);
+            if (emailExists)
+                throw new BusinessRuleException(ErrorCode.UserEmailAlreadyExists);
+
+            var ownerPhone = PhoneNumberValidationExtensions.NormalizeAzerbaijanPhoneNumber(ownerRequest.Phone);
+            var phoneExists = await _userRepository.CheckExistAsync(user => user.Phone == ownerPhone);
+            if (phoneExists)
+                throw new BusinessRuleException(ErrorCode.UserPhoneAlreadyExists);
+        }
+
+        private static string? ResolveOwnerEmail(RegisterRestaurantOwnerRequest ownerRequest)
+        {
+            var ownerEmail = ownerRequest.Email;
+
+            if (string.IsNullOrWhiteSpace(ownerEmail) &&
+                !string.IsNullOrWhiteSpace(ownerRequest.SearchText) &&
+                ownerRequest.SearchText.Contains('@'))
+            {
+                ownerEmail = ownerRequest.SearchText;
+            }
+
+            return string.IsNullOrWhiteSpace(ownerEmail)
+                ? null
+                : ownerEmail.Trim().ToLowerInvariant();
+        }
+
+        private static string CreateUnusablePasswordHash()
+        {
+            var bytes = RandomNumberGenerator.GetBytes(32);
+            return BCrypt.Net.BCrypt.HashPassword(Convert.ToHexString(bytes));
         }
 
         private async Task<StaffPublicResponseDto> MapToPublicDtoAsync(UserRestaurant staff)
