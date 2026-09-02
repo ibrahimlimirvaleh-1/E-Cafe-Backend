@@ -14,12 +14,12 @@ namespace ECafe.Infrastructure.Configurations.Concrete
                 "ck_user_restaurants_max_active_table_count_positive",
                 "max_active_table_count IS NULL OR max_active_table_count > 0"));
 
-            builder.HasIndex(e => e.UserId, "user_restaurants_user_id_key")
-                .IsUnique();
             builder.HasIndex(e => e.RestaurantId, "user_restaurants_restaurant_id_idx");
+            builder.HasIndex(e => e.RoleId, "user_restaurants_role_id_idx");
 
             builder.Property(e => e.UserId).HasColumnName("user_id");
             builder.Property(e => e.RestaurantId).HasColumnName("restaurant_id");
+            builder.Property(e => e.RoleId).HasColumnName("role_id");
             builder.Property(e => e.IsActive)
                 .HasDefaultValue(true)
                 .HasColumnName("is_active");
@@ -37,8 +37,12 @@ namespace ECafe.Infrastructure.Configurations.Concrete
                 .HasForeignKey(d => d.RestaurantId)
                 .HasConstraintName("user_restaurants_restaurant_id_fkey");
 
-            builder.HasOne(d => d.User).WithOne(p => p.UserRestaurant)
-                .HasForeignKey<UserRestaurant>(d => d.UserId)
+            builder.HasOne(d => d.Role).WithMany(p => p.UserRestaurants)
+                .HasForeignKey(d => d.RoleId)
+                .HasConstraintName("user_restaurants_role_id_fkey");
+
+            builder.HasOne(d => d.User).WithMany(p => p.UserRestaurants)
+                .HasForeignKey(d => d.UserId)
                 .HasConstraintName("user_restaurants_user_id_fkey");
         }
     }

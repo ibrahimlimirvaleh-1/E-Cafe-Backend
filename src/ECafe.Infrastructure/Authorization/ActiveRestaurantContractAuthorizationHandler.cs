@@ -4,7 +4,6 @@ using ECafe.Domain.Enums;
 using ECafe.Domain.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Routing;
 using System.Security.Claims;
 
 namespace ECafe.Infrastructure.Authorization
@@ -31,7 +30,10 @@ namespace ECafe.Infrastructure.Authorization
             }
 
             var httpContext = context.Resource as HttpContext;
-            var restaurantId = ResolveRestaurantId(httpContext, context.User, requirement.RestaurantIdKey);
+            var restaurantId = RestaurantContextAuthorizationHelper.ResolveRestaurantId(
+                httpContext,
+                context.User,
+                requirement.RestaurantIdKey);
 
             if (!restaurantId.HasValue)
                 throw new ForbiddenException("Restaurant context is required.");
@@ -45,28 +47,6 @@ namespace ECafe.Infrastructure.Authorization
             {
                 throw new ForbiddenException(ex.Code, ex.Parameters);
             }
-        }
-
-        private static int? ResolveRestaurantId(HttpContext? httpContext, ClaimsPrincipal user, string restaurantIdKey)
-        {
-            if (httpContext is not null)
-            {
-                var routeValues = httpContext.GetRouteData()?.Values;
-
-                if (routeValues is not null
-                    && TryReadInt(routeValues[restaurantIdKey], out var routeRestaurantId))
-                {
-                    return routeRestaurantId;
-                }
-
-                if (httpContext.Request.Query.TryGetValue(restaurantIdKey, out var queryValue)
-                    && TryReadInt(queryValue.FirstOrDefault(), out var queryRestaurantId))
-                {
-                    return queryRestaurantId;
-                }
-            }
-
-            return GetIntClaim(user, "restaurantId");
         }
 
         private static int? GetIntClaim(ClaimsPrincipal user, string claimType)

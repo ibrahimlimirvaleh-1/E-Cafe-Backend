@@ -48,6 +48,7 @@ namespace ECafe.Application.Services.User.Concrete
         private readonly IUserRealtimeNotifier _userRealtimeNotifier;
         private readonly IApplicationDbTransactionFactory _transactionFactory;
         private readonly IUserSessionStateCache _userSessionStateCache;
+        private readonly IUserRestaurantAccessCache _userRestaurantAccessCache;
 
         public UserManager(
             IHttpContextAccessor httpContextAccessor,
@@ -66,7 +67,8 @@ namespace ECafe.Application.Services.User.Concrete
             IAuditLogService auditLogService,
             IUserRealtimeNotifier userRealtimeNotifier,
             IApplicationDbTransactionFactory transactionFactory,
-            IUserSessionStateCache userSessionStateCache)
+            IUserSessionStateCache userSessionStateCache,
+            IUserRestaurantAccessCache userRestaurantAccessCache)
             : base(httpContextAccessor, mapper, configuration)
         {
             _restaurantRepository = restaurantRepository;
@@ -83,6 +85,7 @@ namespace ECafe.Application.Services.User.Concrete
             _userRealtimeNotifier = userRealtimeNotifier;
             _transactionFactory = transactionFactory;
             _userSessionStateCache = userSessionStateCache;
+            _userRestaurantAccessCache = userRestaurantAccessCache;
         }
 
         public async Task CreateUserAsync(CreateUserRequest request)
@@ -111,6 +114,7 @@ namespace ECafe.Application.Services.User.Concrete
                 await _userRepository.SaveChangesAsync();
 
                 await _passwordSetupService.SendSetupLinkAsync(user);
+                await _userRestaurantAccessCache.InvalidateAsync(user.Id, request.RestaurantId);
 
                 await transaction.CommitAsync();
             }
@@ -142,6 +146,7 @@ namespace ECafe.Application.Services.User.Concrete
             await _userRepository.Delete(user);
             await _userRepository.SaveChangesAsync();
             await _userSessionStateCache.InvalidateAsync(userId);
+            await InvalidateRestaurantAccessAsync(userDetails.UserRestaurants);
             await NotifyUserSessionTerminatedAsync(userId);
         }
 
@@ -159,11 +164,11 @@ namespace ECafe.Application.Services.User.Concrete
             if (staffAssignment is null)
                 throw new BusinessRuleException(ErrorCode.StaffAssignmentNotFound);
 
-            EnsureOnlySuperAdminCanManageOwnerRole(staffAssignment.User.RoleId);
+            EnsureOnlySuperAdminCanManageOwnerRole(staffAssignment.RoleId);
 
             await EnsureRestaurantOwnerSlotAvailableAsync(
                 restaurantId,
-                staffAssignment.User.RoleId,
+                staffAssignment.RoleId,
                 staffAssignment.UserId);
 
             staffAssignment.IsActive = true;
@@ -177,7 +182,7 @@ namespace ECafe.Application.Services.User.Concrete
                     StaffId = staffAssignment.UserId,
                     StaffName = $"{staffAssignment.User.Name} {staffAssignment.User.Surname}",
                     staffAssignment.User.Email,
-                    RoleName = GetRoleDescription(staffAssignment.User.RoleId),
+                    RoleName = GetRoleDescription(staffAssignment.RoleId),
                     RestaurantName = staffAssignment.Restaurant.Name
                 },
                 AuditEntityTypes.User,
@@ -186,6 +191,7 @@ namespace ECafe.Application.Services.User.Concrete
 
             await _userRestaurantRepository.SaveChangesAsync();
             await _userSessionStateCache.InvalidateAsync(staffId);
+            await _userRestaurantAccessCache.InvalidateAsync(staffId, restaurantId);
         }
 
         public async Task DeactivateStaffAsync(int restaurantId, int staffId)
@@ -205,7 +211,7 @@ namespace ECafe.Application.Services.User.Concrete
             if (staffAssignment is null)
                 throw new BusinessRuleException(ErrorCode.ActiveStaffAssignmentNotFound);
 
-            EnsureOnlySuperAdminCanManageOwnerRole(staffAssignment.User.RoleId);
+            EnsureOnlySuperAdminCanManageOwnerRole(staffAssignment.RoleId);
 
             staffAssignment.IsActive = false;
 
@@ -223,7 +229,7 @@ namespace ECafe.Application.Services.User.Concrete
                     StaffId = staffAssignment.UserId,
                     StaffName = $"{staffAssignment.User.Name} {staffAssignment.User.Surname}",
                     staffAssignment.User.Email,
-                    RoleName = GetRoleDescription(staffAssignment.User.RoleId),
+                    RoleName = GetRoleDescription(staffAssignment.RoleId),
                     RestaurantName = staffAssignment.Restaurant.Name
                 },
                 AuditEntityTypes.User,
@@ -232,6 +238,7 @@ namespace ECafe.Application.Services.User.Concrete
 
             await _userRestaurantRepository.SaveChangesAsync();
             await _userSessionStateCache.InvalidateAsync(staffId);
+            await _userRestaurantAccessCache.InvalidateAsync(staffId, restaurantId);
             await NotifyUserSessionTerminatedAsync(staffId);
         }
 
@@ -252,7 +259,7 @@ namespace ECafe.Application.Services.User.Concrete
             if (staffAssignment is null)
                 throw new BusinessRuleException(ErrorCode.ActiveStaffAssignmentNotFound);
 
-            EnsureOnlySuperAdminCanManageOwnerRole(staffAssignment.User.RoleId);
+            EnsureOnlySuperAdminCanManageOwnerRole(staffAssignment.RoleId);
 
             var email = request.Email.Trim().ToLowerInvariant();
             var phone = PhoneNumberValidationExtensions.NormalizeAzerbaijanPhoneNumber(request.Phone);
@@ -284,7 +291,7 @@ namespace ECafe.Application.Services.User.Concrete
                     StaffId = staffAssignment.UserId,
                     StaffName = $"{staffAssignment.User.Name} {staffAssignment.User.Surname}",
                     staffAssignment.User.Email,
-                    RoleName = GetRoleDescription(staffAssignment.User.RoleId),
+                    RoleName = GetRoleDescription(staffAssignment.RoleId),
                     RestaurantName = staffAssignment.Restaurant.Name
                 },
                 AuditEntityTypes.User,
@@ -292,6 +299,7 @@ namespace ECafe.Application.Services.User.Concrete
                 $"{staffAssignment.User.Name} {staffAssignment.User.Surname}");
 
             await _userRestaurantRepository.SaveChangesAsync();
+            await _userRestaurantAccessCache.InvalidateAsync(staffId, restaurantId);
 
             if (!request.IsActive)
             {
@@ -299,7 +307,7 @@ namespace ECafe.Application.Services.User.Concrete
                 await NotifyUserSessionTerminatedAsync(staffId);
             }
 
-            return await MapToStaffDetailResponseAsync(staffAssignment.User);
+            return await MapToStaffDetailResponseAsync(staffAssignment);
         }
 
         public async Task<AuthResponseDto> UpdateRoleAsync(int userId, int roleId)
@@ -343,6 +351,7 @@ namespace ECafe.Application.Services.User.Concrete
             if (roleChanged)
             {
                 await _userSessionStateCache.InvalidateAsync(userId);
+                await InvalidateRestaurantAccessAsync(userDetails.UserRestaurants);
 
                 await _emailOutboxService.EnqueueEmailAsync(
                     user.Email,
@@ -392,10 +401,24 @@ namespace ECafe.Application.Services.User.Concrete
                     ?? throw new ForbiddenException("Restaurant context is required.");
             }
 
-            var users = _userRepository.GetUsersForList(restaurantId)
-                .OrderBy(x => x.Name)
-                .ThenBy(x => x.Surname)
-                .ProjectTo<GetAllUserResponseDto>(Mapper.ConfigurationProvider);
+            IQueryable<GetAllUserResponseDto> users;
+
+            if (restaurantId.HasValue && restaurantId.Value > 0)
+            {
+                users = _userRestaurantRepository.Query(userRestaurant =>
+                        userRestaurant.RestaurantId == restaurantId.Value &&
+                        userRestaurant.IsActive)
+                    .OrderBy(userRestaurant => userRestaurant.User.Name)
+                    .ThenBy(userRestaurant => userRestaurant.User.Surname)
+                    .ProjectTo<GetAllUserResponseDto>(Mapper.ConfigurationProvider);
+            }
+            else
+            {
+                users = _userRepository.GetUsersForList(restaurantId)
+                    .OrderBy(x => x.Name)
+                    .ThenBy(x => x.Surname)
+                    .ProjectTo<GetAllUserResponseDto>(Mapper.ConfigurationProvider);
+            }
 
             return PaginatedList<GetAllUserResponseDto>.CreateAsync(users, filter.PageNumber, filter.PageSize);
         }
@@ -456,7 +479,7 @@ namespace ECafe.Application.Services.User.Concrete
 
             EnsureCurrentUserCanAccessRestaurant(restaurantId);
 
-            var staff = await _userRepository.GetStaffDetailAsync(restaurantId, staffId);
+            var staff = await _userRestaurantRepository.GetStaffAssignmentAsync(restaurantId, staffId);
 
             if (staff is null)
                 throw new BusinessRuleException(ErrorCode.StaffNotFound);
@@ -477,11 +500,13 @@ namespace ECafe.Application.Services.User.Concrete
             if (IsCurrentUserSuperAdmin())
                 return;
 
-            EnsureOnlySuperAdminCanManageOwnerRole(user.RoleId);
+            if (user.UserRestaurants.Any(userRestaurant => userRestaurant.RoleId == (int)RoleCode.Owner))
+                EnsureOnlySuperAdminCanManageOwnerRole((int)RoleCode.Owner);
 
-            var restaurantId = user.UserRestaurant is { IsActive: true }
-                ? (int?)user.UserRestaurant.RestaurantId
-                : null;
+            var restaurantId = user.UserRestaurants
+                .Where(userRestaurant => userRestaurant.IsActive)
+                .Select(userRestaurant => (int?)userRestaurant.RestaurantId)
+                .FirstOrDefault();
             if (!restaurantId.HasValue)
                 throw new ForbiddenException("Target user is not assigned to a restaurant.");
 
@@ -594,6 +619,13 @@ namespace ECafe.Application.Services.User.Concrete
             return response;
         }
 
+        private async Task<StaffDetailResponseDto> MapToStaffDetailResponseAsync(Domain.Entities.UserRestaurant userRestaurant)
+        {
+            var response = Mapper.Map<StaffDetailResponseDto>(userRestaurant);
+            response.FileUrl = await GenerateFileUrlAsync(userRestaurant.User.File);
+            return response;
+        }
+
         private async Task<string?> GenerateFileUrlAsync(Domain.Entities.File? file)
         {
             if (file is null)
@@ -637,6 +669,12 @@ namespace ECafe.Application.Services.User.Concrete
                 refreshToken.RevokedAt = nowUtc;
                 refreshToken.RevokedByIp = ipAddress;
             }
+        }
+
+        private async Task InvalidateRestaurantAccessAsync(IEnumerable<Domain.Entities.UserRestaurant> assignments)
+        {
+            foreach (var assignment in assignments)
+                await _userRestaurantAccessCache.InvalidateAsync(assignment.UserId, assignment.RestaurantId);
         }
 
         private Task NotifyUserSessionTerminatedAsync(int userId)

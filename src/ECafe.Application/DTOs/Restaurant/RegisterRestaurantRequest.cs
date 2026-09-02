@@ -33,7 +33,24 @@ namespace ECafe.Application.DTOs.Restaurant
 
         public int StaffSettlementPeriod { get; set; } = 2;
 
+        public RegisterRestaurantOwnerRequest? Owner { get; set; }
+
         public List<int>? FileIds { get; set; }
 
+    }
+
+    public sealed class RegisterRestaurantOwnerRequest
+    {
+        public int? Id { get; set; }
+
+        public string? SearchText { get; set; }
+
+        public string? Email { get; set; }
+
+        public string? Phone { get; set; }
+
+        public string? FirstName { get; set; }
+
+        public string? LastName { get; set; }
     }
 }

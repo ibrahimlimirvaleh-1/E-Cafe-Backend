@@ -21,8 +21,11 @@ namespace ECafe.Infrastructure.Repositories.UserRefreshToken
                 .Include(t => t.User)
                     .ThenInclude(u => u.File)
                 .Include(t => t.User)
-                    .ThenInclude(u => u.UserRestaurant)
-                    .ThenInclude(ur => ur!.Restaurant)
+                    .ThenInclude(u => u.UserRestaurants)
+                    .ThenInclude(ur => ur.Restaurant)
+                .Include(t => t.User)
+                    .ThenInclude(u => u.UserRestaurants)
+                    .ThenInclude(ur => ur.Role)
                 .FirstOrDefaultAsync(t => t.TokenHash == tokenHash);
         }
 

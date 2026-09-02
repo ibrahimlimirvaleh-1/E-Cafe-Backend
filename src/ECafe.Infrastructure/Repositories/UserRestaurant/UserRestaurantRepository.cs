@@ -14,12 +14,12 @@ namespace ECafe.Infrastructure.Repositories.UserRestaurant
         {
             return await Query()
                 .Include(ur => ur.Restaurant)
-                .Include(ur => ur.User)
-                .ThenInclude(u => u.Role)
+                .Include(ur => ur.Role)
                 .Include(ur => ur.User)
                 .ThenInclude(u => u.File)
                 .Where(ur => ur.RestaurantId == restaurantId &&
-                ur.User.RoleId != (int)RoleCode.Customer)
+                ur.RoleId != (int)RoleCode.Customer &&
+                ur.RoleId != (int)RoleCode.SuperAdmin)
                 .ToListAsync();
         }
 
@@ -29,6 +29,17 @@ namespace ECafe.Infrastructure.Repositories.UserRestaurant
                     x.IsActive &&
                     x.Restaurant.IsActive)
                 .Include(x => x.Restaurant)
+                .Include(x => x.Role)
+                .FirstOrDefaultAsync();
+
+        public Task<int?> GetActiveRoleIdAsync(int userId, int restaurantId)
+            => Query(x =>
+                    x.UserId == userId &&
+                    x.RestaurantId == restaurantId &&
+                    x.IsActive &&
+                    x.User.IsActive &&
+                    x.Restaurant.IsActive)
+                .Select(x => (int?)x.RoleId)
                 .FirstOrDefaultAsync();
 
         public Task<Domain.Entities.UserRestaurant?> GetActiveStaffAssignmentAsync(int restaurantId, int staffId)
@@ -38,11 +49,10 @@ namespace ECafe.Infrastructure.Repositories.UserRestaurant
                     x.IsActive &&
                     x.Restaurant.IsActive &&
                     x.User.IsActive &&
-                    x.User.RoleId != (int)RoleCode.Customer &&
-                    x.User.RoleId != (int)RoleCode.SuperAdmin)
+                    x.RoleId != (int)RoleCode.Customer &&
+                    x.RoleId != (int)RoleCode.SuperAdmin)
                 .Include(x => x.Restaurant)
-                .Include(x => x.User)
-                .ThenInclude(u => u.Role)
+                .Include(x => x.Role)
                 .Include(x => x.User)
                 .ThenInclude(u => u.File)
                 .FirstOrDefaultAsync();
@@ -52,11 +62,10 @@ namespace ECafe.Infrastructure.Repositories.UserRestaurant
                     x.RestaurantId == restaurantId &&
                     x.UserId == staffId &&
                     x.Restaurant.IsActive &&
-                    x.User.RoleId != (int)RoleCode.Customer &&
-                    x.User.RoleId != (int)RoleCode.SuperAdmin)
+                    x.RoleId != (int)RoleCode.Customer &&
+                    x.RoleId != (int)RoleCode.SuperAdmin)
                 .Include(x => x.Restaurant)
-                .Include(x => x.User)
-                .ThenInclude(u => u.Role)
+                .Include(x => x.Role)
                 .Include(x => x.User)
                 .ThenInclude(u => u.File)
                 .FirstOrDefaultAsync();
@@ -74,7 +83,8 @@ namespace ECafe.Infrastructure.Repositories.UserRestaurant
                     x.RestaurantId == restaurantId &&
                     x.IsActive &&
                     x.User.IsActive &&
-                    x.User.RoleId == (int)RoleCode.Owner)
+                    x.RoleId == (int)RoleCode.Owner)
+                .Include(x => x.Role)
                 .Include(x => x.User)
                 .FirstOrDefaultAsync();
 
@@ -86,7 +96,8 @@ namespace ECafe.Infrastructure.Repositories.UserRestaurant
                     x.RestaurantId == restaurantId &&
                     x.IsActive &&
                     x.User.IsActive &&
-                    roleIds.Contains(x.User.RoleId))
+                    roleIds.Contains(x.RoleId))
+                .Include(x => x.Role)
                 .Include(x => x.User)
                 .ToListAsync();
         }

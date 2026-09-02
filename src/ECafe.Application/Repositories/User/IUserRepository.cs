@@ -28,5 +28,6 @@ namespace ECafe.Application.Repositories.User
 
         Task<Domain.Entities.User?> GetProfileConflictAsync(int userId, string email, string phone);
 
+        Task<Domain.Entities.User?> GetOwnerByEmailAsync(string email);
     }
 }

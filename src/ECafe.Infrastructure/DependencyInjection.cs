@@ -95,6 +95,7 @@ namespace ECafe.Infrastructure
             services.AddScoped<IRecipeRepository, RecipeRepository>();
             services.AddScoped<IUnitRepository, UnitRepository>();
             services.AddScoped<IUserSessionStateCache, UserSessionStateCache>();
+            services.AddScoped<IUserRestaurantAccessCache, UserRestaurantAccessCache>();
             return services;
         }
     }

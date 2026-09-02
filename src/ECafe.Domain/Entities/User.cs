@@ -32,7 +32,7 @@ public partial class User : AuditableSoftDeletableEntity<int>
 
     public virtual ICollection<Reservation> Reservations { get; set; } = new List<Reservation>();
 
-    public virtual UserRestaurant? UserRestaurant { get; set; }
+    public virtual ICollection<UserRestaurant> UserRestaurants { get; set; } = new List<UserRestaurant>();
 
     public virtual Role Role { get; set; } = null!;
     public virtual Wallet? Wallet { get; set; }

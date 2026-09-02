@@ -8,6 +8,8 @@ public partial class UserRestaurant : AuditableSoftDeletableEntity<int>
 
     public int RestaurantId { get; set; }
 
+    public int RoleId { get; set; }
+
     public bool IsActive { get; set; }
 
     public decimal? ServiceFeePercent { get; set; }
@@ -15,6 +17,8 @@ public partial class UserRestaurant : AuditableSoftDeletableEntity<int>
     public int? MaxActiveTableCount { get; set; }
 
     public virtual Restaurant Restaurant { get; set; } = null!;
+
+    public virtual Role Role { get; set; } = null!;
 
     public virtual User User { get; set; } = null!;
 }

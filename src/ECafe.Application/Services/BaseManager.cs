@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using ECafe.Application.Common.Exceptions;
 using ECafe.Domain.Enums;
 using ECafe.Domain.Exceptions;
@@ -27,10 +27,8 @@ public abstract class BaseManager
 
     protected int? GetCurrentRestaurantId()
     {
-        var restaurantIdClaim = CurrentUser.FindFirst("restaurantId")?.Value;
-        return int.TryParse(restaurantIdClaim, out var restaurantId) && restaurantId > 0
-            ? restaurantId
-            : null;
+        var restaurantIds = GetCurrentRestaurantIds();
+        return restaurantIds.Count > 0 ? restaurantIds.First() : null;
     }
 
     protected int GetRequiredCurrentRestaurantId()
@@ -60,9 +58,27 @@ public abstract class BaseManager
         if (IsCurrentUserSuperAdmin())
             return;
 
-        var currentRestaurantId = GetCurrentRestaurantId();
-        if (currentRestaurantId != restaurantId)
+        if (!GetCurrentRestaurantIds().Contains(restaurantId))
             throw new ForbiddenException("You do not have access to this restaurant.");
+    }
+
+    protected IReadOnlyCollection<int> GetCurrentRestaurantIds()
+    {
+        var restaurantIdsClaim = CurrentUser.FindFirst("restaurantIds")?.Value;
+        if (!string.IsNullOrWhiteSpace(restaurantIdsClaim))
+        {
+            return restaurantIdsClaim
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(value => int.TryParse(value, out var restaurantId) ? restaurantId : 0)
+                .Where(restaurantId => restaurantId > 0)
+                .Distinct()
+                .ToList();
+        }
+
+        var restaurantIdClaim = CurrentUser.FindFirst("restaurantId")?.Value;
+        return int.TryParse(restaurantIdClaim, out var legacyRestaurantId) && legacyRestaurantId > 0
+            ? [legacyRestaurantId]
+            : [];
     }
 
     private ClaimsPrincipal CurrentUser
@@ -76,6 +92,30 @@ public abstract class BaseManager
             throw new ForbiddenException("Role context is required.");
 
         return roleId;
+    }
+
+    protected int GetCurrentRoleId(int restaurantId)
+    {
+        if (restaurantId <= 0)
+            throw new BusinessRuleException("Invalid restaurant ID!");
+
+        var restaurantRolesClaim = CurrentUser.FindFirst("restaurantRoles")?.Value;
+        if (!string.IsNullOrWhiteSpace(restaurantRolesClaim))
+        {
+            foreach (var assignment in restaurantRolesClaim.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            {
+                var parts = assignment.Split(':', 2, StringSplitOptions.TrimEntries);
+                if (parts.Length == 2 &&
+                    int.TryParse(parts[0], out var assignedRestaurantId) &&
+                    int.TryParse(parts[1], out var roleId) &&
+                    assignedRestaurantId == restaurantId)
+                {
+                    return roleId;
+                }
+            }
+        }
+
+        return GetCurrentRoleId();
     }
 }
 

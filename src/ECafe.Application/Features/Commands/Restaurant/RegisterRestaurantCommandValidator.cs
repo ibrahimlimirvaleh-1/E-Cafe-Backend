@@ -35,6 +35,38 @@ namespace ECafe.Application.Features.Commands.Restaurant
             RuleFor(x => x)
                 .Must(x => x.RestaurantGroupId.GetValueOrDefault() > 0 || !string.IsNullOrWhiteSpace(x.RestaurantGroupName))
                 .WithMessage("Restaurant group is required.");
+
+            RuleFor(x => x.Owner)
+                .NotNull()
+                .WithMessage("Restaurant owner is required.");
+
+            When(x => x.Owner is not null, () =>
+            {
+                RuleFor(x => x.Owner!.Id)
+                    .GreaterThan(0)
+                    .When(x => x.Owner!.Id.HasValue)
+                    .WithMessage("Owner id must be greater than 0.");
+
+                RuleFor(x => x.Owner!.Email)
+                    .EmailAddress()
+                    .When(x =>
+                        !x.Owner!.Id.HasValue &&
+                        !string.IsNullOrWhiteSpace(x.Owner.Email))
+                    .WithMessage("Owner email is invalid.");
+
+                RuleFor(x => x.Owner!.Phone!)
+                    .MustBePhoneNumber("Owner phone")
+                    .When(x =>
+                        !x.Owner!.Id.HasValue &&
+                        !string.IsNullOrWhiteSpace(x.Owner.Phone));
+
+                RuleFor(x => x.Owner!)
+                    .Must(owner =>
+                        owner.Id.GetValueOrDefault() > 0 ||
+                        !string.IsNullOrWhiteSpace(owner.Email) ||
+                        (!string.IsNullOrWhiteSpace(owner.SearchText) && owner.SearchText.Contains('@')))
+                    .WithMessage("Select an existing owner or enter a new owner email.");
+            });
         }
     }
 }
