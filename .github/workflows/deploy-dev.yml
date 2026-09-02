@@ -16,8 +16,36 @@ jobs:
     runs-on: ubuntu-latest
     environment: dev
     timeout-minutes: 30
+    env:
+      APP_PATH: ${{ secrets.ECAFE_DEV_PATH || '/opt/ecafe' }}
 
     steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Package backend source
+        run: |
+          tar \
+            --exclude='.git' \
+            --exclude='.vs' \
+            --exclude='artifacts' \
+            --exclude='**/bin' \
+            --exclude='**/obj' \
+            --exclude='.env' \
+            --exclude='.env.*' \
+            -czf "$RUNNER_TEMP/backend-source.tar.gz" .
+          cp "$RUNNER_TEMP/backend-source.tar.gz" backend-source.tar.gz
+
+      - name: Upload backend source
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.ECAFE_DEV_HOST }}
+          username: ${{ secrets.ECAFE_DEV_USER }}
+          key: ${{ secrets.ECAFE_DEV_SSH_KEY }}
+          source: backend-source.tar.gz
+          target: ${{ env.APP_PATH }}/deploy-packages/${{ github.sha }}
+          rm: true
+
       - name: Deploy API and run migrations
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -26,16 +54,13 @@ jobs:
           key: ${{ secrets.ECAFE_DEV_SSH_KEY }}
           script: |
             set -euo pipefail
+            APP_PATH="${{ env.APP_PATH }}"
+            PACKAGE_DIR="$APP_PATH/deploy-packages/${{ github.sha }}"
 
-            APP_PATH="${{ secrets.ECAFE_DEV_PATH }}"
-            if [ -z "$APP_PATH" ]; then
-              APP_PATH="/opt/ecafe"
-            fi
-
-            cd "$APP_PATH/backend"
-            git fetch origin
-            git checkout dev
-            git pull --ff-only origin dev
+            rm -rf "$APP_PATH/backend"
+            mkdir -p "$APP_PATH/backend"
+            tar -xzf "$PACKAGE_DIR/backend-source.tar.gz" -C "$APP_PATH/backend"
+            rm -rf "$PACKAGE_DIR"
 
             cd "$APP_PATH"
             docker compose build api migrator
