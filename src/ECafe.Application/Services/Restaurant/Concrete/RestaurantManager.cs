@@ -1,5 +1,6 @@
 using AutoMapper;
 using ECafe.Application.Common.Audit;
+using ECafe.Application.Common.Exceptions;
 using ECafe.Application.Common.Outbox;
 using ECafe.Application.Common.Pagination;
 using ECafe.Application.Common.Validation;
@@ -90,8 +91,11 @@ namespace ECafe.Application.Services.Restaurant.Concrete
 
             if (!IsCurrentUserSuperAdmin())
             {
-                var currentRestaurantId = GetRequiredCurrentRestaurantId();
-                restaurantsQuery = restaurantsQuery.Where(r => r.Id == currentRestaurantId);
+                var currentRestaurantIds = GetCurrentRestaurantIds();
+                if (currentRestaurantIds.Count == 0)
+                    throw new ForbiddenException("Restaurant context is required.");
+
+                restaurantsQuery = restaurantsQuery.Where(r => currentRestaurantIds.Contains(r.Id));
             }
 
             search = NormalizeFilter(search);
