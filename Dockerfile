@@ -27,7 +27,7 @@ COPY --from=build /app/api .
 USER $APP_UID
 ENTRYPOINT ["dotnet", "ECafe.Api.dll"]
 
-FROM mcr.microsoft.com/dotnet/runtime:9.0 AS migrator
+FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS migrator
 WORKDIR /app
 COPY --from=build /app/migrator .
 USER $APP_UID
