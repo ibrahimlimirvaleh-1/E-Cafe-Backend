@@ -11,6 +11,8 @@ namespace ECafe.Application.Services;
 
 public abstract class BaseManager
 {
+    private const string ActiveRestaurantIdHeader = "X-Active-Restaurant-Id";
+
     protected readonly IHttpContextAccessor HttpContextAccessor;
     protected readonly IMapper Mapper;
     protected readonly IConfiguration _configuration;
@@ -27,6 +29,14 @@ public abstract class BaseManager
 
     protected int? GetCurrentRestaurantId()
     {
+        var activeRestaurantId = GetActiveRestaurantIdFromHeader();
+        if (activeRestaurantId.HasValue && GetCurrentRestaurantIds().Contains(activeRestaurantId.Value))
+            return activeRestaurantId.Value;
+
+        var legacyRestaurantIdClaim = CurrentUser.FindFirst("restaurantId")?.Value;
+        if (int.TryParse(legacyRestaurantIdClaim, out var legacyRestaurantId) && legacyRestaurantId > 0)
+            return legacyRestaurantId;
+
         var restaurantIds = GetCurrentRestaurantIds();
         return restaurantIds.Count > 0 ? restaurantIds.First() : null;
     }
@@ -58,7 +68,8 @@ public abstract class BaseManager
         if (IsCurrentUserSuperAdmin())
             return;
 
-        if (!GetCurrentRestaurantIds().Contains(restaurantId))
+        var currentRestaurantId = GetCurrentRestaurantId();
+        if (!currentRestaurantId.HasValue || currentRestaurantId.Value != restaurantId)
             throw new ForbiddenException("You do not have access to this restaurant.");
     }
 
@@ -79,6 +90,20 @@ public abstract class BaseManager
         return int.TryParse(restaurantIdClaim, out var legacyRestaurantId) && legacyRestaurantId > 0
             ? [legacyRestaurantId]
             : [];
+    }
+
+    private int? GetActiveRestaurantIdFromHeader()
+    {
+        var request = HttpContextAccessor.HttpContext?.Request;
+        if (request is null ||
+            !request.Headers.TryGetValue(ActiveRestaurantIdHeader, out var headerValue) ||
+            !int.TryParse(headerValue.FirstOrDefault(), out var restaurantId) ||
+            restaurantId <= 0)
+        {
+            return null;
+        }
+
+        return restaurantId;
     }
 
     private ClaimsPrincipal CurrentUser

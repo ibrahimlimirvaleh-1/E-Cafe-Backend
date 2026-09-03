@@ -6,6 +6,7 @@ namespace ECafe.Infrastructure.Authorization;
 
 internal static class RestaurantContextAuthorizationHelper
 {
+    private const string ActiveRestaurantIdHeader = "X-Active-Restaurant-Id";
     private const string RestaurantIdsClaim = "restaurantIds";
     private const string RestaurantRolesClaim = "restaurantRoles";
     private const string LegacyRestaurantIdClaim = "restaurantId";
@@ -33,6 +34,12 @@ internal static class RestaurantContextAuthorizationHelper
                         return routeRestaurantId;
                     }
                 }
+            }
+
+            if (httpContext.Request.Headers.TryGetValue(ActiveRestaurantIdHeader, out var headerValue) &&
+                TryReadPositiveInt(headerValue.FirstOrDefault(), out var activeRestaurantId))
+            {
+                return activeRestaurantId;
             }
 
             foreach (var key in keys)

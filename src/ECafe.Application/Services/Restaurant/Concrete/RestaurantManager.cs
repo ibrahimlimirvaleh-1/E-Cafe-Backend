@@ -91,11 +91,11 @@ namespace ECafe.Application.Services.Restaurant.Concrete
 
             if (!IsCurrentUserSuperAdmin())
             {
-                var currentRestaurantIds = GetCurrentRestaurantIds();
-                if (currentRestaurantIds.Count == 0)
+                var currentRestaurantId = GetCurrentRestaurantId();
+                if (!currentRestaurantId.HasValue)
                     throw new ForbiddenException("Restaurant context is required.");
 
-                restaurantsQuery = restaurantsQuery.Where(r => currentRestaurantIds.Contains(r.Id));
+                restaurantsQuery = restaurantsQuery.Where(r => r.Id == currentRestaurantId.Value);
             }
 
             search = NormalizeFilter(search);
