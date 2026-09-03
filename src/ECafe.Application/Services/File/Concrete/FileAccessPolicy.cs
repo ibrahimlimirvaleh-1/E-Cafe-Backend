@@ -9,6 +9,8 @@ namespace ECafe.Application.Services.FileAccess.Concrete
 {
     public sealed class FileAccessPolicy : IFileAccessPolicy
     {
+        private const string ActiveRestaurantIdHeader = "X-Active-Restaurant-Id";
+
         private readonly IHttpContextAccessor _httpContextAccessor;
 
         public FileAccessPolicy(IHttpContextAccessor httpContextAccessor)
@@ -78,6 +80,14 @@ namespace ECafe.Application.Services.FileAccess.Concrete
 
         private int? GetCurrentRestaurantId()
         {
+            var activeRestaurantId = GetActiveRestaurantIdFromHeader();
+            if (activeRestaurantId.HasValue && GetCurrentRestaurantIds().Contains(activeRestaurantId.Value))
+                return activeRestaurantId.Value;
+
+            var legacyRestaurantIdClaim = CurrentUser.FindFirst("restaurantId")?.Value;
+            if (int.TryParse(legacyRestaurantIdClaim, out var legacyRestaurantId) && legacyRestaurantId > 0)
+                return legacyRestaurantId;
+
             var restaurantIds = GetCurrentRestaurantIds();
             return restaurantIds.Count > 0 ? restaurantIds.First() : null;
         }
@@ -108,7 +118,8 @@ namespace ECafe.Application.Services.FileAccess.Concrete
             if (IsCurrentUserSuperAdmin())
                 return;
 
-            if (!GetCurrentRestaurantIds().Contains(restaurantId))
+            var currentRestaurantId = GetCurrentRestaurantId();
+            if (!currentRestaurantId.HasValue || currentRestaurantId.Value != restaurantId)
                 throw new ForbiddenException(ErrorCode.AccessDenied);
         }
 
@@ -129,6 +140,20 @@ namespace ECafe.Application.Services.FileAccess.Concrete
             return int.TryParse(restaurantIdClaim, out var legacyRestaurantId) && legacyRestaurantId > 0
                 ? [legacyRestaurantId]
                 : [];
+        }
+
+        private int? GetActiveRestaurantIdFromHeader()
+        {
+            var request = _httpContextAccessor.HttpContext?.Request;
+            if (request is null ||
+                !request.Headers.TryGetValue(ActiveRestaurantIdHeader, out var headerValue) ||
+                !int.TryParse(headerValue.FirstOrDefault(), out var restaurantId) ||
+                restaurantId <= 0)
+            {
+                return null;
+            }
+
+            return restaurantId;
         }
     }
 }
