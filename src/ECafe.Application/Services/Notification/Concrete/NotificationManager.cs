@@ -42,13 +42,13 @@ namespace ECafe.Application.Services.Notification.Concrete
 
         public async Task<List<NotificationResponse>> GetMyNotificationsAsync()
         {
-            var notifications = await _notificationRepository.GetByUserAsync(GetCurrentUserId());
+            var notifications = await _notificationRepository.GetByUserAsync(GetCurrentUserId(), GetNotificationRestaurantScope());
             return Mapper.Map<List<NotificationResponse>>(notifications);
         }
 
         public async Task<UnreadNotificationCountResponse> GetUnreadCountAsync()
         {
-            var count = await _notificationRepository.GetUnreadCountAsync(GetCurrentUserId());
+            var count = await _notificationRepository.GetUnreadCountAsync(GetCurrentUserId(), GetNotificationRestaurantScope());
 
             return new UnreadNotificationCountResponse
             {
@@ -58,7 +58,7 @@ namespace ECafe.Application.Services.Notification.Concrete
 
         public async Task MarkAllAsReadAsync()
         {
-            var unreadNotifications = await _notificationRepository.GetUnreadByUserAsync(GetCurrentUserId());
+            var unreadNotifications = await _notificationRepository.GetUnreadByUserAsync(GetCurrentUserId(), GetNotificationRestaurantScope());
             if (unreadNotifications.Count == 0)
                 return;
 
@@ -77,7 +77,8 @@ namespace ECafe.Application.Services.Notification.Concrete
 
             var notification = await _notificationRepository.GetByUserAndIdTrackedAsync(
                 GetCurrentUserId(),
-                notificationId);
+                notificationId,
+                GetNotificationRestaurantScope());
 
             if (notification is null)
                 throw new BusinessRuleException("Notification not found.");
@@ -95,5 +96,8 @@ namespace ECafe.Application.Services.Notification.Concrete
             notification.StatusId = (int)NotificationStatus.Read;
             notification.ReadAt ??= DateTime.UtcNow;
         }
+
+        private int? GetNotificationRestaurantScope()
+            => IsCurrentUserSuperAdmin() ? null : GetRequiredCurrentRestaurantId();
     }
 }
