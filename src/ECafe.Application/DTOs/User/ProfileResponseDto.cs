@@ -14,5 +14,15 @@ namespace ECafe.Application.DTOs.User
         public int? RestaurantId { get; set; }
         public string? RestaurantName { get; set; }
         public string? FileUrl { get; set; }
+        public List<UserProfileAssignmentDto> Profiles { get; set; } = [];
+    }
+
+    public class UserProfileAssignmentDto
+    {
+        public int RestaurantId { get; set; }
+        public string RestaurantName { get; set; } = null!;
+        public int RoleId { get; set; }
+        public string RoleName { get; set; } = null!;
+        public bool IsActive { get; set; }
     }
 }

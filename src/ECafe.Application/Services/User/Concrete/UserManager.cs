@@ -609,6 +609,19 @@ namespace ECafe.Application.Services.User.Concrete
         {
             var response = Mapper.Map<ProfileResponseDto>(user);
             response.FileUrl = await GenerateFileUrlAsync(user.File);
+            response.Profiles = user.UserRestaurants
+                .Where(userRestaurant => userRestaurant.IsActive)
+                .OrderBy(userRestaurant => userRestaurant.Restaurant.Name)
+                .ThenBy(userRestaurant => userRestaurant.Role.Name)
+                .Select(userRestaurant => new UserProfileAssignmentDto
+                {
+                    RestaurantId = userRestaurant.RestaurantId,
+                    RestaurantName = userRestaurant.Restaurant.Name,
+                    RoleId = userRestaurant.RoleId,
+                    RoleName = userRestaurant.Role.Name,
+                    IsActive = userRestaurant.IsActive && user.IsActive
+                })
+                .ToList();
             return response;
         }
 
