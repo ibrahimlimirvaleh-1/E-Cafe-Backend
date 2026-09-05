@@ -29,6 +29,13 @@ namespace ECafe.Infrastructure.Configurations.Concrete
             builder.HasIndex(e => e.Name)
                 .HasDatabaseName("restaurant_groups_name_key")
                 .IsUnique();
+
+            builder.Property(e => e.Email)
+                .HasMaxLength(100)
+                .HasColumnName("email");
+
+            builder.HasIndex(e => e.Email)
+                .HasDatabaseName("ix_restaurant_groups_email");
         }
     }
 }

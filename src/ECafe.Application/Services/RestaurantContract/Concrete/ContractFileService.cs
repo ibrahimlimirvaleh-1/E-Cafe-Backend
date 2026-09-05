@@ -108,7 +108,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
                 BranchName = branchName,
                 Location = restaurant.Location,
                 Phone = restaurant.Phone,
-                Email = restaurant.Email,
+                Email = restaurant.RestaurantGroup?.Email,
                 StartDate = request.StartDate,
                 EndDate = request.EndDate,
                 Amount = request.Amount,

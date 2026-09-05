@@ -10,5 +10,7 @@ public partial class RestaurantGroup : AuditableSoftDeletableEntity<int>
 
     public bool IsActive { get; set; }
 
+    public string? Email { get; set; }
+
     public virtual ICollection<Restaurant> Restaurants { get; set; } = new List<Restaurant>();
 }

@@ -8,6 +8,8 @@ namespace ECafe.Application.DTOs.RestaurantGroup
 
         public string? LegalName { get; set; }
 
+        public string? Email { get; set; }
+
         public bool IsActive { get; set; }
     }
 }

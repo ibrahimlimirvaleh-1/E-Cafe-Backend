@@ -36,6 +36,12 @@ namespace ECafe.Application.Features.Commands.Restaurant
                 .Must(x => x.RestaurantGroupId.GetValueOrDefault() > 0 || !string.IsNullOrWhiteSpace(x.RestaurantGroupName))
                 .WithMessage("Restaurant group is required.");
 
+            RuleFor(x => x.RestaurantGroupEmail)
+                .NotEmpty()
+                .EmailAddress()
+                .When(x => x.RestaurantGroupId.GetValueOrDefault() <= 0)
+                .WithMessage("Restaurant group email is required.");
+
             RuleFor(x => x.Owner)
                 .NotNull()
                 .WithMessage("Restaurant owner is required.");

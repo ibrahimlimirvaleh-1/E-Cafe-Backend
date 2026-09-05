@@ -270,11 +270,12 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             var restaurantGroup = await ResolveRestaurantGroupAsync(
                 request.RestaurantGroupId,
                 request.RestaurantGroupName,
-                request.RestaurantGroupLegalName);
+                request.RestaurantGroupLegalName,
+                request.RestaurantGroupEmail);
             var branchName = NormalizeRequiredBranchName(request.BranchName);
             var restaurantName = GenerateRestaurantName(restaurantGroup, branchName);
 
-            await EnsureRestaurantDoesNotExistAsync(restaurantName, request.Email, request.Phone);
+            await EnsureRestaurantDoesNotExistAsync(restaurantName, request.Phone);
             await EnsureBranchDoesNotExistAsync(restaurantGroup?.Id, branchName);
 
             var restaurant = Mapper.Map<Domain.Entities.Restaurant>(request);
@@ -322,7 +323,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
                         restaurant.Longitude,
                         restaurant.PlaceId,
                         restaurant.Phone,
-                        restaurant.Email,
+                        GroupEmail = restaurant.RestaurantGroup?.Email,
                         restaurant.RestaurantGroupId,
                         OwnerId = owner.Id
                     },
@@ -330,15 +331,18 @@ namespace ECafe.Application.Services.Restaurant.Concrete
                     restaurant.Id,
                     restaurant.Name);
 
-                await _emailOutboxService.EnqueueEmailAsync(
-                    restaurant.Email,
-                    restaurant.Name,
-                    "Restoran qeydiyyatı tamamlandı",
-                    $"{restaurant.Name} uğurla qeydiyyatdan keçdi.",
-                    OutboxAggregateTypes.Restaurant,
-                    restaurant.Id,
-                    AuditEntityTypes.Restaurant,
-                    restaurant.Id);
+                if (!string.IsNullOrWhiteSpace(restaurant.RestaurantGroup?.Email))
+                {
+                    await _emailOutboxService.EnqueueEmailAsync(
+                        restaurant.RestaurantGroup.Email,
+                        restaurant.Name,
+                        "Restoran qeydiyyatı tamamlandı",
+                        $"{restaurant.Name} uğurla qeydiyyatdan keçdi.",
+                        OutboxAggregateTypes.Restaurant,
+                        restaurant.Id,
+                        AuditEntityTypes.Restaurant,
+                        restaurant.Id);
+                }
 
                 await transaction.CommitAsync();
             }
@@ -370,7 +374,8 @@ namespace ECafe.Application.Services.Restaurant.Concrete
                 var restaurantGroup = await ResolveRestaurantGroupAsync(
                     request.RestaurantGroupId,
                     request.RestaurantGroupName,
-                    request.RestaurantGroupLegalName);
+                    request.RestaurantGroupLegalName,
+                    request.RestaurantGroupEmail);
 
                 restaurant.RestaurantGroup = restaurantGroup;
                 restaurant.RestaurantGroupId = restaurantGroup is null || restaurantGroup.Id == 0
@@ -383,7 +388,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             var restaurantName = GenerateRestaurantName(targetRestaurantGroup, branchName);
             var groupIdForDuplicateCheck = restaurant.RestaurantGroupId;
             await EnsureBranchDoesNotExistAsync(groupIdForDuplicateCheck, branchName, restaurantId);
-            await EnsureRestaurantDoesNotExistAsync(restaurantName, request.Email, request.Phone, restaurantId);
+            await EnsureRestaurantDoesNotExistAsync(restaurantName, request.Phone, restaurantId);
 
             restaurant.Name = restaurantName;
             restaurant.Location = request.Location.Trim();
@@ -391,7 +396,6 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             restaurant.Longitude = request.Longitude;
             restaurant.PlaceId = string.IsNullOrWhiteSpace(request.PlaceId) ? null : request.PlaceId.Trim();
             restaurant.Phone = PhoneNumberValidationExtensions.NormalizeAzerbaijanPhoneNumber(request.Phone);
-            restaurant.Email = request.Email.Trim().ToLowerInvariant();
             restaurant.BranchName = branchName;
             restaurant.DepositAmount = request.DepositAmount;
             restaurant.CancellationWindowMinutes = request.CancellationWindowMinutes;
@@ -417,7 +421,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
                     restaurant.Longitude,
                     restaurant.PlaceId,
                     restaurant.Phone,
-                    restaurant.Email,
+                    GroupEmail = restaurant.RestaurantGroup?.Email,
                     restaurant.DepositAmount,
                     restaurant.CancellationWindowMinutes,
                     restaurant.ServiceFeePercent,
@@ -698,21 +702,16 @@ namespace ECafe.Application.Services.Restaurant.Concrete
 
         private async Task EnsureRestaurantDoesNotExistAsync(
             string name,
-            string email,
             string phone,
             int? excludedRestaurantId = null)
         {
             var normalizedName = name.Trim();
-            var normalizedEmail = email.Trim().ToLowerInvariant();
             var normalizedPhone = PhoneNumberValidationExtensions.NormalizeAzerbaijanPhoneNumber(phone);
 
             var query = _restaurantRepository.Query();
 
             if (excludedRestaurantId.HasValue)
                 query = query.Where(x => x.Id != excludedRestaurantId.Value);
-
-            if (await query.AnyAsync(x => x.Email == normalizedEmail))
-                throw new BusinessRuleException(ErrorCode.RestaurantEmailAlreadyExists);
 
             if (await query.AnyAsync(x => x.Name == normalizedName))
                 throw new BusinessRuleException(ErrorCode.RestaurantNameAlreadyExists);
@@ -724,7 +723,8 @@ namespace ECafe.Application.Services.Restaurant.Concrete
         private async Task<Domain.Entities.RestaurantGroup?> ResolveRestaurantGroupAsync(
             int? restaurantGroupId,
             string? restaurantGroupName,
-            string? restaurantGroupLegalName)
+            string? restaurantGroupLegalName,
+            string? restaurantGroupEmail)
         {
             var groupId = restaurantGroupId.GetValueOrDefault();
 
@@ -757,15 +757,25 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             if (groupNameExists)
                 throw new BusinessRuleException(ErrorCode.RestaurantGroupNameAlreadyExists);
 
+            var groupEmail = NormalizeEmailOrNull(restaurantGroupEmail);
+            if (string.IsNullOrWhiteSpace(groupEmail))
+                throw new BusinessRuleException("Restaurant group email is required.");
+
             return new Domain.Entities.RestaurantGroup
             {
                 Name = groupName,
                 LegalName = string.IsNullOrWhiteSpace(restaurantGroupLegalName)
                     ? null
                     : restaurantGroupLegalName.Trim(),
+                Email = groupEmail,
                 IsActive = true
             };
         }
+
+        private static string? NormalizeEmailOrNull(string? email)
+            => string.IsNullOrWhiteSpace(email)
+                ? null
+                : email.Trim().ToLowerInvariant();
 
         private async Task EnsureBranchDoesNotExistAsync(
             int? restaurantGroupId,
