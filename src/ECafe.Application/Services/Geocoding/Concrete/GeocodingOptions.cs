@@ -8,6 +8,14 @@ public sealed class GeocodingOptions
 
     public string? UserAgent { get; set; }
 
+    public string? GoogleApiKey { get; set; }
+
+    public string? GoogleBaseUrl { get; set; }
+
+    public string? GoogleLanguage { get; set; }
+
+    public string? GoogleRegion { get; set; }
+
     public int? TimeoutSeconds { get; set; }
 
     public int? CacheMinutes { get; set; }
