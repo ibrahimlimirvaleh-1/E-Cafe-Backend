@@ -11,13 +11,14 @@ namespace ECafe.Application.DTOs.Restaurant
         public string? PlaceId { get; set; }
 
         public string Phone { get; set; } = null!;
-        public string Email { get; set; } = null!;
 
         public int? RestaurantGroupId { get; set; }
 
         public string? RestaurantGroupName { get; set; }
 
         public string? RestaurantGroupLegalName { get; set; }
+
+        public string? RestaurantGroupEmail { get; set; }
 
         public string? BranchName { get; set; }
 

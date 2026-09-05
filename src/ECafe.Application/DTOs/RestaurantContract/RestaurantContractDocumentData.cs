@@ -14,7 +14,7 @@ namespace ECafe.Application.DTOs.RestaurantContract
 
         public string Phone { get; set; } = null!;
 
-        public string Email { get; set; } = null!;
+        public string? Email { get; set; } 
 
         public DateTime StartDate { get; set; }
 

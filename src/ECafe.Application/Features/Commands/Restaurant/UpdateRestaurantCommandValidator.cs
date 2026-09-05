@@ -31,6 +31,12 @@ namespace ECafe.Application.Features.Commands.Restaurant
             RuleFor(x => x.BranchName)
                 .NotEmpty()
                 .WithMessage("Branch name is required.");
+
+            RuleFor(x => x.RestaurantGroupEmail)
+                .NotEmpty()
+                .EmailAddress()
+                .When(x => x.RestaurantGroupId.GetValueOrDefault() <= 0 && !string.IsNullOrWhiteSpace(x.RestaurantGroupName))
+                .WithMessage("Restaurant group email is required.");
         }
     }
 }

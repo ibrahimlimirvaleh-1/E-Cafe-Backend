@@ -41,9 +41,6 @@ namespace ECafe.Infrastructure.Configurations.Concrete
             builder.Property(e => e.Phone)
                 .HasMaxLength(50)
                 .HasColumnName("phone");
-            builder.Property(e => e.Email)
-                .HasMaxLength(50)
-                .HasColumnName("email");
             builder.Property(e => e.RestaurantGroupId)
                 .HasColumnName("restaurant_group_id");
             builder.Property(e => e.BranchName)
@@ -70,7 +67,6 @@ namespace ECafe.Infrastructure.Configurations.Concrete
             builder.Property(e => e.StaffSettlementPeriod)
                 .HasDefaultValue((int)StaffSettlementPeriod.Weekly)
                 .HasColumnName("staff_settlement_period");
-            builder.HasIndex(e => e.Email).HasDatabaseName("restaurants_email_key").IsUnique();
 
             builder.HasOne(e => e.RestaurantGroup)
                 .WithMany(e => e.Restaurants)

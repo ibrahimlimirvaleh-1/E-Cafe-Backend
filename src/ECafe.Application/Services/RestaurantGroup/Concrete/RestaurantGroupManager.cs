@@ -31,10 +31,11 @@ namespace ECafe.Application.Services.RestaurantGroup.Concrete
                 .Select(x => new RestaurantGroupResponse
                 {
                     Id = x.Id,
-                    Name = x.Name,
-                    LegalName = x.LegalName,
-                    IsActive = x.IsActive
-                })
+                Name = x.Name,
+                LegalName = x.LegalName,
+                Email = x.Email,
+                IsActive = x.IsActive
+            })
                 .ToListAsync();
 
             return groups;
@@ -49,6 +50,10 @@ namespace ECafe.Application.Services.RestaurantGroup.Concrete
             if (string.IsNullOrWhiteSpace(name))
                 throw new BusinessRuleException("Restaurant group name is required.");
 
+            var email = request.Email?.Trim().ToLowerInvariant();
+            if (string.IsNullOrWhiteSpace(email))
+                throw new BusinessRuleException("Restaurant group email is required.");
+
             var exists = await _restaurantGroupRepository
                 .CheckExistAsync(x => x.Name == name);
 
@@ -61,6 +66,7 @@ namespace ECafe.Application.Services.RestaurantGroup.Concrete
                 LegalName = string.IsNullOrWhiteSpace(request.LegalName)
                     ? null
                     : request.LegalName.Trim(),
+                Email = email,
                 IsActive = true
             };
 

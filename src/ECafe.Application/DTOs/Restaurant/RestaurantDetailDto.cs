@@ -13,7 +13,7 @@
         public string? PlaceId { get; set; }
 
         public string Phone { get; set; } = null!;
-        public string Email { get; set; } = null!;
+        public string? RestaurantGroupEmail { get; set; }
 
         public int? RestaurantGroupId { get; set; }
 
