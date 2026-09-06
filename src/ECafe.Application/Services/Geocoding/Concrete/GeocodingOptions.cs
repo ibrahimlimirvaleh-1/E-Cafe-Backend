@@ -12,6 +12,8 @@ public sealed class GeocodingOptions
 
     public string? GoogleBaseUrl { get; set; }
 
+    public string? GoogleGeocodingBaseUrl { get; set; }
+
     public string? GoogleLanguage { get; set; }
 
     public string? GoogleRegion { get; set; }
