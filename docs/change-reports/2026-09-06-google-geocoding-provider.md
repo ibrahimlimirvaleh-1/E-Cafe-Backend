@@ -9,7 +9,9 @@
 - Nominatim evvelki kimi `BaseUrl`, `UserAgent` ve `CountryCodes` ile isleyir.
 - Google neticelerinde `name`, `formatted_address`, `place_id`, `geometry.location.lat/lng` map olunur.
 - Cache acari provider rejimine gore ayrildi ki Nominatim neticesi Google aktivlesenden sonra kohne cavab kimi qalmasin.
+- Google axtarisi da qisa POI adlari ucun kontekstli variantlari yoxlayir.
 - Nominatim fallback qisa POI adlari ucun `Baku` ve `Azerbaijan` kontekstli variantlari da yoxlayir.
+- `Provider=Google` secilibse, `GoogleApiKey` olmadan Nominatim-e sessiz dusmur ve config xetasi qaytarir.
 - Config numunelerine Google geocoding parametrləri elave edildi.
 
 ## Toxunulan fayllar

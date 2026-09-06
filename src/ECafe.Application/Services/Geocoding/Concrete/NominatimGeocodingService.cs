@@ -79,28 +79,51 @@ public sealed class NominatimGeocodingService : IGeocodingService
 
     private async Task<IReadOnlyList<GeocodeAddressResponse>> SearchGoogleThenNominatimAsync(string address, int limit, CancellationToken cancellationToken)
     {
-        if (HasGoogleConfiguration())
+        if (!HasGoogleConfiguration())
         {
-            try
-            {
-                var googleMatches = await SearchGoogleAsync(address, limit, cancellationToken);
-                if (googleMatches.Count > 0)
-                    return googleMatches;
-            }
-            catch (BaseException) when (CanFallbackToNominatim())
-            {
-                // Nominatim remains a fallback so a Google outage or quota issue does not block admin workflows.
-            }
-            catch (Exception ex) when (CanFallbackToNominatim() && ex is HttpRequestException or JsonException)
-            {
-                // Nominatim remains a fallback so a Google outage or quota issue does not block admin workflows.
-            }
+            if (IsGoogleProviderRequested())
+                throw new ServiceUnavailableException(ErrorCode.GeocodingProviderNotConfigured);
+
+            return await SearchNominatimAsync(address, limit, cancellationToken);
+        }
+
+        try
+        {
+            var googleMatches = await SearchGoogleAsync(address, limit, cancellationToken);
+            if (googleMatches.Count > 0)
+                return googleMatches;
+        }
+        catch (NotFoundException) when (CanFallbackToNominatim())
+        {
+            // POI might not exist in one provider index; the Nominatim fallback keeps the flow usable.
+        }
+        catch (BaseException) when (!IsGoogleProviderRequested() && CanFallbackToNominatim())
+        {
+            // Implicit Google configuration should not block admin workflows if the provider is unavailable.
+        }
+        catch (Exception ex) when (!IsGoogleProviderRequested() && CanFallbackToNominatim() && ex is HttpRequestException or JsonException)
+        {
+            // Implicit Google configuration should not block admin workflows if the provider is unavailable.
         }
 
         return await SearchNominatimAsync(address, limit, cancellationToken);
     }
 
     private async Task<IReadOnlyList<GeocodeAddressResponse>> SearchGoogleAsync(string address, int limit, CancellationToken cancellationToken)
+    {
+        foreach (var searchAddress in BuildAddressSearchVariants(address))
+        {
+            var matches = await SearchGoogleVariantAsync(searchAddress, limit, cancellationToken);
+            if (matches.Count > 0)
+            {
+                return matches;
+            }
+        }
+
+        throw new NotFoundException(ErrorCode.GeocodingAddressNotFound);
+    }
+
+    private async Task<IReadOnlyList<GeocodeAddressResponse>> SearchGoogleVariantAsync(string address, int limit, CancellationToken cancellationToken)
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, BuildGoogleSearchUri(address));
         using var response = await HttpClient.SendAsync(request, cancellationToken);
@@ -124,9 +147,6 @@ public sealed class NominatimGeocodingService : IGeocodingService
             .Select(result => result!)
             .Take(limit)
             .ToList();
-
-        if (matches.Count == 0)
-            throw new NotFoundException(ErrorCode.GeocodingAddressNotFound);
 
         return matches;
     }
@@ -315,7 +335,7 @@ public sealed class NominatimGeocodingService : IGeocodingService
         if (!supportsRequestedProvider)
             throw new ServiceUnavailableException(ErrorCode.GeocodingProviderNotConfigured);
 
-        if (ShouldSearchGoogleFirst() && !HasGoogleConfiguration() && !CanFallbackToNominatim())
+        if (IsGoogleProviderRequested() && !HasGoogleConfiguration())
             throw new ServiceUnavailableException(ErrorCode.GeocodingProviderNotConfigured);
 
         if (CanFallbackToNominatim()
@@ -329,10 +349,15 @@ public sealed class NominatimGeocodingService : IGeocodingService
 
     private bool ShouldSearchGoogleFirst()
     {
-        return string.Equals(_options.Provider, GoogleProvider, StringComparison.OrdinalIgnoreCase)
-            || string.Equals(_options.Provider, GooglePlacesProvider, StringComparison.OrdinalIgnoreCase)
+        return IsGoogleProviderRequested()
             || string.Equals(_options.Provider, AutoProvider, StringComparison.OrdinalIgnoreCase)
             || HasGoogleConfiguration();
+    }
+
+    private bool IsGoogleProviderRequested()
+    {
+        return string.Equals(_options.Provider, GoogleProvider, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(_options.Provider, GooglePlacesProvider, StringComparison.OrdinalIgnoreCase);
     }
 
     private bool HasGoogleConfiguration()
