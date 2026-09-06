@@ -28,6 +28,7 @@ data:
   Geocoding__BaseUrl: "https://nominatim.openstreetmap.org"
   Geocoding__UserAgent: "ECafe/1.0 support@ecafe.example"
   Geocoding__GoogleBaseUrl: "https://maps.googleapis.com/maps/api/place/textsearch/json"
+  Geocoding__GoogleGeocodingBaseUrl: "https://maps.googleapis.com/maps/api/geocode/json"
   Geocoding__GoogleLanguage: "az"
   Geocoding__GoogleRegion: "az"
   Geocoding__TimeoutSeconds: "10"

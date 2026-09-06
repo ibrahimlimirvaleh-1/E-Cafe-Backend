@@ -2,10 +2,11 @@
  
 ## Deyisikliklerin xulasesi
 
-- Geocoding servisi Google Places Text Search ile genislendirildi.
+- Geocoding servisi Google Places Text Search ve Google Geocoding API ile genislendirildi.
 - `Geocoding:Provider` deyeri `Google`, `GooglePlaces` ve ya `Auto` olduqda servis evvel Google Places axtarir.
 - `Geocoding:GoogleApiKey` movcuddursa servis Google axtarisini prioritet edir.
 - Google netice qaytarmasa ve ya provider xetasi olsa, Nominatim fallback kimi saxlanilir.
+- Places API kecici islemese, eyni query Google Geocoding API ile de yoxlanilir.
 - Nominatim evvelki kimi `BaseUrl`, `UserAgent` ve `CountryCodes` ile isleyir.
 - Google neticelerinde `name`, `formatted_address`, `place_id`, `geometry.location.lat/lng` map olunur.
 - Cache acari provider rejimine gore ayrildi ki Nominatim neticesi Google aktivlesenden sonra kohne cavab kimi qalmasin.
@@ -31,6 +32,7 @@
 
 - Production-da `Geocoding__Provider=Google` verilməlidir.
 - `Geocoding__GoogleApiKey` secret manager, user-secrets ve ya Kubernetes Secret ile verilməlidir.
+- Google Cloud-da Places API ve Geocoding API aktiv olmalidir; backend key browser referrer-only olmamalidir.
 - Real Google API key source-controlled config fayllarina yazilmamalidir.
 - Fallback ucun `Geocoding__BaseUrl`, `Geocoding__UserAgent` ve `Geocoding__CountryCodes` saxlanilmalidir.
 

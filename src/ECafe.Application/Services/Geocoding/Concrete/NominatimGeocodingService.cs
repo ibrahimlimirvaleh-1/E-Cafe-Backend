@@ -98,13 +98,13 @@ public sealed class NominatimGeocodingService : IGeocodingService
         {
             // POI might not exist in one provider index; the Nominatim fallback keeps the flow usable.
         }
-        catch (BaseException) when (!IsGoogleProviderRequested() && CanFallbackToNominatim())
+        catch (BaseException) when (CanFallbackToNominatim())
         {
-            // Implicit Google configuration should not block admin workflows if the provider is unavailable.
+            // Google can be disabled, rate-limited, or restricted in production; keep the admin flow usable.
         }
-        catch (Exception ex) when (!IsGoogleProviderRequested() && CanFallbackToNominatim() && ex is HttpRequestException or JsonException)
+        catch (Exception ex) when (CanFallbackToNominatim() && ex is HttpRequestException or JsonException)
         {
-            // Implicit Google configuration should not block admin workflows if the provider is unavailable.
+            // Google can be disabled, rate-limited, or restricted in production; keep the admin flow usable.
         }
 
         return await SearchNominatimAsync(address, limit, cancellationToken);
@@ -112,21 +112,46 @@ public sealed class NominatimGeocodingService : IGeocodingService
 
     private async Task<IReadOnlyList<GeocodeAddressResponse>> SearchGoogleAsync(string address, int limit, CancellationToken cancellationToken)
     {
+        ServiceUnavailableException? lastProviderFailure = null;
+
         foreach (var searchAddress in BuildAddressSearchVariants(address))
         {
-            var matches = await SearchGoogleVariantAsync(searchAddress, limit, cancellationToken);
-            if (matches.Count > 0)
+            try
             {
-                return matches;
+                var placesMatches = await SearchGooglePlacesVariantAsync(searchAddress, limit, cancellationToken);
+                if (placesMatches.Count > 0)
+                {
+                    return placesMatches;
+                }
+            }
+            catch (ServiceUnavailableException ex)
+            {
+                lastProviderFailure = ex;
+            }
+
+            try
+            {
+                var geocodingMatches = await SearchGoogleGeocodingVariantAsync(searchAddress, limit, cancellationToken);
+                if (geocodingMatches.Count > 0)
+                {
+                    return geocodingMatches;
+                }
+            }
+            catch (ServiceUnavailableException ex)
+            {
+                lastProviderFailure = ex;
             }
         }
+
+        if (lastProviderFailure is not null)
+            throw lastProviderFailure;
 
         throw new NotFoundException(ErrorCode.GeocodingAddressNotFound);
     }
 
-    private async Task<IReadOnlyList<GeocodeAddressResponse>> SearchGoogleVariantAsync(string address, int limit, CancellationToken cancellationToken)
+    private async Task<IReadOnlyList<GeocodeAddressResponse>> SearchGooglePlacesVariantAsync(string address, int limit, CancellationToken cancellationToken)
     {
-        using var request = new HttpRequestMessage(HttpMethod.Get, BuildGoogleSearchUri(address));
+        using var request = new HttpRequestMessage(HttpMethod.Get, BuildGooglePlacesSearchUri(address));
         using var response = await HttpClient.SendAsync(request, cancellationToken);
         if (!response.IsSuccessStatusCode)
             throw new ServiceUnavailableException(ErrorCode.GeocodingProviderUnavailable);
@@ -144,6 +169,34 @@ public sealed class NominatimGeocodingService : IGeocodingService
 
         var matches = (payload.Results ?? [])
             .Select(MapGoogleResult)
+            .Where(result => result is not null)
+            .Select(result => result!)
+            .Take(limit)
+            .ToList();
+
+        return matches;
+    }
+
+    private async Task<IReadOnlyList<GeocodeAddressResponse>> SearchGoogleGeocodingVariantAsync(string address, int limit, CancellationToken cancellationToken)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, BuildGoogleGeocodingSearchUri(address));
+        using var response = await HttpClient.SendAsync(request, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+            throw new ServiceUnavailableException(ErrorCode.GeocodingProviderUnavailable);
+
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        var payload = JsonSerializer.Deserialize<GoogleGeocodingResponse>(body, JsonOptions);
+        if (payload is null)
+            throw new ServiceUnavailableException(ErrorCode.GeocodingResponseInvalid);
+
+        if (!string.Equals(payload.Status, "OK", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(payload.Status, "ZERO_RESULTS", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new ServiceUnavailableException(ErrorCode.GeocodingProviderUnavailable);
+        }
+
+        var matches = (payload.Results ?? [])
+            .Select(MapGoogleGeocodingResult)
             .Where(result => result is not null)
             .Select(result => result!)
             .Take(limit)
@@ -180,7 +233,7 @@ public sealed class NominatimGeocodingService : IGeocodingService
         throw new NotFoundException(ErrorCode.GeocodingAddressNotFound);
     }
 
-    private Uri BuildGoogleSearchUri(string address)
+    private Uri BuildGooglePlacesSearchUri(string address)
     {
         var baseUrl = string.IsNullOrWhiteSpace(_options.GoogleBaseUrl)
             ? "https://maps.googleapis.com/maps/api/place/textsearch/json"
@@ -191,6 +244,27 @@ public sealed class NominatimGeocodingService : IGeocodingService
             ["key"] = _options.GoogleApiKey,
             ["region"] = string.IsNullOrWhiteSpace(_options.GoogleRegion) ? "az" : _options.GoogleRegion.Trim(),
             ["language"] = string.IsNullOrWhiteSpace(_options.GoogleLanguage) ? "az" : _options.GoogleLanguage.Trim()
+        };
+
+        var queryString = string.Join("&", query
+            .Where(item => !string.IsNullOrWhiteSpace(item.Value))
+            .Select(item => $"{Uri.EscapeDataString(item.Key)}={Uri.EscapeDataString(item.Value!)}"));
+
+        return new Uri($"{baseUrl}?{queryString}");
+    }
+
+    private Uri BuildGoogleGeocodingSearchUri(string address)
+    {
+        var baseUrl = string.IsNullOrWhiteSpace(_options.GoogleGeocodingBaseUrl)
+            ? "https://maps.googleapis.com/maps/api/geocode/json"
+            : _options.GoogleGeocodingBaseUrl.Trim();
+        var query = new Dictionary<string, string?>
+        {
+            ["address"] = address,
+            ["key"] = _options.GoogleApiKey,
+            ["region"] = string.IsNullOrWhiteSpace(_options.GoogleRegion) ? "az" : _options.GoogleRegion.Trim(),
+            ["language"] = string.IsNullOrWhiteSpace(_options.GoogleLanguage) ? "az" : _options.GoogleLanguage.Trim(),
+            ["components"] = "country:AZ"
         };
 
         var queryString = string.Join("&", query
@@ -233,6 +307,20 @@ public sealed class NominatimGeocodingService : IGeocodingService
         return new GeocodeAddressResponse
         {
             DisplayName = displayName,
+            Latitude = result.Geometry.Location.Lat,
+            Longitude = result.Geometry.Location.Lng,
+            PlaceId = result.PlaceId
+        };
+    }
+
+    private static GeocodeAddressResponse? MapGoogleGeocodingResult(GoogleGeocodingResult result)
+    {
+        if (result.Geometry?.Location is null || string.IsNullOrWhiteSpace(result.FormattedAddress))
+            return null;
+
+        return new GeocodeAddressResponse
+        {
+            DisplayName = result.FormattedAddress,
             Latitude = result.Geometry.Location.Lat,
             Longitude = result.Geometry.Location.Lng,
             PlaceId = result.PlaceId
@@ -315,6 +403,7 @@ public sealed class NominatimGeocodingService : IGeocodingService
             UserAgent = configuration["Geocoding:UserAgent"],
             GoogleApiKey = configuration["Geocoding:GoogleApiKey"],
             GoogleBaseUrl = configuration["Geocoding:GoogleBaseUrl"],
+            GoogleGeocodingBaseUrl = configuration["Geocoding:GoogleGeocodingBaseUrl"],
             GoogleLanguage = configuration["Geocoding:GoogleLanguage"],
             GoogleRegion = configuration["Geocoding:GoogleRegion"],
             TimeoutSeconds = int.TryParse(configuration["Geocoding:TimeoutSeconds"], out var timeoutSeconds) ? timeoutSeconds : null,
@@ -366,9 +455,13 @@ public sealed class NominatimGeocodingService : IGeocodingService
         var googleBaseUrl = string.IsNullOrWhiteSpace(_options.GoogleBaseUrl)
             ? "https://maps.googleapis.com/maps/api/place/textsearch/json"
             : _options.GoogleBaseUrl.Trim();
+        var googleGeocodingBaseUrl = string.IsNullOrWhiteSpace(_options.GoogleGeocodingBaseUrl)
+            ? "https://maps.googleapis.com/maps/api/geocode/json"
+            : _options.GoogleGeocodingBaseUrl.Trim();
 
         return !string.IsNullOrWhiteSpace(_options.GoogleApiKey)
-            && Uri.TryCreate(googleBaseUrl, UriKind.Absolute, out _);
+            && Uri.TryCreate(googleBaseUrl, UriKind.Absolute, out _)
+            && Uri.TryCreate(googleGeocodingBaseUrl, UriKind.Absolute, out _);
     }
 
     private bool CanFallbackToNominatim()
@@ -422,6 +515,24 @@ public sealed class NominatimGeocodingService : IGeocodingService
     {
         public string? Name { get; set; }
 
+        [JsonPropertyName("formatted_address")]
+        public string? FormattedAddress { get; set; }
+
+        [JsonPropertyName("place_id")]
+        public string? PlaceId { get; set; }
+
+        public GooglePlaceGeometry? Geometry { get; set; }
+    }
+
+    private sealed class GoogleGeocodingResponse
+    {
+        public string Status { get; set; } = null!;
+
+        public List<GoogleGeocodingResult>? Results { get; set; }
+    }
+
+    private sealed class GoogleGeocodingResult
+    {
         [JsonPropertyName("formatted_address")]
         public string? FormattedAddress { get; set; }
 
