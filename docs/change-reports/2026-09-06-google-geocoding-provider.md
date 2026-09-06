@@ -12,7 +12,6 @@
 - Google axtarisi da qisa POI adlari ucun kontekstli variantlari yoxlayir.
 - Nominatim fallback qisa POI adlari ucun `Baku` ve `Azerbaijan` kontekstli variantlari da yoxlayir.
 - `Provider=Google` secilibse, `GoogleApiKey` olmadan Nominatim-e sessiz dusmur ve config xetasi qaytarir.
-- `ICE PUB Yasamal` known-place override kimi elave edildi; provider tapmasa da resmi filial unvani ve koordinat config-den qaytarilir.
 - Config numunelerine Google geocoding parametrləri elave edildi.
 
 ## Toxunulan fayllar
