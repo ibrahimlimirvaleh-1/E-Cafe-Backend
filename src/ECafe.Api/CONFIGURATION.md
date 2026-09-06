@@ -14,16 +14,9 @@ dotnet user-secrets set "MinIO:SecretKey" "YOUR_MINIO_SECRET_KEY"
 dotnet user-secrets set "Email:Username" "YOUR_SMTP_USERNAME"
 dotnet user-secrets set "Email:Password" "YOUR_SMTP_APP_PASSWORD"
 dotnet user-secrets set "Email:From" "YOUR_FROM_EMAIL"
-dotnet user-secrets set "Geocoding:Provider" "Google"
-dotnet user-secrets set "Geocoding:GoogleApiKey" "YOUR_GOOGLE_MAPS_API_KEY"
-dotnet user-secrets set "Geocoding:GoogleGeocodingBaseUrl" "https://maps.googleapis.com/maps/api/geocode/json"
+dotnet user-secrets set "Geocoding:Provider" "Nominatim"
 dotnet user-secrets set "Sentry:Dsn" "YOUR_SENTRY_DSN"
 ```
-
-For Google-backed place search, enable both **Places API** and **Geocoding API**
-for the key in Google Cloud. For backend/server-side usage, use an IP-restricted
-key or another server-compatible restriction; browser referrer-only keys can be
-rejected by Google when the API calls are made from the backend.
 
 For production, set environment variables instead. ASP.NET Core maps double underscores to nested configuration keys:
 
@@ -34,9 +27,7 @@ $env:Jwt__AccessTokenLifetimeMinutes="10"
 $env:MinIO__AccessKey="..."
 $env:MinIO__SecretKey="..."
 $env:Email__Password="..."
-$env:Geocoding__Provider="Google"
-$env:Geocoding__GoogleApiKey="..."
-$env:Geocoding__GoogleGeocodingBaseUrl="https://maps.googleapis.com/maps/api/geocode/json"
+$env:Geocoding__Provider="Nominatim"
 $env:Sentry__Dsn="..."
 $env:Cors__AllowedOrigins__0="https://admin.ecafe.example"
 $env:Cors__AllowedOrigins__1="https://ecafe.example"
