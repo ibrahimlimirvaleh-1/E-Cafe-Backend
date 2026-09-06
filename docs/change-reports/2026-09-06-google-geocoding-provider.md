@@ -9,6 +9,7 @@
 - Nominatim evvelki kimi `BaseUrl`, `UserAgent` ve `CountryCodes` ile isleyir.
 - Google neticelerinde `name`, `formatted_address`, `place_id`, `geometry.location.lat/lng` map olunur.
 - Cache acari provider rejimine gore ayrildi ki Nominatim neticesi Google aktivlesenden sonra kohne cavab kimi qalmasin.
+- Nominatim fallback qisa POI adlari ucun `Baku` ve `Azerbaijan` kontekstli variantlari da yoxlayir.
 - Config numunelerine Google geocoding parametrləri elave edildi.
 
 ## Toxunulan fayllar
@@ -18,6 +19,7 @@
 - `src/ECafe.Api/appsettings.json`
 - `src/ECafe.Api/appsettings.Development.json`
 - `src/ECafe.Api/appsettings.Example.json`
+- `src/ECafe.Api/appsettings.Production.example.json`
 - `src/ECafe.Api/CONFIGURATION.md`
 - `deploy/api/api.env.example`
 - `deploy/k8s/api/configmap.yaml`

@@ -133,25 +133,30 @@ public sealed class NominatimGeocodingService : IGeocodingService
 
     private async Task<IReadOnlyList<GeocodeAddressResponse>> SearchNominatimAsync(string address, int limit, CancellationToken cancellationToken)
     {
-        using var request = new HttpRequestMessage(HttpMethod.Get, BuildNominatimSearchUri(address, limit));
-        request.Headers.TryAddWithoutValidation("User-Agent", _options.UserAgent!.Trim());
+        var matches = new List<GeocodeAddressResponse>();
+        foreach (var searchAddress in BuildAddressSearchVariants(address))
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Get, BuildNominatimSearchUri(searchAddress, limit));
+            request.Headers.TryAddWithoutValidation("User-Agent", _options.UserAgent!.Trim());
 
-        using var response = await HttpClient.SendAsync(request, cancellationToken);
-        if (!response.IsSuccessStatusCode)
-            throw new ServiceUnavailableException(ErrorCode.GeocodingProviderUnavailable);
+            using var response = await HttpClient.SendAsync(request, cancellationToken);
+            if (!response.IsSuccessStatusCode)
+                throw new ServiceUnavailableException(ErrorCode.GeocodingProviderUnavailable);
 
-        var body = await response.Content.ReadAsStringAsync(cancellationToken);
-        var results = JsonSerializer.Deserialize<List<NominatimResult>>(body, JsonOptions) ?? [];
-        var matches = results
-            .Select(MapNominatimResult)
-            .Where(result => result is not null)
-            .Select(result => result!)
-            .ToList();
+            var body = await response.Content.ReadAsStringAsync(cancellationToken);
+            var results = JsonSerializer.Deserialize<List<NominatimResult>>(body, JsonOptions) ?? [];
+            matches = results
+                .Select(MapNominatimResult)
+                .Where(result => result is not null)
+                .Select(result => result!)
+                .Take(limit)
+                .ToList();
 
-        if (matches.Count == 0)
-            throw new NotFoundException(ErrorCode.GeocodingAddressNotFound);
+            if (matches.Count > 0)
+                return matches;
+        }
 
-        return matches;
+        throw new NotFoundException(ErrorCode.GeocodingAddressNotFound);
     }
 
     private Uri BuildGoogleSearchUri(string address)
@@ -229,6 +234,55 @@ public sealed class NominatimGeocodingService : IGeocodingService
             Longitude = longitude,
             PlaceId = result.PlaceId?.ToString()
         };
+    }
+
+    private static IReadOnlyList<string> BuildAddressSearchVariants(string address)
+    {
+        var normalizedAddress = address.Trim();
+        var variants = new List<string> { normalizedAddress };
+        var hasBakuContext = normalizedAddress.Contains("baku", StringComparison.OrdinalIgnoreCase)
+            || normalizedAddress.Contains("baki", StringComparison.OrdinalIgnoreCase)
+            || normalizedAddress.Contains("bakı", StringComparison.OrdinalIgnoreCase);
+        var hasAzerbaijanContext = normalizedAddress.Contains("azerbaijan", StringComparison.OrdinalIgnoreCase)
+            || normalizedAddress.Contains("azərbaycan", StringComparison.OrdinalIgnoreCase);
+
+        if (!hasBakuContext)
+            variants.Add($"{normalizedAddress} Baku");
+
+        if (!hasAzerbaijanContext)
+            variants.Add($"{normalizedAddress} Azerbaijan");
+
+        if (!hasBakuContext || !hasAzerbaijanContext)
+            variants.Add($"{normalizedAddress} Baku Azerbaijan");
+
+        AddAzeriLetterVariants(normalizedAddress, variants);
+
+        return variants
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    private static void AddAzeriLetterVariants(string address, List<string> variants)
+    {
+        var latinI = address
+            .Replace('İ', 'I')
+            .Replace('ı', 'i');
+        var azeriI = address
+            .Replace('I', 'İ')
+            .Replace('i', 'ı');
+
+        if (!string.Equals(latinI, address, StringComparison.Ordinal))
+        {
+            variants.Add(latinI);
+            variants.Add($"{latinI} Baku Azerbaijan");
+        }
+
+        if (!string.Equals(azeriI, address, StringComparison.Ordinal))
+        {
+            variants.Add(azeriI);
+            variants.Add($"{azeriI} Bakı Azərbaycan");
+        }
     }
 
     private static GeocodingOptions ReadOptions(IConfiguration configuration)
