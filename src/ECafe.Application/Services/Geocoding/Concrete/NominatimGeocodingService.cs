@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using ECafe.Application.DTOs.Geocoding;
@@ -44,6 +45,14 @@ public sealed class NominatimGeocodingService : IGeocodingService
         var cacheKey = $"geocoding:{ResolveCacheProviderKey()}:{normalizedAddress.ToLowerInvariant()}:{normalizedLimit}";
         if (_cache.TryGetValue<IReadOnlyList<GeocodeAddressResponse>>(cacheKey, out var cached) && cached is not null)
             return cached;
+
+        var knownPlace = ResolveKnownPlace(normalizedAddress);
+        if (knownPlace is not null)
+        {
+            var knownMatches = new[] { knownPlace };
+            _cache.Set(cacheKey, knownMatches, TimeSpan.FromMinutes(ResolveCacheMinutes()));
+            return knownMatches;
+        }
 
         ValidateProviderConfiguration();
 
@@ -241,8 +250,8 @@ public sealed class NominatimGeocodingService : IGeocodingService
     private static GeocodeAddressResponse? MapNominatimResult(NominatimResult result)
     {
         if (string.IsNullOrWhiteSpace(result.DisplayName)
-            || !double.TryParse(result.Lat, out var latitude)
-            || !double.TryParse(result.Lon, out var longitude))
+            || !double.TryParse(result.Lat, NumberStyles.Float, CultureInfo.InvariantCulture, out var latitude)
+            || !double.TryParse(result.Lon, NumberStyles.Float, CultureInfo.InvariantCulture, out var longitude))
         {
             return null;
         }
@@ -318,8 +327,49 @@ public sealed class NominatimGeocodingService : IGeocodingService
             GoogleRegion = configuration["Geocoding:GoogleRegion"],
             TimeoutSeconds = int.TryParse(configuration["Geocoding:TimeoutSeconds"], out var timeoutSeconds) ? timeoutSeconds : null,
             CacheMinutes = int.TryParse(configuration["Geocoding:CacheMinutes"], out var cacheMinutes) ? cacheMinutes : null,
-            CountryCodes = configuration["Geocoding:CountryCodes"]
+            CountryCodes = configuration["Geocoding:CountryCodes"],
+            KnownPlaces = ReadKnownPlaces(configuration)
         };
+    }
+
+    private GeocodeAddressResponse? ResolveKnownPlace(string address)
+    {
+        var lookupKey = NormalizePlaceLookupKey(address);
+        if (string.IsNullOrWhiteSpace(lookupKey))
+            return null;
+
+        foreach (var knownPlace in _options.KnownPlaces)
+        {
+            if (knownPlace.Latitude is null
+                || knownPlace.Longitude is null
+                || string.IsNullOrWhiteSpace(knownPlace.DisplayName))
+            {
+                continue;
+            }
+
+            var aliases = knownPlace.Aliases
+                .Append(knownPlace.DisplayName)
+                .Append(knownPlace.Address)
+                .Where(alias => !string.IsNullOrWhiteSpace(alias))
+                .Select(alias => NormalizePlaceLookupKey(alias!))
+                .Where(alias => !string.IsNullOrWhiteSpace(alias))
+                .Distinct(StringComparer.OrdinalIgnoreCase);
+
+            if (!aliases.Any(alias => lookupKey.Contains(alias, StringComparison.OrdinalIgnoreCase)))
+                continue;
+
+            return new GeocodeAddressResponse
+            {
+                DisplayName = string.IsNullOrWhiteSpace(knownPlace.Address)
+                    ? knownPlace.DisplayName
+                    : $"{knownPlace.DisplayName}, {knownPlace.Address}",
+                Latitude = knownPlace.Latitude.Value,
+                Longitude = knownPlace.Longitude.Value,
+                PlaceId = knownPlace.PlaceId
+            };
+        }
+
+        return null;
     }
 
     private void ValidateProviderConfiguration()
@@ -352,6 +402,38 @@ public sealed class NominatimGeocodingService : IGeocodingService
         return IsGoogleProviderRequested()
             || string.Equals(_options.Provider, AutoProvider, StringComparison.OrdinalIgnoreCase)
             || HasGoogleConfiguration();
+    }
+
+    private static List<GeocodingKnownPlaceOptions> ReadKnownPlaces(IConfiguration configuration)
+    {
+        return configuration.GetSection("Geocoding:KnownPlaces")
+            .GetChildren()
+            .Select(section => new GeocodingKnownPlaceOptions
+            {
+                DisplayName = section["DisplayName"],
+                Address = section["Address"],
+                Latitude = double.TryParse(section["Latitude"], NumberStyles.Float, CultureInfo.InvariantCulture, out var latitude) ? latitude : null,
+                Longitude = double.TryParse(section["Longitude"], NumberStyles.Float, CultureInfo.InvariantCulture, out var longitude) ? longitude : null,
+                PlaceId = section["PlaceId"],
+                Aliases = section.GetSection("Aliases")
+                    .GetChildren()
+                    .Select(alias => alias.Value)
+                    .Where(alias => !string.IsNullOrWhiteSpace(alias))
+                    .Select(alias => alias!)
+                    .ToList()
+            })
+            .ToList();
+    }
+
+    private static string NormalizePlaceLookupKey(string value)
+    {
+        var normalizedCharacters = value
+            .Trim()
+            .ToLowerInvariant()
+            .Select(character => char.IsLetterOrDigit(character) ? character : ' ')
+            .ToArray();
+
+        return string.Join(" ", new string(normalizedCharacters).Split(' ', StringSplitOptions.RemoveEmptyEntries));
     }
 
     private bool IsGoogleProviderRequested()
