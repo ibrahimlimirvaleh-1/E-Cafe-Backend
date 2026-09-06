@@ -21,21 +21,4 @@ public sealed class GeocodingOptions
     public int? CacheMinutes { get; set; }
 
     public string? CountryCodes { get; set; }
-
-    public List<GeocodingKnownPlaceOptions> KnownPlaces { get; set; } = [];
-}
-
-public sealed class GeocodingKnownPlaceOptions
-{
-    public string? DisplayName { get; set; }
-
-    public string? Address { get; set; }
-
-    public double? Latitude { get; set; }
-
-    public double? Longitude { get; set; }
-
-    public string? PlaceId { get; set; }
-
-    public List<string> Aliases { get; set; } = [];
 }
