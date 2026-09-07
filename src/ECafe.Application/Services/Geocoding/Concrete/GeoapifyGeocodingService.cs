@@ -1,8 +1,7 @@
-using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using ECafe.Application.DTOs.Geocoding;
 using ECafe.Application.Common.Exceptions;
+using ECafe.Application.DTOs.Geocoding;
 using ECafe.Application.Services.Geocoding.Abstract;
 using ECafe.Domain.Exceptions;
 using Microsoft.Extensions.Caching.Memory;
@@ -10,9 +9,12 @@ using Microsoft.Extensions.Configuration;
 
 namespace ECafe.Application.Services.Geocoding.Concrete;
 
-public sealed class NominatimGeocodingService : IGeocodingService
+public sealed class GeoapifyGeocodingService : IGeocodingService
 {
-    private const string SupportedProvider = "Nominatim";
+    private const string SupportedProvider = "Geoapify";
+    private const string DefaultBaseUrl = "https://api.geoapify.com";
+    private const string DefaultLanguage = "az";
+    private const string DefaultBias = "proximity:49.8671,40.4093";
     private const int MinimumTimeoutSeconds = 1;
     private const int MaximumTimeoutSeconds = 30;
     private const int MinimumCacheMinutes = 1;
@@ -26,20 +28,23 @@ public sealed class NominatimGeocodingService : IGeocodingService
     private readonly IMemoryCache _cache;
     private readonly GeocodingOptions _options;
 
-    public NominatimGeocodingService(IMemoryCache cache, IConfiguration configuration)
+    public GeoapifyGeocodingService(IMemoryCache cache, IConfiguration configuration)
     {
         _cache = cache;
         _options = ReadOptions(configuration);
     }
 
-    public async Task<IReadOnlyList<GeocodeAddressResponse>> SearchAddressesAsync(string address, int limit, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<GeocodeAddressResponse>> SearchAddressesAsync(
+        string address,
+        int limit,
+        CancellationToken cancellationToken = default)
     {
         var normalizedAddress = address.Trim();
         if (string.IsNullOrWhiteSpace(normalizedAddress))
             throw new BadRequestException(ErrorCode.GeocodingAddressRequired);
 
         var normalizedLimit = Math.Clamp(limit, MinimumResultLimit, MaximumResultLimit);
-        var cacheKey = $"geocoding:{ResolveCacheProviderKey()}:{normalizedAddress.ToLowerInvariant()}:{normalizedLimit}";
+        var cacheKey = $"geocoding:geoapify:{normalizedAddress.ToLowerInvariant()}:{normalizedLimit}";
         if (_cache.TryGetValue<IReadOnlyList<GeocodeAddressResponse>>(cacheKey, out var cached) && cached is not null)
             return cached;
 
@@ -50,7 +55,7 @@ public sealed class NominatimGeocodingService : IGeocodingService
 
         try
         {
-            var matches = await SearchNominatimAsync(normalizedAddress, normalizedLimit, timeoutCts.Token);
+            var matches = await SearchGeoapifyAsync(normalizedAddress, normalizedLimit, timeoutCts.Token);
 
             _cache.Set(cacheKey, matches.Take(normalizedLimit).ToList(), TimeSpan.FromMinutes(ResolveCacheMinutes()));
             return matches;
@@ -73,70 +78,80 @@ public sealed class NominatimGeocodingService : IGeocodingService
         }
     }
 
-    private async Task<IReadOnlyList<GeocodeAddressResponse>> SearchNominatimAsync(string address, int limit, CancellationToken cancellationToken)
+    private async Task<IReadOnlyList<GeocodeAddressResponse>> SearchGeoapifyAsync(
+        string address,
+        int limit,
+        CancellationToken cancellationToken)
     {
-        var matches = new List<GeocodeAddressResponse>();
         foreach (var searchAddress in BuildAddressSearchVariants(address))
         {
-            using var request = new HttpRequestMessage(HttpMethod.Get, BuildNominatimSearchUri(searchAddress, limit));
-            request.Headers.TryAddWithoutValidation("User-Agent", _options.UserAgent!.Trim());
+            var autocompleteMatches = await RequestGeoapifyAsync("autocomplete", searchAddress, limit, cancellationToken);
+            if (autocompleteMatches.Count > 0)
+                return autocompleteMatches;
 
-            using var response = await HttpClient.SendAsync(request, cancellationToken);
-            if (!response.IsSuccessStatusCode)
-                throw new ServiceUnavailableException(ErrorCode.GeocodingProviderUnavailable);
-
-            var body = await response.Content.ReadAsStringAsync(cancellationToken);
-            var results = JsonSerializer.Deserialize<List<NominatimResult>>(body, JsonOptions) ?? [];
-            matches = results
-                .Select(MapNominatimResult)
-                .Where(result => result is not null)
-                .Select(result => result!)
-                .Take(limit)
-                .ToList();
-
-            if (matches.Count > 0)
-                return matches;
+            var searchMatches = await RequestGeoapifyAsync("search", searchAddress, limit, cancellationToken);
+            if (searchMatches.Count > 0)
+                return searchMatches;
         }
 
         throw new NotFoundException(ErrorCode.GeocodingAddressNotFound);
     }
 
-    private Uri BuildNominatimSearchUri(string address, int limit)
+    private async Task<IReadOnlyList<GeocodeAddressResponse>> RequestGeoapifyAsync(
+        string endpoint,
+        string address,
+        int limit,
+        CancellationToken cancellationToken)
     {
-        var baseUrl = _options.BaseUrl!.TrimEnd('/');
+        using var request = new HttpRequestMessage(HttpMethod.Get, BuildGeoapifyUri(endpoint, address, limit));
+        request.Headers.TryAddWithoutValidation("Accept", "application/json");
+
+        using var response = await HttpClient.SendAsync(request, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+            throw new ServiceUnavailableException(ErrorCode.GeocodingProviderUnavailable);
+
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        var results = JsonSerializer.Deserialize<GeoapifyResponse>(body, JsonOptions)?.Results ?? [];
+
+        return results
+            .Select(MapGeoapifyResult)
+            .Where(result => result is not null)
+            .Select(result => result!)
+            .Take(limit)
+            .ToList();
+    }
+
+    private Uri BuildGeoapifyUri(string endpoint, string address, int limit)
+    {
         var query = new Dictionary<string, string?>
         {
-            ["format"] = "jsonv2",
+            ["text"] = address,
+            ["format"] = "json",
             ["limit"] = limit.ToString(),
-            ["addressdetails"] = "1",
-            ["q"] = address
+            ["apiKey"] = _options.ApiKey!.Trim(),
+            ["filter"] = ResolveCountryFilter(),
+            ["bias"] = ResolveBias(),
+            ["lang"] = ResolveLanguage()
         };
-
-        if (!string.IsNullOrWhiteSpace(_options.CountryCodes))
-            query["countrycodes"] = _options.CountryCodes.Trim();
 
         var queryString = string.Join("&", query
             .Where(item => !string.IsNullOrWhiteSpace(item.Value))
             .Select(item => $"{Uri.EscapeDataString(item.Key)}={Uri.EscapeDataString(item.Value!)}"));
 
-        return new Uri($"{baseUrl}/search?{queryString}");
+        return new Uri($"{ResolveBaseUrl()}/v1/geocode/{endpoint}?{queryString}");
     }
 
-    private static GeocodeAddressResponse? MapNominatimResult(NominatimResult result)
+    private static GeocodeAddressResponse? MapGeoapifyResult(GeoapifyResult result)
     {
-        if (string.IsNullOrWhiteSpace(result.DisplayName)
-            || !double.TryParse(result.Lat, NumberStyles.Float, CultureInfo.InvariantCulture, out var latitude)
-            || !double.TryParse(result.Lon, NumberStyles.Float, CultureInfo.InvariantCulture, out var longitude))
-        {
+        if (string.IsNullOrWhiteSpace(result.Formatted))
             return null;
-        }
 
         return new GeocodeAddressResponse
         {
-            DisplayName = result.DisplayName,
-            Latitude = latitude,
-            Longitude = longitude,
-            PlaceId = result.PlaceId?.ToString()
+            DisplayName = result.Formatted,
+            Latitude = result.Lat,
+            Longitude = result.Lon,
+            PlaceId = result.PlaceId
         };
     }
 
@@ -195,7 +210,9 @@ public sealed class NominatimGeocodingService : IGeocodingService
         {
             Provider = configuration["Geocoding:Provider"],
             BaseUrl = configuration["Geocoding:BaseUrl"],
-            UserAgent = configuration["Geocoding:UserAgent"],
+            ApiKey = configuration["Geocoding:ApiKey"],
+            Language = configuration["Geocoding:Language"],
+            Bias = configuration["Geocoding:Bias"],
             TimeoutSeconds = int.TryParse(configuration["Geocoding:TimeoutSeconds"], out var timeoutSeconds) ? timeoutSeconds : null,
             CacheMinutes = int.TryParse(configuration["Geocoding:CacheMinutes"], out var cacheMinutes) ? cacheMinutes : null,
             CountryCodes = configuration["Geocoding:CountryCodes"]
@@ -209,20 +226,40 @@ public sealed class NominatimGeocodingService : IGeocodingService
             string.IsNullOrWhiteSpace(provider)
             || string.Equals(provider, SupportedProvider, StringComparison.OrdinalIgnoreCase);
 
-        if (!supportsRequestedProvider)
-            throw new ServiceUnavailableException(ErrorCode.GeocodingProviderNotConfigured);
-
-        if (string.IsNullOrWhiteSpace(_options.BaseUrl)
-            || string.IsNullOrWhiteSpace(_options.UserAgent)
-            || !Uri.TryCreate(_options.BaseUrl, UriKind.Absolute, out _))
+        if (!supportsRequestedProvider
+            || string.IsNullOrWhiteSpace(_options.ApiKey)
+            || !Uri.TryCreate(ResolveBaseUrl(), UriKind.Absolute, out _))
         {
             throw new ServiceUnavailableException(ErrorCode.GeocodingProviderNotConfigured);
         }
     }
 
-    private string ResolveCacheProviderKey()
+    private string ResolveBaseUrl()
     {
-        return SupportedProvider.ToLowerInvariant();
+        return string.IsNullOrWhiteSpace(_options.BaseUrl)
+            ? DefaultBaseUrl
+            : _options.BaseUrl.TrimEnd('/');
+    }
+
+    private string ResolveLanguage()
+    {
+        return string.IsNullOrWhiteSpace(_options.Language)
+            ? DefaultLanguage
+            : _options.Language.Trim();
+    }
+
+    private string ResolveBias()
+    {
+        return string.IsNullOrWhiteSpace(_options.Bias)
+            ? DefaultBias
+            : _options.Bias.Trim();
+    }
+
+    private string? ResolveCountryFilter()
+    {
+        return string.IsNullOrWhiteSpace(_options.CountryCodes)
+            ? null
+            : $"countrycode:{_options.CountryCodes.Trim().ToLowerInvariant()}";
     }
 
     private int ResolveTimeoutSeconds()
@@ -235,17 +272,20 @@ public sealed class NominatimGeocodingService : IGeocodingService
         return Math.Clamp(_options.CacheMinutes ?? MinimumCacheMinutes, MinimumCacheMinutes, MaximumCacheMinutes);
     }
 
-    private sealed class NominatimResult
+    private sealed class GeoapifyResponse
     {
-        [JsonPropertyName("display_name")]
-        public string DisplayName { get; set; } = null!;
-
-        public string Lat { get; set; } = null!;
-
-        public string Lon { get; set; } = null!;
-
-        [JsonPropertyName("place_id")]
-        public JsonElement? PlaceId { get; set; }
+        public List<GeoapifyResult> Results { get; set; } = [];
     }
 
+    private sealed class GeoapifyResult
+    {
+        public string Formatted { get; set; } = null!;
+
+        public double Lat { get; set; }
+
+        public double Lon { get; set; }
+
+        [JsonPropertyName("place_id")]
+        public string? PlaceId { get; set; }
+    }
 }
