@@ -21,6 +21,7 @@ public partial class ECafeDbContext : DbContext
     public virtual DbSet<Reservation> Reservations { get; set; } = null!;
     public virtual DbSet<Restaurant> Restaurants { get; set; } = null!;
     public virtual DbSet<RestaurantGroup> RestaurantGroups { get; set; } = null!;
+    public virtual DbSet<RestaurantWorkingHour> RestaurantWorkingHours { get; set; } = null!;
     public virtual DbSet<Role> Roles { get; set; } = null!;
     public virtual DbSet<Status> Statuses { get; set; } = null!;
     public virtual DbSet<StatusType> StatusTypes { get; set; } = null!;

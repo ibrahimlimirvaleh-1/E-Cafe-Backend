@@ -1,4 +1,4 @@
-﻿using ECafe.Application.Repositories.Restaurant;
+using ECafe.Application.Repositories.Restaurant;
 using ECafe.Domain.Enums;
 using ECafe.Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
@@ -18,6 +18,7 @@ namespace ECafe.Infrastructure.Repositories.Restaurant
             return Query()
                 .Include(r => r.RestaurantGroup)
                 .Include(r => r.Files)
+                .Include(r => r.WorkingHours)
                 .Include(r => r.Categories)
                     .ThenInclude(c => c.Items)
                 .AsSplitQuery()
@@ -30,6 +31,7 @@ namespace ECafe.Infrastructure.Repositories.Restaurant
                 .Include(r => r.RestaurantGroup)
                 .Include(r => r.Files)
                 .Include(r => r.Contracts)
+                .Include(r => r.WorkingHours)
                 .Include(r => r.Categories)
                     .ThenInclude(c => c.Items)
                 .AsSplitQuery()
@@ -41,10 +43,11 @@ namespace ECafe.Infrastructure.Repositories.Restaurant
             return Query()
                 .Include(r => r.RestaurantGroup)
                 .Include(r => r.Files)
+                .Include(r => r.WorkingHours)
                 .Include(r => r.Tables)
                 .Include(r => r.Categories)
                     .ThenInclude(c => c.Items)
-                        .ThenInclude(i => i.File) 
+                        .ThenInclude(i => i.File)
                 .Include(r => r.UserRestaurants)
                     .ThenInclude(ur => ur.User)
                         .ThenInclude(u => u.Role)
@@ -62,6 +65,7 @@ namespace ECafe.Infrastructure.Repositories.Restaurant
             return Query()
                 .Include(r => r.RestaurantGroup)
                 .Include(r => r.Files)
+                .Include(r => r.WorkingHours)
                 .Include(r => r.Tables)
                 .Include(r => r.Categories)
                     .ThenInclude(c => c.Items)

@@ -1,3 +1,5 @@
+using ECafe.Application.DTOs.Restaurant;
+
 namespace ECafe.Application.DTOs.Restaurant.Public
 {
     public class PublicRestaurantListItemDto
@@ -16,6 +18,11 @@ namespace ECafe.Application.DTOs.Restaurant.Public
         public int? RatingCount { get; set; }
         public decimal DepositAmount { get; set; }
         public int CancellationWindowMinutes { get; set; }
+        public string TimeZone { get; set; } = "UTC";
+        public List<RestaurantWorkingHourDto> WorkingHours { get; set; } = [];
+        public bool IsOpen { get; set; }
+        public string OpenStatus { get; set; } = "Closed";
+        public RestaurantWorkingHourDto? TodayWorkingHours { get; set; }
         public List<string> ImageUrls { get; set; } = [];
     }
 
@@ -43,6 +50,11 @@ namespace ECafe.Application.DTOs.Restaurant.Public
         public int? RatingCount { get; set; }
         public decimal DepositAmount { get; set; }
         public int CancellationWindowMinutes { get; set; }
+        public string TimeZone { get; set; } = "UTC";
+        public List<RestaurantWorkingHourDto> WorkingHours { get; set; } = [];
+        public bool IsOpen { get; set; }
+        public string OpenStatus { get; set; } = "Closed";
+        public RestaurantWorkingHourDto? TodayWorkingHours { get; set; }
         public List<string> ImageUrls { get; set; } = [];
     }
 

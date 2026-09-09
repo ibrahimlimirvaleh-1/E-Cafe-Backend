@@ -160,6 +160,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
                 throw new BusinessRuleException(ErrorCode.RestaurantNotFound);
 
             var response = Mapper.Map<GetByIdRestaurantResponse>(restaurant);
+            ApplyOpenState(response.Restaurant, restaurant);
 
             await Task.WhenAll(
                 PopulateRestaurantImageUrlsAsync(response, restaurant),
@@ -283,6 +284,8 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             restaurant.Files = [];
             restaurant.BranchName = branchName;
             restaurant.RestaurantGroup = restaurantGroup;
+            restaurant.TimeZone = NormalizeTimeZone(request.TimeZone);
+            restaurant.WorkingHours = NormalizeWorkingHours(request.WorkingHours);
 
             await using var transaction = await _transactionFactory.BeginTransactionAsync();
 
@@ -323,6 +326,8 @@ namespace ECafe.Application.Services.Restaurant.Concrete
                         restaurant.Longitude,
                         restaurant.PlaceId,
                         restaurant.Phone,
+                        restaurant.TimeZone,
+                        WorkingHours = BuildWorkingHoursAuditPayload(restaurant.WorkingHours),
                         GroupEmail = restaurant.RestaurantGroup?.Email,
                         restaurant.RestaurantGroupId,
                         OwnerId = owner.Id
@@ -401,6 +406,8 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             restaurant.CancellationWindowMinutes = request.CancellationWindowMinutes;
             restaurant.ServiceFeePercent = request.ServiceFeePercent;
             restaurant.StaffSettlementPeriod = request.StaffSettlementPeriod;
+            restaurant.TimeZone = NormalizeTimeZone(request.TimeZone);
+            ReplaceWorkingHours(restaurant, request.WorkingHours);
 
             if (request.FileIds is not null)
                 await ReplaceRestaurantFilesAsync(restaurant, request.FileIds);
@@ -426,6 +433,8 @@ namespace ECafe.Application.Services.Restaurant.Concrete
                     restaurant.CancellationWindowMinutes,
                     restaurant.ServiceFeePercent,
                     restaurant.StaffSettlementPeriod,
+                    restaurant.TimeZone,
+                    WorkingHours = BuildWorkingHoursAuditPayload(restaurant.WorkingHours),
                     restaurant.RestaurantGroupId
                 },
                 AuditEntityTypes.Restaurant,
@@ -476,6 +485,10 @@ namespace ECafe.Application.Services.Restaurant.Concrete
         private async Task<GetAllRestaurantsResponse> MapToGetAllRestaurantResponseAsync(Domain.Entities.Restaurant restaurant)
         {
             var response = Mapper.Map<GetAllRestaurantsResponse>(restaurant);
+            var openState = BuildOpenState(restaurant);
+            response.IsOpen = openState.IsOpen;
+            response.OpenStatus = openState.OpenStatus;
+            response.TodayWorkingHours = openState.TodayWorkingHours;
 
             response.ImageUrls = restaurant.Files is null
                 ? []
@@ -594,6 +607,10 @@ namespace ECafe.Application.Services.Restaurant.Concrete
         private async Task<PublicRestaurantListItemDto> MapToPublicListItemAsync(Domain.Entities.Restaurant restaurant)
         {
             var response = Mapper.Map<PublicRestaurantListItemDto>(restaurant);
+            var openState = BuildOpenState(restaurant);
+            response.IsOpen = openState.IsOpen;
+            response.OpenStatus = openState.OpenStatus;
+            response.TodayWorkingHours = openState.TodayWorkingHours;
             response.ImageUrls = await GenerateRestaurantImageUrlsAsync(restaurant);
 
             return response;
@@ -602,6 +619,10 @@ namespace ECafe.Application.Services.Restaurant.Concrete
         private async Task<PublicRestaurantDetailDto> MapToPublicDetailAsync(Domain.Entities.Restaurant restaurant)
         {
             var response = Mapper.Map<PublicRestaurantDetailDto>(restaurant);
+            var openState = BuildOpenState(restaurant);
+            response.IsOpen = openState.IsOpen;
+            response.OpenStatus = openState.OpenStatus;
+            response.TodayWorkingHours = openState.TodayWorkingHours;
             response.ImageUrls = await GenerateRestaurantImageUrlsAsync(restaurant);
 
             return response;
@@ -688,6 +709,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             var restaurant = await _restaurantRepository.QueryTracked(x => x.Id == restaurantId)
                 .Include(x => x.RestaurantGroup)
                 .Include(x => x.Files)
+                .Include(x => x.WorkingHours)
                 .Include(x => x.UserRestaurants)
                     .ThenInclude(x => x.Role)
                 .Include(x => x.UserRestaurants)
@@ -776,6 +798,143 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             => string.IsNullOrWhiteSpace(email)
                 ? null
                 : email.Trim().ToLowerInvariant();
+
+        private static void ApplyOpenState(RestaurantDetailDto response, Domain.Entities.Restaurant restaurant)
+        {
+            var openState = BuildOpenState(restaurant);
+            response.IsOpen = openState.IsOpen;
+            response.OpenStatus = openState.OpenStatus;
+            response.TodayWorkingHours = openState.TodayWorkingHours;
+        }
+
+        private static RestaurantOpenStateDto BuildOpenState(Domain.Entities.Restaurant restaurant)
+        {
+            var localNow = GetRestaurantLocalNow(restaurant.TimeZone);
+            var today = localNow.DayOfWeek;
+            var currentTime = TimeOnly.FromDateTime(localNow.DateTime);
+            var workingHours = restaurant.WorkingHours ?? [];
+            var todayHours = workingHours.FirstOrDefault(hour => hour.DayOfWeek == today);
+            var yesterdayHours = workingHours.FirstOrDefault(hour => hour.DayOfWeek == PreviousDay(today));
+            var isOpen = IsOpenAt(todayHours, currentTime) || IsOpenFromPreviousDay(yesterdayHours, currentTime);
+
+            return new RestaurantOpenStateDto
+            {
+                IsOpen = isOpen,
+                OpenStatus = isOpen ? "Open" : "Closed",
+                TodayWorkingHours = todayHours is null
+                    ? null
+                    : new RestaurantWorkingHourDto
+                    {
+                        DayOfWeek = todayHours.DayOfWeek,
+                        OpensAt = todayHours.OpensAt,
+                        ClosesAt = todayHours.ClosesAt,
+                        IsClosed = todayHours.IsClosed
+                    }
+            };
+        }
+
+        private static DateTimeOffset GetRestaurantLocalNow(string? timeZone)
+        {
+            var utcNow = DateTimeOffset.UtcNow;
+
+            if (string.IsNullOrWhiteSpace(timeZone))
+                return utcNow;
+
+            try
+            {
+                var zone = TimeZoneInfo.FindSystemTimeZoneById(timeZone.Trim());
+                return TimeZoneInfo.ConvertTime(utcNow, zone);
+            }
+            catch (TimeZoneNotFoundException)
+            {
+                return utcNow;
+            }
+            catch (InvalidTimeZoneException)
+            {
+                return utcNow;
+            }
+        }
+
+        private static bool IsOpenAt(Domain.Entities.RestaurantWorkingHour? workingHour, TimeOnly currentTime)
+        {
+            if (workingHour is null || workingHour.IsClosed || workingHour.OpensAt == workingHour.ClosesAt)
+                return false;
+
+            return workingHour.OpensAt < workingHour.ClosesAt
+                ? currentTime >= workingHour.OpensAt && currentTime < workingHour.ClosesAt
+                : currentTime >= workingHour.OpensAt || currentTime < workingHour.ClosesAt;
+        }
+
+        private static bool IsOpenFromPreviousDay(Domain.Entities.RestaurantWorkingHour? workingHour, TimeOnly currentTime)
+        {
+            if (workingHour is null || workingHour.IsClosed || workingHour.OpensAt <= workingHour.ClosesAt)
+                return false;
+
+            return currentTime < workingHour.ClosesAt;
+        }
+
+        private static DayOfWeek PreviousDay(DayOfWeek dayOfWeek)
+            => dayOfWeek == DayOfWeek.Sunday ? DayOfWeek.Saturday : dayOfWeek - 1;
+
+        private string NormalizeTimeZone(string? timeZone)
+        {
+            var normalizedTimeZone = string.IsNullOrWhiteSpace(timeZone)
+                ? _configuration["RestaurantDefaults:TimeZone"]
+                : timeZone.Trim();
+
+            return string.IsNullOrWhiteSpace(normalizedTimeZone)
+                ? "UTC"
+                : normalizedTimeZone.Trim();
+        }
+
+        private static List<Domain.Entities.RestaurantWorkingHour> NormalizeWorkingHours(
+            IEnumerable<RestaurantWorkingHourDto>? workingHours)
+        {
+            var byDay = (workingHours ?? [])
+                .GroupBy(hour => hour.DayOfWeek)
+                .ToDictionary(group => group.Key, group => group.First());
+
+            return Enum.GetValues<DayOfWeek>()
+                .Select(day =>
+                {
+                    var source = byDay.GetValueOrDefault(day);
+
+                    return new Domain.Entities.RestaurantWorkingHour
+                    {
+                        DayOfWeek = day,
+                        OpensAt = source?.OpensAt ?? new TimeOnly(9, 0),
+                        ClosesAt = source?.ClosesAt ?? new TimeOnly(0, 0),
+                        IsClosed = source?.IsClosed ?? false
+                    };
+                })
+                .ToList();
+        }
+
+        private static void ReplaceWorkingHours(
+            Domain.Entities.Restaurant restaurant,
+            IEnumerable<RestaurantWorkingHourDto>? workingHours)
+        {
+            var normalizedWorkingHours = NormalizeWorkingHours(workingHours);
+
+            restaurant.WorkingHours.Clear();
+            foreach (var workingHour in normalizedWorkingHours)
+            {
+                workingHour.RestaurantId = restaurant.Id;
+                restaurant.WorkingHours.Add(workingHour);
+            }
+        }
+
+        private static object BuildWorkingHoursAuditPayload(IEnumerable<Domain.Entities.RestaurantWorkingHour> workingHours)
+            => workingHours
+                .OrderBy(hour => hour.DayOfWeek)
+                .Select(hour => new
+                {
+                    hour.DayOfWeek,
+                    hour.OpensAt,
+                    hour.ClosesAt,
+                    hour.IsClosed
+                })
+                .ToList();
 
         private async Task EnsureBranchDoesNotExistAsync(
             int? restaurantGroupId,
