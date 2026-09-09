@@ -9,4 +9,6 @@ public sealed class GeocodeAddressResponse
     public double Longitude { get; set; }
 
     public string? PlaceId { get; set; }
+
+    public string? TimeZone { get; set; }
 }

@@ -151,7 +151,10 @@ public sealed class GeoapifyGeocodingService : IGeocodingService
             DisplayName = result.Formatted,
             Latitude = result.Lat,
             Longitude = result.Lon,
-            PlaceId = result.PlaceId
+            PlaceId = result.PlaceId,
+            TimeZone = string.IsNullOrWhiteSpace(result.Timezone?.Name)
+                ? null
+                : result.Timezone.Name.Trim()
         };
     }
 
@@ -287,5 +290,12 @@ public sealed class GeoapifyGeocodingService : IGeocodingService
 
         [JsonPropertyName("place_id")]
         public string? PlaceId { get; set; }
+
+        public GeoapifyTimezone? Timezone { get; set; }
+    }
+
+    private sealed class GeoapifyTimezone
+    {
+        public string? Name { get; set; }
     }
 }

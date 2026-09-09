@@ -32,6 +32,8 @@ public partial class Restaurant : AuditableSoftDeletableEntity<int>
 
     public int StaffSettlementPeriod { get; set; }
 
+    public string TimeZone { get; set; } = "UTC";
+
 
     public bool IsActive { get; set; }
 
@@ -54,4 +56,6 @@ public partial class Restaurant : AuditableSoftDeletableEntity<int>
     public virtual ICollection<UserRestaurant> UserRestaurants { get; set; } = new List<UserRestaurant>();
 
     public virtual ICollection<RestaurantContract> Contracts { get; set; } = new List<RestaurantContract>();
+
+    public virtual ICollection<RestaurantWorkingHour> WorkingHours { get; set; } = new List<RestaurantWorkingHour>();
 }

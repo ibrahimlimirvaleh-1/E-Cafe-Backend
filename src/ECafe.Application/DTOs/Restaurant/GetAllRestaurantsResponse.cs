@@ -31,6 +31,16 @@
 
         public decimal ServiceFeePercent { get; set; }
 
+        public string TimeZone { get; set; } = "UTC";
+
+        public List<RestaurantWorkingHourDto> WorkingHours { get; set; } = [];
+
+        public bool IsOpen { get; set; }
+
+        public string OpenStatus { get; set; } = "Closed";
+
+        public RestaurantWorkingHourDto? TodayWorkingHours { get; set; }
+
         public bool HasActiveContract { get; set; }
 
         public List<string>? ImageUrls { get; set; }

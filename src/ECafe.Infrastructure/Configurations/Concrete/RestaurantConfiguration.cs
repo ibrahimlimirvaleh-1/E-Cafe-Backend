@@ -68,6 +68,11 @@ namespace ECafe.Infrastructure.Configurations.Concrete
                 .HasDefaultValue((int)StaffSettlementPeriod.Weekly)
                 .HasColumnName("staff_settlement_period");
 
+            builder.Property(e => e.TimeZone)
+                .HasMaxLength(64)
+                .HasDefaultValue("UTC")
+                .HasColumnName("time_zone");
+
             builder.HasOne(e => e.RestaurantGroup)
                 .WithMany(e => e.Restaurants)
                 .HasForeignKey(e => e.RestaurantGroupId)

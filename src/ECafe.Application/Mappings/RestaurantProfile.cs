@@ -12,7 +12,10 @@ namespace ECafe.Application.Mappings
         {
             CreateMap<Restaurant, RestaurantDetailDto>()
                 .ForMember(dest => dest.RestaurantGroupName, opt => opt.MapFrom(src => src.RestaurantGroup == null ? null : src.RestaurantGroup.Name))
-                .ForMember(dest => dest.RestaurantGroupEmail, opt => opt.MapFrom(src => src.RestaurantGroup == null ? null : src.RestaurantGroup.Email));
+                .ForMember(dest => dest.RestaurantGroupEmail, opt => opt.MapFrom(src => src.RestaurantGroup == null ? null : src.RestaurantGroup.Email))
+                .ForMember(dest => dest.WorkingHours, opt => opt.MapFrom(src => src.WorkingHours.OrderBy(hour => hour.DayOfWeek)));
+
+            CreateMap<RestaurantWorkingHour, RestaurantWorkingHourDto>();
 
             CreateMap<Table, TableDto>();
 
@@ -60,14 +63,17 @@ namespace ECafe.Application.Mappings
                 .ForMember(dest => dest.RestaurantGroupName, opt => opt.MapFrom(src => src.RestaurantGroup == null ? null : src.RestaurantGroup.Name))
                 .ForMember(dest => dest.HasActiveContract, opt => opt.MapFrom(src => src.Contracts.Any(c =>
                     c.StatusId == ((int)ECafe.Domain.Enums.StatusType.Contract * 1000) + (int)ECafe.Domain.Enums.ContractStatus.Active)))
+                .ForMember(dest => dest.WorkingHours, opt => opt.MapFrom(src => src.WorkingHours.OrderBy(hour => hour.DayOfWeek)))
                 .ForMember(dest => dest.ImageUrls, opt => opt.Ignore());
 
             CreateMap<Restaurant, PublicRestaurantListItemDto>()
                 .ForMember(dest => dest.RestaurantGroupName, opt => opt.MapFrom(src => src.RestaurantGroup == null ? null : src.RestaurantGroup.Name))
+                .ForMember(dest => dest.WorkingHours, opt => opt.MapFrom(src => src.WorkingHours.OrderBy(hour => hour.DayOfWeek)))
                 .ForMember(dest => dest.ImageUrls, opt => opt.Ignore());
 
             CreateMap<Restaurant, PublicRestaurantDetailDto>()
                 .ForMember(dest => dest.RestaurantGroupName, opt => opt.MapFrom(src => src.RestaurantGroup == null ? null : src.RestaurantGroup.Name))
+                .ForMember(dest => dest.WorkingHours, opt => opt.MapFrom(src => src.WorkingHours.OrderBy(hour => hour.DayOfWeek)))
                 .ForMember(dest => dest.ImageUrls, opt => opt.Ignore());
 
             CreateMap<RegisterRestaurantRequest, Restaurant>()
@@ -80,6 +86,7 @@ namespace ECafe.Application.Mappings
                 .ForMember(dest => dest.RatingCount, opt => opt.MapFrom(_ => 0))
                 .ForMember(dest => dest.IsActive, opt => opt.MapFrom(_ => true))
                 .ForMember(dest => dest.RestaurantGroup, opt => opt.Ignore())
+                .ForMember(dest => dest.WorkingHours, opt => opt.Ignore())
                 .ForMember(dest => dest.Files, opt => opt.Ignore());
         }
     }

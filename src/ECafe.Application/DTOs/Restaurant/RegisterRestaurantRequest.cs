@@ -34,6 +34,10 @@ namespace ECafe.Application.DTOs.Restaurant
 
         public int StaffSettlementPeriod { get; set; } = 2;
 
+        public string? TimeZone { get; set; }
+
+        public List<RestaurantWorkingHourDto> WorkingHours { get; set; } = [];
+
         public RegisterRestaurantOwnerRequest? Owner { get; set; }
 
         public List<int>? FileIds { get; set; }
