@@ -407,7 +407,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             restaurant.ServiceFeePercent = request.ServiceFeePercent;
             restaurant.StaffSettlementPeriod = request.StaffSettlementPeriod;
             restaurant.TimeZone = NormalizeTimeZone(request.TimeZone);
-            ReplaceWorkingHours(restaurant, request.WorkingHours);
+            SyncWorkingHours(restaurant, request.WorkingHours);
 
             if (request.FileIds is not null)
                 await ReplaceRestaurantFilesAsync(restaurant, request.FileIds);
@@ -956,7 +956,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
                 .ToList();
         }
 
-        private static void ReplaceWorkingHours(
+        private static void SyncWorkingHours(
             Domain.Entities.Restaurant restaurant,
             IEnumerable<RestaurantWorkingHourDto>? workingHours)
         {
@@ -969,22 +969,34 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             {
                 if (existingWorkingHours.TryGetValue(workingHour.DayOfWeek, out var existingWorkingHour))
                 {
-                    existingWorkingHour.OpensAt = workingHour.OpensAt;
-                    existingWorkingHour.ClosesAt = workingHour.ClosesAt;
-                    existingWorkingHour.IsClosed = workingHour.IsClosed;
+                    ApplyWorkingHourChanges(existingWorkingHour, workingHour);
                     continue;
                 }
 
-                restaurant.WorkingHours.Add(new Domain.Entities.RestaurantWorkingHour
-                {
-                    RestaurantId = restaurant.Id,
-                    DayOfWeek = workingHour.DayOfWeek,
-                    OpensAt = workingHour.OpensAt,
-                    ClosesAt = workingHour.ClosesAt,
-                    IsClosed = workingHour.IsClosed
-                });
+                restaurant.WorkingHours.Add(CreateWorkingHour(restaurant.Id, workingHour));
             }
         }
+
+        private static void ApplyWorkingHourChanges(
+            Domain.Entities.RestaurantWorkingHour target,
+            Domain.Entities.RestaurantWorkingHour source)
+        {
+            target.OpensAt = source.OpensAt;
+            target.ClosesAt = source.ClosesAt;
+            target.IsClosed = source.IsClosed;
+        }
+
+        private static Domain.Entities.RestaurantWorkingHour CreateWorkingHour(
+            int restaurantId,
+            Domain.Entities.RestaurantWorkingHour source)
+            => new()
+            {
+                RestaurantId = restaurantId,
+                DayOfWeek = source.DayOfWeek,
+                OpensAt = source.OpensAt,
+                ClosesAt = source.ClosesAt,
+                IsClosed = source.IsClosed
+            };
 
         private static object BuildWorkingHoursAuditPayload(IEnumerable<Domain.Entities.RestaurantWorkingHour> workingHours)
             => workingHours
