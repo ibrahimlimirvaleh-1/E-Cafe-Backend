@@ -961,12 +961,28 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             IEnumerable<RestaurantWorkingHourDto>? workingHours)
         {
             var normalizedWorkingHours = NormalizeWorkingHours(workingHours);
+            var existingWorkingHours = restaurant.WorkingHours
+                .Where(hour => !hour.IsDeleted)
+                .ToDictionary(hour => hour.DayOfWeek);
 
-            restaurant.WorkingHours.Clear();
             foreach (var workingHour in normalizedWorkingHours)
             {
-                workingHour.RestaurantId = restaurant.Id;
-                restaurant.WorkingHours.Add(workingHour);
+                if (existingWorkingHours.TryGetValue(workingHour.DayOfWeek, out var existingWorkingHour))
+                {
+                    existingWorkingHour.OpensAt = workingHour.OpensAt;
+                    existingWorkingHour.ClosesAt = workingHour.ClosesAt;
+                    existingWorkingHour.IsClosed = workingHour.IsClosed;
+                    continue;
+                }
+
+                restaurant.WorkingHours.Add(new Domain.Entities.RestaurantWorkingHour
+                {
+                    RestaurantId = restaurant.Id,
+                    DayOfWeek = workingHour.DayOfWeek,
+                    OpensAt = workingHour.OpensAt,
+                    ClosesAt = workingHour.ClosesAt,
+                    IsClosed = workingHour.IsClosed
+                });
             }
         }
 
