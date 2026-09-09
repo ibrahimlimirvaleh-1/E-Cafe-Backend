@@ -27,7 +27,15 @@ public partial class Reservation : AuditableSoftDeletableEntity<int>
 
     public DateTime ReservedTo { get; set; }
 
+    public DateTime? HoldExpiresAt { get; set; }
+
+    public DateTime? PaymentSubmittedAt { get; set; }
+
+    public DateTime? ConfirmedAt { get; set; }
+
     public DateTime? CancelledAt { get; set; }
+
+    public DateTime? RejectedAt { get; set; }
 
     public bool? RefundEligible { get; set; }
 
@@ -49,6 +57,10 @@ public partial class Reservation : AuditableSoftDeletableEntity<int>
 
     public string? Note { get; set; }
 
+    public string? CancelReason { get; set; }
+
+    public string? RejectReason { get; set; }
+
     public virtual User? CancelledByUser { get; set; }
 
     public virtual User? CheckedInByUser { get; set; }
@@ -60,6 +72,8 @@ public partial class Reservation : AuditableSoftDeletableEntity<int>
     public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
 
     public virtual ICollection<Payment> Payments { get; set; } = new List<Payment>();
+
+    public virtual ICollection<ReservationPaymentProof> PaymentProofs { get; set; } = new List<ReservationPaymentProof>();
 
     public virtual ICollection<TableSession> TableSessions { get; set; } = new List<TableSession>();
 

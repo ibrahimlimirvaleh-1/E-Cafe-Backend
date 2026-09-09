@@ -12,7 +12,11 @@ public partial class OrderItem : AuditableSoftDeletableEntity<int>
 
     public int Quantity { get; set; }
 
+    public string NameSnapshot { get; set; } = null!;
+
     public decimal UnitPrice { get; set; }
+
+    public decimal UnitPriceSnapshot { get; set; }
 
     public decimal LineTotal { get; set; }
 
