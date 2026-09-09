@@ -842,8 +842,8 @@ namespace ECafe.Application.Services.Restaurant.Concrete
 
             try
             {
-                var zone = TimeZoneInfo.FindSystemTimeZoneById(timeZone.Trim());
-                return TimeZoneInfo.ConvertTime(utcNow, zone);
+                var zone = FindTimeZone(timeZone);
+                return zone is null ? utcNow : TimeZoneInfo.ConvertTime(utcNow, zone);
             }
             catch (TimeZoneNotFoundException)
             {
@@ -853,6 +853,52 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             {
                 return utcNow;
             }
+        }
+
+        private static TimeZoneInfo? FindTimeZone(string timeZone)
+        {
+            var trimmedTimeZone = timeZone.Trim();
+
+            try
+            {
+                return TimeZoneInfo.FindSystemTimeZoneById(trimmedTimeZone);
+            }
+            catch (TimeZoneNotFoundException)
+            {
+            }
+            catch (InvalidTimeZoneException)
+            {
+            }
+
+            if (TimeZoneInfo.TryConvertIanaIdToWindowsId(trimmedTimeZone, out var windowsTimeZoneId))
+            {
+                try
+                {
+                    return TimeZoneInfo.FindSystemTimeZoneById(windowsTimeZoneId);
+                }
+                catch (TimeZoneNotFoundException)
+                {
+                }
+                catch (InvalidTimeZoneException)
+                {
+                }
+            }
+
+            if (TimeZoneInfo.TryConvertWindowsIdToIanaId(trimmedTimeZone, out var ianaTimeZoneId))
+            {
+                try
+                {
+                    return TimeZoneInfo.FindSystemTimeZoneById(ianaTimeZoneId);
+                }
+                catch (TimeZoneNotFoundException)
+                {
+                }
+                catch (InvalidTimeZoneException)
+                {
+                }
+            }
+
+            return null;
         }
 
         private static bool IsOpenAt(Domain.Entities.RestaurantWorkingHour? workingHour, TimeOnly currentTime)
@@ -883,7 +929,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
                 : timeZone.Trim();
 
             return string.IsNullOrWhiteSpace(normalizedTimeZone)
-                ? "UTC"
+                ? "Asia/Baku"
                 : normalizedTimeZone.Trim();
         }
 

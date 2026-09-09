@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace ECafe.Infrastructure.Migrations
 {
     [DbContext(typeof(ECafeDbContext))]
-    [Migration("20260908200349_AddRestaurantWorkingHours")]
-    partial class AddRestaurantWorkingHours
+    [Migration("20260909082229_SetRestaurantDefaultTimeZoneToAsiaBaku")]
+    partial class SetRestaurantDefaultTimeZoneToAsiaBaku
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

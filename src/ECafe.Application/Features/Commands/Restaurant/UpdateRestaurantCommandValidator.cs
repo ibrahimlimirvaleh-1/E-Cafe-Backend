@@ -71,19 +71,22 @@ namespace ECafe.Application.Features.Commands.Restaurant
 
         private static bool BeValidTimeZone(string? timeZone)
         {
+            var trimmedTimeZone = timeZone!.Trim();
+
             try
             {
-                _ = TimeZoneInfo.FindSystemTimeZoneById(timeZone!.Trim());
+                _ = TimeZoneInfo.FindSystemTimeZoneById(trimmedTimeZone);
                 return true;
             }
             catch (TimeZoneNotFoundException)
             {
-                return false;
             }
             catch (InvalidTimeZoneException)
             {
-                return false;
             }
+
+            return TimeZoneInfo.TryConvertIanaIdToWindowsId(trimmedTimeZone, out _)
+                || TimeZoneInfo.TryConvertWindowsIdToIanaId(trimmedTimeZone, out _);
         }
     }
 }

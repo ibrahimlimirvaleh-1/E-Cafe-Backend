@@ -18,7 +18,7 @@ namespace ECafe.Application.DTOs.Restaurant.Public
         public int? RatingCount { get; set; }
         public decimal DepositAmount { get; set; }
         public int CancellationWindowMinutes { get; set; }
-        public string TimeZone { get; set; } = "UTC";
+        public string TimeZone { get; set; } = "Asia/Baku";
         public List<RestaurantWorkingHourDto> WorkingHours { get; set; } = [];
         public bool IsOpen { get; set; }
         public string OpenStatus { get; set; } = "Closed";
@@ -50,7 +50,7 @@ namespace ECafe.Application.DTOs.Restaurant.Public
         public int? RatingCount { get; set; }
         public decimal DepositAmount { get; set; }
         public int CancellationWindowMinutes { get; set; }
-        public string TimeZone { get; set; } = "UTC";
+        public string TimeZone { get; set; } = "Asia/Baku";
         public List<RestaurantWorkingHourDto> WorkingHours { get; set; } = [];
         public bool IsOpen { get; set; }
         public string OpenStatus { get; set; } = "Closed";

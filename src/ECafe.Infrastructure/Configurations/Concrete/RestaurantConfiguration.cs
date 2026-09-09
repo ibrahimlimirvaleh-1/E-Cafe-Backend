@@ -70,7 +70,7 @@ namespace ECafe.Infrastructure.Configurations.Concrete
 
             builder.Property(e => e.TimeZone)
                 .HasMaxLength(64)
-                .HasDefaultValue("UTC")
+                .HasDefaultValue("Asia/Baku")
                 .HasColumnName("time_zone");
 
             builder.HasOne(e => e.RestaurantGroup)
