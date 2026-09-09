@@ -19,7 +19,7 @@ namespace ECafe.Infrastructure.Migrations
                 type: "character varying(64)",
                 maxLength: 64,
                 nullable: false,
-                defaultValue: "UTC");
+                defaultValue: "Asia/Baku");
 
             migrationBuilder.CreateTable(
                 name: "restaurant_working_hours",

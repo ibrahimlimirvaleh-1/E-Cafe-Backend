@@ -32,7 +32,7 @@ public partial class Restaurant : AuditableSoftDeletableEntity<int>
 
     public int StaffSettlementPeriod { get; set; }
 
-    public string TimeZone { get; set; } = "UTC";
+    public string TimeZone { get; set; } = "Asia/Baku";
 
 
     public bool IsActive { get; set; }

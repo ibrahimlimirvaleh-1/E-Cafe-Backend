@@ -2031,7 +2031,7 @@ namespace ECafe.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)")
-                        .HasDefaultValue("UTC")
+                        .HasDefaultValue("Asia/Baku")
                         .HasColumnName("time_zone");
 
                     b.Property<DateTime?>("UpdatedAt")

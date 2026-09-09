@@ -31,7 +31,7 @@
 
         public decimal ServiceFeePercent { get; set; }
 
-        public string TimeZone { get; set; } = "UTC";
+        public string TimeZone { get; set; } = "Asia/Baku";
 
         public List<RestaurantWorkingHourDto> WorkingHours { get; set; } = [];
 
