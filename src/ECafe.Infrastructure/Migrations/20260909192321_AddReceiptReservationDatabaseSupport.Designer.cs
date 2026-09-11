@@ -3,6 +3,7 @@ using System;
 using ECafe.Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace ECafe.Infrastructure.Migrations
 {
     [DbContext(typeof(ECafeDbContext))]
-    partial class ECafeDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260909192321_AddReceiptReservationDatabaseSupport")]
+    partial class AddReceiptReservationDatabaseSupport
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1897,9 +1900,13 @@ namespace ECafe.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("rejected_at");
 
-                    b.Property<DateTime>("ReservedAt")
+                    b.Property<DateTime>("ReservedFrom")
                         .HasColumnType("timestamp with time zone")
-                        .HasColumnName("reserved_at");
+                        .HasColumnName("reserved_from");
+
+                    b.Property<DateTime>("ReservedTo")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("reserved_to");
 
                     b.Property<int>("RestaurantId")
                         .HasColumnType("integer")
@@ -1946,7 +1953,7 @@ namespace ECafe.Infrastructure.Migrations
 
                     b.HasIndex("WaiterUserId");
 
-                    b.HasIndex(new[] { "RestaurantId", "TableId", "StatusId", "ReservedAt" }, "reservations_availability_lookup_idx");
+                    b.HasIndex(new[] { "RestaurantId", "TableId", "StatusId", "ReservedFrom", "ReservedTo" }, "reservations_availability_lookup_idx");
 
                     b.HasIndex(new[] { "HoldExpiresAt" }, "reservations_hold_expires_at_idx");
 

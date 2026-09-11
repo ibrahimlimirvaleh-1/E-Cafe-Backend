@@ -3,6 +3,7 @@ using System;
 using ECafe.Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace ECafe.Infrastructure.Migrations
 {
     [DbContext(typeof(ECafeDbContext))]
-    partial class ECafeDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260909191504_EnableBankTransferReceiptPayments")]
+    partial class EnableBankTransferReceiptPayments
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1189,12 +1192,6 @@ namespace ECafe.Infrastructure.Migrations
                         .HasColumnType("numeric(10,2)")
                         .HasColumnName("line_total");
 
-                    b.Property<string>("NameSnapshot")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)")
-                        .HasColumnName("name_snapshot");
-
                     b.Property<string>("Note")
                         .HasColumnType("text")
                         .HasColumnName("note");
@@ -1215,11 +1212,6 @@ namespace ECafe.Infrastructure.Migrations
                         .HasPrecision(10, 2)
                         .HasColumnType("numeric(10,2)")
                         .HasColumnName("unit_price");
-
-                    b.Property<decimal>("UnitPriceSnapshot")
-                        .HasPrecision(10, 2)
-                        .HasColumnType("numeric(10,2)")
-                        .HasColumnName("unit_price_snapshot");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -1794,11 +1786,6 @@ namespace ECafe.Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("CancelReason")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)")
-                        .HasColumnName("cancel_reason");
-
                     b.Property<DateTime?>("CancellationDeadline")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("cancellation_deadline");
@@ -1827,10 +1814,6 @@ namespace ECafe.Infrastructure.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("completed_by_user_id");
 
-                    b.Property<DateTime?>("ConfirmedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("confirmed_at");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -1853,10 +1836,6 @@ namespace ECafe.Infrastructure.Migrations
                         .HasColumnType("numeric(18,2)")
                         .HasColumnName("deposit_amount");
 
-                    b.Property<DateTime?>("HoldExpiresAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("hold_expires_at");
-
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
@@ -1876,10 +1855,6 @@ namespace ECafe.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("paid_at");
 
-                    b.Property<DateTime?>("PaymentSubmittedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("payment_submitted_at");
-
                     b.Property<int>("PeopleCount")
                         .HasColumnType("integer")
                         .HasColumnName("people_count");
@@ -1888,18 +1863,13 @@ namespace ECafe.Infrastructure.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("refund_eligible");
 
-                    b.Property<string>("RejectReason")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)")
-                        .HasColumnName("reject_reason");
-
-                    b.Property<DateTime?>("RejectedAt")
+                    b.Property<DateTime>("ReservedFrom")
                         .HasColumnType("timestamp with time zone")
-                        .HasColumnName("rejected_at");
+                        .HasColumnName("reserved_from");
 
-                    b.Property<DateTime>("ReservedAt")
+                    b.Property<DateTime>("ReservedTo")
                         .HasColumnType("timestamp with time zone")
-                        .HasColumnName("reserved_at");
+                        .HasColumnName("reserved_to");
 
                     b.Property<int>("RestaurantId")
                         .HasColumnType("integer")
@@ -1940,98 +1910,15 @@ namespace ECafe.Infrastructure.Migrations
 
                     b.HasIndex("NoShowByUserId");
 
+                    b.HasIndex("RestaurantId");
+
                     b.HasIndex("StatusId");
 
                     b.HasIndex("TableId");
 
                     b.HasIndex("WaiterUserId");
 
-                    b.HasIndex(new[] { "RestaurantId", "TableId", "StatusId", "ReservedAt" }, "reservations_availability_lookup_idx");
-
-                    b.HasIndex(new[] { "HoldExpiresAt" }, "reservations_hold_expires_at_idx");
-
                     b.ToTable("reservations", "ops");
-                });
-
-            modelBuilder.Entity("ECafe.Domain.Entities.ReservationPaymentProof", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<decimal>("Amount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)")
-                        .HasColumnName("amount");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("CreatedBy")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("DeletedBy")
-                        .HasColumnType("text");
-
-                    b.Property<int>("FileId")
-                        .HasColumnType("integer")
-                        .HasColumnName("file_id");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("RejectReason")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)")
-                        .HasColumnName("reject_reason");
-
-                    b.Property<int>("ReservationId")
-                        .HasColumnType("integer")
-                        .HasColumnName("reservation_id");
-
-                    b.Property<DateTime?>("ReviewedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("reviewed_at");
-
-                    b.Property<int?>("ReviewedByUserId")
-                        .HasColumnType("integer")
-                        .HasColumnName("reviewed_by_user_id");
-
-                    b.Property<int>("StatusId")
-                        .HasColumnType("integer")
-                        .HasColumnName("status_id");
-
-                    b.Property<DateTime>("SubmittedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("submitted_at")
-                        .HasDefaultValueSql("now()");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("text");
-
-                    b.HasKey("Id")
-                        .HasName("reservation_payment_proofs_pkey");
-
-                    b.HasIndex("StatusId");
-
-                    b.HasIndex(new[] { "FileId" }, "reservation_payment_proofs_file_id_idx");
-
-                    b.HasIndex(new[] { "ReservationId", "StatusId" }, "reservation_payment_proofs_reservation_status_idx");
-
-                    b.HasIndex(new[] { "ReviewedByUserId" }, "reservation_payment_proofs_reviewed_by_user_id_idx");
-
-                    b.ToTable("reservation_payment_proofs", "billing");
                 });
 
             modelBuilder.Entity("ECafe.Domain.Entities.Restaurant", b =>
@@ -2356,73 +2243,6 @@ namespace ECafe.Infrastructure.Migrations
                         .HasDatabaseName("restaurant_groups_name_key");
 
                     b.ToTable("restaurant_groups", "core");
-                });
-
-            modelBuilder.Entity("ECafe.Domain.Entities.RestaurantPaymentInstruction", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("CreatedBy")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("DeletedBy")
-                        .HasColumnType("text");
-
-                    b.Property<string>("DisplayText")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)")
-                        .HasColumnName("display_text");
-
-                    b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(true)
-                        .HasColumnName("is_active");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("PaymentMethod")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("payment_method");
-
-                    b.Property<int>("RestaurantId")
-                        .HasColumnType("integer")
-                        .HasColumnName("restaurant_id");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("title");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("text");
-
-                    b.HasKey("Id")
-                        .HasName("restaurant_payment_instructions_pkey");
-
-                    b.HasIndex(new[] { "RestaurantId", "IsActive" }, "restaurant_payment_instructions_restaurant_active_idx");
-
-                    b.ToTable("restaurant_payment_instructions", "billing");
                 });
 
             modelBuilder.Entity("ECafe.Domain.Entities.RestaurantWorkingHour", b =>
@@ -3259,7 +3079,7 @@ namespace ECafe.Infrastructure.Migrations
                             CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CreatedBy = "",
                             IsDeleted = false,
-                            Name = "Ödəniş gözlənilir",
+                            Name = "Depozit ödənişi gözlənilir",
                             StatusTypeId = 1
                         },
                         new
@@ -3268,7 +3088,7 @@ namespace ECafe.Infrastructure.Migrations
                             CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CreatedBy = "",
                             IsDeleted = false,
-                            Name = "Rezervasiya təsdiqlənib",
+                            Name = "Depozit ödənilib, stol rezerv olunub",
                             StatusTypeId = 1
                         },
                         new
@@ -3318,24 +3138,6 @@ namespace ECafe.Infrastructure.Migrations
                         },
                         new
                         {
-                            Id = 1008,
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "",
-                            IsDeleted = false,
-                            Name = "Ödəniş çeki göndərilib",
-                            StatusTypeId = 1
-                        },
-                        new
-                        {
-                            Id = 1009,
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "",
-                            IsDeleted = false,
-                            Name = "Rezervasiya rədd edilib",
-                            StatusTypeId = 1
-                        },
-                        new
-                        {
                             Id = 3001,
                             CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CreatedBy = "",
@@ -3377,24 +3179,6 @@ namespace ECafe.Infrastructure.Migrations
                             CreatedBy = "",
                             IsDeleted = false,
                             Name = "Ödəniş geri qaytarılıb",
-                            StatusTypeId = 3
-                        },
-                        new
-                        {
-                            Id = 3006,
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "",
-                            IsDeleted = false,
-                            Name = "Ödəniş sübutu göndərilib",
-                            StatusTypeId = 3
-                        },
-                        new
-                        {
-                            Id = 3007,
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "",
-                            IsDeleted = false,
-                            Name = "Ödəniş rədd edilib",
                             StatusTypeId = 3
                         },
                         new
@@ -4943,62 +4727,6 @@ namespace ECafe.Infrastructure.Migrations
                             RoleId = 1,
                             SortOrder = 90,
                             StatusId = 6007
-                        },
-                        new
-                        {
-                            Id = 32,
-                            ActionCode = "submitPaymentProof",
-                            EndpointTemplate = "/api/v1/restaurants/{restaurantId}/reservations/{reservationId}/payment-proofs",
-                            FlowCode = "reservation",
-                            HttpMethod = "POST",
-                            IsEnabled = true,
-                            Label = "Ödəniş çekini göndər",
-                            RequiresConfirmation = false,
-                            RoleId = 5,
-                            SortOrder = 10,
-                            StatusId = 1001
-                        },
-                        new
-                        {
-                            Id = 33,
-                            ActionCode = "approvePaymentProof",
-                            EndpointTemplate = "/api/v1/restaurants/{restaurantId}/reservations/{reservationId}/payment-proofs/approve",
-                            FlowCode = "reservation",
-                            HttpMethod = "POST",
-                            IsEnabled = true,
-                            Label = "Ödənişi təsdiqlə",
-                            RequiresConfirmation = true,
-                            RoleId = 3,
-                            SortOrder = 10,
-                            StatusId = 1008
-                        },
-                        new
-                        {
-                            Id = 34,
-                            ActionCode = "rejectPaymentProof",
-                            EndpointTemplate = "/api/v1/restaurants/{restaurantId}/reservations/{reservationId}/payment-proofs/reject",
-                            FlowCode = "reservation",
-                            HttpMethod = "POST",
-                            IsEnabled = true,
-                            Label = "Ödənişi rədd et",
-                            RequiresConfirmation = true,
-                            RoleId = 3,
-                            SortOrder = 20,
-                            StatusId = 1008
-                        },
-                        new
-                        {
-                            Id = 35,
-                            ActionCode = "cancel",
-                            EndpointTemplate = "/api/v1/restaurants/{restaurantId}/reservations/{reservationId}/cancel",
-                            FlowCode = "reservation",
-                            HttpMethod = "POST",
-                            IsEnabled = true,
-                            Label = "Rezervasiyanı ləğv et",
-                            RequiresConfirmation = true,
-                            RoleId = 3,
-                            SortOrder = 90,
-                            StatusId = 1008
                         });
                 });
 
@@ -5445,44 +5173,6 @@ namespace ECafe.Infrastructure.Migrations
                     b.Navigation("WaiterUser");
                 });
 
-            modelBuilder.Entity("ECafe.Domain.Entities.ReservationPaymentProof", b =>
-                {
-                    b.HasOne("ECafe.Domain.Entities.File", "File")
-                        .WithMany()
-                        .HasForeignKey("FileId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired()
-                        .HasConstraintName("reservation_payment_proofs_file_id_fkey");
-
-                    b.HasOne("ECafe.Domain.Entities.Reservation", "Reservation")
-                        .WithMany("PaymentProofs")
-                        .HasForeignKey("ReservationId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired()
-                        .HasConstraintName("reservation_payment_proofs_reservation_id_fkey");
-
-                    b.HasOne("ECafe.Domain.Entities.User", "ReviewedByUser")
-                        .WithMany()
-                        .HasForeignKey("ReviewedByUserId")
-                        .OnDelete(DeleteBehavior.SetNull)
-                        .HasConstraintName("reservation_payment_proofs_reviewed_by_user_id_fkey");
-
-                    b.HasOne("ECafe.Domain.Entities.Status", "Status")
-                        .WithMany()
-                        .HasForeignKey("StatusId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired()
-                        .HasConstraintName("reservation_payment_proofs_status_id_fkey");
-
-                    b.Navigation("File");
-
-                    b.Navigation("Reservation");
-
-                    b.Navigation("ReviewedByUser");
-
-                    b.Navigation("Status");
-                });
-
             modelBuilder.Entity("ECafe.Domain.Entities.Restaurant", b =>
                 {
                     b.HasOne("ECafe.Domain.Entities.RestaurantGroup", "RestaurantGroup")
@@ -5528,18 +5218,6 @@ namespace ECafe.Infrastructure.Migrations
                     b.Navigation("SignedByUser");
 
                     b.Navigation("Status");
-                });
-
-            modelBuilder.Entity("ECafe.Domain.Entities.RestaurantPaymentInstruction", b =>
-                {
-                    b.HasOne("ECafe.Domain.Entities.Restaurant", "Restaurant")
-                        .WithMany("PaymentInstructions")
-                        .HasForeignKey("RestaurantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired()
-                        .HasConstraintName("restaurant_payment_instructions_restaurant_id_fkey");
-
-                    b.Navigation("Restaurant");
                 });
 
             modelBuilder.Entity("ECafe.Domain.Entities.RestaurantWorkingHour", b =>
@@ -5894,8 +5572,6 @@ namespace ECafe.Infrastructure.Migrations
                 {
                     b.Navigation("Orders");
 
-                    b.Navigation("PaymentProofs");
-
                     b.Navigation("Payments");
 
                     b.Navigation("TableSessions");
@@ -5910,8 +5586,6 @@ namespace ECafe.Infrastructure.Migrations
                     b.Navigation("Files");
 
                     b.Navigation("Orders");
-
-                    b.Navigation("PaymentInstructions");
 
                     b.Navigation("Payments");
 

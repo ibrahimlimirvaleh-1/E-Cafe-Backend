@@ -17,26 +17,38 @@ namespace ECafe.Infrastructure.Configurations.Concrete
             builder.Property(e => e.CompletedByUserId).HasColumnName("completed_by_user_id");
             builder.Property(e => e.CancelledAt).HasColumnName("cancelled_at");
             builder.Property(e => e.CancelledByUserId).HasColumnName("cancelled_by_user_id");
+            builder.Property(e => e.CancelReason)
+                .HasMaxLength(500)
+                .HasColumnName("cancel_reason");
             builder.Property(e => e.CancellationDeadline).HasColumnName("cancellation_deadline");
             builder.Property(e => e.CancellationWindowMinutes).HasColumnName("cancellation_window_minutes");
             builder.Property(e => e.CheckedInByUserId).HasColumnName("checked_in_by_user_id");
+            builder.Property(e => e.ConfirmedAt).HasColumnName("confirmed_at");
             builder.Property(e => e.CustomerUserId).HasColumnName("customer_user_id");
             builder.Property(e => e.DepositAmount)
                 .HasPrecision(18, 2)
                 .HasColumnName("deposit_amount");
+            builder.Property(e => e.HoldExpiresAt).HasColumnName("hold_expires_at");
             builder.Property(e => e.Note).HasColumnName("note");
             builder.Property(e => e.NoShowAt).HasColumnName("no_show_at");
             builder.Property(e => e.NoShowByUserId).HasColumnName("no_show_by_user_id");
             builder.Property(e => e.PaidAt).HasColumnName("paid_at");
+            builder.Property(e => e.PaymentSubmittedAt).HasColumnName("payment_submitted_at");
             builder.Property(e => e.PeopleCount).HasColumnName("people_count");
+            builder.Property(e => e.RejectedAt).HasColumnName("rejected_at");
+            builder.Property(e => e.RejectReason)
+                .HasMaxLength(500)
+                .HasColumnName("reject_reason");
             builder.Property(e => e.RefundEligible).HasColumnName("refund_eligible");
-            builder.Property(e => e.ReservedFrom).HasColumnName("reserved_from");
-            builder.Property(e => e.ReservedTo).HasColumnName("reserved_to");
+            builder.Property(e => e.ReservedAt).HasColumnName("reserved_at");
             builder.Property(e => e.RestaurantId).HasColumnName("restaurant_id");
             builder.Property(e => e.SeatedAt).HasColumnName("seated_at");
             builder.Property(e => e.StatusId).HasColumnName("status_id");
             builder.Property(e => e.TableId).HasColumnName("table_id");
             builder.Property(e => e.WaiterUserId).HasColumnName("waiter_user_id");
+
+            builder.HasIndex(e => new { e.RestaurantId, e.TableId, e.StatusId, e.ReservedAt }, "reservations_availability_lookup_idx");
+            builder.HasIndex(e => e.HoldExpiresAt, "reservations_hold_expires_at_idx");
 
             builder.HasOne(d => d.CustomerUser).WithMany(p => p.Reservations)
                 .HasForeignKey(d => d.CustomerUserId)
