@@ -23,9 +23,7 @@ public partial class Reservation : AuditableSoftDeletableEntity<int>
 
     public DateTime? CancellationDeadline { get; set; }
 
-    public DateTime ReservedFrom { get; set; }
-
-    public DateTime ReservedTo { get; set; }
+    public DateTime ReservedAt { get; set; }
 
     public DateTime? HoldExpiresAt { get; set; }
 

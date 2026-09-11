@@ -40,15 +40,14 @@ namespace ECafe.Infrastructure.Configurations.Concrete
                 .HasMaxLength(500)
                 .HasColumnName("reject_reason");
             builder.Property(e => e.RefundEligible).HasColumnName("refund_eligible");
-            builder.Property(e => e.ReservedFrom).HasColumnName("reserved_from");
-            builder.Property(e => e.ReservedTo).HasColumnName("reserved_to");
+            builder.Property(e => e.ReservedAt).HasColumnName("reserved_at");
             builder.Property(e => e.RestaurantId).HasColumnName("restaurant_id");
             builder.Property(e => e.SeatedAt).HasColumnName("seated_at");
             builder.Property(e => e.StatusId).HasColumnName("status_id");
             builder.Property(e => e.TableId).HasColumnName("table_id");
             builder.Property(e => e.WaiterUserId).HasColumnName("waiter_user_id");
 
-            builder.HasIndex(e => new { e.RestaurantId, e.TableId, e.StatusId, e.ReservedFrom, e.ReservedTo }, "reservations_availability_lookup_idx");
+            builder.HasIndex(e => new { e.RestaurantId, e.TableId, e.StatusId, e.ReservedAt }, "reservations_availability_lookup_idx");
             builder.HasIndex(e => e.HoldExpiresAt, "reservations_hold_expires_at_idx");
 
             builder.HasOne(d => d.CustomerUser).WithMany(p => p.Reservations)
