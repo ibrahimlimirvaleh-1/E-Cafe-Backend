@@ -1,4 +1,3 @@
-using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -15,28 +14,11 @@ namespace ECafe.Infrastructure.Migrations
                 name: "is_empty",
                 schema: "ops",
                 table: "tables");
-
-            migrationBuilder.DropColumn(
-                name: "reserved_from",
-                schema: "ops",
-                table: "reservations");
-
-            migrationBuilder.RenameColumn(
-                name: "reserved_to",
-                schema: "ops",
-                table: "reservations",
-                newName: "reserved_at");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.RenameColumn(
-                name: "reserved_at",
-                schema: "ops",
-                table: "reservations",
-                newName: "reserved_to");
-
             migrationBuilder.AddColumn<bool>(
                 name: "is_empty",
                 schema: "ops",
@@ -44,14 +26,6 @@ namespace ECafe.Infrastructure.Migrations
                 type: "boolean",
                 nullable: false,
                 defaultValue: true);
-
-            migrationBuilder.AddColumn<DateTime>(
-                name: "reserved_from",
-                schema: "ops",
-                table: "reservations",
-                type: "timestamp with time zone",
-                nullable: false,
-                defaultValue: new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified));
         }
     }
 }
