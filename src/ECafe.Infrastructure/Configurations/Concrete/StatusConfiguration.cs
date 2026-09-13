@@ -19,6 +19,9 @@ namespace ECafe.Infrastructure.Configurations.Concrete
             builder.Property(e => e.Name)
                 .HasMaxLength(50)
                 .HasColumnName("name");
+            builder.Property(e => e.BlocksTableAvailability)
+                .HasDefaultValue(false)
+                .HasColumnName("blocks_table_availability");
             builder.Property(e => e.StatusTypeId).HasColumnName("status_type_id");
 
             builder.HasOne(d => d.StatusType).WithMany(p => p.Statuses)

@@ -18,7 +18,7 @@ namespace ECafe.Infrastructure.Repositories.TableSession
             if (waiterUserIds.Count == 0)
                 return [];
 
-            var openStatusId = ((int)StatusType.TableSession * 1000) + (int)TableSessionStatus.Open;
+            var openStatusId = StatusIds.TableSession(TableSessionStatus.Open);
 
             return await Query()
                 .Where(session =>

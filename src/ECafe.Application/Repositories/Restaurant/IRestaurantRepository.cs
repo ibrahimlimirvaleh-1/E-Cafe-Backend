@@ -1,4 +1,4 @@
-﻿using ECafe.Application.Repository;
+using ECafe.Application.Repository;
 
 namespace ECafe.Application.Repositories.Restaurant
 {
@@ -11,5 +11,9 @@ namespace ECafe.Application.Repositories.Restaurant
         Task<Domain.Entities.Restaurant?> GetRestaurantInfoAsync(int id);
 
         Task<Domain.Entities.Restaurant?> GetPublicRestaurantInfoAsync(int id);
+
+        Task<bool> HasRestaurantActiveContractAsync(int id);
+
+        Task<bool> IsRestaurantOpenAsync(int restaurantId, DateTimeOffset reservedAt);
     }
 }

@@ -82,9 +82,9 @@ namespace ECafe.Infrastructure.Repositories.RestaurantContract
                 .ToListAsync();
 
         private static int ActiveStatusId =>
-            ((int)StatusType.Contract * 1000) + (int)ContractStatus.Active;
+            StatusIds.Contract(ContractStatus.Active);
 
         private static int ScheduledStatusId =>
-            ((int)StatusType.Contract * 1000) + (int)ContractStatus.Scheduled;
+            StatusIds.Contract(ContractStatus.Scheduled);
     }
 }

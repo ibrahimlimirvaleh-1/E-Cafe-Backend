@@ -362,7 +362,7 @@ namespace ECafe.Application.Services.Item.Concrete
         }
 
         private static int GetOutOfStockStatusId()
-            => ((int)StatusType.ItemStatus * 1000) + (int)ItemStatus.OutOfStock;
+            => StatusIds.Item(ItemStatus.OutOfStock);
 
         private async Task<Domain.Entities.File?> GetAttachableFileAsync(int? fileId)
         {

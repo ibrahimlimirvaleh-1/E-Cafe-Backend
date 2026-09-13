@@ -29,5 +29,13 @@ namespace ECafe.Api.Controllers
         [HttpGet("api/v1/public/restaurants/{restaurantId}/tables")]
         public async Task<IActionResult> GetTables(int restaurantId)
             => Ok(await Mediator.Send(new GetPublicRestaurantTablesQuery(restaurantId)));
+
+        [HttpGet("api/v1/public/restaurants/{restaurantId}/tables/availability")]
+        public async Task<IActionResult> CheckTableAvailability(int restaurantId, [FromQuery] DateTimeOffset reservedAt)
+            => Ok(await Mediator.Send(new GetPublicRestaurantTableAvailabilityQuery(restaurantId, reservedAt)));
+
+        [HttpGet("api/v1/public/restaurants/{restaurantId}/tables/available")]
+        public async Task<IActionResult> GetAvailableTables(int restaurantId, [FromQuery] DateTimeOffset reservedAt)
+            => Ok(await Mediator.Send(new GetPublicRestaurantAvailableTablesQuery(restaurantId, reservedAt)));
     }
 }

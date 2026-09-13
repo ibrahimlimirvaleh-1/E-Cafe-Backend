@@ -1,5 +1,7 @@
 using ECafe.Application.DTOs.Restaurant.Public;
+using ECafe.Application.DTOs.Table;
 using ECafe.Application.Services.Restaurant.Abstract;
+using ECafe.Application.Services.Table.Abstract;
 using ECafe.Shared.DTOs;
 using MediatR;
 
@@ -101,5 +103,43 @@ namespace ECafe.Application.Features.Queries.Restaurant.Public
             GetPublicRestaurantTablesQuery request,
             CancellationToken cancellationToken)
             => _restaurantService.GetPublicRestaurantTablesAsync(request.RestaurantId);
+    }
+
+    public record GetPublicRestaurantTableAvailabilityQuery(int RestaurantId, DateTimeOffset ReservedAt)
+        : IRequest<TableAvailabilityResponse>;
+
+    public class GetPublicRestaurantTableAvailabilityQueryHandler
+        : IRequestHandler<GetPublicRestaurantTableAvailabilityQuery, TableAvailabilityResponse>
+    {
+        private readonly ITableService _tableService;
+
+        public GetPublicRestaurantTableAvailabilityQueryHandler(ITableService tableService)
+        {
+            _tableService = tableService;
+        }
+
+        public Task<TableAvailabilityResponse> Handle(
+            GetPublicRestaurantTableAvailabilityQuery request,
+            CancellationToken cancellationToken)
+            => _tableService.CheckAvailabilityAsync(request.RestaurantId, request.ReservedAt);
+    }
+
+    public record GetPublicRestaurantAvailableTablesQuery(int RestaurantId, DateTimeOffset ReservedAt)
+        : IRequest<List<TableResponse>>;
+
+    public class GetPublicRestaurantAvailableTablesQueryHandler
+        : IRequestHandler<GetPublicRestaurantAvailableTablesQuery, List<TableResponse>>
+    {
+        private readonly ITableService _tableService;
+
+        public GetPublicRestaurantAvailableTablesQueryHandler(ITableService tableService)
+        {
+            _tableService = tableService;
+        }
+
+        public Task<List<TableResponse>> Handle(
+            GetPublicRestaurantAvailableTablesQuery request,
+            CancellationToken cancellationToken)
+            => _tableService.GetAvailableForReservationAsync(request.RestaurantId, request.ReservedAt);
     }
 }
