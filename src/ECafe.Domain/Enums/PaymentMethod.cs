@@ -13,6 +13,9 @@ namespace ECafe.Domain.Enums
         Card = 2,
 
         [Description("Onlayn ödəniş")]
-        Online = 3
+        Online = 3,
+
+        [Description("Köçürmə ilə ödəniş")]
+        BankTransfer = 4
     }
 }

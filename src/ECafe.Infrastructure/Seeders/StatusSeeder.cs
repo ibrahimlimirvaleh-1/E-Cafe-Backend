@@ -68,8 +68,9 @@ namespace ECafe.Infrastructure.Seeders
 
         private static bool BlocksTableAvailability(ReservationStatus status)
         {
-            return status is ReservationStatus.PendingDeposit
-                or ReservationStatus.Reserved
+            return status is ReservationStatus.PendingPayment
+                or ReservationStatus.PaymentSubmitted
+                or ReservationStatus.Confirmed
                 or ReservationStatus.Seated;
         }
 

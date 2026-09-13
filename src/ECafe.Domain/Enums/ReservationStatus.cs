@@ -4,11 +4,11 @@ namespace ECafe.Domain.Enums
 {
     public enum ReservationStatus
     {
-        [Description("Depozit ödənişi gözlənilir")]
-        PendingDeposit = 1,
+        [Description("Ödəniş gözlənilir")]
+        PendingPayment = 1,
 
-        [Description("Depozit ödənilib, stol rezerv olunub")]
-        Reserved,
+        [Description("Rezervasiya təsdiqlənib")]
+        Confirmed,
 
         [Description("Müştəri gəlib və stol arxasında əyləşib")]
         Seated,
@@ -23,7 +23,13 @@ namespace ECafe.Domain.Enums
         NoShow,
 
         [Description("Rezervasiyanın vaxtı bitib")]
-        Expired
+        Expired,
+
+        [Description("Ödəniş çeki göndərilib")]
+        PaymentSubmitted,
+
+        [Description("Rezervasiya rədd edilib")]
+        Rejected
     }
 
 

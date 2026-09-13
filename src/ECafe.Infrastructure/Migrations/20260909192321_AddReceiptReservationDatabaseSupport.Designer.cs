@@ -3,6 +3,7 @@ using System;
 using ECafe.Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace ECafe.Infrastructure.Migrations
 {
     [DbContext(typeof(ECafeDbContext))]
-    partial class ECafeDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260909192321_AddReceiptReservationDatabaseSupport")]
+    partial class AddReceiptReservationDatabaseSupport
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1897,9 +1900,13 @@ namespace ECafe.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("rejected_at");
 
-                    b.Property<DateTime>("ReservedAt")
+                    b.Property<DateTime>("ReservedFrom")
                         .HasColumnType("timestamp with time zone")
-                        .HasColumnName("reserved_at");
+                        .HasColumnName("reserved_from");
+
+                    b.Property<DateTime>("ReservedTo")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("reserved_to");
 
                     b.Property<int>("RestaurantId")
                         .HasColumnType("integer")
@@ -1946,7 +1953,7 @@ namespace ECafe.Infrastructure.Migrations
 
                     b.HasIndex("WaiterUserId");
 
-                    b.HasIndex(new[] { "RestaurantId", "TableId", "StatusId", "ReservedAt" }, "reservations_availability_lookup_idx");
+                    b.HasIndex(new[] { "RestaurantId", "TableId", "StatusId", "ReservedFrom", "ReservedTo" }, "reservations_availability_lookup_idx");
 
                     b.HasIndex(new[] { "HoldExpiresAt" }, "reservations_hold_expires_at_idx");
 
@@ -3140,12 +3147,6 @@ namespace ECafe.Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<bool>("BlocksTableAvailability")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false)
-                        .HasColumnName("blocks_table_availability");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -3190,7 +3191,6 @@ namespace ECafe.Infrastructure.Migrations
                         new
                         {
                             Id = 2001,
-                            BlocksTableAvailability = false,
                             CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CreatedBy = "",
                             IsDeleted = false,
@@ -3200,7 +3200,6 @@ namespace ECafe.Infrastructure.Migrations
                         new
                         {
                             Id = 2002,
-                            BlocksTableAvailability = false,
                             CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CreatedBy = "",
                             IsDeleted = false,
@@ -3210,7 +3209,6 @@ namespace ECafe.Infrastructure.Migrations
                         new
                         {
                             Id = 2003,
-                            BlocksTableAvailability = false,
                             CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CreatedBy = "",
                             IsDeleted = false,
@@ -3220,7 +3218,6 @@ namespace ECafe.Infrastructure.Migrations
                         new
                         {
                             Id = 2004,
-                            BlocksTableAvailability = false,
                             CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CreatedBy = "",
                             IsDeleted = false,
@@ -3230,7 +3227,6 @@ namespace ECafe.Infrastructure.Migrations
                         new
                         {
                             Id = 2005,
-                            BlocksTableAvailability = false,
                             CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CreatedBy = "",
                             IsDeleted = false,
@@ -3240,7 +3236,6 @@ namespace ECafe.Infrastructure.Migrations
                         new
                         {
                             Id = 2006,
-                            BlocksTableAvailability = false,
                             CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CreatedBy = "",
                             IsDeleted = false,
@@ -3250,7 +3245,6 @@ namespace ECafe.Infrastructure.Migrations
                         new
                         {
                             Id = 2007,
-                            BlocksTableAvailability = false,
                             CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CreatedBy = "",
                             IsDeleted = false,
@@ -3260,7 +3254,6 @@ namespace ECafe.Infrastructure.Migrations
                         new
                         {
                             Id = 2008,
-                            BlocksTableAvailability = false,
                             CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CreatedBy = "",
                             IsDeleted = false,
@@ -3270,7 +3263,6 @@ namespace ECafe.Infrastructure.Migrations
                         new
                         {
                             Id = 1001,
-                            BlocksTableAvailability = true,
                             CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CreatedBy = "",
                             IsDeleted = false,
@@ -3280,7 +3272,6 @@ namespace ECafe.Infrastructure.Migrations
                         new
                         {
                             Id = 1002,
-                            BlocksTableAvailability = true,
                             CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CreatedBy = "",
                             IsDeleted = false,
@@ -3290,7 +3281,6 @@ namespace ECafe.Infrastructure.Migrations
                         new
                         {
                             Id = 1003,
-                            BlocksTableAvailability = true,
                             CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CreatedBy = "",
                             IsDeleted = false,
@@ -3300,7 +3290,6 @@ namespace ECafe.Infrastructure.Migrations
                         new
                         {
                             Id = 1004,
-                            BlocksTableAvailability = false,
                             CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CreatedBy = "",
                             IsDeleted = false,
@@ -3310,7 +3299,6 @@ namespace ECafe.Infrastructure.Migrations
                         new
                         {
                             Id = 1005,
-                            BlocksTableAvailability = false,
                             CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CreatedBy = "",
                             IsDeleted = false,
@@ -3320,7 +3308,6 @@ namespace ECafe.Infrastructure.Migrations
                         new
                         {
                             Id = 1006,
-                            BlocksTableAvailability = false,
                             CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CreatedBy = "",
                             IsDeleted = false,
@@ -3330,7 +3317,6 @@ namespace ECafe.Infrastructure.Migrations
                         new
                         {
                             Id = 1007,
-                            BlocksTableAvailability = false,
                             CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CreatedBy = "",
                             IsDeleted = false,
@@ -3340,7 +3326,6 @@ namespace ECafe.Infrastructure.Migrations
                         new
                         {
                             Id = 1008,
-                            BlocksTableAvailability = true,
                             CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CreatedBy = "",
                             IsDeleted = false,
@@ -3350,7 +3335,6 @@ namespace ECafe.Infrastructure.Migrations
                         new
                         {
                             Id = 1009,
-                            BlocksTableAvailability = false,
                             CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CreatedBy = "",
                             IsDeleted = false,
@@ -3360,7 +3344,6 @@ namespace ECafe.Infrastructure.Migrations
                         new
                         {
                             Id = 3001,
-                            BlocksTableAvailability = false,
                             CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CreatedBy = "",
                             IsDeleted = false,
@@ -3370,7 +3353,6 @@ namespace ECafe.Infrastructure.Migrations
                         new
                         {
                             Id = 3002,
-                            BlocksTableAvailability = false,
                             CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CreatedBy = "",
                             IsDeleted = false,
@@ -3380,7 +3362,6 @@ namespace ECafe.Infrastructure.Migrations
                         new
                         {
                             Id = 3003,
-                            BlocksTableAvailability = false,
                             CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CreatedBy = "",
                             IsDeleted = false,
@@ -3390,7 +3371,6 @@ namespace ECafe.Infrastructure.Migrations
                         new
                         {
                             Id = 3004,
-                            BlocksTableAvailability = false,
                             CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CreatedBy = "",
                             IsDeleted = false,
@@ -3400,7 +3380,6 @@ namespace ECafe.Infrastructure.Migrations
                         new
                         {
                             Id = 3005,
-                            BlocksTableAvailability = false,
                             CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CreatedBy = "",
                             IsDeleted = false,
@@ -3410,7 +3389,6 @@ namespace ECafe.Infrastructure.Migrations
                         new
                         {
                             Id = 3006,
-                            BlocksTableAvailability = false,
                             CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CreatedBy = "",
                             IsDeleted = false,
@@ -3420,7 +3398,6 @@ namespace ECafe.Infrastructure.Migrations
                         new
                         {
                             Id = 3007,
-                            BlocksTableAvailability = false,
                             CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CreatedBy = "",
                             IsDeleted = false,
@@ -3430,7 +3407,6 @@ namespace ECafe.Infrastructure.Migrations
                         new
                         {
                             Id = 4001,
-                            BlocksTableAvailability = false,
                             CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CreatedBy = "",
                             IsDeleted = true,
@@ -3440,7 +3416,6 @@ namespace ECafe.Infrastructure.Migrations
                         new
                         {
                             Id = 4002,
-                            BlocksTableAvailability = false,
                             CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CreatedBy = "",
                             IsDeleted = true,
@@ -3450,7 +3425,6 @@ namespace ECafe.Infrastructure.Migrations
                         new
                         {
                             Id = 4003,
-                            BlocksTableAvailability = false,
                             CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CreatedBy = "",
                             IsDeleted = false,
@@ -3460,7 +3434,6 @@ namespace ECafe.Infrastructure.Migrations
                         new
                         {
                             Id = 4004,
-                            BlocksTableAvailability = false,
                             CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CreatedBy = "",
                             IsDeleted = false,
@@ -3470,7 +3443,6 @@ namespace ECafe.Infrastructure.Migrations
                         new
                         {
                             Id = 5001,
-                            BlocksTableAvailability = false,
                             CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CreatedBy = "",
                             IsDeleted = false,
@@ -3480,7 +3452,6 @@ namespace ECafe.Infrastructure.Migrations
                         new
                         {
                             Id = 5002,
-                            BlocksTableAvailability = false,
                             CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CreatedBy = "",
                             IsDeleted = false,
@@ -3490,7 +3461,6 @@ namespace ECafe.Infrastructure.Migrations
                         new
                         {
                             Id = 5003,
-                            BlocksTableAvailability = false,
                             CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CreatedBy = "",
                             IsDeleted = false,
@@ -3500,7 +3470,6 @@ namespace ECafe.Infrastructure.Migrations
                         new
                         {
                             Id = 6001,
-                            BlocksTableAvailability = false,
                             CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CreatedBy = "",
                             IsDeleted = false,
@@ -3510,7 +3479,6 @@ namespace ECafe.Infrastructure.Migrations
                         new
                         {
                             Id = 6002,
-                            BlocksTableAvailability = false,
                             CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CreatedBy = "",
                             IsDeleted = false,
@@ -3520,7 +3488,6 @@ namespace ECafe.Infrastructure.Migrations
                         new
                         {
                             Id = 6003,
-                            BlocksTableAvailability = false,
                             CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CreatedBy = "",
                             IsDeleted = false,
@@ -3530,7 +3497,6 @@ namespace ECafe.Infrastructure.Migrations
                         new
                         {
                             Id = 6004,
-                            BlocksTableAvailability = false,
                             CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CreatedBy = "",
                             IsDeleted = false,
@@ -3540,7 +3506,6 @@ namespace ECafe.Infrastructure.Migrations
                         new
                         {
                             Id = 6005,
-                            BlocksTableAvailability = false,
                             CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CreatedBy = "",
                             IsDeleted = false,
@@ -3550,7 +3515,6 @@ namespace ECafe.Infrastructure.Migrations
                         new
                         {
                             Id = 6006,
-                            BlocksTableAvailability = false,
                             CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CreatedBy = "",
                             IsDeleted = false,
@@ -3560,7 +3524,6 @@ namespace ECafe.Infrastructure.Migrations
                         new
                         {
                             Id = 6007,
-                            BlocksTableAvailability = false,
                             CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CreatedBy = "",
                             IsDeleted = false,
@@ -3570,7 +3533,6 @@ namespace ECafe.Infrastructure.Migrations
                         new
                         {
                             Id = 7001,
-                            BlocksTableAvailability = false,
                             CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CreatedBy = "",
                             IsDeleted = false,
@@ -3580,7 +3542,6 @@ namespace ECafe.Infrastructure.Migrations
                         new
                         {
                             Id = 7002,
-                            BlocksTableAvailability = false,
                             CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CreatedBy = "",
                             IsDeleted = false,
@@ -3590,7 +3551,6 @@ namespace ECafe.Infrastructure.Migrations
                         new
                         {
                             Id = 7003,
-                            BlocksTableAvailability = false,
                             CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CreatedBy = "",
                             IsDeleted = false,
@@ -3737,6 +3697,12 @@ namespace ECafe.Infrastructure.Migrations
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
+
+                    b.Property<bool>("IsEmpty")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("is_empty");
 
                     b.Property<string>("Name")
                         .HasMaxLength(50)

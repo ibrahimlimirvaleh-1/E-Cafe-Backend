@@ -19,8 +19,10 @@ public partial class ECafeDbContext : DbContext
     public virtual DbSet<Payment> Payments { get; set; } = null!;
     public virtual DbSet<Permission> Permissions { get; set; } = null!;
     public virtual DbSet<Reservation> Reservations { get; set; } = null!;
+    public virtual DbSet<ReservationPaymentProof> ReservationPaymentProofs { get; set; } = null!;
     public virtual DbSet<Restaurant> Restaurants { get; set; } = null!;
     public virtual DbSet<RestaurantGroup> RestaurantGroups { get; set; } = null!;
+    public virtual DbSet<RestaurantPaymentInstruction> RestaurantPaymentInstructions { get; set; } = null!;
     public virtual DbSet<RestaurantWorkingHour> RestaurantWorkingHours { get; set; } = null!;
     public virtual DbSet<Role> Roles { get; set; } = null!;
     public virtual DbSet<Status> Statuses { get; set; } = null!;

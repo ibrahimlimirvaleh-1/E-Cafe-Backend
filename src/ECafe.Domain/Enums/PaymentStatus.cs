@@ -17,7 +17,13 @@ namespace ECafe.Domain.Enums
         Cancelled,
 
         [Description("Ödəniş geri qaytarılıb")]
-        Refunded
+        Refunded,
+
+        [Description("Ödəniş sübutu göndərilib")]
+        Submitted,
+
+        [Description("Ödəniş rədd edilib")]
+        Rejected
     }
 
 }

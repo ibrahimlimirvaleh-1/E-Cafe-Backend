@@ -47,6 +47,8 @@ public partial class Restaurant : AuditableSoftDeletableEntity<int>
 
     public virtual ICollection<Payment> Payments { get; set; } = new List<Payment>();
 
+    public virtual ICollection<RestaurantPaymentInstruction> PaymentInstructions { get; set; } = new List<RestaurantPaymentInstruction>();
+
     public virtual ICollection<Reservation> Reservations { get; set; } = new List<Reservation>();
 
     public virtual ICollection<TableSession> TableSessions { get; set; } = new List<TableSession>();

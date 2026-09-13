@@ -18,12 +18,18 @@ namespace ECafe.Infrastructure.Configurations.Concrete
                 .HasPrecision(10, 2)
                 .HasColumnName("line_total");
             builder.Property(e => e.Note).HasColumnName("note");
+            builder.Property(e => e.NameSnapshot)
+                .HasMaxLength(200)
+                .HasColumnName("name_snapshot");
             builder.Property(e => e.OrderId).HasColumnName("order_id");
             builder.Property(e => e.Quantity).HasColumnName("quantity");
             builder.Property(e => e.StatusId).HasColumnName("status_id");
             builder.Property(e => e.UnitPrice)
                 .HasPrecision(10, 2)
                 .HasColumnName("unit_price");
+            builder.Property(e => e.UnitPriceSnapshot)
+                .HasPrecision(10, 2)
+                .HasColumnName("unit_price_snapshot");
 
             builder.HasOne(d => d.Item).WithMany(p => p.OrderItems)
                 .HasForeignKey(d => d.ItemId)
