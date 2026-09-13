@@ -86,7 +86,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
         {
             filter = PaginationFilterNormalizer.Normalize(filter);
 
-            var activeContractStatusId = ((int)ECafe.Domain.Enums.StatusType.Contract * 1000) + (int)ContractStatus.Active;
+            var activeContractStatusId = StatusIds.Contract(ContractStatus.Active);
             var restaurantsQuery = _restaurantRepository.GetRestaurantsForList();
 
             if (!IsCurrentUserSuperAdmin())

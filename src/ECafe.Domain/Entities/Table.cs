@@ -1,4 +1,4 @@
-﻿using ECafe.Domain.Entities.Base;
+using ECafe.Domain.Entities.Base;
 
 namespace ECafe.Domain.Entities;
 
@@ -13,7 +13,6 @@ public partial class Table : AuditableSoftDeletableEntity<int>
     public int Capacity { get; set; }
 
     public bool IsActive { get; set; }
-    public bool IsEmpty { get; set; }
 
     public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
 

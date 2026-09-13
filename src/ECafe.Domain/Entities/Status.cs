@@ -8,6 +8,8 @@ public partial class Status : AuditableSoftDeletableEntity<int>
 
     public int StatusTypeId { get; set; }
 
+    public bool BlocksTableAvailability { get; set; }
+
     public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
 
     public virtual ICollection<Item> Items { get; set; } = new List<Item>();

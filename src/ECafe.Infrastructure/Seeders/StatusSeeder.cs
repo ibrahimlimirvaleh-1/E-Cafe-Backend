@@ -12,7 +12,7 @@ namespace ECafe.Infrastructure.Seeders
             var statuses = new List<Domain.Entities.Status>();
 
             statuses.AddRange(CreateStatuses<OrderStatus>(Domain.Enums.StatusType.Order));
-            statuses.AddRange(CreateStatuses<ReservationStatus>(Domain.Enums.StatusType.Reservation));
+            statuses.AddRange(CreateReservationStatuses());
             statuses.AddRange(CreateStatuses<PaymentStatus>(Domain.Enums.StatusType.PaymentStatus));
             statuses.AddRange(CreatePaymentMethodStatuses());
             statuses.AddRange(CreateStatuses<ItemStatus>(Domain.Enums.StatusType.ItemStatus));
@@ -49,6 +49,29 @@ namespace ECafe.Infrastructure.Seeders
                     StatusTypeId = statusTypeId,
                     IsDeleted = !PaymentMethodPolicy.IsMvpSupported(paymentMethod)
                 });
+        }
+
+        private static IEnumerable<Domain.Entities.Status> CreateReservationStatuses()
+        {
+            const Domain.Enums.StatusType statusType = Domain.Enums.StatusType.Reservation;
+            var statusTypeId = (int)statusType;
+
+            return Enum.GetValues<ReservationStatus>()
+                .Select(status => new Domain.Entities.Status
+                {
+                    Id = StatusIds.Reservation(status),
+                    Name = status.GetName(),
+                    StatusTypeId = statusTypeId,
+                    BlocksTableAvailability = BlocksTableAvailability(status)
+                });
+        }
+
+        private static bool BlocksTableAvailability(ReservationStatus status)
+        {
+            return status is ReservationStatus.PendingPayment
+                or ReservationStatus.PaymentSubmitted
+                or ReservationStatus.Confirmed
+                or ReservationStatus.Seated;
         }
 
     }

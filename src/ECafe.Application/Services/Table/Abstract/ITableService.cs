@@ -17,5 +17,9 @@ namespace ECafe.Application.Services.Table.Abstract
         Task<List<TableResponse>> GetByRestaurantAsync(int restaurantId);
 
         Task<List<TableResponse>> CopyTableAsync(int restaurantId, int tableId, CopyTableRequest request);
+
+        Task<TableAvailabilityResponse> CheckAvailabilityAsync(int restaurantId, DateTimeOffset reservedAt);
+
+        Task<List<TableResponse>> GetAvailableForReservationAsync(int restaurantId, DateTimeOffset reservedAt);
     }
 }

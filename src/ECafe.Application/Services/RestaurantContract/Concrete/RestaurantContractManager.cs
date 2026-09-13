@@ -773,7 +773,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
                 (!x.EndDate.HasValue || x.EndDate >= nowUtc));
 
         private static int ContractStatusId(ContractStatus status)
-            => ((int)StatusType.Contract * 1000) + (int)status;
+            => StatusIds.Contract(status);
         private static string GetContractEditBlockedMessage(int statusId)
         {
             if (statusId == ContractStatusId(ContractStatus.OwnerApproved))

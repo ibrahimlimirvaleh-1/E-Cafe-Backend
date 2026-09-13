@@ -2,11 +2,11 @@ using AutoMapper;
 using ECafe.Application.Common.Audit;
 using ECafe.Application.Common.Exceptions;
 using ECafe.Application.DTOs.Table;
+using ECafe.Application.Repositories.Restaurant;
 using ECafe.Application.Repositories.Table;
-using ECafe.Application.Services;
 using ECafe.Application.Services.AuditLog.Abstract;
 using ECafe.Application.Services.Table.Abstract;
-using ECafe.Domain.Entities;
+using ECafe.Domain.Enums;
 using ECafe.Domain.Exceptions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
@@ -16,7 +16,11 @@ namespace ECafe.Application.Services.Table.Concrete
 {
     public class TableManager : BaseManager, ITableService
     {
+        private static readonly int OpenTableSessionStatusId = StatusIds.TableSession(TableSessionStatus.Open);
+
         private readonly ITableRepository _tableRepository;
+
+        private readonly IRestaurantRepository _restaurantRepository;
         private readonly IAuditLogService _auditLogService;
         private readonly IMapper _mapper;
 
@@ -25,12 +29,14 @@ namespace ECafe.Application.Services.Table.Concrete
             IMapper mapper,
             IConfiguration configuration,
             ITableRepository tableRepository,
-            IAuditLogService auditLogService)
+            IAuditLogService auditLogService,
+            IRestaurantRepository restaurantRepository)
             : base(httpContextAccessor, mapper, configuration)
         {
             _tableRepository = tableRepository;
             _auditLogService = auditLogService;
             _mapper = mapper;
+            _restaurantRepository = restaurantRepository;
         }
 
         public async Task<int> CreateAsync(int restaurantId, CreateTableRequest request)
@@ -72,7 +78,9 @@ namespace ECafe.Application.Services.Table.Concrete
                     Name = x.Name,
                     Capacity = x.Capacity,
                     IsActive = x.IsActive,
-                    IsEmpty = x.IsEmpty
+                    IsEmpty = !x.TableSessions.Any(session =>
+                        session.StatusId == OpenTableSessionStatusId &&
+                        session.ClosedAt == null)
                 })
                 .ToListAsync();
 
@@ -189,8 +197,7 @@ namespace ECafe.Application.Services.Table.Concrete
                     Capacity = table.Capacity,
                     TableNo = tableNumbers[index],
                     Name = BuildCopiedTableName(copyInput.Name, tableNumbers[index]),
-                    IsActive = true,
-                    IsEmpty = true
+                    IsActive = true
                 })
                 .ToList();
 
@@ -229,6 +236,63 @@ namespace ECafe.Application.Services.Table.Concrete
                 table.Name);
 
             return newTables.Select(MapTableResponse).ToList();
+        }
+
+
+        public async Task<TableAvailabilityResponse> CheckAvailabilityAsync(int restaurantId, DateTimeOffset reservedAt)
+        {
+            await EnsureReservationAvailabilityCanBeCheckedAsync(restaurantId, reservedAt);
+
+            var restaurantIsOpen = await _restaurantRepository.IsRestaurantOpenAsync(restaurantId, reservedAt);
+
+            if (!restaurantIsOpen)
+                return BuildTableAvailabilityResponse(reservedAt, []);
+
+            var availableTables = await _tableRepository.GetAvailableTablesForReservationAsync(restaurantId, reservedAt);
+
+            return BuildTableAvailabilityResponse(reservedAt, availableTables);
+        }
+
+        public async Task<List<TableResponse>> GetAvailableForReservationAsync(int restaurantId, DateTimeOffset reservedAt)
+        {
+            var availability = await CheckAvailabilityAsync(restaurantId, reservedAt);
+            return availability.Tables;
+        }
+
+        private async Task EnsureReservationAvailabilityCanBeCheckedAsync(int restaurantId, DateTimeOffset reservedAt)
+        {
+            if (restaurantId <= 0)
+                throw new BusinessRuleException(ErrorCode.InvalidRestaurantId);
+
+            if (reservedAt <= DateTimeOffset.UtcNow)
+                throw new BadRequestException("Rezervasiya vaxtı gələcək tarix olmalıdır.");
+
+            var restaurant = await _restaurantRepository.GetByIdAsync(restaurantId);
+
+            if (restaurant is null || !restaurant.IsActive)
+                throw new BadRequestException("Restoran tapılmadı.");
+
+            var hasActiveContract = await _restaurantRepository.HasRestaurantActiveContractAsync(restaurantId);
+
+            if (!hasActiveContract)
+                throw new BadRequestException("Restoranın aktiv müqaviləsi yoxdur.");
+        }
+
+        private static TableAvailabilityResponse BuildTableAvailabilityResponse(
+            DateTimeOffset reservedAt,
+            IReadOnlyCollection<Domain.Entities.Table> availableTables)
+        {
+            var tables = availableTables
+                .Select(MapTableResponse)
+                .ToList();
+
+            return new TableAvailabilityResponse
+            {
+                ReservedAt = reservedAt,
+                HasAvailableTable = tables.Count > 0,
+                AvailableCount = tables.Count,
+                Tables = tables
+            };
         }
 
         private static List<CopyTableInput> NormalizeCopyInputs(CopyTableRequest request)
@@ -375,6 +439,7 @@ namespace ECafe.Application.Services.Table.Concrete
         {
             var table = await _tableRepository
                 .QueryTracked(x => x.RestaurantId == restaurantId && x.Id == tableId)
+                .Include(x => x.TableSessions)
                 .FirstOrDefaultAsync();
 
             return table ?? throw new NotFoundException(ErrorCode.TableNotFound);
@@ -390,8 +455,16 @@ namespace ECafe.Application.Services.Table.Concrete
                 Name = table.Name,
                 Capacity = table.Capacity,
                 IsActive = table.IsActive,
-                IsEmpty = table.IsEmpty
+                IsEmpty = IsTableEmpty(table)
             };
         }
+
+        private static bool IsTableEmpty(Domain.Entities.Table table)
+        {
+            return !table.TableSessions.Any(session =>
+                session.StatusId == OpenTableSessionStatusId &&
+                session.ClosedAt == null);
+        }
+
     }
 }

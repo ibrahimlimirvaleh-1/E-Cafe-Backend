@@ -3,11 +3,14 @@ using ECafe.Application.Common.Validation;
 using ECafe.Application.DTOs.Restaurant;
 using ECafe.Application.DTOs.Restaurant.Public;
 using ECafe.Domain.Entities;
+using ECafe.Domain.Enums;
 
 namespace ECafe.Application.Mappings
 {
     public class RestaurantProfile : Profile
     {
+        private static readonly int OpenTableSessionStatusId = StatusIds.TableSession(TableSessionStatus.Open);
+
         public RestaurantProfile()
         {
             CreateMap<Restaurant, RestaurantDetailDto>()
@@ -17,9 +20,17 @@ namespace ECafe.Application.Mappings
 
             CreateMap<RestaurantWorkingHour, RestaurantWorkingHourDto>();
 
-            CreateMap<Table, TableDto>();
+            CreateMap<Table, TableDto>()
+                .ForMember(dest => dest.IsEmpty, opt => opt.MapFrom(src =>
+                    !src.TableSessions.Any(session =>
+                        session.StatusId == OpenTableSessionStatusId &&
+                        session.ClosedAt == null)));
 
-            CreateMap<Table, PublicTableDto>();
+            CreateMap<Table, PublicTableDto>()
+                .ForMember(dest => dest.IsEmpty, opt => opt.MapFrom(src =>
+                    !src.TableSessions.Any(session =>
+                        session.StatusId == OpenTableSessionStatusId &&
+                        session.ClosedAt == null)));
 
             CreateMap<Category, CategoryDto>();
 
@@ -62,7 +73,7 @@ namespace ECafe.Application.Mappings
             CreateMap<Restaurant, GetAllRestaurantsResponse>()
                 .ForMember(dest => dest.RestaurantGroupName, opt => opt.MapFrom(src => src.RestaurantGroup == null ? null : src.RestaurantGroup.Name))
                 .ForMember(dest => dest.HasActiveContract, opt => opt.MapFrom(src => src.Contracts.Any(c =>
-                    c.StatusId == ((int)ECafe.Domain.Enums.StatusType.Contract * 1000) + (int)ECafe.Domain.Enums.ContractStatus.Active)))
+                    c.StatusId == StatusIds.Contract(ContractStatus.Active))))
                 .ForMember(dest => dest.WorkingHours, opt => opt.MapFrom(src => src.WorkingHours.OrderBy(hour => hour.DayOfWeek)))
                 .ForMember(dest => dest.ImageUrls, opt => opt.Ignore());
 
