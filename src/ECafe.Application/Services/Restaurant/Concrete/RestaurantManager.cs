@@ -20,6 +20,7 @@ using ECafe.Application.Services.Restaurant.Abstract;
 using ECafe.Domain.Entities;
 using ECafe.Domain.Enums;
 using ECafe.Domain.Exceptions;
+using ECafe.Domain.Services;
 using ECafe.Shared.DTOs;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
@@ -811,24 +812,33 @@ namespace ECafe.Application.Services.Restaurant.Concrete
         {
             var localNow = GetRestaurantLocalNow(restaurant.TimeZone);
             var today = localNow.DayOfWeek;
-            var currentTime = TimeOnly.FromDateTime(localNow.DateTime);
             var workingHours = restaurant.WorkingHours ?? [];
             var todayHours = workingHours.FirstOrDefault(hour => hour.DayOfWeek == today);
             var yesterdayHours = workingHours.FirstOrDefault(hour => hour.DayOfWeek == PreviousDay(today));
-            var isOpen = IsOpenAt(todayHours, currentTime) || IsOpenFromPreviousDay(yesterdayHours, currentTime);
+            var isOpenToday = RestaurantWorkingHoursCalculator.TryGetActiveInterval(
+                workingHours.Where(hour => hour.DayOfWeek == today),
+                localNow,
+                out _);
+            var isOpenFromPreviousDay = RestaurantWorkingHoursCalculator.TryGetActiveInterval(
+                workingHours.Where(hour => hour.DayOfWeek == PreviousDay(today)),
+                localNow,
+                out _);
+            var isOpen = isOpenToday || isOpenFromPreviousDay;
+            var displayHours = isOpenToday ? todayHours : isOpenFromPreviousDay ? yesterdayHours : todayHours;
 
             return new RestaurantOpenStateDto
             {
                 IsOpen = isOpen,
                 OpenStatus = isOpen ? "Open" : "Closed",
-                TodayWorkingHours = todayHours is null
+                TodayWorkingHours = displayHours is null
                     ? null
                     : new RestaurantWorkingHourDto
                     {
-                        DayOfWeek = todayHours.DayOfWeek,
-                        OpensAt = todayHours.OpensAt,
-                        ClosesAt = todayHours.ClosesAt,
-                        IsClosed = todayHours.IsClosed
+                        DayOfWeek = displayHours.DayOfWeek,
+                        OpensAt = displayHours.OpensAt,
+                        ClosesAt = displayHours.ClosesAt,
+                        CloseDayOffset = displayHours.CloseDayOffset,
+                        IsClosed = displayHours.IsClosed
                     }
             };
         }
@@ -901,24 +911,6 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             return null;
         }
 
-        private static bool IsOpenAt(Domain.Entities.RestaurantWorkingHour? workingHour, TimeOnly currentTime)
-        {
-            if (workingHour is null || workingHour.IsClosed || workingHour.OpensAt == workingHour.ClosesAt)
-                return false;
-
-            return workingHour.OpensAt < workingHour.ClosesAt
-                ? currentTime >= workingHour.OpensAt && currentTime < workingHour.ClosesAt
-                : currentTime >= workingHour.OpensAt || currentTime < workingHour.ClosesAt;
-        }
-
-        private static bool IsOpenFromPreviousDay(Domain.Entities.RestaurantWorkingHour? workingHour, TimeOnly currentTime)
-        {
-            if (workingHour is null || workingHour.IsClosed || workingHour.OpensAt <= workingHour.ClosesAt)
-                return false;
-
-            return currentTime < workingHour.ClosesAt;
-        }
-
         private static DayOfWeek PreviousDay(DayOfWeek dayOfWeek)
             => dayOfWeek == DayOfWeek.Sunday ? DayOfWeek.Saturday : dayOfWeek - 1;
 
@@ -950,6 +942,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
                         DayOfWeek = day,
                         OpensAt = source?.OpensAt ?? new TimeOnly(9, 0),
                         ClosesAt = source?.ClosesAt ?? new TimeOnly(0, 0),
+                        CloseDayOffset = source?.CloseDayOffset ?? (source is null || source.OpensAt > source.ClosesAt ? 1 : 0),
                         IsClosed = source?.IsClosed ?? false
                     };
                 })
@@ -983,6 +976,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
         {
             target.OpensAt = source.OpensAt;
             target.ClosesAt = source.ClosesAt;
+            target.CloseDayOffset = source.CloseDayOffset;
             target.IsClosed = source.IsClosed;
         }
 
@@ -995,6 +989,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
                 DayOfWeek = source.DayOfWeek,
                 OpensAt = source.OpensAt,
                 ClosesAt = source.ClosesAt,
+                CloseDayOffset = source.CloseDayOffset,
                 IsClosed = source.IsClosed
             };
 
@@ -1006,6 +1001,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
                     hour.DayOfWeek,
                     hour.OpensAt,
                     hour.ClosesAt,
+                    hour.CloseDayOffset,
                     hour.IsClosed
                 })
                 .ToList();

@@ -49,8 +49,12 @@ namespace ECafe.Application.Features.Commands.Restaurant
                     .WithMessage("Working hour day is invalid.");
 
                 hour.RuleFor(x => x)
-                    .Must(x => x.IsClosed || x.OpensAt != x.ClosesAt)
-                    .WithMessage("Opening time and closing time cannot be the same for an open day.");
+                    .Must(x => (x.CloseDayOffset ?? (x.OpensAt > x.ClosesAt ? 1 : 0)) is >= 0 and <= 1)
+                    .WithMessage("Close day offset must be 0 or 1.");
+
+                hour.RuleFor(x => x)
+                    .Must(x => x.IsClosed || (x.CloseDayOffset ?? (x.OpensAt > x.ClosesAt ? 1 : 0)) == 1 || x.OpensAt != x.ClosesAt)
+                    .WithMessage("Opening time and closing time cannot be the same on the same day.");
             });
 
             RuleFor(x => x)
