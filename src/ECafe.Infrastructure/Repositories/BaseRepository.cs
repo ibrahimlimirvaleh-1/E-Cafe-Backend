@@ -8,13 +8,13 @@ namespace ECafe.Infrastructure.Repositories
 {
     public class BaseRepository<TEntity> : IBaseRepository<TEntity> where TEntity : class
     {
-        private readonly DbContext _context;
+        protected ECafeDbContext Context { get; }
         private readonly DbSet<TEntity> _dbSet;
 
         public BaseRepository(ECafeDbContext context)
         {
-            _context = context;
-            _dbSet = _context.Set<TEntity>();
+            Context = context;
+            _dbSet = Context.Set<TEntity>();
 
         }
         public async Task<TEntity> Add(TEntity model)
@@ -69,7 +69,7 @@ namespace ECafe.Infrastructure.Repositories
         }
 
         public Task<int> SaveChangesAsync()
-            => _context.SaveChangesAsync();
+            => Context.SaveChangesAsync();
 
         public IQueryable<TEntity> QueryTracked(Expression<Func<TEntity, bool>>? predicate = null)
         {

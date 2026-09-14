@@ -8,6 +8,8 @@ public class RestaurantWorkingHourDto
 
     public TimeOnly ClosesAt { get; set; } = new(0, 0);
 
+    public int? CloseDayOffset { get; set; }
+
     public bool IsClosed { get; set; }
 }
 

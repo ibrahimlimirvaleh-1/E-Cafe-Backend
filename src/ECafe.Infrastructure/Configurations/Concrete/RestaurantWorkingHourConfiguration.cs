@@ -17,7 +17,10 @@ public class RestaurantWorkingHourConfiguration : DbEntityConfig<RestaurantWorki
                 "day_of_week >= 0 AND day_of_week <= 6");
             t.HasCheckConstraint(
                 "ck_restaurant_working_hours_open_closed_not_equal",
-                "is_closed = true OR opens_at <> closes_at");
+                "is_closed = true OR close_day_offset = 1 OR opens_at <> closes_at");
+            t.HasCheckConstraint(
+                "ck_restaurant_working_hours_close_day_offset",
+                "close_day_offset >= 0 AND close_day_offset <= 1");
         });
 
         builder.HasIndex(e => new { e.RestaurantId, e.DayOfWeek }, "ux_restaurant_working_hours_restaurant_day")
@@ -35,6 +38,9 @@ public class RestaurantWorkingHourConfiguration : DbEntityConfig<RestaurantWorki
         builder.Property(e => e.ClosesAt)
             .HasColumnType("time without time zone")
             .HasColumnName("closes_at");
+        builder.Property(e => e.CloseDayOffset)
+            .HasDefaultValue(0)
+            .HasColumnName("close_day_offset");
         builder.Property(e => e.IsClosed)
             .HasDefaultValue(false)
             .HasColumnName("is_closed");

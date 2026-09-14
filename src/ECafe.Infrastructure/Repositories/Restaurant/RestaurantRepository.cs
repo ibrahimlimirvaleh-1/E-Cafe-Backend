@@ -1,5 +1,6 @@
 using ECafe.Application.Repositories.Restaurant;
 using ECafe.Domain.Enums;
+using ECafe.Domain.Services;
 using ECafe.Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
 
@@ -93,33 +94,16 @@ namespace ECafe.Infrastructure.Repositories.Restaurant
                 .AnyAsync(r => r.Id == id && r.Contracts.Any(c => c.StatusId == activeContractStatusId));
         }
 
-        public Task<bool> IsRestaurantOpenAsync(int restaurantId, DateTimeOffset reservedAt)
+        public async Task<bool> IsRestaurantOpenAsync(int restaurantId, DateTimeOffset reservedAt)
         {
-            var dayOfWeek = reservedAt.DayOfWeek;
-            var previousDayOfWeek = reservedAt.AddDays(-1).DayOfWeek;
-            var time = TimeOnly.FromDateTime(reservedAt.DateTime);
+            var restaurant = await Query(r => r.Id == restaurantId && r.IsActive)
+                .Include(r => r.WorkingHours)
+                .SingleOrDefaultAsync();
 
-            return Query()
-                .Where(r => r.Id == restaurantId && r.IsActive)
-                .SelectMany(r => r.WorkingHours)
-                .AnyAsync(wh =>
-                    !wh.IsClosed &&
-                    (
-                        (
-                            wh.DayOfWeek == dayOfWeek &&
-                            (
-                                wh.OpensAt == wh.ClosesAt ||
-                                (wh.OpensAt < wh.ClosesAt
-                                    ? time >= wh.OpensAt && time < wh.ClosesAt
-                                    : time >= wh.OpensAt)
-                            )
-                        ) ||
-                        (
-                            wh.DayOfWeek == previousDayOfWeek &&
-                            wh.OpensAt > wh.ClosesAt &&
-                            time < wh.ClosesAt
-                        )
-                    ));
+            return restaurant is not null && RestaurantWorkingHoursCalculator.TryGetActiveInterval(
+                restaurant.WorkingHours,
+                reservedAt,
+                out _);
         }
     }
 }
