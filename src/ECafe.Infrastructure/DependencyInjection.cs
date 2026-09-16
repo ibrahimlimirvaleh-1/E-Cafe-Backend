@@ -51,6 +51,8 @@ using ECafe.Application.Services.Auth.Abstract;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using ECafe.Application.Repositories.Reservation;
+using ECafe.Infrastructure.Repositories.Reservation;
 namespace ECafe.Infrastructure
 {
     public static class DependencyInjection
@@ -96,6 +98,7 @@ namespace ECafe.Infrastructure
             services.AddScoped<IUnitRepository, UnitRepository>();
             services.AddScoped<IUserSessionStateCache, UserSessionStateCache>();
             services.AddScoped<IUserRestaurantAccessCache, UserRestaurantAccessCache>();
+            services.AddScoped<IReservationRepository,ReservationRepository>();
             return services;
         }
     }

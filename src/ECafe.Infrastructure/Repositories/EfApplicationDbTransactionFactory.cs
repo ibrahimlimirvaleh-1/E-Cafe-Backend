@@ -18,5 +18,13 @@ namespace ECafe.Infrastructure.Repositories
             var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
             return new EfApplicationDbTransaction(transaction);
         }
+
+        public async Task<IApplicationDbTransaction> BeginTransactionAsync(
+            System.Data.IsolationLevel isolationLevel,
+            CancellationToken cancellationToken = default)
+        {
+            var transaction = await _context.Database.BeginTransactionAsync(isolationLevel, cancellationToken);
+            return new EfApplicationDbTransaction(transaction);
+        }
     }
 }

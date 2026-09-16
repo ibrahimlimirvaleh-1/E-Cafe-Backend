@@ -48,6 +48,8 @@ using ECafe.Application.Services.Sms.Concrete;
 using ECafe.Application.Services.Monitoring.Abstract;
 using ECafe.Application.Services.Monitoring.Concrete;
 using Microsoft.Extensions.Configuration;
+using ECafe.Application.Services.Reservation.Abstract;
+using ECafe.Application.Services.Reservation.Concrete;
 
 namespace ECafe.Application
 {
@@ -119,6 +121,7 @@ namespace ECafe.Application
             services.AddScoped<IInventoryItemService, InventoryItemManager>();
             services.AddScoped<IInventoryMovementService, InventoryMovementManager>();
             services.AddScoped<IRecipeService, RecipeManager>();
+            services.AddScoped<IReservationService,ReservationManager>();
 
             return services;
         }
