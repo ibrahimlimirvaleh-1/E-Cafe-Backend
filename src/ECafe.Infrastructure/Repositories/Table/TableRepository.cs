@@ -26,6 +26,43 @@ namespace ECafe.Infrastructure.Repositories.Table
                         ts.ClosedAt == null));
         }
 
+        public Task<bool> HasOpenTableSessionAsync(int restaurantId, int tableId)
+        {
+            return Query()
+                .Where(t =>
+                    t.Id == tableId &&
+                    t.RestaurantId == restaurantId &&
+                    t.IsActive)
+                .AnyAsync(t => t.TableSessions.Any(ts =>
+                    ts.RestaurantId == restaurantId &&
+                    ts.StatusId == OpenTableSessionStatusId &&
+                    ts.ClosedAt == null));
+        }
+
+        public Task AcquireReservationLockAsync(
+            int restaurantId,
+            int tableId,
+            CancellationToken cancellationToken = default)
+        {
+            // Transaction-scoped advisory locks serialize reservation attempts for one table.
+            return Context.Database.ExecuteSqlInterpolatedAsync(
+                $"SELECT pg_advisory_xact_lock({restaurantId}, {tableId})",
+                cancellationToken);
+        }
+
+        public async Task<bool> IsTableAvailableForReservationAsync(
+            int restaurantId,
+            int tableId,
+            DateTimeOffset reservedAt)
+        {
+            var reservationInterval = await GetReservationIntervalUtcAsync(restaurantId, reservedAt);
+            if (reservationInterval is null)
+                return false;
+
+            return await BuildAvailableTablesForReservationQuery(restaurantId, reservationInterval.Value)
+                .AnyAsync(t => t.Id == tableId);
+        }
+
         public async Task<bool> HasAvailableTableForReservationAsync(int restaurantId, DateTimeOffset reservedAt)
         {
             var reservationInterval = await GetReservationIntervalUtcAsync(restaurantId, reservedAt);
@@ -63,6 +100,9 @@ namespace ECafe.Infrastructure.Repositories.Table
                         r.RestaurantId == restaurantId &&
                         r.TableId == t.Id &&
                         r.Status.BlocksTableAvailability &&
+                        (r.StatusId != StatusIds.Reservation(ReservationStatus.PendingPayment) ||
+                         r.HoldExpiresAt == null ||
+                         r.HoldExpiresAt > DateTime.UtcNow) &&
                         r.ReservedAt >= reservationInterval.StartsAtUtc &&
                         r.ReservedAt < reservationInterval.EndsAtUtc));
         }

@@ -115,7 +115,11 @@ public sealed class ErrorMessageProvider : IErrorMessageProvider
         [ErrorCode.ExpiredContractCannotContinueApprovalFlow] = "Expired contract cannot continue in the approval flow.",
         [ErrorCode.ContractAmountMustBeGreaterThanZero] = "Contract amount must be greater than zero.",
         [ErrorCode.ContractExpiryReminderDaysInvalid] = "Expiry reminder days before must be between 1 and 365.",
-        [ErrorCode.OnlyRestaurantOwnerCanApproveContract] = "Only the restaurant owner can approve this contract."
+        [ErrorCode.OnlyRestaurantOwnerCanApproveContract] = "Only the restaurant owner can approve this contract.",
+        [ErrorCode.PeopleCountMoreThanTableCapacity] = "People count more than table capacity.",
+        [ErrorCode.TableNotBelongToRestaurant] = "Seçilən masa bu restorana aid deyil və ya aktiv deyil.",
+        [ErrorCode.RestaurantClosedForReservation] = "Restoran seçilən tarix və saatda açıq deyil.",
+        [ErrorCode.TableAlreadyReserved] = "Seçilən masa artıq rezerv edilib. Başqa masa seçin."
     };
 
     public string GetMessage(BaseException exception)

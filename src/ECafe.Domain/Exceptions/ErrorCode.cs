@@ -111,5 +111,10 @@ public enum ErrorCode
     ExpiredContractCannotContinueApprovalFlow = 5011,
     ContractAmountMustBeGreaterThanZero = 5012,
     ContractExpiryReminderDaysInvalid = 5013,
-    OnlyRestaurantOwnerCanApproveContract = 5014
+    OnlyRestaurantOwnerCanApproveContract = 5014,
+
+    PeopleCountMoreThanTableCapacity = 5015,
+    TableNotBelongToRestaurant = 5016,
+    RestaurantClosedForReservation = 5017,
+    TableAlreadyReserved = 5018
 }
