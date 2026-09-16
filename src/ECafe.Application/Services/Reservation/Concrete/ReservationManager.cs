@@ -78,7 +78,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
             request.PeopleCount);
 
         await using var transaction = await _transactionFactory.BeginTransactionAsync(
-            IsolationLevel.Serializable,
+            IsolationLevel.ReadCommitted,
             cancellationToken);
 
         // The lock makes concurrent requests for the same table run one at a time.
