@@ -11,6 +11,4 @@ public class Wallet : AuditableSoftDeletableEntity<int>
     public virtual User User { get; set; } = null!;
 
     public virtual ICollection<WalletTransaction> Transactions { get; set; } = [];
-
-    public virtual ICollection<WithdrawRequest> WithdrawRequests { get; set; } = [];
 }

@@ -40,8 +40,6 @@ public partial class ECafeDbContext : DbContext
 
     public DbSet<WalletTransaction> WalletTransactions { get; set; } = null!;
 
-    public DbSet<WithdrawRequest> WithdrawRequests { get; set; } = null!;
-
     public DbSet<AuditLog> AuditLogs { get; set; } = null!;
 
     public DbSet<OutboxEvent> OutboxEvents { get; set; } = null!;

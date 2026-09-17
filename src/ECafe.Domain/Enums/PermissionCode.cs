@@ -44,6 +44,7 @@ namespace ECafe.Domain.Enums
         ViewOwnWallet,
 
         [Description("Çıxarış sorğularını idarə etmək")]
+        [Obsolete("Withdrawal requests are no longer part of the wallet flow.")]
         ManageWithdrawRequests,
 
         [Description("Hesabatlara baxmaq")]
