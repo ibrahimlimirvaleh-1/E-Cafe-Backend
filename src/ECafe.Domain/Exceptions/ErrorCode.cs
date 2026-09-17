@@ -44,6 +44,7 @@ public enum ErrorCode
     PasswordResetTokenInvalidOrExpired = 1131,
     PasswordResetNewPasswordMustBeDifferent = 1132,
     SessionInvalid = 1133,
+    OwnerRoleCannotBeChanged = 1134,
 
     RestaurantNotFound = 2000,
     UnitNotFound = 2001,
@@ -116,5 +117,6 @@ public enum ErrorCode
     PeopleCountMoreThanTableCapacity = 5015,
     TableNotBelongToRestaurant = 5016,
     RestaurantClosedForReservation = 5017,
-    TableAlreadyReserved = 5018
+    TableAlreadyReserved = 5018,
+    ReservationNotFound = 5019
 }
