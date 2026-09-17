@@ -121,23 +121,10 @@ public sealed class ReservationManager : BaseManager, IReservationService
 
     public async Task<int> ExpirePendingReservationsAsync(int batchSize, CancellationToken cancellationToken)
     {
-        var nowUtc = DateTime.UtcNow;
-
-        var reservations = await _reservationRepository.GetExpiredPendingPaymentsAsync(nowUtc, batchSize, cancellationToken);
-
-        if (reservations.Count == 0)
-            return 0;
-
-        var expiredStatusId = StatusIds.Reservation(ReservationStatus.Expired);
-
-        foreach (var reservation in reservations)
-        {
-            reservation.StatusId = expiredStatusId;
-        }
-
-        await _reservationRepository.SaveChangesAsync();
-
-        return reservations.Count;
+        return await _reservationRepository.ExpirePendingPaymentsAsync(
+            DateTime.UtcNow,
+            batchSize,
+            cancellationToken);
     }
     private async Task<Domain.Entities.Restaurant> GetReservableRestaurantAsync(int restaurantId)
     {
