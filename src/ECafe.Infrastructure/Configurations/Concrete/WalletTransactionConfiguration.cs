@@ -33,10 +33,5 @@ public class WalletTransactionConfiguration
             .WithMany()
             .HasForeignKey(x => x.PaymentId)
             .OnDelete(DeleteBehavior.Restrict);
-
-        builder.HasOne(x => x.WithdrawRequest)
-            .WithMany()
-            .HasForeignKey(x => x.WithdrawRequestId)
-            .OnDelete(DeleteBehavior.Restrict);
     }
 }

@@ -19,13 +19,9 @@ public class WalletTransaction : AuditableSoftDeletableEntity<int>
 
     public int? PaymentId { get; set; }
 
-    public int? WithdrawRequestId { get; set; }
-
     public virtual Wallet Wallet { get; set; } = null!;
 
     public virtual Order? Order { get; set; }
 
     public virtual Payment? Payment { get; set; }
-
-    public virtual WithdrawRequest? WithdrawRequest { get; set; }
 }
