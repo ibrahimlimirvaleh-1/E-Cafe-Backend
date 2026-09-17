@@ -118,6 +118,27 @@ public sealed class ReservationManager : BaseManager, IReservationService
         return MapResponse(reservation);
     }
 
+
+    public async Task<int> ExpirePendingReservationsAsync(int batchSize, CancellationToken cancellationToken)
+    {
+        var nowUtc = DateTime.UtcNow;
+
+        var reservations = await _reservationRepository.GetExpiredPendingPaymentsAsync(nowUtc, batchSize, cancellationToken);
+
+        if (reservations.Count == 0)
+            return 0;
+
+        var expiredStatusId = StatusIds.Reservation(ReservationStatus.Expired);
+
+        foreach (var reservation in reservations)
+        {
+            reservation.StatusId = expiredStatusId;
+        }
+
+        await _reservationRepository.SaveChangesAsync();
+
+        return reservations.Count;
+    }
     private async Task<Domain.Entities.Restaurant> GetReservableRestaurantAsync(int restaurantId)
     {
         var restaurant = await _restaurantRepository.GetByIdAsync(restaurantId);
@@ -263,4 +284,6 @@ public sealed class ReservationManager : BaseManager, IReservationService
             ? new DateTimeOffset(DateTime.SpecifyKind(value.Value, DateTimeKind.Utc), TimeSpan.Zero)
             : null;
     }
+
+
 }

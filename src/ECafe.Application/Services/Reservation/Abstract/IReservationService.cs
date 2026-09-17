@@ -12,5 +12,7 @@ namespace ECafe.Application.Services.Reservation.Abstract
             int restaurantId,
             CreateReservationRequest request,
             CancellationToken cancellationToken = default);
+
+        Task<int> ExpirePendingReservationsAsync(int batchSize,CancellationToken cancellationToken);
     }
 }
