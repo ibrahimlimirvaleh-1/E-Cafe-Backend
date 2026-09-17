@@ -1,5 +1,6 @@
 ﻿using ECafe.Application.Repositories.Reservation;
 using ECafe.Infrastructure.Context;
+using Microsoft.EntityFrameworkCore;
 
 namespace ECafe.Infrastructure.Repositories.Reservation
 {
@@ -7,6 +8,19 @@ namespace ECafe.Infrastructure.Repositories.Reservation
     {
         public ReservationRepository(ECafeDbContext context) : base(context)
         {
+        }
+
+        public Task<Domain.Entities.Reservation?> GetByIdForCustomerAsync(
+            int reservationId,
+            int customerUserId,
+            CancellationToken cancellationToken = default)
+        {
+            return Query()
+                .Include(reservation => reservation.Status)
+                .FirstOrDefaultAsync(
+                    reservation => reservation.Id == reservationId &&
+                                   reservation.CustomerUserId == customerUserId,
+                    cancellationToken);
         }
     }
 }

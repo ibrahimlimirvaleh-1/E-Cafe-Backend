@@ -16,6 +16,7 @@ using ECafe.Application.Services.Reservation.Abstract;
 using ECafe.Domain.Enums;
 using ECafe.Domain.Exceptions;
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 
 namespace ECafe.Application.Services.Reservation.Concrete;
@@ -95,6 +96,25 @@ public sealed class ReservationManager : BaseManager, IReservationService
         await NotifyRestaurantManagersAsync(restaurantId, table, reservation);
 
         await transaction.CommitAsync(cancellationToken);
+        return MapResponse(reservation);
+    }
+
+    public async Task<ReservationResponse> GetReservationByIdAsync(
+        int reservationId,
+        CancellationToken cancellationToken = default)
+    {
+        if (reservationId <= 0)
+            throw new BadRequestException("Rezervasiya seçimi düzgün deyil.");
+
+        var userId = GetCurrentUserId();
+        var reservation = await _reservationRepository.GetByIdForCustomerAsync(
+            reservationId,
+            userId,
+            cancellationToken);
+
+        if (reservation is null)
+            throw new NotFoundException(ErrorCode.ReservationNotFound);
+
         return MapResponse(reservation);
     }
 
@@ -230,7 +250,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
             ReservedAt = ToUtcOffset(reservation.ReservedAt)!.Value,
             PeopleCount = reservation.PeopleCount,
             StatusId = reservation.StatusId,
-            Status = ReservationStatus.PendingPayment.ToString(),
+            Status = reservation.Status?.Name ?? ReservationStatus.PendingPayment.ToString(),
             DepositAmount = reservation.DepositAmount,
             HoldExpiresAt = ToUtcOffset(reservation.HoldExpiresAt),
             CancellationDeadline = ToUtcOffset(reservation.CancellationDeadline)

@@ -49,6 +49,7 @@ public sealed class ErrorMessageProvider : IErrorMessageProvider
         [ErrorCode.PasswordResetTokenInvalidOrExpired] = "Password reset link is invalid or expired.",
         [ErrorCode.PasswordResetNewPasswordMustBeDifferent] = "New password must be different from the current password.",
         [ErrorCode.SessionInvalid] = "Sessiya məlumatları yenilənib. Zəhmət olmasa yenidən daxil olun.",
+        [ErrorCode.OwnerRoleCannotBeChanged] = "Sahibkar hesabının rolu dəyişdirilə bilməz.",
 
         [ErrorCode.RestaurantNotFound] = "Restaurant not found.",
         [ErrorCode.UnitNotFound] = "Unit not found.",
@@ -119,7 +120,8 @@ public sealed class ErrorMessageProvider : IErrorMessageProvider
         [ErrorCode.PeopleCountMoreThanTableCapacity] = "People count more than table capacity.",
         [ErrorCode.TableNotBelongToRestaurant] = "Seçilən masa bu restorana aid deyil və ya aktiv deyil.",
         [ErrorCode.RestaurantClosedForReservation] = "Restoran seçilən tarix və saatda açıq deyil.",
-        [ErrorCode.TableAlreadyReserved] = "Seçilən masa artıq rezerv edilib. Başqa masa seçin."
+        [ErrorCode.TableAlreadyReserved] = "Seçilən masa artıq rezerv edilib. Başqa masa seçin.",
+        [ErrorCode.ReservationNotFound] = "Rezervasiya tapılmadı."
     };
 
     public string GetMessage(BaseException exception)

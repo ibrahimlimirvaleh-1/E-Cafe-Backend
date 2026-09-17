@@ -325,6 +325,13 @@ namespace ECafe.Application.Services.User.Concrete
             if (userDetails is null)
                 throw new BusinessRuleException(ErrorCode.UserNotFound);
 
+            var isOwnerAccount = userDetails.RoleId == (int)RoleCode.Owner ||
+                userDetails.UserRestaurants.Any(userRestaurant =>
+                    userRestaurant.IsActive && userRestaurant.RoleId == (int)RoleCode.Owner);
+
+            if (isOwnerAccount && roleId != (int)RoleCode.Owner)
+                throw new BusinessRuleException(ErrorCode.OwnerRoleCannotBeChanged);
+
             EnsureCanManageTargetUser(userDetails);
 
             var role = await _roleRepository.GetByIdAsync(roleId);
