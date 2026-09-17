@@ -9,6 +9,9 @@ namespace ECafe.Application.Repositories.Reservation
             int customerUserId,
             CancellationToken cancellationToken = default);
 
-        Task<List<Domain.Entities.Reservation>> GetExpiredPendingPaymentsAsync(DateTime nowUtc,int batchSize,CancellationToken cancellationToken);
+        Task<int> ExpirePendingPaymentsAsync(
+            DateTime nowUtc,
+            int batchSize,
+            CancellationToken cancellationToken = default);
     }
 }

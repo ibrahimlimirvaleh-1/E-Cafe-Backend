@@ -24,18 +24,43 @@ namespace ECafe.Infrastructure.Repositories.Reservation
                     cancellationToken);
         }
 
-        public Task<List<Domain.Entities.Reservation>> GetExpiredPendingPaymentsAsync(DateTime nowUtc, int batchSize, CancellationToken cancellationToken)
+        public async Task<int> ExpirePendingPaymentsAsync(
+            DateTime nowUtc,
+            int batchSize,
+            CancellationToken cancellationToken = default)
         {
-            var pendingPaymentStatusId = StatusIds.Reservation(ReservationStatus.PendingPayment);
+            if (batchSize <= 0)
+                return 0;
 
-            return QueryTracked()
-                    .Where(r =>
-                        r.StatusId == pendingPaymentStatusId &&
-                        r.HoldExpiresAt != null &&
-                        r.HoldExpiresAt <= nowUtc)
-                    .OrderBy(r => r.HoldExpiresAt)
-                    .Take(batchSize)
-                    .ToListAsync(cancellationToken);
+            var pendingPaymentStatusId = StatusIds.Reservation(ReservationStatus.PendingPayment);
+            var expiredStatusId = StatusIds.Reservation(ReservationStatus.Expired);
+
+            // Select a bounded batch first. The status/expiry predicates are
+            // repeated in the update so a concurrent payment approval wins.
+            var reservationIds = await Query()
+                .Where(r =>
+                    r.StatusId == pendingPaymentStatusId &&
+                    r.HoldExpiresAt != null &&
+                    r.HoldExpiresAt <= nowUtc)
+                .OrderBy(r => r.HoldExpiresAt)
+                .Take(batchSize)
+                .Select(r => r.Id)
+                .ToListAsync(cancellationToken);
+
+            if (reservationIds.Count == 0)
+                return 0;
+
+            return await Context.Set<Domain.Entities.Reservation>()
+                .Where(r =>
+                    reservationIds.Contains(r.Id) &&
+                    r.StatusId == pendingPaymentStatusId &&
+                    r.HoldExpiresAt != null &&
+                    r.HoldExpiresAt <= nowUtc)
+                .ExecuteUpdateAsync(
+                    setters => setters.SetProperty(
+                        r => r.StatusId,
+                        expiredStatusId),
+                    cancellationToken);
         }
     }
 }

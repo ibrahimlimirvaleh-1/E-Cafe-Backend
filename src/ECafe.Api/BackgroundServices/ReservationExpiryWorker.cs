@@ -27,44 +27,56 @@ public sealed class ReservationExpiryWorker : BackgroundService
 
         using var timer = new PeriodicTimer(Interval);
 
-        while (await timer.WaitForNextTickAsync(stoppingToken))
+        try
         {
-            try
+            while (await timer.WaitForNextTickAsync(stoppingToken))
             {
-                using var scope =
-                    _scopeFactory.CreateScope();
-
-                var reservationService =
-                    scope.ServiceProvider
-                        .GetRequiredService<IReservationService>();
-
-                var expiredCount =
-                    await reservationService
-                        .ExpirePendingReservationsAsync(
-                            BatchSize,
-                            stoppingToken);
-
-                if (expiredCount > 0)
-                {
-                    _logger.LogInformation(
-                        "{Count} reservation(s) expired.",
-                        expiredCount);
-                }
+                await ExpireReservationsAsync(stoppingToken);
             }
-            catch (OperationCanceledException)
-                when (stoppingToken.IsCancellationRequested)
-            {
-                break;
-            }
-            catch (Exception exception)
-            {
-                _logger.LogError(
-                    exception,
-                    "Error while expiring reservations.");
-            }
+        }
+        catch (OperationCanceledException)
+            when (stoppingToken.IsCancellationRequested)
+        {
+            _logger.LogInformation(
+                "Reservation expiry worker cancellation requested.");
         }
 
         _logger.LogInformation(
             "Reservation expiry worker stopped.");
+    }
+
+    private async Task ExpireReservationsAsync(
+        CancellationToken stoppingToken)
+    {
+        try
+        {
+            using var scope = _scopeFactory.CreateScope();
+
+            var reservationService = scope.ServiceProvider
+                .GetRequiredService<IReservationService>();
+
+            var expiredCount = await reservationService
+                .ExpirePendingReservationsAsync(
+                    BatchSize,
+                    stoppingToken);
+
+            if (expiredCount > 0)
+            {
+                _logger.LogInformation(
+                    "{Count} reservation(s) expired.",
+                    expiredCount);
+            }
+        }
+        catch (OperationCanceledException)
+            when (stoppingToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(
+                exception,
+                "Error while expiring reservations.");
+        }
     }
 }
