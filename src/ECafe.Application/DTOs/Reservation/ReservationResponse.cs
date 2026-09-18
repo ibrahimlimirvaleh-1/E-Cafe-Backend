@@ -12,4 +12,8 @@ public sealed class ReservationResponse
     public decimal DepositAmount { get; init; }
     public DateTimeOffset? HoldExpiresAt { get; init; }
     public DateTimeOffset? CancellationDeadline { get; init; }
+    public string? RestaurantName { get; init; }
+    public string? TableName { get; init; }
+    public string? CustomerName { get; init; }
+    public PaymentInstructionResponse? LatestPaymentInstruction { get; init; }
 }

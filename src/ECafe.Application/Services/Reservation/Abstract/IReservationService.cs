@@ -1,24 +1,40 @@
-﻿using ECafe.Application.DTOs.Reservation;
+using ECafe.Application.DTOs.Reservation;
+using ECafe.Shared.DTOs;
 
-namespace ECafe.Application.Services.Reservation.Abstract
+namespace ECafe.Application.Services.Reservation.Abstract;
+
+public interface IReservationService
 {
-    public interface IReservationService
-    {
-        Task<ECafe.Application.DTOs.Reservation.ReservationResponse> GetReservationByIdAsync(
-            int reservationId,
-            CancellationToken cancellationToken = default);
+    Task<ReservationResponse> GetReservationByIdAsync(
+        int reservationId,
+        CancellationToken cancellationToken = default);
 
-        Task<ECafe.Application.DTOs.Reservation.ReservationResponse> CreateReservationAsync(
-            int restaurantId,
-            CreateReservationRequest request,
-            CancellationToken cancellationToken = default);
+    Task<PaginatedList<ReservationResponse>> GetMyReservationsAsync(
+        ReservationQueryRequest request,
+        CancellationToken cancellationToken = default);
 
-        Task<int> ExpirePendingReservationsAsync(int batchSize,CancellationToken cancellationToken);
+    Task<PaginatedList<ReservationResponse>> GetRestaurantReservationsAsync(
+        int restaurantId,
+        ReservationQueryRequest request,
+        CancellationToken cancellationToken = default);
 
-        Task<PaymentInstructionResponse> SendPaymentInstructionAsync(
-            int restaurantId,
-            int reservationId,
-            PaymentInstructionRequest request,
-            CancellationToken cancellationToken = default);
-    }
+    Task<ReservationResponse> GetRestaurantReservationByIdAsync(
+        int restaurantId,
+        int reservationId,
+        CancellationToken cancellationToken = default);
+
+    Task<ReservationResponse> CreateReservationAsync(
+        int restaurantId,
+        CreateReservationRequest request,
+        CancellationToken cancellationToken = default);
+
+    Task<int> ExpirePendingReservationsAsync(
+        int batchSize,
+        CancellationToken cancellationToken);
+
+    Task<PaymentInstructionResponse> SendPaymentInstructionAsync(
+        int restaurantId,
+        int reservationId,
+        PaymentInstructionRequest request,
+        CancellationToken cancellationToken = default);
 }

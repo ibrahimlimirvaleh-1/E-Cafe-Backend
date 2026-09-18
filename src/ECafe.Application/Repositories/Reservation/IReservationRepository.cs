@@ -1,22 +1,33 @@
-﻿using ECafe.Application.Repository;
+using ECafe.Application.DTOs.Reservation;
+using ECafe.Application.Repository;
+using ECafe.Shared.DTOs;
 
-namespace ECafe.Application.Repositories.Reservation
+namespace ECafe.Application.Repositories.Reservation;
+
+public interface IReservationRepository : IBaseRepository<Domain.Entities.Reservation>
 {
-    public interface IReservationRepository : IBaseRepository<Domain.Entities.Reservation>
-    {
-        Task<Domain.Entities.Reservation?> GetByIdForCustomerAsync(
-            int reservationId,
-            int customerUserId,
-            CancellationToken cancellationToken = default);
+    Task<Domain.Entities.Reservation?> GetByIdForCustomerAsync(
+        int reservationId,
+        int customerUserId,
+        CancellationToken cancellationToken = default);
 
-        Task<int> ExpirePendingPaymentsAsync(
-            DateTime nowUtc,
-            int batchSize,
-            CancellationToken cancellationToken = default);
+    Task<PaginatedList<Domain.Entities.Reservation>> GetForCustomerAsync(
+        int customerUserId,
+        ReservationQueryRequest request,
+        CancellationToken cancellationToken = default);
 
-        Task<Domain.Entities.Reservation?> GetByIdForRestaurantAsync(
-            int reservationId,
-            int restaurantId,
-            CancellationToken cancellationToken = default);
-    }
+    Task<int> ExpirePendingPaymentsAsync(
+        DateTime nowUtc,
+        int batchSize,
+        CancellationToken cancellationToken = default);
+
+    Task<Domain.Entities.Reservation?> GetByIdForRestaurantAsync(
+        int reservationId,
+        int restaurantId,
+        CancellationToken cancellationToken = default);
+
+    Task<PaginatedList<Domain.Entities.Reservation>> GetForRestaurantAsync(
+        int restaurantId,
+        ReservationQueryRequest request,
+        CancellationToken cancellationToken = default);
 }
