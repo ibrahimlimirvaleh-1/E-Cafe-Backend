@@ -14,5 +14,11 @@ namespace ECafe.Application.Services.Reservation.Abstract
             CancellationToken cancellationToken = default);
 
         Task<int> ExpirePendingReservationsAsync(int batchSize,CancellationToken cancellationToken);
+
+        Task<PaymentInstructionResponse> SendPaymentInstructionAsync(
+            int restaurantId,
+            int reservationId,
+            PaymentInstructionRequest request,
+            CancellationToken cancellationToken = default);
     }
 }

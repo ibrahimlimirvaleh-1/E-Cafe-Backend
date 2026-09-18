@@ -8,11 +8,14 @@ using ECafe.Application.DTOs.Reservation;
 using ECafe.Application.Repositories.Reservation;
 using ECafe.Application.Repositories.Restaurant;
 using ECafe.Application.Repositories.RestaurantContract;
+using ECafe.Application.Repositories.ReservationPaymentInstruction;
 using ECafe.Application.Repositories.Table;
 using ECafe.Application.Repositories.UserRestaurant;
 using ECafe.Application.Repository;
 using ECafe.Application.Services.Notification.Abstract;
+using ECafe.Application.Services.AuditLog.Abstract;
 using ECafe.Application.Services.Reservation.Abstract;
+using ECafe.Domain.Entities;
 using ECafe.Domain.Enums;
 using ECafe.Domain.Exceptions;
 using Microsoft.AspNetCore.Http;
@@ -37,7 +40,9 @@ public sealed class ReservationManager : BaseManager, IReservationService
     private readonly IReservationRepository _reservationRepository;
     private readonly IUserRestaurantRepository _userRestaurantRepository;
     private readonly INotificationService _notificationService;
+    private readonly IAuditLogService _auditLogService;
     private readonly IApplicationDbTransactionFactory _transactionFactory;
+    private readonly IReservationPaymentInstructionRepository _reservationPaymentInstructionRepository;
 
     public ReservationManager(
         IHttpContextAccessor httpContextAccessor,
@@ -49,7 +54,9 @@ public sealed class ReservationManager : BaseManager, IReservationService
         IReservationRepository reservationRepository,
         IUserRestaurantRepository userRestaurantRepository,
         INotificationService notificationService,
-        IApplicationDbTransactionFactory transactionFactory)
+        IAuditLogService auditLogService,
+        IApplicationDbTransactionFactory transactionFactory,
+        IReservationPaymentInstructionRepository reservationPaymentInstructionRepository)
         : base(httpContextAccessor, mapper, configuration)
     {
         _tableRepository = tableRepository;
@@ -58,7 +65,9 @@ public sealed class ReservationManager : BaseManager, IReservationService
         _reservationRepository = reservationRepository;
         _userRestaurantRepository = userRestaurantRepository;
         _notificationService = notificationService;
+        _auditLogService = auditLogService;
         _transactionFactory = transactionFactory;
+        _reservationPaymentInstructionRepository = reservationPaymentInstructionRepository;
     }
 
     public async Task<ReservationResponse> CreateReservationAsync(
@@ -125,6 +134,102 @@ public sealed class ReservationManager : BaseManager, IReservationService
             DateTime.UtcNow,
             batchSize,
             cancellationToken);
+    }
+
+
+    public async Task<PaymentInstructionResponse> SendPaymentInstructionAsync(int restaurantId, int reservationId, PaymentInstructionRequest request, CancellationToken cancellationToken = default)
+    {
+        if (request is null || string.IsNullOrWhiteSpace(request.DisplayText))
+            throw new BadRequestException("Ödəniş məlumatı boş ola bilməz.");
+
+        var displayText = request.DisplayText.Trim();
+        if (displayText.Length > 1000)
+            throw new BadRequestException("Ödəniş məlumatı 1000 simvoldan çox ola bilməz.");
+
+        var userId = GetCurrentUserId();
+
+        var now = DateTime.UtcNow;
+
+        int paymentPendingStatusId = StatusIds.Reservation(ReservationStatus.PendingPayment);
+
+        var userBelongsToRestaurant = await _userRestaurantRepository.UserBelogsToRestaurantAsync(userId, restaurantId);
+
+        if (!userBelongsToRestaurant)
+            throw new BusinessRuleException(ErrorCode.UserNotBelongsToRestaurant);
+
+        var activeRoleId = await _userRestaurantRepository.GetActiveRoleIdAsync(userId, restaurantId);
+        if (activeRoleId is not ((int)RoleCode.Owner) and not ((int)RoleCode.Manager))
+            throw new ForbiddenException(ErrorCode.OnlyRestaurantManagersCanSendPaymentInstruction);
+
+
+        var reservation = await _reservationRepository.GetByIdForRestaurantAsync(
+            reservationId,
+            restaurantId,
+            cancellationToken);
+
+        if (reservation is null)
+            throw new BusinessRuleException(ErrorCode.ReservationNotBelongsToRestaurant);
+
+        if (reservation.StatusId != paymentPendingStatusId ||
+            reservation.HoldExpiresAt is null ||
+            reservation.HoldExpiresAt <= now)
+            throw new BusinessRuleException(ErrorCode.ThisOperatioCannotBePerformedForThisReservation);
+
+        var paymentInstruction = new ReservationPaymentInstruction
+        {
+            ReservationId = reservation.Id,
+            DisplayText = displayText,
+            Amount = reservation.DepositAmount,
+            SentByUserId = userId,
+            SentAt = now
+        };
+
+        await using var transaction = await _transactionFactory.BeginTransactionAsync(
+            IsolationLevel.ReadCommitted,
+            cancellationToken);
+
+        await _reservationPaymentInstructionRepository.Add(paymentInstruction);
+        await _reservationPaymentInstructionRepository.SaveChangesAsync();
+
+        await _notificationService.CreateAsync(new CreateNotificationRequest
+        {
+            UserId = reservation.CustomerUserId,
+            RestaurantId = restaurantId,
+            Title = "Ödəniş məlumatı göndərildi",
+            Message = "Restoran rezervasiyanız üçün ödəniş məlumatlarını göndərdi.",
+            TypeId = (int)NotificationType.ReservationPaymentInstructionSent,
+            ChannelId = (int)NotificationChannel.InApp,
+            PayloadJson = JsonSerializer.Serialize(new
+            {
+                reservationId = reservation.Id,
+                instructionId = paymentInstruction.Id
+            }),
+            RelatedEntityType = AuditEntityTypes.Reservation,
+            RelatedEntityId = reservation.Id
+        });
+
+        await _auditLogService.RecordRestaurantActionAsync(
+            restaurantId,
+            "PaymentInstructionSent",
+            new
+            {
+                reservationId = reservation.Id,
+                instructionId = paymentInstruction.Id,
+                amount = paymentInstruction.Amount
+            },
+            AuditEntityTypes.Reservation,
+            reservation.Id);
+
+        await transaction.CommitAsync(cancellationToken);
+
+        return new PaymentInstructionResponse
+        {
+            ReservationId = reservation.Id,
+            Status = reservation.Status?.Name ?? ReservationStatus.PendingPayment.ToString(),
+            DisplayText = paymentInstruction.DisplayText,
+            Amount = paymentInstruction.Amount,
+            SentAt = paymentInstruction.SentAt
+        };
     }
     private async Task<Domain.Entities.Restaurant> GetReservableRestaurantAsync(int restaurantId)
     {

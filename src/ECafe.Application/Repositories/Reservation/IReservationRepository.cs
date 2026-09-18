@@ -13,5 +13,10 @@ namespace ECafe.Application.Repositories.Reservation
             DateTime nowUtc,
             int batchSize,
             CancellationToken cancellationToken = default);
+
+        Task<Domain.Entities.Reservation?> GetByIdForRestaurantAsync(
+            int reservationId,
+            int restaurantId,
+            CancellationToken cancellationToken = default);
     }
 }

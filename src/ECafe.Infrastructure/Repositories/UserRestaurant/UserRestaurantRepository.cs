@@ -101,5 +101,13 @@ namespace ECafe.Infrastructure.Repositories.UserRestaurant
                 .Include(x => x.User)
                 .ToListAsync();
         }
+
+        public Task<bool> UserBelogsToRestaurantAsync(int userId, int restaurantId)
+        {
+            return Query()
+                .AnyAsync(us => us.UserId == userId && 
+                us.RestaurantId == restaurantId && 
+                us.IsActive);
+        }
     }
 }

@@ -73,6 +73,8 @@ public partial class Reservation : AuditableSoftDeletableEntity<int>
 
     public virtual ICollection<ReservationPaymentProof> PaymentProofs { get; set; } = new List<ReservationPaymentProof>();
 
+    public virtual ICollection<ReservationPaymentInstruction> PaymentInstructions { get; set; } = new List<ReservationPaymentInstruction>();
+
     public virtual ICollection<TableSession> TableSessions { get; set; } = new List<TableSession>();
 
     public virtual User? NoShowByUser { get; set; }

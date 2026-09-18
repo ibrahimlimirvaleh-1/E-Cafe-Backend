@@ -62,5 +62,17 @@ namespace ECafe.Infrastructure.Repositories.Reservation
                         expiredStatusId),
                     cancellationToken);
         }
+
+        public Task<Domain.Entities.Reservation?> GetByIdForRestaurantAsync(
+            int reservationId,
+            int restaurantId,
+            CancellationToken cancellationToken = default)
+        {
+            return QueryTracked()
+                .Include(r => r.Status)
+                .FirstOrDefaultAsync(
+                    r => r.Id == reservationId && r.RestaurantId == restaurantId,
+                    cancellationToken);
+        }
     }
 }
