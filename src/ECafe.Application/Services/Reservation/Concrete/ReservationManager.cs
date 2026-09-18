@@ -18,6 +18,7 @@ using ECafe.Application.Services.Reservation.Abstract;
 using ECafe.Domain.Entities;
 using ECafe.Domain.Enums;
 using ECafe.Domain.Exceptions;
+using ECafe.Shared.DTOs;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -127,6 +128,53 @@ public sealed class ReservationManager : BaseManager, IReservationService
         return MapResponse(reservation);
     }
 
+    public async Task<PaginatedList<ReservationResponse>> GetMyReservationsAsync(
+        ReservationQueryRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var reservations = await _reservationRepository.GetForCustomerAsync(
+            GetCurrentUserId(),
+            request,
+            cancellationToken);
+
+        return MapPage(reservations, request);
+    }
+
+    public async Task<PaginatedList<ReservationResponse>> GetRestaurantReservationsAsync(
+        int restaurantId,
+        ReservationQueryRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        await EnsureRestaurantReservationAccessAsync(restaurantId);
+        var reservations = await _reservationRepository.GetForRestaurantAsync(
+            restaurantId,
+            request,
+            cancellationToken);
+
+        return MapPage(reservations, request);
+    }
+
+    public async Task<ReservationResponse> GetRestaurantReservationByIdAsync(
+        int restaurantId,
+        int reservationId,
+        CancellationToken cancellationToken = default)
+    {
+        ValidateRestaurantId(restaurantId);
+        if (reservationId <= 0)
+            throw new BadRequestException("Rezervasiya seçimi düzgün deyil.");
+
+        await EnsureRestaurantReservationAccessAsync(restaurantId);
+        var reservation = await _reservationRepository.GetByIdForRestaurantAsync(
+            reservationId,
+            restaurantId,
+            cancellationToken);
+
+        if (reservation is null)
+            throw new NotFoundException(ErrorCode.ReservationNotFound);
+
+        return MapResponse(reservation);
+    }
+
 
     public async Task<int> ExpirePendingReservationsAsync(int batchSize, CancellationToken cancellationToken)
     {
@@ -224,6 +272,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
 
         return new PaymentInstructionResponse
         {
+            Id = paymentInstruction.Id,
             ReservationId = reservation.Id,
             Status = reservation.Status?.Name ?? ReservationStatus.PendingPayment.ToString(),
             DisplayText = paymentInstruction.DisplayText,
@@ -355,6 +404,10 @@ public sealed class ReservationManager : BaseManager, IReservationService
 
     private static ReservationResponse MapResponse(Domain.Entities.Reservation reservation)
     {
+        var latestPaymentInstruction = reservation.PaymentInstructions
+            .OrderByDescending(instruction => instruction.SentAt)
+            .FirstOrDefault();
+
         return new ReservationResponse
         {
             Id = reservation.Id,
@@ -366,8 +419,54 @@ public sealed class ReservationManager : BaseManager, IReservationService
             Status = reservation.Status?.Name ?? ReservationStatus.PendingPayment.ToString(),
             DepositAmount = reservation.DepositAmount,
             HoldExpiresAt = ToUtcOffset(reservation.HoldExpiresAt),
-            CancellationDeadline = ToUtcOffset(reservation.CancellationDeadline)
+            CancellationDeadline = ToUtcOffset(reservation.CancellationDeadline),
+            RestaurantName = reservation.Restaurant?.Name,
+            TableName = reservation.Table is null
+                ? null
+                : reservation.Table.Name ?? $"Masa {reservation.Table.TableNo}",
+            CustomerName = reservation.CustomerUser is null
+                ? null
+                : $"{reservation.CustomerUser.Name} {reservation.CustomerUser.Surname}".Trim(),
+            LatestPaymentInstruction = latestPaymentInstruction is null
+                ? null
+                : new PaymentInstructionResponse
+                {
+                    Id = latestPaymentInstruction.Id,
+                    ReservationId = reservation.Id,
+                    Status = reservation.Status?.Name ?? ReservationStatus.PendingPayment.ToString(),
+                    DisplayText = latestPaymentInstruction.DisplayText,
+                    Amount = latestPaymentInstruction.Amount,
+                    SentAt = latestPaymentInstruction.SentAt
+                }
         };
+    }
+
+    private static PaginatedList<ReservationResponse> MapPage(
+        PaginatedList<Domain.Entities.Reservation> page,
+        ReservationQueryRequest request)
+    {
+        var items = page.Items.Select(MapResponse).ToList();
+        return new PaginatedList<ReservationResponse>(
+            items,
+            page.TotalCount,
+            page.PageIndex,
+            Math.Clamp(request.PageSize, 1, 100));
+    }
+
+    private async Task EnsureRestaurantReservationAccessAsync(int restaurantId)
+    {
+        ValidateRestaurantId(restaurantId);
+
+        if (IsCurrentUserSuperAdmin())
+            return;
+
+        var userId = GetCurrentUserId();
+        if (!await _userRestaurantRepository.UserBelogsToRestaurantAsync(userId, restaurantId))
+            throw new BusinessRuleException(ErrorCode.UserNotBelongsToRestaurant);
+
+        var roleId = GetCurrentRoleId(restaurantId);
+        if (!ReservationManagerRoleIds.Contains(roleId))
+            throw new ForbiddenException(ErrorCode.OnlyRestaurantManagersCanSendPaymentInstruction);
     }
 
     private static DateTimeOffset? ToUtcOffset(DateTime? value)

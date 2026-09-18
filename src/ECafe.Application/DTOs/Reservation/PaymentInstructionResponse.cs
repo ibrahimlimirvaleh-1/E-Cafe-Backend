@@ -2,6 +2,7 @@
 {
     public class PaymentInstructionResponse
     {
+        public int Id { get; set; }
         public int ReservationId { get; set; }
 
         public string Status { get; set; } = null!;
