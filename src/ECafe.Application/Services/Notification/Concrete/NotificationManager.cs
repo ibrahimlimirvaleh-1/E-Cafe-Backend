@@ -98,6 +98,14 @@ namespace ECafe.Application.Services.Notification.Concrete
         }
 
         private int? GetNotificationRestaurantScope()
-            => IsCurrentUserSuperAdmin() ? null : GetRequiredCurrentRestaurantId();
+        {
+            // Customers can receive notifications from any restaurant where they
+            // create a reservation, so their own notifications must not depend on
+            // an active restaurant context.
+            if (IsCurrentUserSuperAdmin() || GetCurrentRoleId() == (int)RoleCode.Customer)
+                return null;
+
+            return GetCurrentRestaurantId();
+        }
     }
 }
