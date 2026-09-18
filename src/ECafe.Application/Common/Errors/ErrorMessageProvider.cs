@@ -121,7 +121,12 @@ public sealed class ErrorMessageProvider : IErrorMessageProvider
         [ErrorCode.TableNotBelongToRestaurant] = "Seçilən masa bu restorana aid deyil və ya aktiv deyil.",
         [ErrorCode.RestaurantClosedForReservation] = "Restoran seçilən tarix və saatda açıq deyil.",
         [ErrorCode.TableAlreadyReserved] = "Seçilən masa artıq rezerv edilib. Başqa masa seçin.",
-        [ErrorCode.ReservationNotFound] = "Rezervasiya tapılmadı."
+        [ErrorCode.ReservationNotFound] = "Rezervasiya tapılmadı.",
+        [ErrorCode.UserNotBelongsToRestaurant] = "Giriş edən restoran işçisi deyil.",
+        [ErrorCode.ReservationNotBelongsToRestaurant] = "Rezervasiya restorana aid deyil.",
+        [ErrorCode.ThisOperatioCannotBePerformedForThisReservation] = "Bu rezervasiya üçün bu əməliyyatı yerinə yetirmək olmaz.",
+        [ErrorCode.OnlyRestaurantManagersCanSendPaymentInstruction] = "Ödəniş məlumatını yalnız restoran sahibi və ya meneceri göndərə bilər.",
+
     };
 
     public string GetMessage(BaseException exception)

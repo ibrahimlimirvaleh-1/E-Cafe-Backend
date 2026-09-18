@@ -44,6 +44,7 @@ namespace ECafe.Infrastructure.Seeders
             AddPermissions(rolePermissions, RoleCode.Owner, new[]
             {
                 PermissionCode.ManageStaff,
+                PermissionCode.ManageReservations,
                 PermissionCode.ViewReports,
                 PermissionCode.ViewRestaurantInfo,
                 PermissionCode.ViewRestaurantContracts,

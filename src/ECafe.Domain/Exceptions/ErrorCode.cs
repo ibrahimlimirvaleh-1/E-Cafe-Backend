@@ -118,5 +118,11 @@ public enum ErrorCode
     TableNotBelongToRestaurant = 5016,
     RestaurantClosedForReservation = 5017,
     TableAlreadyReserved = 5018,
-    ReservationNotFound = 5019
+    ReservationNotFound = 5019,
+
+    UserNotBelongsToRestaurant = 5020,
+    ReservationNotBelongsToRestaurant = 5021,
+
+    ThisOperatioCannotBePerformedForThisReservation = 5022,
+    OnlyRestaurantManagersCanSendPaymentInstruction = 5023
 }
