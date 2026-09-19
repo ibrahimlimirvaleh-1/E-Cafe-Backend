@@ -1,5 +1,6 @@
 using ECafe.Domain.Entities;
 using ECafe.Domain.Enums;
+using ECafe.Domain.Workflow;
 using Microsoft.EntityFrameworkCore;
 using StatusTypeEnum = ECafe.Domain.Enums.StatusType;
 
@@ -8,7 +9,8 @@ namespace ECafe.Infrastructure.Seeders;
 public static class WorkflowActionRuleSeeder
 {
     private const string ContractFlow = "contract";
-    private const string ReservationFlow = "reservation";
+    private static readonly string ReservationFlow =
+        WorkflowFlowCode.FromStatusType(StatusTypeEnum.Reservation);
     private const string OrderFlow = "order";
     private const string KitchenFlow = "kitchen";
     private const string PaymentFlow = "payment";
@@ -26,6 +28,7 @@ public static class WorkflowActionRuleSeeder
         AddScheduledContractRules(rules, ref id);
         AddReceiptReservationRules(rules, ref id);
         AddOwnerReservationRules(rules, ref id);
+        AddPaymentInstructionReservationRules(rules, ref id);
 
         modelBuilder.Entity<WorkflowActionRule>().HasData(rules);
     }
@@ -76,6 +79,12 @@ public static class WorkflowActionRuleSeeder
         rules.Add(Rule(id++, ReservationFlow, StatusTypeEnum.Reservation, ReservationStatus.PaymentSubmitted, RoleCode.Owner, "approvePaymentProof", "Ödənişi təsdiqlə", "POST", "/api/v1/restaurants/{restaurantId}/reservations/{reservationId}/payment-proofs/approve", 10, true));
         rules.Add(Rule(id++, ReservationFlow, StatusTypeEnum.Reservation, ReservationStatus.PaymentSubmitted, RoleCode.Owner, "rejectPaymentProof", "Ödənişi rədd et", "POST", "/api/v1/restaurants/{restaurantId}/reservations/{reservationId}/payment-proofs/reject", 20, true));
         rules.Add(Rule(id++, ReservationFlow, StatusTypeEnum.Reservation, ReservationStatus.PaymentSubmitted, RoleCode.Owner, "cancel", "Rezervasiyanı ləğv et", "POST", "/api/v1/restaurants/{restaurantId}/reservations/{reservationId}/cancel", 90, true));
+    }
+
+    private static void AddPaymentInstructionReservationRules(List<WorkflowActionRule> rules, ref int id)
+    {
+        rules.Add(Rule(id++, ReservationFlow, StatusTypeEnum.Reservation, ReservationStatus.PendingPayment, RoleCode.Manager, "sendPaymentInstruction", "Ödəniş məlumatı göndər", "POST", "/api/v1/restaurants/{restaurantId}/reservations/{reservationId}/payment-instructions", 10));
+        rules.Add(Rule(id++, ReservationFlow, StatusTypeEnum.Reservation, ReservationStatus.PendingPayment, RoleCode.Owner, "sendPaymentInstruction", "Ödəniş məlumatı göndər", "POST", "/api/v1/restaurants/{restaurantId}/reservations/{reservationId}/payment-instructions", 10));
     }
 
     private static void AddOrderRules(List<WorkflowActionRule> rules, ref int id)
