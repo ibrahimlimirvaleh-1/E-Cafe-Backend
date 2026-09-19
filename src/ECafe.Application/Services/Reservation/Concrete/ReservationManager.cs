@@ -15,19 +15,24 @@ using ECafe.Application.Repository;
 using ECafe.Application.Services.Notification.Abstract;
 using ECafe.Application.Services.AuditLog.Abstract;
 using ECafe.Application.Services.Reservation.Abstract;
+using ECafe.Application.Services.Workflow.Abstract;
 using ECafe.Domain.Entities;
 using ECafe.Domain.Enums;
 using ECafe.Domain.Exceptions;
+using ECafe.Domain.Workflow;
 using ECafe.Shared.DTOs;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using StatusTypeEnum = ECafe.Domain.Enums.StatusType;
 
 namespace ECafe.Application.Services.Reservation.Concrete;
 
 public sealed class ReservationManager : BaseManager, IReservationService
 {
     private const int DefaultHoldMinutes = 15;
+    private static string ReservationFlowCode
+        => WorkflowFlowCode.FromStatusType(StatusTypeEnum.Reservation);
 
     private static readonly int[] ReservationManagerRoleIds =
     [
@@ -44,6 +49,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
     private readonly IAuditLogService _auditLogService;
     private readonly IApplicationDbTransactionFactory _transactionFactory;
     private readonly IReservationPaymentInstructionRepository _reservationPaymentInstructionRepository;
+    private readonly IWorkflowActionService _workflowActionService;
 
     public ReservationManager(
         IHttpContextAccessor httpContextAccessor,
@@ -57,7 +63,8 @@ public sealed class ReservationManager : BaseManager, IReservationService
         INotificationService notificationService,
         IAuditLogService auditLogService,
         IApplicationDbTransactionFactory transactionFactory,
-        IReservationPaymentInstructionRepository reservationPaymentInstructionRepository)
+        IReservationPaymentInstructionRepository reservationPaymentInstructionRepository,
+        IWorkflowActionService workflowActionService)
         : base(httpContextAccessor, mapper, configuration)
     {
         _tableRepository = tableRepository;
@@ -69,6 +76,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
         _auditLogService = auditLogService;
         _transactionFactory = transactionFactory;
         _reservationPaymentInstructionRepository = reservationPaymentInstructionRepository;
+        _workflowActionService = workflowActionService;
     }
 
     public async Task<ReservationResponse> CreateReservationAsync(
@@ -222,6 +230,13 @@ public sealed class ReservationManager : BaseManager, IReservationService
             reservation.HoldExpiresAt is null ||
             reservation.HoldExpiresAt <= now)
             throw new BusinessRuleException(ErrorCode.ThisOperatioCannotBePerformedForThisReservation);
+
+        await _workflowActionService.EnsureCanExecuteAsync(
+            ReservationFlowCode,
+            reservation.StatusId,
+            "sendPaymentInstruction",
+            restaurantId,
+            reservation.Id);
 
         var paymentInstruction = new ReservationPaymentInstruction
         {
