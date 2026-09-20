@@ -36,7 +36,6 @@ public sealed class ReservationManager : BaseManager, IReservationService
 
     private static readonly int[] ReservationManagerRoleIds =
     [
-        (int)RoleCode.Owner,
         (int)RoleCode.Manager
     ];
 
@@ -111,7 +110,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
         var reservation = BuildReservation(restaurantId, userId, restaurant, request);
         await _reservationRepository.Add(reservation);
         await _reservationRepository.SaveChangesAsync();
-        await NotifyRestaurantManagersAsync(restaurantId, table, reservation);
+        await NotifyRestaurantResponsibleUserAsync(restaurantId, table, reservation);
 
         await transaction.CommitAsync(cancellationToken);
         return MapResponse(reservation);
@@ -367,7 +366,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
         };
     }
 
-    private async Task NotifyRestaurantManagersAsync(
+    private async Task NotifyRestaurantResponsibleUserAsync(
         int restaurantId,
         Domain.Entities.Table table,
         Domain.Entities.Reservation reservation)
@@ -375,6 +374,15 @@ public sealed class ReservationManager : BaseManager, IReservationService
         var assignments = await _userRestaurantRepository.GetActiveByRestaurantAndRolesAsync(
             restaurantId,
             ReservationManagerRoleIds);
+
+        if (assignments.Count == 0)
+        {
+            var ownerAssignment = await _userRestaurantRepository
+                .GetActiveOwnerByRestaurantAsync(restaurantId);
+
+            if (ownerAssignment is not null)
+                assignments.Add(ownerAssignment);
+        }
 
         foreach (var assignment in assignments)
         {
