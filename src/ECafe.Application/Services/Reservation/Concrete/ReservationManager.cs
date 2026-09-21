@@ -240,8 +240,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
             throw new BusinessRuleException(ErrorCode.ReservationNotBelongsToRestaurant);
 
         if (reservation.StatusId != paymentPendingStatusId ||
-            reservation.HoldExpiresAt is null ||
-            reservation.HoldExpiresAt <= now)
+            (reservation.HoldExpiresAt is not null && reservation.HoldExpiresAt <= now))
             throw new BusinessRuleException(ErrorCode.ThisOperatioCannotBePerformedForThisReservation);
 
         await _workflowActionService.EnsureCanExecuteAsync(
@@ -263,6 +262,21 @@ public sealed class ReservationManager : BaseManager, IReservationService
         await using var transaction = await _transactionFactory.BeginTransactionAsync(
             IsolationLevel.ReadCommitted,
             cancellationToken);
+
+        await _tableRepository.AcquireReservationLockAsync(
+            restaurantId,
+            reservation.TableId,
+            cancellationToken);
+
+        if (reservation.HoldExpiresAt is null)
+        {
+            await EnsureTableIsAvailableAsync(
+                restaurantId,
+                reservation.TableId,
+                reservation.ReservedAt);
+
+            reservation.HoldExpiresAt = now.AddMinutes(GetHoldMinutes());
+        }
 
         await _reservationPaymentInstructionRepository.Add(paymentInstruction);
         await _reservationPaymentInstructionRepository.SaveChangesAsync();
@@ -561,7 +575,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
             CancellationWindowMinutes = cancellationWindowMinutes,
             CancellationDeadline = request.ReservedAt.UtcDateTime.AddMinutes(-cancellationWindowMinutes),
             ReservedAt = request.ReservedAt.UtcDateTime,
-            HoldExpiresAt = DateTime.UtcNow.AddMinutes(GetHoldMinutes()),
+            HoldExpiresAt = null,
             Note = request.Note?.Trim()
         };
     }

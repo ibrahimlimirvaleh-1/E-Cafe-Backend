@@ -100,9 +100,16 @@ namespace ECafe.Infrastructure.Repositories.Restaurant
                 .Include(r => r.WorkingHours)
                 .SingleOrDefaultAsync();
 
-            return restaurant is not null && RestaurantWorkingHoursCalculator.TryGetActiveInterval(
+            if (restaurant is null)
+                return false;
+
+            var restaurantLocalTime = RestaurantTimeZoneConverter.ToRestaurantLocalTime(
+                reservedAt.ToUniversalTime(),
+                restaurant.TimeZone);
+
+            return RestaurantWorkingHoursCalculator.TryGetActiveInterval(
                 restaurant.WorkingHours,
-                reservedAt,
+                restaurantLocalTime,
                 out _);
         }
     }
