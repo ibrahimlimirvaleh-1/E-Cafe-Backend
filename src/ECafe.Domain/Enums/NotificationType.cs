@@ -12,6 +12,7 @@
         OrderReady = 8,
         InventoryLowStock = 9,
         ContractExpiryReminder = 10,
-        ReservationPaymentInstructionSent = 11
+        ReservationPaymentInstructionSent = 11,
+        ReservationPaymentProofSubmitted = 12
     }
 }

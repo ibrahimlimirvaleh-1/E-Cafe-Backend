@@ -55,6 +55,8 @@ using ECafe.Application.Repositories.Reservation;
 using ECafe.Infrastructure.Repositories.Reservation;
 using ECafe.Application.Repositories.ReservationPaymentInstruction;
 using ECafe.Infrastructure.Repositories.ReservationPaymentInstruction;
+using ECafe.Application.Repositories.ReservationPaymentProof;
+using ECafe.Infrastructure.Repositories.ReservationPaymentProof;
 namespace ECafe.Infrastructure
 {
     public static class DependencyInjection
@@ -102,6 +104,7 @@ namespace ECafe.Infrastructure
             services.AddScoped<IUserRestaurantAccessCache, UserRestaurantAccessCache>();
             services.AddScoped<IReservationRepository,ReservationRepository>();
             services.AddScoped<IReservationPaymentInstructionRepository, ReservationPaymentInstructionRepository>();
+            services.AddScoped<IReservationPaymentProofRepository, ReservationPaymentProofRepository>();
             return services;
         }
     }
