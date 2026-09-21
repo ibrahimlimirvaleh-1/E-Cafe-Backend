@@ -101,8 +101,7 @@ namespace ECafe.Infrastructure.Repositories.Table
                         r.TableId == t.Id &&
                         r.Status.BlocksTableAvailability &&
                         (r.StatusId != StatusIds.Reservation(ReservationStatus.PendingPayment) ||
-                         r.HoldExpiresAt == null ||
-                         r.HoldExpiresAt > DateTime.UtcNow) &&
+                         (r.HoldExpiresAt != null && r.HoldExpiresAt > DateTime.UtcNow)) &&
                         r.ReservedAt >= reservationInterval.StartsAtUtc &&
                         r.ReservedAt < reservationInterval.EndsAtUtc));
         }
@@ -114,7 +113,19 @@ namespace ECafe.Infrastructure.Repositories.Table
                 .Where(wh => wh.RestaurantId == restaurantId && !wh.IsClosed)
                 .ToListAsync();
 
-            return RestaurantWorkingHoursCalculator.TryGetActiveInterval(workingHours, reservedAt, out var interval)
+            var timeZoneId = await Context.Restaurants
+                .Where(restaurant => restaurant.Id == restaurantId && restaurant.IsActive)
+                .Select(restaurant => restaurant.TimeZone)
+                .SingleOrDefaultAsync();
+
+            if (timeZoneId is null)
+                return null;
+
+            var restaurantLocalTime = RestaurantTimeZoneConverter.ToRestaurantLocalTime(
+                reservedAt.ToUniversalTime(),
+                timeZoneId);
+
+            return RestaurantWorkingHoursCalculator.TryGetActiveInterval(workingHours, restaurantLocalTime, out var interval)
                 ? new ReservationIntervalUtc(interval.StartsAt.UtcDateTime, interval.EndsAt.UtcDateTime)
                 : null;
         }

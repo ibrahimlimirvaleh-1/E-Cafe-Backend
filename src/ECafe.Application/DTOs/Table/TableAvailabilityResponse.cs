@@ -4,6 +4,8 @@ namespace ECafe.Application.DTOs.Table
     {
         public DateTimeOffset ReservedAt { get; set; }
 
+        public bool IsRestaurantOpen { get; set; }
+
         public bool HasAvailableTable { get; set; }
 
         public int AvailableCount { get; set; }

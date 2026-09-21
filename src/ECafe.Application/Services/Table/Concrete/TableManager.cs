@@ -246,11 +246,11 @@ namespace ECafe.Application.Services.Table.Concrete
             var restaurantIsOpen = await _restaurantRepository.IsRestaurantOpenAsync(restaurantId, reservedAt);
 
             if (!restaurantIsOpen)
-                return BuildTableAvailabilityResponse(reservedAt, []);
+                return BuildTableAvailabilityResponse(reservedAt, [], false);
 
             var availableTables = await _tableRepository.GetAvailableTablesForReservationAsync(restaurantId, reservedAt);
 
-            return BuildTableAvailabilityResponse(reservedAt, availableTables);
+            return BuildTableAvailabilityResponse(reservedAt, availableTables, true);
         }
 
         public async Task<List<TableResponse>> GetAvailableForReservationAsync(int restaurantId, DateTimeOffset reservedAt)
@@ -280,7 +280,8 @@ namespace ECafe.Application.Services.Table.Concrete
 
         private static TableAvailabilityResponse BuildTableAvailabilityResponse(
             DateTimeOffset reservedAt,
-            IReadOnlyCollection<Domain.Entities.Table> availableTables)
+            IReadOnlyCollection<Domain.Entities.Table> availableTables,
+            bool isRestaurantOpen)
         {
             var tables = availableTables
                 .Select(MapTableResponse)
@@ -289,6 +290,7 @@ namespace ECafe.Application.Services.Table.Concrete
             return new TableAvailabilityResponse
             {
                 ReservedAt = reservedAt,
+                IsRestaurantOpen = isRestaurantOpen,
                 HasAvailableTable = tables.Count > 0,
                 AvailableCount = tables.Count,
                 Tables = tables
