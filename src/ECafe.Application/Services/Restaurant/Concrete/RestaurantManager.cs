@@ -936,13 +936,20 @@ namespace ECafe.Application.Services.Restaurant.Concrete
                 .Select(day =>
                 {
                     var source = byDay.GetValueOrDefault(day);
+                    var opensAt = source?.OpensAt ?? new TimeOnly(9, 0);
+                    var closesAt = source?.ClosesAt ?? new TimeOnly(0, 0);
+                    var closeDayOffset = source?.CloseDayOffset ?? (opensAt > closesAt ? 1 : 0);
+
+                    // Midnight after a daytime opening belongs to the next calendar day.
+                    if (source?.IsClosed != true && closesAt == TimeOnly.MinValue && opensAt > closesAt)
+                        closeDayOffset = 1;
 
                     return new Domain.Entities.RestaurantWorkingHour
                     {
                         DayOfWeek = day,
-                        OpensAt = source?.OpensAt ?? new TimeOnly(9, 0),
-                        ClosesAt = source?.ClosesAt ?? new TimeOnly(0, 0),
-                        CloseDayOffset = source?.CloseDayOffset ?? (source is null || source.OpensAt > source.ClosesAt ? 1 : 0),
+                        OpensAt = opensAt,
+                        ClosesAt = closesAt,
+                        CloseDayOffset = closeDayOffset,
                         IsClosed = source?.IsClosed ?? false
                     };
                 })
