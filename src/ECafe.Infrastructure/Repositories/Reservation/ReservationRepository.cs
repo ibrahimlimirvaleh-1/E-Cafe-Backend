@@ -25,6 +25,20 @@ public class ReservationRepository : BaseRepository<Domain.Entities.Reservation>
                 cancellationToken);
     }
 
+    public Task<Domain.Entities.Reservation?> GetByIdForCustomerForUpdateAsync(
+        int reservationId,
+        int restaurantId,
+        int customerUserId,
+        CancellationToken cancellationToken = default)
+    {
+        return WithDetails(QueryTracked())
+            .FirstOrDefaultAsync(
+                reservation => reservation.Id == reservationId &&
+                               reservation.RestaurantId == restaurantId &&
+                               reservation.CustomerUserId == customerUserId,
+                cancellationToken);
+    }
+
     public Task<PaginatedList<Domain.Entities.Reservation>> GetForCustomerAsync(
         int customerUserId,
         ReservationQueryRequest request,

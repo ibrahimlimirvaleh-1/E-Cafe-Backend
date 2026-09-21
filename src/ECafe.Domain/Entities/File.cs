@@ -25,5 +25,7 @@ namespace ECafe.Domain.Entities
         public virtual Restaurant? Restaurant { get; set; }
 
         public virtual ICollection<RestaurantContract> RestaurantContracts { get; set; } = new List<RestaurantContract>();
+
+        public virtual ICollection<ReservationPaymentProof> ReservationPaymentProofs { get; set; } = new List<ReservationPaymentProof>();
     }
 }

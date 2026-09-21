@@ -39,7 +39,7 @@ public class ReservationPaymentProofConfiguration : DbEntityConfig<ReservationPa
             .HasConstraintName("reservation_payment_proofs_reservation_id_fkey");
 
         builder.HasOne(e => e.File)
-            .WithMany()
+            .WithMany(e => e.ReservationPaymentProofs)
             .HasForeignKey(e => e.FileId)
             .OnDelete(DeleteBehavior.Restrict)
             .HasConstraintName("reservation_payment_proofs_file_id_fkey");

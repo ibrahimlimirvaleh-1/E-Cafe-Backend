@@ -35,6 +35,7 @@ namespace ECafe.Application.Common.Audit
         public const string TableDeleted = "TableDeleted";
 
         public const string ReservationCreated = "ReservationCreated";
+        public const string ReservationPaymentProofSubmitted = "ReservationPaymentProofSubmitted";
         public const string OrderCreated = "OrderCreated";
 
         public static IReadOnlyCollection<AuditActionDefinition> All { get; } =
@@ -69,6 +70,7 @@ namespace ECafe.Application.Common.Audit
             new(35, TableDeactivated, "Masa deaktiv edildi"),
             new(36, TableDeleted, "Masa silindi"),
             new(40, ReservationCreated, "Rezervasiya yaradıldı"),
+            new(45, ReservationPaymentProofSubmitted, "Rezervasiya ödəniş çeki göndərildi"),
             new(50, OrderCreated, "Sifariş yaradıldı")
         ];
 
