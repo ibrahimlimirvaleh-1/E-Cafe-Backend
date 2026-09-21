@@ -43,7 +43,17 @@ public static class RestaurantWorkingHoursCalculator
                 continue;
 
             var start = new DateTimeOffset(startDate.ToDateTime(workingHour.OpensAt), localDateTime.Offset);
-            var endDate = startDate.AddDays(workingHour.CloseDayOffset);
+            var closeDayOffset = workingHour.CloseDayOffset;
+
+            // Keep legacy 09:00-00:00 records compatible with overnight semantics.
+            if (closeDayOffset == 0 &&
+                workingHour.ClosesAt == TimeOnly.MinValue &&
+                workingHour.OpensAt > workingHour.ClosesAt)
+            {
+                closeDayOffset = 1;
+            }
+
+            var endDate = startDate.AddDays(closeDayOffset);
             var end = new DateTimeOffset(endDate.ToDateTime(workingHour.ClosesAt), localDateTime.Offset);
 
             if (end > start)
