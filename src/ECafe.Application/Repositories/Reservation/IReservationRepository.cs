@@ -11,6 +11,11 @@ public interface IReservationRepository : IBaseRepository<Domain.Entities.Reserv
         int customerUserId,
         CancellationToken cancellationToken = default);
 
+    Task<Domain.Entities.Reservation?> GetByIdForCustomerWithHistoryAsync(
+        int reservationId,
+        int customerUserId,
+        CancellationToken cancellationToken = default);
+
     Task<Domain.Entities.Reservation?> GetByIdForCustomerForUpdateAsync(
         int reservationId,
         int restaurantId,
@@ -28,6 +33,11 @@ public interface IReservationRepository : IBaseRepository<Domain.Entities.Reserv
         CancellationToken cancellationToken = default);
 
     Task<Domain.Entities.Reservation?> GetByIdForRestaurantAsync(
+        int reservationId,
+        int restaurantId,
+        CancellationToken cancellationToken = default);
+
+    Task<Domain.Entities.Reservation?> GetByIdForRestaurantWithHistoryAsync(
         int reservationId,
         int restaurantId,
         CancellationToken cancellationToken = default);

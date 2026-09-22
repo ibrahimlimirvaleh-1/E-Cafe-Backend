@@ -9,6 +9,10 @@ public interface IReservationService
         int reservationId,
         CancellationToken cancellationToken = default);
 
+    Task<ReservationHistoryResponse> GetReservationHistoryAsync(
+        int reservationId,
+        CancellationToken cancellationToken = default);
+
     Task<PaginatedList<ReservationResponse>> GetMyReservationsAsync(
         ReservationQueryRequest request,
         CancellationToken cancellationToken = default);
@@ -19,6 +23,11 @@ public interface IReservationService
         CancellationToken cancellationToken = default);
 
     Task<ReservationResponse> GetRestaurantReservationByIdAsync(
+        int restaurantId,
+        int reservationId,
+        CancellationToken cancellationToken = default);
+
+    Task<ReservationHistoryResponse> GetRestaurantReservationHistoryAsync(
         int restaurantId,
         int reservationId,
         CancellationToken cancellationToken = default);

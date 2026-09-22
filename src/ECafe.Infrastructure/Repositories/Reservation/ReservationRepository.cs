@@ -26,6 +26,18 @@ public class ReservationRepository : BaseRepository<Domain.Entities.Reservation>
                 cancellationToken);
     }
 
+    public Task<Domain.Entities.Reservation?> GetByIdForCustomerWithHistoryAsync(
+        int reservationId,
+        int customerUserId,
+        CancellationToken cancellationToken = default)
+    {
+        return WithHistory(Query())
+            .FirstOrDefaultAsync(
+                reservation => reservation.Id == reservationId &&
+                               reservation.CustomerUserId == customerUserId,
+                cancellationToken);
+    }
+
     public Task<Domain.Entities.Reservation?> GetByIdForCustomerForUpdateAsync(
         int reservationId,
         int restaurantId,
@@ -103,6 +115,17 @@ public class ReservationRepository : BaseRepository<Domain.Entities.Reservation>
                 cancellationToken);
     }
 
+    public Task<Domain.Entities.Reservation?> GetByIdForRestaurantWithHistoryAsync(
+        int reservationId,
+        int restaurantId,
+        CancellationToken cancellationToken = default)
+    {
+        return WithHistory(Query())
+            .FirstOrDefaultAsync(
+                r => r.Id == reservationId && r.RestaurantId == restaurantId,
+                cancellationToken);
+    }
+
     public Task<PaginatedList<Domain.Entities.Reservation>> GetForRestaurantAsync(
         int restaurantId,
         ReservationQueryRequest request,
@@ -122,7 +145,18 @@ public class ReservationRepository : BaseRepository<Domain.Entities.Reservation>
             .Include(r => r.CustomerUser)
             .Include(r => r.PaymentInstructions
                 .OrderByDescending(instruction => instruction.SentAt)
-                .Take(1));
+            .Take(1));
+    }
+
+    private static IQueryable<Domain.Entities.Reservation> WithHistory(
+        IQueryable<Domain.Entities.Reservation> query)
+    {
+        return query
+            .Include(r => r.CustomerUser)
+            .Include(r => r.StatusHistory)
+                .ThenInclude(history => history.FromStatus)
+            .Include(r => r.StatusHistory)
+                .ThenInclude(history => history.ToStatus);
     }
 
     private static async Task<PaginatedList<Domain.Entities.Reservation>> CreatePageAsync(
