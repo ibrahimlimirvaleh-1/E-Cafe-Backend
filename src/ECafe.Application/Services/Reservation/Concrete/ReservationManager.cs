@@ -35,6 +35,7 @@ namespace ECafe.Application.Services.Reservation.Concrete;
 public sealed class ReservationManager : BaseManager, IReservationService
 {
     private const int DefaultHoldMinutes = 15;
+    private const int DefaultRestaurantResponseMinutes = 15;
     private const string SubmitPaymentProofActionCode = "submitPaymentProof";
     private static string ReservationFlowCode
         => WorkflowFlowCode.FromStatusType(StatusTypeEnum.Reservation);
@@ -122,6 +123,13 @@ public sealed class ReservationManager : BaseManager, IReservationService
         await EnsureTableIsAvailableAsync(restaurantId, request.TableId, request.ReservedAt);
 
         var reservation = BuildReservation(restaurantId, userId, restaurant, request);
+        reservation.StatusHistory.Add(new ReservationStatusHistory
+        {
+            ToStatusId = reservation.StatusId,
+            ChangedByUserId = userId,
+            ChangedAt = DateTime.UtcNow,
+            Reason = "Rezervasiya yaradıldı."
+        });
         await _reservationRepository.Add(reservation);
         await _reservationRepository.SaveChangesAsync();
         await NotifyRestaurantResponsibleUserAsync(restaurantId, table, reservation);
@@ -219,6 +227,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
 
         var now = DateTime.UtcNow;
 
+        int awaitingPaymentInstructionStatusId = StatusIds.Reservation(ReservationStatus.AwaitingPaymentInstruction);
         int paymentPendingStatusId = StatusIds.Reservation(ReservationStatus.PendingPayment);
 
         var userBelongsToRestaurant = await _userRestaurantRepository.UserBelogsToRestaurantAsync(userId, restaurantId);
@@ -239,8 +248,15 @@ public sealed class ReservationManager : BaseManager, IReservationService
         if (reservation is null)
             throw new BusinessRuleException(ErrorCode.ReservationNotBelongsToRestaurant);
 
-        if (reservation.StatusId != paymentPendingStatusId ||
-            (reservation.HoldExpiresAt is not null && reservation.HoldExpiresAt <= now))
+        var previousStatusId = reservation.StatusId;
+
+        var canSendInstruction = reservation.StatusId == awaitingPaymentInstructionStatusId &&
+            reservation.RestaurantResponseExpiresAt is not null &&
+            reservation.RestaurantResponseExpiresAt > now;
+        var isLegacyPendingPayment = reservation.StatusId == paymentPendingStatusId &&
+            (reservation.HoldExpiresAt is null || reservation.HoldExpiresAt > now);
+
+        if (!canSendInstruction && !isLegacyPendingPayment)
             throw new BusinessRuleException(ErrorCode.ThisOperatioCannotBePerformedForThisReservation);
 
         await _workflowActionService.EnsureCanExecuteAsync(
@@ -268,18 +284,43 @@ public sealed class ReservationManager : BaseManager, IReservationService
             reservation.TableId,
             cancellationToken);
 
-        if (reservation.HoldExpiresAt is null)
+        if (reservation.StatusId == awaitingPaymentInstructionStatusId)
         {
             await EnsureTableIsAvailableAsync(
                 restaurantId,
                 reservation.TableId,
-                reservation.ReservedAt);
+                reservation.ReservedAt,
+                reservation.Id);
+
+            reservation.StatusId = paymentPendingStatusId;
+            reservation.RestaurantResponseExpiresAt = null;
+            reservation.HoldExpiresAt = now.AddMinutes(GetHoldMinutes());
+        }
+        else if (reservation.HoldExpiresAt is null)
+        {
+            await EnsureTableIsAvailableAsync(
+                restaurantId,
+                reservation.TableId,
+                reservation.ReservedAt,
+                reservation.Id);
 
             reservation.HoldExpiresAt = now.AddMinutes(GetHoldMinutes());
         }
 
+        if (reservation.StatusId != previousStatusId)
+        {
+            reservation.StatusHistory.Add(new ReservationStatusHistory
+            {
+                FromStatusId = previousStatusId,
+                ToStatusId = reservation.StatusId,
+                ChangedByUserId = userId,
+                ChangedAt = now,
+                Reason = "Restoran ödəniş məlumatlarını göndərməyə başladı."
+            });
+        }
+
         await _reservationPaymentInstructionRepository.Add(paymentInstruction);
-        await _reservationPaymentInstructionRepository.SaveChangesAsync();
+        await _reservationRepository.SaveChangesAsync();
 
         await _notificationService.CreateAsync(new CreateNotificationRequest
         {
@@ -316,7 +357,9 @@ public sealed class ReservationManager : BaseManager, IReservationService
         {
             Id = paymentInstruction.Id,
             ReservationId = reservation.Id,
-            Status = reservation.Status?.Name ?? ReservationStatus.PendingPayment.ToString(),
+            Status = reservation.StatusId == paymentPendingStatusId
+                ? ReservationStatus.PendingPayment.GetName()
+                : reservation.Status?.Name ?? ReservationStatus.PendingPayment.ToString(),
             DisplayText = paymentInstruction.DisplayText,
             Amount = paymentInstruction.Amount,
             SentAt = paymentInstruction.SentAt
@@ -377,9 +420,18 @@ public sealed class ReservationManager : BaseManager, IReservationService
             SubmittedAt = now
         };
 
+        var previousStatusId = reservation.StatusId;
         reservation.StatusId = paymentSubmittedStatusId;
         reservation.PaymentSubmittedAt = now;
         reservation.HoldExpiresAt = null;
+        reservation.StatusHistory.Add(new ReservationStatusHistory
+        {
+            FromStatusId = previousStatusId,
+            ToStatusId = paymentSubmittedStatusId,
+            ChangedByUserId = userId,
+            ChangedAt = now,
+            Reason = "Müştəri ödəniş çekini göndərdi."
+        });
 
         await _reservationPaymentProofRepository.Add(paymentProof);
         await _reservationRepository.SaveChangesAsync();
@@ -547,12 +599,17 @@ public sealed class ReservationManager : BaseManager, IReservationService
     private async Task EnsureTableIsAvailableAsync(
         int restaurantId,
         int tableId,
-        DateTimeOffset reservedAt)
+        DateTimeOffset reservedAt,
+        int? excludedReservationId = null)
     {
         if (await _tableRepository.HasOpenTableSessionAsync(restaurantId, tableId))
             throw new BusinessRuleException(ErrorCode.TableAlreadyReserved);
 
-        if (!await _tableRepository.IsTableAvailableForReservationAsync(restaurantId, tableId, reservedAt))
+        if (!await _tableRepository.IsTableAvailableForReservationAsync(
+                restaurantId,
+                tableId,
+                reservedAt,
+                excludedReservationId))
             throw new BusinessRuleException(ErrorCode.TableAlreadyReserved);
     }
 
@@ -570,12 +627,13 @@ public sealed class ReservationManager : BaseManager, IReservationService
             CustomerUserId = userId,
             TableId = request.TableId,
             PeopleCount = request.PeopleCount,
-            StatusId = StatusIds.Reservation(ReservationStatus.PendingPayment),
+            StatusId = StatusIds.Reservation(ReservationStatus.AwaitingPaymentInstruction),
             DepositAmount = restaurant.DepositAmount,
             CancellationWindowMinutes = cancellationWindowMinutes,
             CancellationDeadline = request.ReservedAt.UtcDateTime.AddMinutes(-cancellationWindowMinutes),
             ReservedAt = request.ReservedAt.UtcDateTime,
             HoldExpiresAt = null,
+            RestaurantResponseExpiresAt = DateTime.UtcNow.AddMinutes(GetRestaurantResponseMinutes()),
             Note = request.Note?.Trim()
         };
     }
@@ -616,6 +674,13 @@ public sealed class ReservationManager : BaseManager, IReservationService
             : DefaultHoldMinutes;
     }
 
+    private int GetRestaurantResponseMinutes()
+    {
+        return int.TryParse(_configuration["Reservations:RestaurantResponseMinutes"], out var configuredMinutes)
+            ? Math.Max(configuredMinutes, 1)
+            : DefaultRestaurantResponseMinutes;
+    }
+
     private static void ValidateRestaurantId(int restaurantId)
     {
         if (restaurantId <= 0)
@@ -645,6 +710,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
             Status = reservation.Status?.Name ?? ReservationStatus.PendingPayment.ToString(),
             DepositAmount = reservation.DepositAmount,
             HoldExpiresAt = ToUtcOffset(reservation.HoldExpiresAt),
+            RestaurantResponseExpiresAt = ToUtcOffset(reservation.RestaurantResponseExpiresAt),
             CancellationDeadline = ToUtcOffset(reservation.CancellationDeadline),
             RestaurantName = reservation.Restaurant?.Name,
             TableName = reservation.Table is null

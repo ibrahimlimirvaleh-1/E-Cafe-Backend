@@ -1,5 +1,6 @@
 using ECafe.Application.DTOs.Reservation;
 using ECafe.Application.Repositories.Reservation;
+using ECafe.Domain.Entities;
 using ECafe.Domain.Enums;
 using ECafe.Infrastructure.Context;
 using ECafe.Shared.DTOs;
@@ -56,31 +57,39 @@ public class ReservationRepository : BaseRepository<Domain.Entities.Reservation>
         if (batchSize <= 0)
             return 0;
 
+        var awaitingPaymentInstructionStatusId = StatusIds.Reservation(ReservationStatus.AwaitingPaymentInstruction);
         var pendingPaymentStatusId = StatusIds.Reservation(ReservationStatus.PendingPayment);
         var expiredStatusId = StatusIds.Reservation(ReservationStatus.Expired);
 
-        var reservationIds = await Query()
+        var reservations = await QueryTracked()
             .Where(r =>
-                r.StatusId == pendingPaymentStatusId &&
-                r.HoldExpiresAt != null &&
-                r.HoldExpiresAt <= nowUtc)
-            .OrderBy(r => r.HoldExpiresAt)
+                (r.StatusId == awaitingPaymentInstructionStatusId &&
+                 r.RestaurantResponseExpiresAt != null &&
+                 r.RestaurantResponseExpiresAt <= nowUtc) ||
+                (r.StatusId == pendingPaymentStatusId &&
+                 (r.HoldExpiresAt == null || r.HoldExpiresAt <= nowUtc)))
+            .OrderBy(r => r.RestaurantResponseExpiresAt ?? r.HoldExpiresAt)
             .Take(batchSize)
-            .Select(r => r.Id)
             .ToListAsync(cancellationToken);
 
-        if (reservationIds.Count == 0)
+        if (reservations.Count == 0)
             return 0;
 
-        return await Context.Set<Domain.Entities.Reservation>()
-            .Where(r =>
-                reservationIds.Contains(r.Id) &&
-                r.StatusId == pendingPaymentStatusId &&
-                r.HoldExpiresAt != null &&
-                r.HoldExpiresAt <= nowUtc)
-            .ExecuteUpdateAsync(
-                setters => setters.SetProperty(r => r.StatusId, expiredStatusId),
-                cancellationToken);
+        foreach (var reservation in reservations)
+        {
+            var previousStatusId = reservation.StatusId;
+            reservation.StatusId = expiredStatusId;
+            Context.ReservationStatusHistory.Add(new ReservationStatusHistory
+            {
+                ReservationId = reservation.Id,
+                FromStatusId = previousStatusId,
+                ToStatusId = expiredStatusId,
+                ChangedAt = nowUtc,
+                Reason = "Rezervasiyanın cavab və ya ödəniş müddəti bitdi."
+            });
+        }
+
+        return await Context.SaveChangesAsync(cancellationToken);
     }
 
     public Task<Domain.Entities.Reservation?> GetByIdForRestaurantAsync(
