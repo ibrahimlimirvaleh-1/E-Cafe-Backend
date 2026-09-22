@@ -53,6 +53,28 @@ public interface IReservationService
         int fileId,
         CancellationToken cancellationToken = default);
 
+    Task<ReservationActionResponse> ApprovePaymentProofAsync(
+        int restaurantId,
+        int reservationId,
+        CancellationToken cancellationToken = default);
+
+    Task<ReservationActionResponse> RejectPaymentProofAsync(
+        int restaurantId,
+        int reservationId,
+        string reason,
+        CancellationToken cancellationToken = default);
+
+    Task<ReservationActionResponse> CancelReservationAsync(
+        int reservationId,
+        string? reason,
+        CancellationToken cancellationToken = default);
+
+    Task<ReservationActionResponse> CancelRestaurantReservationAsync(
+        int restaurantId,
+        int reservationId,
+        string? reason,
+        CancellationToken cancellationToken = default);
+
     Task EnsurePaymentProofCanBeSubmittedAsync(
         int restaurantId,
         int reservationId,

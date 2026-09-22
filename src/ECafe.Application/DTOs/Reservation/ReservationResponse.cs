@@ -17,4 +17,5 @@ public sealed class ReservationResponse
     public string? TableName { get; init; }
     public string? CustomerName { get; init; }
     public PaymentInstructionResponse? LatestPaymentInstruction { get; init; }
+    public PaymentProofResponse? LatestPaymentProof { get; init; }
 }
