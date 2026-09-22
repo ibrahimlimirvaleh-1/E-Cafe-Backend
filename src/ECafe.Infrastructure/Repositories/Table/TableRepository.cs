@@ -53,13 +53,14 @@ namespace ECafe.Infrastructure.Repositories.Table
         public async Task<bool> IsTableAvailableForReservationAsync(
             int restaurantId,
             int tableId,
-            DateTimeOffset reservedAt)
+            DateTimeOffset reservedAt,
+            int? excludedReservationId = null)
         {
             var reservationInterval = await GetReservationIntervalUtcAsync(restaurantId, reservedAt);
             if (reservationInterval is null)
                 return false;
 
-            return await BuildAvailableTablesForReservationQuery(restaurantId, reservationInterval.Value)
+            return await BuildAvailableTablesForReservationQuery(restaurantId, reservationInterval.Value, excludedReservationId)
                 .AnyAsync(t => t.Id == tableId);
         }
 
@@ -86,8 +87,13 @@ namespace ECafe.Infrastructure.Repositories.Table
 
         private IQueryable<Domain.Entities.Table> BuildAvailableTablesForReservationQuery(
             int restaurantId,
-            ReservationIntervalUtc reservationInterval)
+            ReservationIntervalUtc reservationInterval,
+            int? excludedReservationId = null)
         {
+            var nowUtc = DateTime.UtcNow;
+            var awaitingPaymentInstructionStatusId = StatusIds.Reservation(ReservationStatus.AwaitingPaymentInstruction);
+            var pendingPaymentStatusId = StatusIds.Reservation(ReservationStatus.PendingPayment);
+
             return Query()
                 .Where(t =>
                     t.RestaurantId == restaurantId &&
@@ -99,9 +105,15 @@ namespace ECafe.Infrastructure.Repositories.Table
                     !t.Reservations.Any(r =>
                         r.RestaurantId == restaurantId &&
                         r.TableId == t.Id &&
+                        (!excludedReservationId.HasValue || r.Id != excludedReservationId.Value) &&
                         r.Status.BlocksTableAvailability &&
-                        (r.StatusId != StatusIds.Reservation(ReservationStatus.PendingPayment) ||
-                         (r.HoldExpiresAt != null && r.HoldExpiresAt > DateTime.UtcNow)) &&
+                        ((r.StatusId == awaitingPaymentInstructionStatusId &&
+                          r.RestaurantResponseExpiresAt != null &&
+                          r.RestaurantResponseExpiresAt > nowUtc) ||
+                         (r.StatusId == pendingPaymentStatusId &&
+                          (r.HoldExpiresAt == null || r.HoldExpiresAt > nowUtc)) ||
+                         (r.StatusId != awaitingPaymentInstructionStatusId &&
+                          r.StatusId != pendingPaymentStatusId)) &&
                         r.ReservedAt >= reservationInterval.StartsAtUtc &&
                         r.ReservedAt < reservationInterval.EndsAtUtc));
         }

@@ -17,7 +17,11 @@ namespace ECafe.Application.Repositories.Table
             int tableId,
             CancellationToken cancellationToken = default);
 
-        Task<bool> IsTableAvailableForReservationAsync(int restaurantId, int tableId, DateTimeOffset reservedAt);
+        Task<bool> IsTableAvailableForReservationAsync(
+            int restaurantId,
+            int tableId,
+            DateTimeOffset reservedAt,
+            int? excludedReservationId = null);
 
     }
 }

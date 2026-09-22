@@ -29,6 +29,7 @@ namespace ECafe.Infrastructure.Configurations.Concrete
                 .HasPrecision(18, 2)
                 .HasColumnName("deposit_amount");
             builder.Property(e => e.HoldExpiresAt).HasColumnName("hold_expires_at");
+            builder.Property(e => e.RestaurantResponseExpiresAt).HasColumnName("restaurant_response_expires_at");
             builder.Property(e => e.Note).HasColumnName("note");
             builder.Property(e => e.NoShowAt).HasColumnName("no_show_at");
             builder.Property(e => e.NoShowByUserId).HasColumnName("no_show_by_user_id");
@@ -49,6 +50,7 @@ namespace ECafe.Infrastructure.Configurations.Concrete
 
             builder.HasIndex(e => new { e.RestaurantId, e.TableId, e.StatusId, e.ReservedAt }, "reservations_availability_lookup_idx");
             builder.HasIndex(e => e.HoldExpiresAt, "reservations_hold_expires_at_idx");
+            builder.HasIndex(e => e.RestaurantResponseExpiresAt, "reservations_restaurant_response_expires_at_idx");
 
             builder.HasOne(d => d.CustomerUser).WithMany(p => p.Reservations)
                 .HasForeignKey(d => d.CustomerUserId)

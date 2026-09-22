@@ -27,6 +27,8 @@ public partial class Reservation : AuditableSoftDeletableEntity<int>
 
     public DateTime? HoldExpiresAt { get; set; }
 
+    public DateTime? RestaurantResponseExpiresAt { get; set; }
+
     public DateTime? PaymentSubmittedAt { get; set; }
 
     public DateTime? ConfirmedAt { get; set; }
@@ -74,6 +76,8 @@ public partial class Reservation : AuditableSoftDeletableEntity<int>
     public virtual ICollection<ReservationPaymentProof> PaymentProofs { get; set; } = new List<ReservationPaymentProof>();
 
     public virtual ICollection<ReservationPaymentInstruction> PaymentInstructions { get; set; } = new List<ReservationPaymentInstruction>();
+
+    public virtual ICollection<ReservationStatusHistory> StatusHistory { get; set; } = new List<ReservationStatusHistory>();
 
     public virtual ICollection<TableSession> TableSessions { get; set; } = new List<TableSession>();
 

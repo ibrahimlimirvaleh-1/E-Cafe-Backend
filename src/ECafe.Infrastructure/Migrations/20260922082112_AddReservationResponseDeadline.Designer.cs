@@ -3,6 +3,7 @@ using System;
 using ECafe.Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace ECafe.Infrastructure.Migrations
 {
     [DbContext(typeof(ECafeDbContext))]
-    partial class ECafeDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260922082112_AddReservationResponseDeadline")]
+    partial class AddReservationResponseDeadline
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -2104,56 +2107,6 @@ namespace ECafe.Infrastructure.Migrations
                     b.HasIndex(new[] { "ReviewedByUserId" }, "reservation_payment_proofs_reviewed_by_user_id_idx");
 
                     b.ToTable("reservation_payment_proofs", "billing");
-                });
-
-            modelBuilder.Entity("ECafe.Domain.Entities.ReservationStatusHistory", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("ChangedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("changed_at")
-                        .HasDefaultValueSql("now()");
-
-                    b.Property<int?>("ChangedByUserId")
-                        .HasColumnType("integer")
-                        .HasColumnName("changed_by_user_id");
-
-                    b.Property<int?>("FromStatusId")
-                        .HasColumnType("integer")
-                        .HasColumnName("from_status_id");
-
-                    b.Property<string>("Reason")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)")
-                        .HasColumnName("reason");
-
-                    b.Property<int>("ReservationId")
-                        .HasColumnType("integer")
-                        .HasColumnName("reservation_id");
-
-                    b.Property<int>("ToStatusId")
-                        .HasColumnType("integer")
-                        .HasColumnName("to_status_id");
-
-                    b.HasKey("Id")
-                        .HasName("reservation_status_history_pkey");
-
-                    b.HasIndex("ChangedByUserId");
-
-                    b.HasIndex("FromStatusId");
-
-                    b.HasIndex("ToStatusId");
-
-                    b.HasIndex(new[] { "ReservationId", "ChangedAt" }, "reservation_status_history_reservation_changed_at_idx");
-
-                    b.ToTable("reservation_status_history", "ops");
                 });
 
             modelBuilder.Entity("ECafe.Domain.Entities.Restaurant", b =>
@@ -5772,43 +5725,6 @@ namespace ECafe.Infrastructure.Migrations
                     b.Navigation("Status");
                 });
 
-            modelBuilder.Entity("ECafe.Domain.Entities.ReservationStatusHistory", b =>
-                {
-                    b.HasOne("ECafe.Domain.Entities.User", "ChangedByUser")
-                        .WithMany()
-                        .HasForeignKey("ChangedByUserId")
-                        .OnDelete(DeleteBehavior.SetNull)
-                        .HasConstraintName("reservation_status_history_changed_by_user_id_fkey");
-
-                    b.HasOne("ECafe.Domain.Entities.Status", "FromStatus")
-                        .WithMany()
-                        .HasForeignKey("FromStatusId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .HasConstraintName("reservation_status_history_from_status_id_fkey");
-
-                    b.HasOne("ECafe.Domain.Entities.Reservation", "Reservation")
-                        .WithMany("StatusHistory")
-                        .HasForeignKey("ReservationId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired()
-                        .HasConstraintName("reservation_status_history_reservation_id_fkey");
-
-                    b.HasOne("ECafe.Domain.Entities.Status", "ToStatus")
-                        .WithMany()
-                        .HasForeignKey("ToStatusId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired()
-                        .HasConstraintName("reservation_status_history_to_status_id_fkey");
-
-                    b.Navigation("ChangedByUser");
-
-                    b.Navigation("FromStatus");
-
-                    b.Navigation("Reservation");
-
-                    b.Navigation("ToStatus");
-                });
-
             modelBuilder.Entity("ECafe.Domain.Entities.Restaurant", b =>
                 {
                     b.HasOne("ECafe.Domain.Entities.RestaurantGroup", "RestaurantGroup")
@@ -6182,8 +6098,6 @@ namespace ECafe.Infrastructure.Migrations
                     b.Navigation("PaymentProofs");
 
                     b.Navigation("Payments");
-
-                    b.Navigation("StatusHistory");
 
                     b.Navigation("TableSessions");
                 });

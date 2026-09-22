@@ -29,7 +29,10 @@ namespace ECafe.Domain.Enums
         PaymentSubmitted,
 
         [Description("Rezervasiya rədd edilib")]
-        Rejected
+        Rejected,
+
+        [Description("Restoran cavabı gözlənilir")]
+        AwaitingPaymentInstruction
     }
 
 
