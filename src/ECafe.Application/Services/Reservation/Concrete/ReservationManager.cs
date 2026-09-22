@@ -157,6 +157,24 @@ public sealed class ReservationManager : BaseManager, IReservationService
         return MapResponse(reservation);
     }
 
+    public async Task<ReservationHistoryResponse> GetReservationHistoryAsync(
+        int reservationId,
+        CancellationToken cancellationToken = default)
+    {
+        if (reservationId <= 0)
+            throw new BadRequestException("Rezervasiya seçimi düzgün deyil.");
+
+        var reservation = await _reservationRepository.GetByIdForCustomerWithHistoryAsync(
+            reservationId,
+            GetCurrentUserId(),
+            cancellationToken);
+
+        if (reservation is null)
+            throw new NotFoundException(ErrorCode.ReservationNotFound);
+
+        return MapHistoryResponse(reservation);
+    }
+
     public async Task<PaginatedList<ReservationResponse>> GetMyReservationsAsync(
         ReservationQueryRequest request,
         CancellationToken cancellationToken = default)
@@ -202,6 +220,27 @@ public sealed class ReservationManager : BaseManager, IReservationService
             throw new NotFoundException(ErrorCode.ReservationNotFound);
 
         return MapResponse(reservation);
+    }
+
+    public async Task<ReservationHistoryResponse> GetRestaurantReservationHistoryAsync(
+        int restaurantId,
+        int reservationId,
+        CancellationToken cancellationToken = default)
+    {
+        ValidateRestaurantId(restaurantId);
+        if (reservationId <= 0)
+            throw new BadRequestException("Rezervasiya seçimi düzgün deyil.");
+
+        await EnsureRestaurantReservationAccessAsync(restaurantId);
+        var reservation = await _reservationRepository.GetByIdForRestaurantWithHistoryAsync(
+            reservationId,
+            restaurantId,
+            cancellationToken);
+
+        if (reservation is null)
+            throw new NotFoundException(ErrorCode.ReservationNotFound);
+
+        return MapHistoryResponse(reservation);
     }
 
 
@@ -730,6 +769,34 @@ public sealed class ReservationManager : BaseManager, IReservationService
                     Amount = latestPaymentInstruction.Amount,
                     SentAt = latestPaymentInstruction.SentAt
                 }
+        };
+    }
+
+    private static ReservationHistoryResponse MapHistoryResponse(
+        Domain.Entities.Reservation reservation)
+    {
+        var items = reservation.StatusHistory
+            .OrderBy(history => history.ChangedAt)
+            .ThenBy(history => history.Id)
+            .Select(history => new ReservationHistoryItemResponse
+            {
+                Id = history.Id,
+                FromStatus = history.FromStatus?.Name,
+                ToStatus = history.ToStatus?.Name ?? ReservationStatus.PendingPayment.GetName(),
+                ChangedAt = ToUtcOffset(history.ChangedAt)!.Value,
+                ActorType = history.ChangedByUserId is null
+                    ? "System"
+                    : history.ChangedByUserId == reservation.CustomerUserId
+                        ? "Customer"
+                        : "Restaurant",
+                Reason = history.Reason
+            })
+            .ToList();
+
+        return new ReservationHistoryResponse
+        {
+            ReservationId = reservation.Id,
+            Items = items
         };
     }
 

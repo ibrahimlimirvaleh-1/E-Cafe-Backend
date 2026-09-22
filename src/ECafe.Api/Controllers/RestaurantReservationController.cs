@@ -1,5 +1,6 @@
 using ECafe.Application.Features.Commands.Reservation.SendPaymentInstruction;
 using ECafe.Application.Features.Queries.Reservation.GetRestaurant;
+using ECafe.Application.Features.Queries.Reservation.GetRestaurantHistory;
 using ECafe.Domain.Enums;
 using ECafe.Infrastructure.Authorization;
 using Microsoft.AspNetCore.Authorization;
@@ -30,6 +31,22 @@ public sealed class RestaurantReservationController : BaseController
         CancellationToken cancellationToken)
     {
         var result = await Mediator.Send(new GetRestaurantReservationByIdQuery
+        {
+            RestaurantId = restaurantId,
+            ReservationId = reservationId
+        }, cancellationToken);
+
+        return Ok(result);
+    }
+
+    [HasPermission(PermissionCode.ManageReservations)]
+    [HttpGet("api/v1/restaurants/{restaurantId:int}/reservations/{reservationId:int}/history")]
+    public async Task<IActionResult> GetHistory(
+        [FromRoute] int restaurantId,
+        [FromRoute] int reservationId,
+        CancellationToken cancellationToken)
+    {
+        var result = await Mediator.Send(new GetRestaurantReservationHistoryQuery
         {
             RestaurantId = restaurantId,
             ReservationId = reservationId

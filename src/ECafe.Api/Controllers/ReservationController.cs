@@ -2,6 +2,7 @@ using ECafe.Application.DTOs.Reservation;
 using ECafe.Application.Features.Commands.Reservation.Create;
 using ECafe.Application.Features.Commands.Reservation.SubmitPaymentProof;
 using ECafe.Application.Features.Queries.Reservation.GetById;
+using ECafe.Application.Features.Queries.Reservation.GetHistory;
 using ECafe.Application.Features.Queries.Reservation.GetMy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -27,6 +28,18 @@ public sealed class ReservationController : BaseController
     {
         var result = await Mediator.Send(
             new GetReservationByIdQuery(reservationId),
+            cancellationToken);
+
+        return Ok(result);
+    }
+
+    [HttpGet("api/v1/public/reservations/{reservationId:int}/history")]
+    public async Task<IActionResult> GetHistory(
+        [FromRoute] int reservationId,
+        CancellationToken cancellationToken)
+    {
+        var result = await Mediator.Send(
+            new GetReservationHistoryQuery(reservationId),
             cancellationToken);
 
         return Ok(result);
