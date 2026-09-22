@@ -1,3 +1,7 @@
+using ECafe.Application.DTOs.Reservation;
+using ECafe.Application.Features.Commands.Reservation.ApprovePaymentProof;
+using ECafe.Application.Features.Commands.Reservation.CancelRestaurantReservation;
+using ECafe.Application.Features.Commands.Reservation.RejectPaymentProof;
 using ECafe.Application.Features.Commands.Reservation.SendPaymentInstruction;
 using ECafe.Application.Features.Queries.Reservation.GetRestaurant;
 using ECafe.Application.Features.Queries.Reservation.GetRestaurantHistory;
@@ -67,6 +71,58 @@ public sealed class RestaurantReservationController : BaseController
         request.ReservationId = reservationId;
 
         var result = await Mediator.Send(request, cancellationToken);
+        return Ok(result);
+    }
+
+    [HasPermission(PermissionCode.ManageReservations)]
+    [HttpPost("api/v1/restaurants/{restaurantId:int}/reservations/{reservationId:int}/payment-proofs/approve")]
+    public async Task<IActionResult> ApprovePaymentProof(
+        [FromRoute] int restaurantId,
+        [FromRoute] int reservationId,
+        CancellationToken cancellationToken)
+    {
+        var result = await Mediator.Send(new ApprovePaymentProofCommand
+        {
+            RestaurantId = restaurantId,
+            ReservationId = reservationId
+        }, cancellationToken);
+
+        return Ok(result);
+    }
+
+    [HasPermission(PermissionCode.ManageReservations)]
+    [HttpPost("api/v1/restaurants/{restaurantId:int}/reservations/{reservationId:int}/payment-proofs/reject")]
+    public async Task<IActionResult> RejectPaymentProof(
+        [FromRoute] int restaurantId,
+        [FromRoute] int reservationId,
+        [FromBody] ReservationCancellationRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await Mediator.Send(new RejectPaymentProofCommand
+        {
+            RestaurantId = restaurantId,
+            ReservationId = reservationId,
+            Reason = request?.Reason ?? string.Empty
+        }, cancellationToken);
+
+        return Ok(result);
+    }
+
+    [HasPermission(PermissionCode.ManageReservations)]
+    [HttpPost("api/v1/restaurants/{restaurantId:int}/reservations/{reservationId:int}/cancel")]
+    public async Task<IActionResult> Cancel(
+        [FromRoute] int restaurantId,
+        [FromRoute] int reservationId,
+        [FromBody] ReservationCancellationRequest? request,
+        CancellationToken cancellationToken)
+    {
+        var result = await Mediator.Send(new CancelRestaurantReservationCommand
+        {
+            RestaurantId = restaurantId,
+            ReservationId = reservationId,
+            Reason = request?.Reason
+        }, cancellationToken);
+
         return Ok(result);
     }
 }

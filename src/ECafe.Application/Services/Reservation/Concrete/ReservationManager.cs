@@ -42,7 +42,8 @@ public sealed class ReservationManager : BaseManager, IReservationService
 
     private static readonly int[] ReservationManagerRoleIds =
     [
-        (int)RoleCode.Manager
+        (int)RoleCode.Manager,
+        (int)RoleCode.Owner
     ];
 
     private readonly ITableRepository _tableRepository;
@@ -726,16 +727,128 @@ public sealed class ReservationManager : BaseManager, IReservationService
             throw new BusinessRuleException(ErrorCode.InvalidRestaurantId);
     }
 
+    private static void ValidateReservationId(int reservationId)
+    {
+        if (reservationId <= 0)
+            throw new BadRequestException("Rezervasiya seçimi düzgün deyil.");
+    }
+
+    private static string NormalizeReason(string? reason, string fallback)
+    {
+        var normalized = reason?.Trim();
+        return string.IsNullOrWhiteSpace(normalized) ? fallback : normalized;
+    }
+
+    private static string NormalizeRequiredReason(string? reason, string errorMessage)
+    {
+        var normalized = reason?.Trim();
+        if (string.IsNullOrWhiteSpace(normalized))
+            throw new BadRequestException(errorMessage);
+
+        if (normalized.Length > 500)
+            throw new BadRequestException("Səbəb 500 simvoldan çox ola bilməz.");
+
+        return normalized;
+    }
+
+    private Task<Domain.Entities.ReservationPaymentProof?> GetLatestPaymentProofForReviewAsync(
+        int reservationId,
+        int submittedStatusId,
+        CancellationToken cancellationToken)
+    {
+        return _reservationPaymentProofRepository
+            .QueryTracked(proof => proof.ReservationId == reservationId &&
+                                   proof.StatusId == submittedStatusId)
+            .OrderByDescending(proof => proof.SubmittedAt)
+            .ThenByDescending(proof => proof.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    private static ReservationActionResponse BuildActionResponse(
+        int reservationId,
+        int statusId,
+        ReservationStatus status,
+        string message)
+    {
+        return new ReservationActionResponse
+        {
+            ReservationId = reservationId,
+            StatusId = statusId,
+            Status = status.GetName(),
+            Message = message
+        };
+    }
+
+    private async Task NotifyReservationCustomerAsync(
+        int restaurantId,
+        Domain.Entities.Reservation reservation,
+        NotificationType notificationType,
+        string title,
+        string message)
+    {
+        await _notificationService.CreateAsync(new CreateNotificationRequest
+        {
+            UserId = reservation.CustomerUserId,
+            RestaurantId = restaurantId,
+            Title = title,
+            Message = message,
+            TypeId = (int)notificationType,
+            ChannelId = (int)NotificationChannel.InApp,
+            PayloadJson = JsonSerializer.Serialize(new
+            {
+                restaurantId,
+                reservationId = reservation.Id,
+                statusId = reservation.StatusId
+            }),
+            RelatedEntityType = AuditEntityTypes.Reservation,
+            RelatedEntityId = reservation.Id
+        });
+    }
+
+    private async Task NotifyReservationResponsibleUsersAsync(
+        int restaurantId,
+        Domain.Entities.Reservation reservation,
+        string title,
+        string message)
+    {
+        var assignments = await GetRestaurantResponsibleAssignmentsAsync(restaurantId);
+
+        foreach (var assignment in assignments)
+        {
+            await _notificationService.CreateAsync(new CreateNotificationRequest
+            {
+                UserId = assignment.UserId,
+                RestaurantId = restaurantId,
+                Title = title,
+                Message = message,
+                TypeId = (int)NotificationType.ReservationCancelled,
+                ChannelId = (int)NotificationChannel.InApp,
+                PayloadJson = JsonSerializer.Serialize(new
+                {
+                    restaurantId,
+                    reservationId = reservation.Id,
+                    statusId = reservation.StatusId
+                }),
+                RelatedEntityType = AuditEntityTypes.Reservation,
+                RelatedEntityId = reservation.Id
+            });
+        }
+    }
+
     private static void ValidateReservationTime(DateTimeOffset reservedAt)
     {
         if (reservedAt <= DateTimeOffset.UtcNow)
             throw new BadRequestException("Rezervasiya vaxtı gələcək tarix olmalıdır.");
     }
 
-    private static ReservationResponse MapResponse(Domain.Entities.Reservation reservation)
+    private ReservationResponse MapResponse(Domain.Entities.Reservation reservation)
     {
         var latestPaymentInstruction = reservation.PaymentInstructions
             .OrderByDescending(instruction => instruction.SentAt)
+            .FirstOrDefault();
+        var latestPaymentProof = reservation.PaymentProofs
+            .OrderByDescending(proof => proof.SubmittedAt)
+            .ThenByDescending(proof => proof.Id)
             .FirstOrDefault();
 
         return new ReservationResponse
@@ -768,6 +881,18 @@ public sealed class ReservationManager : BaseManager, IReservationService
                     DisplayText = latestPaymentInstruction.DisplayText,
                     Amount = latestPaymentInstruction.Amount,
                     SentAt = latestPaymentInstruction.SentAt
+                },
+            LatestPaymentProof = latestPaymentProof is null
+                ? null
+                : new PaymentProofResponse
+                {
+                    Id = latestPaymentProof.Id,
+                    ReservationId = reservation.Id,
+                    FileId = latestPaymentProof.FileId,
+                    Amount = latestPaymentProof.Amount,
+                    Status = latestPaymentProof.Status?.Name ?? ReservationStatus.PaymentSubmitted.GetName(),
+                    SubmittedAt = latestPaymentProof.SubmittedAt,
+                    FileViewUrl = _fileAccessUrlService.BuildViewUrl(latestPaymentProof.FileId)
                 }
         };
     }
@@ -800,7 +925,386 @@ public sealed class ReservationManager : BaseManager, IReservationService
         };
     }
 
-    private static PaginatedList<ReservationResponse> MapPage(
+    public async Task<ReservationActionResponse> ApprovePaymentProofAsync(
+        int restaurantId,
+        int reservationId,
+        CancellationToken cancellationToken = default)
+    {
+        ValidateRestaurantId(restaurantId);
+        ValidateReservationId(reservationId);
+        await EnsureRestaurantReservationAccessAsync(restaurantId);
+
+        var userId = GetCurrentUserId();
+        var now = DateTime.UtcNow;
+        var paymentSubmittedStatusId = StatusIds.Reservation(ReservationStatus.PaymentSubmitted);
+        var confirmedStatusId = StatusIds.Reservation(ReservationStatus.Confirmed);
+
+        await using var transaction = await _transactionFactory.BeginTransactionAsync(
+            IsolationLevel.ReadCommitted,
+            cancellationToken);
+
+        var snapshot = await _reservationRepository.GetByIdForRestaurantSnapshotAsync(
+            reservationId,
+            restaurantId,
+            cancellationToken);
+
+        if (snapshot is null)
+            throw new NotFoundException(ErrorCode.ReservationNotFound);
+
+        await _tableRepository.AcquireReservationLockAsync(
+            restaurantId,
+            snapshot.TableId,
+            cancellationToken);
+
+        var reservation = await _reservationRepository.GetByIdForRestaurantAsync(
+            reservationId,
+            restaurantId,
+            cancellationToken);
+
+        if (reservation is null)
+            throw new NotFoundException(ErrorCode.ReservationNotFound);
+
+        if (reservation.StatusId != paymentSubmittedStatusId)
+            throw new BusinessRuleException("Bu rezervasiyanın ödəniş çeki təsdiq gözləmir.");
+
+        await _workflowActionService.EnsureCanExecuteAsync(
+            ReservationFlowCode,
+            reservation.StatusId,
+            "approvePaymentProof",
+            restaurantId,
+            reservation.Id);
+
+        var paymentProof = await GetLatestPaymentProofForReviewAsync(
+            reservation.Id,
+            paymentSubmittedStatusId,
+            cancellationToken);
+
+        if (paymentProof is null)
+            throw new BusinessRuleException("Təsdiqlənəcək ödəniş çeki tapılmadı.");
+
+        var previousStatusId = reservation.StatusId;
+        paymentProof.StatusId = confirmedStatusId;
+        paymentProof.ReviewedByUserId = userId;
+        paymentProof.ReviewedAt = now;
+        paymentProof.RejectReason = null;
+
+        reservation.StatusId = confirmedStatusId;
+        reservation.HoldExpiresAt = null;
+        reservation.RestaurantResponseExpiresAt = null;
+        reservation.StatusHistory.Add(new ReservationStatusHistory
+        {
+            FromStatusId = previousStatusId,
+            ToStatusId = confirmedStatusId,
+            ChangedByUserId = userId,
+            ChangedAt = now,
+            Reason = "Ödəniş çeki təsdiqləndi."
+        });
+
+        await _reservationRepository.SaveChangesAsync();
+        await NotifyReservationCustomerAsync(
+            restaurantId,
+            reservation,
+            NotificationType.ReservationConfirmed,
+            "Rezervasiya təsdiqləndi",
+            $"Rezervasiya #{reservation.Id} təsdiqləndi.");
+
+        await _auditLogService.RecordRestaurantActionAsync(
+            restaurantId,
+            AuditActions.ReservationPaymentProofApproved,
+            new { reservationId = reservation.Id, paymentProofId = paymentProof.Id },
+            AuditEntityTypes.Reservation,
+            reservation.Id);
+
+        await transaction.CommitAsync(cancellationToken);
+
+        return BuildActionResponse(
+            reservation.Id,
+            confirmedStatusId,
+            ReservationStatus.Confirmed,
+            "Rezervasiya təsdiqləndi.");
+    }
+
+    public async Task<ReservationActionResponse> RejectPaymentProofAsync(
+        int restaurantId,
+        int reservationId,
+        string reason,
+        CancellationToken cancellationToken = default)
+    {
+        ValidateRestaurantId(restaurantId);
+        ValidateReservationId(reservationId);
+        var normalizedReason = NormalizeRequiredReason(reason, "Çekin rədd edilmə səbəbini yazın.");
+        await EnsureRestaurantReservationAccessAsync(restaurantId);
+
+        var userId = GetCurrentUserId();
+        var now = DateTime.UtcNow;
+        var paymentSubmittedStatusId = StatusIds.Reservation(ReservationStatus.PaymentSubmitted);
+        var pendingPaymentStatusId = StatusIds.Reservation(ReservationStatus.PendingPayment);
+        var rejectedStatusId = StatusIds.Reservation(ReservationStatus.Rejected);
+
+        await using var transaction = await _transactionFactory.BeginTransactionAsync(
+            IsolationLevel.ReadCommitted,
+            cancellationToken);
+
+        var snapshot = await _reservationRepository.GetByIdForRestaurantSnapshotAsync(
+            reservationId,
+            restaurantId,
+            cancellationToken);
+
+        if (snapshot is null)
+            throw new NotFoundException(ErrorCode.ReservationNotFound);
+
+        await _tableRepository.AcquireReservationLockAsync(
+            restaurantId,
+            snapshot.TableId,
+            cancellationToken);
+
+        var reservation = await _reservationRepository.GetByIdForRestaurantAsync(
+            reservationId,
+            restaurantId,
+            cancellationToken);
+
+        if (reservation is null)
+            throw new NotFoundException(ErrorCode.ReservationNotFound);
+
+        if (reservation.StatusId != paymentSubmittedStatusId)
+            throw new BusinessRuleException("Bu rezervasiyanın ödəniş çeki rədd edilə bilməz.");
+
+        await _workflowActionService.EnsureCanExecuteAsync(
+            ReservationFlowCode,
+            reservation.StatusId,
+            "rejectPaymentProof",
+            restaurantId,
+            reservation.Id);
+
+        var paymentProof = await GetLatestPaymentProofForReviewAsync(
+            reservation.Id,
+            paymentSubmittedStatusId,
+            cancellationToken);
+
+        if (paymentProof is null)
+            throw new BusinessRuleException("Rədd ediləcək ödəniş çeki tapılmadı.");
+
+        var previousStatusId = reservation.StatusId;
+        paymentProof.StatusId = rejectedStatusId;
+        paymentProof.ReviewedByUserId = userId;
+        paymentProof.ReviewedAt = now;
+        paymentProof.RejectReason = normalizedReason;
+
+        reservation.StatusId = pendingPaymentStatusId;
+        reservation.HoldExpiresAt = now.AddMinutes(GetHoldMinutes());
+        reservation.RestaurantResponseExpiresAt = null;
+        reservation.StatusHistory.Add(new ReservationStatusHistory
+        {
+            FromStatusId = previousStatusId,
+            ToStatusId = pendingPaymentStatusId,
+            ChangedByUserId = userId,
+            ChangedAt = now,
+            Reason = normalizedReason
+        });
+
+        await _reservationRepository.SaveChangesAsync();
+        await NotifyReservationCustomerAsync(
+            restaurantId,
+            reservation,
+            NotificationType.ReservationPaymentProofRejected,
+            "Ödəniş çeki rədd edildi",
+            $"Rezervasiya #{reservation.Id} üçün çek rədd edildi: {normalizedReason}");
+
+        await _auditLogService.RecordRestaurantActionAsync(
+            restaurantId,
+            AuditActions.ReservationPaymentProofRejected,
+            new { reservationId = reservation.Id, paymentProofId = paymentProof.Id, reason = normalizedReason },
+            AuditEntityTypes.Reservation,
+            reservation.Id);
+
+        await transaction.CommitAsync(cancellationToken);
+
+        return BuildActionResponse(
+            reservation.Id,
+            pendingPaymentStatusId,
+            ReservationStatus.PendingPayment,
+            "Ödəniş çeki rədd edildi. Müştəri yeni çek göndərə bilər.");
+    }
+
+    public async Task<ReservationActionResponse> CancelReservationAsync(
+        int reservationId,
+        string? reason,
+        CancellationToken cancellationToken = default)
+    {
+        ValidateReservationId(reservationId);
+
+        var userId = GetCurrentUserId();
+        var snapshot = await _reservationRepository.GetByIdForCustomerSnapshotAsync(
+            reservationId,
+            userId,
+            cancellationToken);
+
+        if (snapshot is null)
+            throw new NotFoundException(ErrorCode.ReservationNotFound);
+
+        if (snapshot.CancellationDeadline.HasValue &&
+            snapshot.CancellationDeadline.Value <= DateTime.UtcNow)
+        {
+            throw new BusinessRuleException("Rezervasiyanı ləğv etmək üçün icazə verilən müddət bitib.");
+        }
+
+        return await CancelReservationCoreAsync(
+            snapshot.RestaurantId,
+            reservationId,
+            userId,
+            reason,
+            isCustomer: true,
+            cancellationToken);
+    }
+
+    public async Task<ReservationActionResponse> CancelRestaurantReservationAsync(
+        int restaurantId,
+        int reservationId,
+        string? reason,
+        CancellationToken cancellationToken = default)
+    {
+        ValidateRestaurantId(restaurantId);
+        ValidateReservationId(reservationId);
+        await EnsureRestaurantReservationAccessAsync(restaurantId);
+
+        return await CancelReservationCoreAsync(
+            restaurantId,
+            reservationId,
+            GetCurrentUserId(),
+            reason,
+            isCustomer: false,
+            cancellationToken);
+    }
+
+    private async Task<ReservationActionResponse> CancelReservationCoreAsync(
+        int restaurantId,
+        int reservationId,
+        int userId,
+        string? reason,
+        bool isCustomer,
+        CancellationToken cancellationToken)
+    {
+        var normalizedReason = NormalizeReason(
+            reason,
+            isCustomer ? "Müştəri rezervasiyanı ləğv etdi." : "Rezervasiya restoran tərəfindən ləğv edildi.");
+        var cancelledStatusId = StatusIds.Reservation(ReservationStatus.Cancelled);
+        var paymentSubmittedStatusId = StatusIds.Reservation(ReservationStatus.PaymentSubmitted);
+
+        await using var transaction = await _transactionFactory.BeginTransactionAsync(
+            IsolationLevel.ReadCommitted,
+            cancellationToken);
+
+        var snapshot = isCustomer
+            ? await _reservationRepository.GetByIdForCustomerSnapshotAsync(
+                reservationId,
+                userId,
+                cancellationToken)
+            : await _reservationRepository.GetByIdForRestaurantSnapshotAsync(
+                reservationId,
+                restaurantId,
+                cancellationToken);
+
+        if (snapshot is null)
+            throw new NotFoundException(ErrorCode.ReservationNotFound);
+
+        await _tableRepository.AcquireReservationLockAsync(
+            restaurantId,
+            snapshot.TableId,
+            cancellationToken);
+
+        var reservation = isCustomer
+            ? await _reservationRepository.GetByIdForCustomerForUpdateAsync(
+                reservationId,
+                restaurantId,
+                userId,
+                cancellationToken)
+            : await _reservationRepository.GetByIdForRestaurantAsync(
+                reservationId,
+                restaurantId,
+                cancellationToken);
+
+        if (reservation is null)
+            throw new NotFoundException(ErrorCode.ReservationNotFound);
+
+        await _workflowActionService.EnsureCanExecuteAsync(
+            ReservationFlowCode,
+            reservation.StatusId,
+            "cancel",
+            restaurantId,
+            reservation.Id);
+
+        if (reservation.StatusId == cancelledStatusId ||
+            reservation.StatusId == StatusIds.Reservation(ReservationStatus.Expired))
+        {
+            throw new BusinessRuleException("Bu rezervasiya artıq aktiv deyil.");
+        }
+
+        if (reservation.StatusId == paymentSubmittedStatusId)
+        {
+            var paymentProof = await GetLatestPaymentProofForReviewAsync(
+                reservation.Id,
+                paymentSubmittedStatusId,
+                cancellationToken);
+
+            if (paymentProof is not null)
+            {
+                paymentProof.StatusId = StatusIds.Reservation(ReservationStatus.Rejected);
+                paymentProof.ReviewedByUserId = userId;
+                paymentProof.ReviewedAt = DateTime.UtcNow;
+                paymentProof.RejectReason = normalizedReason;
+            }
+        }
+
+        var previousStatusId = reservation.StatusId;
+        reservation.StatusId = cancelledStatusId;
+        reservation.HoldExpiresAt = null;
+        reservation.RestaurantResponseExpiresAt = null;
+        reservation.StatusHistory.Add(new ReservationStatusHistory
+        {
+            FromStatusId = previousStatusId,
+            ToStatusId = cancelledStatusId,
+            ChangedByUserId = userId,
+            ChangedAt = DateTime.UtcNow,
+            Reason = normalizedReason
+        });
+
+        await _reservationRepository.SaveChangesAsync();
+
+        if (isCustomer)
+        {
+            await NotifyReservationResponsibleUsersAsync(
+                restaurantId,
+                reservation,
+                "Rezervasiya ləğv edildi",
+                $"Müştəri rezervasiya #{reservation.Id} üçün ləğv sorğusu göndərdi.");
+        }
+        else
+        {
+            await NotifyReservationCustomerAsync(
+                restaurantId,
+                reservation,
+                NotificationType.ReservationCancelled,
+                "Rezervasiya ləğv edildi",
+                $"Rezervasiya #{reservation.Id} restoran tərəfindən ləğv edildi.");
+        }
+
+        await _auditLogService.RecordRestaurantActionAsync(
+            restaurantId,
+            AuditActions.ReservationCancelled,
+            new { reservationId = reservation.Id, reason = normalizedReason, initiatedByCustomer = isCustomer },
+            AuditEntityTypes.Reservation,
+            reservation.Id);
+
+        await transaction.CommitAsync(cancellationToken);
+
+        return BuildActionResponse(
+            reservation.Id,
+            cancelledStatusId,
+            ReservationStatus.Cancelled,
+            "Rezervasiya ləğv edildi.");
+    }
+
+    private PaginatedList<ReservationResponse> MapPage(
         PaginatedList<Domain.Entities.Reservation> page,
         ReservationQueryRequest request)
     {

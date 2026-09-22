@@ -1,4 +1,5 @@
 using ECafe.Application.DTOs.Reservation;
+using ECafe.Application.Features.Commands.Reservation.Cancel;
 using ECafe.Application.Features.Commands.Reservation.Create;
 using ECafe.Application.Features.Commands.Reservation.SubmitPaymentProof;
 using ECafe.Application.Features.Queries.Reservation.GetById;
@@ -76,5 +77,20 @@ public sealed class ReservationController : BaseController
 
         var result = await Mediator.Send(request, cancellationToken);
         return StatusCode(StatusCodes.Status201Created, result);
+    }
+
+    [HttpPost("api/v1/public/reservations/{reservationId:int}/cancel")]
+    public async Task<IActionResult> Cancel(
+        [FromRoute] int reservationId,
+        [FromBody] ReservationCancellationRequest? request,
+        CancellationToken cancellationToken)
+    {
+        var result = await Mediator.Send(new CancelReservationCommand
+        {
+            ReservationId = reservationId,
+            Reason = request?.Reason
+        }, cancellationToken);
+
+        return Ok(result);
     }
 }

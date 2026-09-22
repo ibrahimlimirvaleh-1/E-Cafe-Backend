@@ -52,6 +52,18 @@ public class ReservationRepository : BaseRepository<Domain.Entities.Reservation>
                 cancellationToken);
     }
 
+    public Task<Domain.Entities.Reservation?> GetByIdForCustomerSnapshotAsync(
+        int reservationId,
+        int customerUserId,
+        CancellationToken cancellationToken = default)
+    {
+        return WithDetails(Query())
+            .FirstOrDefaultAsync(
+                reservation => reservation.Id == reservationId &&
+                               reservation.CustomerUserId == customerUserId,
+                cancellationToken);
+    }
+
     public Task<PaginatedList<Domain.Entities.Reservation>> GetForCustomerAsync(
         int customerUserId,
         ReservationQueryRequest request,
@@ -126,6 +138,17 @@ public class ReservationRepository : BaseRepository<Domain.Entities.Reservation>
                 cancellationToken);
     }
 
+    public Task<Domain.Entities.Reservation?> GetByIdForRestaurantSnapshotAsync(
+        int reservationId,
+        int restaurantId,
+        CancellationToken cancellationToken = default)
+    {
+        return WithDetails(Query())
+            .FirstOrDefaultAsync(
+                r => r.Id == reservationId && r.RestaurantId == restaurantId,
+                cancellationToken);
+    }
+
     public Task<PaginatedList<Domain.Entities.Reservation>> GetForRestaurantAsync(
         int restaurantId,
         ReservationQueryRequest request,
@@ -145,7 +168,12 @@ public class ReservationRepository : BaseRepository<Domain.Entities.Reservation>
             .Include(r => r.CustomerUser)
             .Include(r => r.PaymentInstructions
                 .OrderByDescending(instruction => instruction.SentAt)
-            .Take(1));
+                .Take(1))
+            .Include(r => r.PaymentProofs
+                .OrderByDescending(proof => proof.SubmittedAt)
+                .ThenByDescending(proof => proof.Id)
+                .Take(1))
+                .ThenInclude(proof => proof.Status);
     }
 
     private static IQueryable<Domain.Entities.Reservation> WithHistory(
