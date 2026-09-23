@@ -577,7 +577,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
             ReservationFlowCode,
             reservation.StatusId,
             SubmitPaymentProofActionCode,
-            null,
+            reservation.RestaurantId,
             reservation.Id);
     }
 
