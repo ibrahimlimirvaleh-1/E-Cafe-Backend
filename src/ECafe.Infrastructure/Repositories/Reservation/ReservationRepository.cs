@@ -14,6 +14,44 @@ public class ReservationRepository : BaseRepository<Domain.Entities.Reservation>
     {
     }
 
+    public Task AcquireCustomerReservationLockAsync(
+        int restaurantId,
+        int customerUserId,
+        CancellationToken cancellationToken = default)
+    {
+        // Negative second key keeps this lock namespace separate from table locks.
+        return Context.Database.ExecuteSqlInterpolatedAsync(
+            $"SELECT pg_advisory_xact_lock({restaurantId}, {-customerUserId})",
+            cancellationToken);
+    }
+
+    public Task<bool> HasActiveReservationForCustomerOnUtcDayAsync(
+        int restaurantId,
+        int customerUserId,
+        DateTime dayStartUtc,
+        DateTime dayEndUtc,
+        DateTime nowUtc,
+        CancellationToken cancellationToken = default)
+    {
+        var awaitingPaymentInstructionStatusId = StatusIds.Reservation(ReservationStatus.AwaitingPaymentInstruction);
+        var pendingPaymentStatusId = StatusIds.Reservation(ReservationStatus.PendingPayment);
+
+        return Query().AnyAsync(reservation =>
+            reservation.RestaurantId == restaurantId &&
+            reservation.CustomerUserId == customerUserId &&
+            reservation.Status.BlocksTableAvailability &&
+            reservation.ReservedAt >= dayStartUtc &&
+            reservation.ReservedAt < dayEndUtc &&
+            ((reservation.StatusId == awaitingPaymentInstructionStatusId &&
+              reservation.RestaurantResponseExpiresAt != null &&
+              reservation.RestaurantResponseExpiresAt > nowUtc) ||
+             (reservation.StatusId == pendingPaymentStatusId &&
+              (reservation.HoldExpiresAt == null || reservation.HoldExpiresAt > nowUtc)) ||
+             (reservation.StatusId != awaitingPaymentInstructionStatusId &&
+              reservation.StatusId != pendingPaymentStatusId)),
+            cancellationToken);
+    }
+
     public Task<Domain.Entities.Reservation?> GetByIdForCustomerAsync(
         int reservationId,
         int customerUserId,

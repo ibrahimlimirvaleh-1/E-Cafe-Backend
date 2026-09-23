@@ -6,6 +6,19 @@ namespace ECafe.Application.Repositories.Reservation;
 
 public interface IReservationRepository : IBaseRepository<Domain.Entities.Reservation>
 {
+    Task AcquireCustomerReservationLockAsync(
+        int restaurantId,
+        int customerUserId,
+        CancellationToken cancellationToken = default);
+
+    Task<bool> HasActiveReservationForCustomerOnUtcDayAsync(
+        int restaurantId,
+        int customerUserId,
+        DateTime dayStartUtc,
+        DateTime dayEndUtc,
+        DateTime nowUtc,
+        CancellationToken cancellationToken = default);
+
     Task<Domain.Entities.Reservation?> GetByIdForCustomerAsync(
         int reservationId,
         int customerUserId,

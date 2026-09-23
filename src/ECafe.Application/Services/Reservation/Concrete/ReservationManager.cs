@@ -22,6 +22,7 @@ using ECafe.Application.Services.Workflow.Abstract;
 using ECafe.Domain.Entities;
 using ECafe.Domain.Enums;
 using ECafe.Domain.Exceptions;
+using ECafe.Domain.Services;
 using ECafe.Domain.Workflow;
 using ECafe.Shared.DTOs;
 using ECafe.Shared.Extensions;
@@ -114,6 +115,26 @@ public sealed class ReservationManager : BaseManager, IReservationService
         await using var transaction = await _transactionFactory.BeginTransactionAsync(
             IsolationLevel.ReadCommitted,
             cancellationToken);
+
+        var (dayStartUtc, dayEndUtc) = RestaurantTimeZoneConverter.GetUtcDayRange(
+            request.ReservedAt,
+            restaurant.TimeZone);
+
+        await _reservationRepository.AcquireCustomerReservationLockAsync(
+            restaurantId,
+            userId,
+            cancellationToken);
+
+        if (await _reservationRepository.HasActiveReservationForCustomerOnUtcDayAsync(
+                restaurantId,
+                userId,
+                dayStartUtc,
+                dayEndUtc,
+                DateTime.UtcNow,
+                cancellationToken))
+        {
+            throw new BusinessRuleException(ErrorCode.CustomerAlreadyHasReservationToday);
+        }
 
         // The lock makes concurrent requests for the same table run one at a time.
         await _tableRepository.AcquireReservationLockAsync(
