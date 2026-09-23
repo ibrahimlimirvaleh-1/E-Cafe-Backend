@@ -127,6 +127,7 @@ public sealed class ErrorMessageProvider : IErrorMessageProvider
         [ErrorCode.ThisOperatioCannotBePerformedForThisReservation] = "Bu rezervasiya üçün bu əməliyyatı yerinə yetirmək olmaz.",
         [ErrorCode.OnlyRestaurantManagersCanSendPaymentInstruction] = "Ödəniş məlumatını yalnız restoran sahibi və ya meneceri göndərə bilər.",
         [ErrorCode.CustomerAlreadyHasReservationToday] = "Bu gün bu restoran üçün artıq aktiv rezervasiyanız var.",
+        [ErrorCode.ReservationTimeAlreadyPassed] = "Rezervasiyanın vaxtı keçdiyi üçün ödəniş təsdiqlənə bilməz.",
 
     };
 

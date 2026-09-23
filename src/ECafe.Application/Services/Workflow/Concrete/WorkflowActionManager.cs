@@ -70,6 +70,19 @@ public class WorkflowActionManager : BaseManager, IWorkflowActionService
             .ThenBy(rule => rule.Id)
             .ToListAsync();
 
+        if (restaurantId.HasValue &&
+            entityId.HasValue &&
+            normalizedFlowCode == WorkflowFlowCode.FromStatusType(StatusType.Reservation) &&
+            await IsReservationTimeAlreadyPassedAsync(restaurantId.Value, entityId.Value))
+        {
+            rules = rules
+                .Where(rule => !string.Equals(
+                    rule.ActionCode,
+                    "approvePaymentProof",
+                    StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
+
         return rules
             .Select(rule => new WorkflowActionResponse
             {
@@ -162,6 +175,13 @@ public class WorkflowActionManager : BaseManager, IWorkflowActionService
 
     private static bool ActionRequiresReason(string actionCode)
         => string.Equals(actionCode, "rejectPaymentProof", StringComparison.OrdinalIgnoreCase);
+
+    private Task<bool> IsReservationTimeAlreadyPassedAsync(int restaurantId, int reservationId)
+        => _reservationRepository.Query(reservation =>
+                reservation.Id == reservationId &&
+                reservation.RestaurantId == restaurantId &&
+                reservation.ReservedAt <= DateTime.UtcNow)
+            .AnyAsync();
 
     private static string BuildActionEndpoint(string template, int? restaurantId, int? entityId)
     {
