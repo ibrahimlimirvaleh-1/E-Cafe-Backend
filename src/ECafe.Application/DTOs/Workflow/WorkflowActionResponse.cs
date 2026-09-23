@@ -12,5 +12,7 @@ public class WorkflowActionResponse
 
     public bool RequiresConfirmation { get; set; }
 
+    public bool RequiresReason { get; set; }
+
     public int SortOrder { get; set; }
 }

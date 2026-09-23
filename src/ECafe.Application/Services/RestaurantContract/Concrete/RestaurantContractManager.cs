@@ -19,6 +19,7 @@ using ECafe.Application.Services.RestaurantContract.Abstract;
 using ECafe.Application.Services.Workflow.Abstract;
 using ECafe.Domain.Enums;
 using ECafe.Domain.Exceptions;
+using ECafe.Domain.Workflow;
 using ECafe.Shared.DTOs;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
@@ -30,7 +31,8 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
     public class RestaurantContractManager : BaseManager, IRestaurantContractService
     {
         private static readonly JsonSerializerOptions NotificationJsonOptions = new(JsonSerializerDefaults.Web);
-        private const string ContractFlowCode = "contract";
+        private static string ContractFlowCode
+            => WorkflowFlowCode.FromStatusType(StatusType.Contract);
         private const string SendForSignatureActionCode = "sendForSignature";
         private const string ApproveActionCode = "approve";
         private const string ActivateActionCode = "activate";

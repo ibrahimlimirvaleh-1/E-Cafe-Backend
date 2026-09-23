@@ -9,6 +9,7 @@ public sealed class ReservationResponse
     public int PeopleCount { get; init; }
     public int StatusId { get; init; }
     public string Status { get; init; } = null!;
+    public string WorkflowFlowCode { get; init; } = null!;
     public decimal DepositAmount { get; init; }
     public DateTimeOffset? HoldExpiresAt { get; init; }
     public DateTimeOffset? RestaurantResponseExpiresAt { get; init; }

@@ -8,12 +8,17 @@ namespace ECafe.Infrastructure.Seeders;
 
 public static class WorkflowActionRuleSeeder
 {
-    private const string ContractFlow = "contract";
-    private static readonly string ReservationFlow =
-        WorkflowFlowCode.FromStatusType(StatusTypeEnum.Reservation);
-    private const string OrderFlow = "order";
-    private const string KitchenFlow = "kitchen";
-    private const string PaymentFlow = "payment";
+    private static string ReservationFlow
+        => WorkflowFlowCode.FromStatusType(StatusTypeEnum.Reservation);
+
+    private static string OrderFlow
+        => WorkflowFlowCode.FromStatusType(StatusTypeEnum.Order);
+
+    private static string KitchenFlow
+        => WorkflowFlowCode.FromStatusType(StatusTypeEnum.Order);
+
+    private static string PaymentFlow
+        => WorkflowFlowCode.FromStatusType(StatusTypeEnum.PaymentStatus);
 
     public static void Seed(ModelBuilder modelBuilder)
     {
@@ -22,9 +27,6 @@ public static class WorkflowActionRuleSeeder
 
         AddContractRules(rules, ref id);
         AddReservationRules(rules, ref id);
-        AddOrderRules(rules, ref id);
-        AddKitchenRules(rules, ref id);
-        AddPaymentRules(rules, ref id);
         AddScheduledContractRules(rules, ref id);
         AddReceiptReservationRules(rules, ref id);
         AddOwnerReservationRules(rules, ref id);
@@ -36,31 +38,29 @@ public static class WorkflowActionRuleSeeder
 
     private static void AddContractRules(List<WorkflowActionRule> rules, ref int id)
     {
-        rules.Add(Rule(id++, ContractFlow, StatusTypeEnum.Contract, ContractStatus.Draft, RoleCode.SuperAdmin, "sendForSignature", "Sahibkar təsdiqinə göndər", "POST", "/api/v1/admin/restaurants/{restaurantId}/contracts/{contractId}/send-for-signature", 10));
-        rules.Add(Rule(id++, ContractFlow, StatusTypeEnum.Contract, ContractStatus.Draft, RoleCode.SuperAdmin, "terminate", "Müqaviləni ləğv et", "POST", "/api/v1/admin/restaurants/{restaurantId}/contracts/{contractId}/terminate", 90, true));
-        rules.Add(Rule(id++, ContractFlow, StatusTypeEnum.Contract, ContractStatus.PendingSignature, RoleCode.Owner, "approve", "Müqaviləni təsdiqlə", "POST", "/api/v1/restaurants/{restaurantId}/contracts/{contractId}/approve", 10, true));
-        rules.Add(Rule(id++, ContractFlow, StatusTypeEnum.Contract, ContractStatus.PendingSignature, RoleCode.SuperAdmin, "terminate", "Müqaviləni ləğv et", "POST", "/api/v1/admin/restaurants/{restaurantId}/contracts/{contractId}/terminate", 90, true));
-        rules.Add(Rule(id++, ContractFlow, StatusTypeEnum.Contract, ContractStatus.OwnerApproved, RoleCode.SuperAdmin, "activate", "Müqaviləni aktivləşdir", "POST", "/api/v1/admin/restaurants/{restaurantId}/contracts/{contractId}/activate", 10));
-        rules.Add(Rule(id++, ContractFlow, StatusTypeEnum.Contract, ContractStatus.OwnerApproved, RoleCode.SuperAdmin, "terminate", "Müqaviləni ləğv et", "POST", "/api/v1/admin/restaurants/{restaurantId}/contracts/{contractId}/terminate", 90, true));
-        rules.Add(Rule(id++, ContractFlow, StatusTypeEnum.Contract, ContractStatus.Active, RoleCode.SuperAdmin, "terminate", "Müqaviləni ləğv et", "POST", "/api/v1/admin/restaurants/{restaurantId}/contracts/{contractId}/terminate", 90, true));
+        var flowCode = WorkflowFlowCode.FromStatusType(StatusTypeEnum.Contract);
+        rules.Add(Rule(id++, flowCode, StatusTypeEnum.Contract, ContractStatus.Draft, RoleCode.SuperAdmin, "sendForSignature", "Sahibkar təsdiqinə göndər", "POST", "/api/v1/admin/restaurants/{restaurantId}/contracts/{contractId}/send-for-signature", 10));
+        rules.Add(Rule(id++, flowCode, StatusTypeEnum.Contract, ContractStatus.Draft, RoleCode.SuperAdmin, "terminate", "Müqaviləni ləğv et", "POST", "/api/v1/admin/restaurants/{restaurantId}/contracts/{contractId}/terminate", 90, true));
+        rules.Add(Rule(id++, flowCode, StatusTypeEnum.Contract, ContractStatus.PendingSignature, RoleCode.Owner, "approve", "Müqaviləni təsdiqlə", "POST", "/api/v1/restaurants/{restaurantId}/contracts/{contractId}/approve", 10, true));
+        rules.Add(Rule(id++, flowCode, StatusTypeEnum.Contract, ContractStatus.PendingSignature, RoleCode.SuperAdmin, "terminate", "Müqaviləni ləğv et", "POST", "/api/v1/admin/restaurants/{restaurantId}/contracts/{contractId}/terminate", 90, true));
+        rules.Add(Rule(id++, flowCode, StatusTypeEnum.Contract, ContractStatus.OwnerApproved, RoleCode.SuperAdmin, "activate", "Müqaviləni aktivləşdir", "POST", "/api/v1/admin/restaurants/{restaurantId}/contracts/{contractId}/activate", 10));
+        rules.Add(Rule(id++, flowCode, StatusTypeEnum.Contract, ContractStatus.OwnerApproved, RoleCode.SuperAdmin, "terminate", "Müqaviləni ləğv et", "POST", "/api/v1/admin/restaurants/{restaurantId}/contracts/{contractId}/terminate", 90, true));
+        rules.Add(Rule(id++, flowCode, StatusTypeEnum.Contract, ContractStatus.Active, RoleCode.SuperAdmin, "terminate", "Müqaviləni ləğv et", "POST", "/api/v1/admin/restaurants/{restaurantId}/contracts/{contractId}/terminate", 90, true));
     }
 
     private static void AddScheduledContractRules(List<WorkflowActionRule> rules, ref int id)
     {
-        rules.Add(Rule(id++, ContractFlow, StatusTypeEnum.Contract, ContractStatus.Scheduled, RoleCode.SuperAdmin, "terminate", "Müqaviləni ləğv et", "POST", "/api/v1/admin/restaurants/{restaurantId}/contracts/{contractId}/terminate", 90, true));
+        var flowCode = WorkflowFlowCode.FromStatusType(StatusTypeEnum.Contract);
+        rules.Add(Rule(id++, flowCode, StatusTypeEnum.Contract, ContractStatus.Scheduled, RoleCode.SuperAdmin, "terminate", "Müqaviləni ləğv et", "POST", "/api/v1/admin/restaurants/{restaurantId}/contracts/{contractId}/terminate", 90, true));
     }
 
     private static void AddReservationRules(List<WorkflowActionRule> rules, ref int id)
     {
-        rules.Add(Rule(id++, ReservationFlow, StatusTypeEnum.Reservation, ReservationStatus.PendingPayment, RoleCode.Customer, "cancel", "Rezervasiyanı ləğv et", "POST", "/api/v1/restaurants/{restaurantId}/reservations/{reservationId}/cancel", 90, true));
-        rules.Add(Rule(id++, ReservationFlow, StatusTypeEnum.Reservation, ReservationStatus.PendingPayment, RoleCode.Manager, "cancel", "Rezervasiyanı ləğv et", "POST", "/api/v1/restaurants/{restaurantId}/reservations/{reservationId}/cancel", 90, true));
-        rules.Add(Rule(id++, ReservationFlow, StatusTypeEnum.Reservation, ReservationStatus.PendingPayment, RoleCode.SuperAdmin, "cancel", "Rezervasiyanı ləğv et", "POST", "/api/v1/admin/restaurants/{restaurantId}/reservations/{reservationId}/cancel", 90, true));
-        rules.Add(Rule(id++, ReservationFlow, StatusTypeEnum.Reservation, ReservationStatus.Confirmed, RoleCode.Waiter, "checkIn", "Müştərini oturt", "POST", "/api/v1/restaurants/{restaurantId}/reservations/{reservationId}/check-in", 10));
-        rules.Add(Rule(id++, ReservationFlow, StatusTypeEnum.Reservation, ReservationStatus.Confirmed, RoleCode.Manager, "checkIn", "Müştərini oturt", "POST", "/api/v1/restaurants/{restaurantId}/reservations/{reservationId}/check-in", 10));
-        rules.Add(Rule(id++, ReservationFlow, StatusTypeEnum.Reservation, ReservationStatus.Confirmed, RoleCode.Manager, "markNoShow", "Gəlmədi kimi qeyd et", "POST", "/api/v1/restaurants/{restaurantId}/reservations/{reservationId}/no-show", 70, true));
-        rules.Add(Rule(id++, ReservationFlow, StatusTypeEnum.Reservation, ReservationStatus.Confirmed, RoleCode.Customer, "cancel", "Rezervasiyanı ləğv et", "POST", "/api/v1/restaurants/{restaurantId}/reservations/{reservationId}/cancel", 90, true));
-        rules.Add(Rule(id++, ReservationFlow, StatusTypeEnum.Reservation, ReservationStatus.Seated, RoleCode.Waiter, "complete", "Rezervasiyanı tamamla", "POST", "/api/v1/restaurants/{restaurantId}/reservations/{reservationId}/complete", 80, true));
-        rules.Add(Rule(id++, ReservationFlow, StatusTypeEnum.Reservation, ReservationStatus.Seated, RoleCode.Manager, "complete", "Rezervasiyanı tamamla", "POST", "/api/v1/restaurants/{restaurantId}/reservations/{reservationId}/complete", 80, true));
+        var flowCode = WorkflowFlowCode.FromStatusType(StatusTypeEnum.Reservation);
+        rules.Add(Rule(id++, flowCode, StatusTypeEnum.Reservation, ReservationStatus.PendingPayment, RoleCode.Customer, "cancel", "Rezervasiyanı ləğv et", "POST", "/api/v1/public/reservations/{reservationId}/cancel", 90, true));
+        rules.Add(Rule(id++, flowCode, StatusTypeEnum.Reservation, ReservationStatus.PendingPayment, RoleCode.Manager, "cancel", "Rezervasiyanı ləğv et", "POST", "/api/v1/restaurants/{restaurantId}/reservations/{reservationId}/cancel", 90, true));
+        rules.Add(Rule(id++, flowCode, StatusTypeEnum.Reservation, ReservationStatus.PendingPayment, RoleCode.SuperAdmin, "cancel", "Rezervasiyanı ləğv et", "POST", "/api/v1/restaurants/{restaurantId}/reservations/{reservationId}/cancel", 90, true));
+        rules.Add(Rule(id++, ReservationFlow, StatusTypeEnum.Reservation, ReservationStatus.Confirmed, RoleCode.Customer, "cancel", "Rezervasiyanı ləğv et", "POST", "/api/v1/public/reservations/{reservationId}/cancel", 90, true));
     }
 
     private static void AddReceiptReservationRules(List<WorkflowActionRule> rules, ref int id)
@@ -74,9 +74,6 @@ public static class WorkflowActionRuleSeeder
     private static void AddOwnerReservationRules(List<WorkflowActionRule> rules, ref int id)
     {
         rules.Add(Rule(id++, ReservationFlow, StatusTypeEnum.Reservation, ReservationStatus.PendingPayment, RoleCode.Owner, "cancel", "Rezervasiyanı ləğv et", "POST", "/api/v1/restaurants/{restaurantId}/reservations/{reservationId}/cancel", 90, true));
-        rules.Add(Rule(id++, ReservationFlow, StatusTypeEnum.Reservation, ReservationStatus.Confirmed, RoleCode.Owner, "checkIn", "Müştərini oturt", "POST", "/api/v1/restaurants/{restaurantId}/reservations/{reservationId}/check-in", 10));
-        rules.Add(Rule(id++, ReservationFlow, StatusTypeEnum.Reservation, ReservationStatus.Confirmed, RoleCode.Owner, "markNoShow", "Gəlmədi kimi qeyd et", "POST", "/api/v1/restaurants/{restaurantId}/reservations/{reservationId}/no-show", 70, true));
-        rules.Add(Rule(id++, ReservationFlow, StatusTypeEnum.Reservation, ReservationStatus.Seated, RoleCode.Owner, "complete", "Rezervasiyanı tamamla", "POST", "/api/v1/restaurants/{restaurantId}/reservations/{reservationId}/complete", 80, true));
         rules.Add(Rule(id++, ReservationFlow, StatusTypeEnum.Reservation, ReservationStatus.PaymentSubmitted, RoleCode.Owner, "approvePaymentProof", "Ödənişi təsdiqlə", "POST", "/api/v1/restaurants/{restaurantId}/reservations/{reservationId}/payment-proofs/approve", 10, true));
         rules.Add(Rule(id++, ReservationFlow, StatusTypeEnum.Reservation, ReservationStatus.PaymentSubmitted, RoleCode.Owner, "rejectPaymentProof", "Ödənişi rədd et", "POST", "/api/v1/restaurants/{restaurantId}/reservations/{reservationId}/payment-proofs/reject", 20, true));
         rules.Add(Rule(id++, ReservationFlow, StatusTypeEnum.Reservation, ReservationStatus.PaymentSubmitted, RoleCode.Owner, "cancel", "Rezervasiyanı ləğv et", "POST", "/api/v1/restaurants/{restaurantId}/reservations/{reservationId}/cancel", 90, true));
@@ -90,9 +87,9 @@ public static class WorkflowActionRuleSeeder
 
     private static void AddReservationResponseRules(List<WorkflowActionRule> rules, ref int id)
     {
-        rules.Add(Rule(id++, ReservationFlow, StatusTypeEnum.Reservation, ReservationStatus.AwaitingPaymentInstruction, RoleCode.Customer, "cancel", "Rezervasiyanı ləğv et", "POST", "/api/v1/restaurants/{restaurantId}/reservations/{reservationId}/cancel", 90, true));
+        rules.Add(Rule(id++, ReservationFlow, StatusTypeEnum.Reservation, ReservationStatus.AwaitingPaymentInstruction, RoleCode.Customer, "cancel", "Rezervasiyanı ləğv et", "POST", "/api/v1/public/reservations/{reservationId}/cancel", 90, true));
         rules.Add(Rule(id++, ReservationFlow, StatusTypeEnum.Reservation, ReservationStatus.AwaitingPaymentInstruction, RoleCode.Manager, "cancel", "Rezervasiyanı ləğv et", "POST", "/api/v1/restaurants/{restaurantId}/reservations/{reservationId}/cancel", 90, true));
-        rules.Add(Rule(id++, ReservationFlow, StatusTypeEnum.Reservation, ReservationStatus.AwaitingPaymentInstruction, RoleCode.SuperAdmin, "cancel", "Rezervasiyanı ləğv et", "POST", "/api/v1/admin/restaurants/{restaurantId}/reservations/{reservationId}/cancel", 90, true));
+        rules.Add(Rule(id++, ReservationFlow, StatusTypeEnum.Reservation, ReservationStatus.AwaitingPaymentInstruction, RoleCode.SuperAdmin, "cancel", "Rezervasiyanı ləğv et", "POST", "/api/v1/restaurants/{restaurantId}/reservations/{reservationId}/cancel", 90, true));
         rules.Add(Rule(id++, ReservationFlow, StatusTypeEnum.Reservation, ReservationStatus.AwaitingPaymentInstruction, RoleCode.Owner, "cancel", "Rezervasiyanı ləğv et", "POST", "/api/v1/restaurants/{restaurantId}/reservations/{reservationId}/cancel", 90, true));
         rules.Add(Rule(id++, ReservationFlow, StatusTypeEnum.Reservation, ReservationStatus.AwaitingPaymentInstruction, RoleCode.Manager, "sendPaymentInstruction", "Ödəniş məlumatı göndər", "POST", "/api/v1/restaurants/{restaurantId}/reservations/{reservationId}/payment-instructions", 10));
         rules.Add(Rule(id++, ReservationFlow, StatusTypeEnum.Reservation, ReservationStatus.AwaitingPaymentInstruction, RoleCode.Owner, "sendPaymentInstruction", "Ödəniş məlumatı göndər", "POST", "/api/v1/restaurants/{restaurantId}/reservations/{reservationId}/payment-instructions", 10));
