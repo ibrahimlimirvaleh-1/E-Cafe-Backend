@@ -83,6 +83,20 @@ public class WorkflowActionManager : BaseManager, IWorkflowActionService
                 .ToList();
         }
 
+        if (roleId == (int)RoleCode.Customer &&
+            restaurantId.HasValue &&
+            entityId.HasValue &&
+            normalizedFlowCode == WorkflowFlowCode.FromStatusType(StatusType.Reservation) &&
+            await IsReservationCancellationDeadlinePassedAsync(restaurantId.Value, entityId.Value))
+        {
+            rules = rules
+                .Where(rule => !string.Equals(
+                    rule.ActionCode,
+                    "cancel",
+                    StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
+
         return rules
             .Select(rule => new WorkflowActionResponse
             {
@@ -127,6 +141,16 @@ public class WorkflowActionManager : BaseManager, IWorkflowActionService
             throw new ForbiddenException("Workflow action is not allowed for this user.");
 
         var normalizedActionCode = actionCode.Trim();
+
+        if (roleId == (int)RoleCode.Customer &&
+            string.Equals(normalizedFlowCode, WorkflowFlowCode.FromStatusType(StatusType.Reservation), StringComparison.Ordinal) &&
+            string.Equals(normalizedActionCode, "cancel", StringComparison.OrdinalIgnoreCase) &&
+            restaurantId.HasValue &&
+            entityId.HasValue &&
+            await IsReservationCancellationDeadlinePassedAsync(restaurantId.Value, entityId.Value))
+        {
+            throw new ForbiddenException("Rezervasiyanı ləğv etmək üçün icazə verilən müddət bitib.");
+        }
 
         var exists = await _workflowActionRuleRepository.CheckExistAsync(rule =>
             rule.FlowCode == normalizedFlowCode &&
@@ -181,6 +205,14 @@ public class WorkflowActionManager : BaseManager, IWorkflowActionService
                 reservation.Id == reservationId &&
                 reservation.RestaurantId == restaurantId &&
                 reservation.ReservedAt <= DateTime.UtcNow)
+            .AnyAsync();
+
+    private Task<bool> IsReservationCancellationDeadlinePassedAsync(int restaurantId, int reservationId)
+        => _reservationRepository.Query(reservation =>
+                reservation.Id == reservationId &&
+                reservation.RestaurantId == restaurantId &&
+                reservation.CancellationDeadline.HasValue &&
+                reservation.CancellationDeadline.Value <= DateTime.UtcNow)
             .AnyAsync();
 
     private static string BuildActionEndpoint(string template, int? restaurantId, int? entityId)
