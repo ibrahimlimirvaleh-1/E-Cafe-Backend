@@ -125,5 +125,6 @@ public enum ErrorCode
 
     ThisOperatioCannotBePerformedForThisReservation = 5022,
     OnlyRestaurantManagersCanSendPaymentInstruction = 5023,
-    CustomerAlreadyHasReservationToday = 5024
+    CustomerAlreadyHasReservationToday = 5024,
+    ReservationTimeAlreadyPassed = 5025
 }

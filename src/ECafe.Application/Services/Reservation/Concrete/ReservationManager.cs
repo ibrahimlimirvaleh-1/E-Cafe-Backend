@@ -989,6 +989,9 @@ public sealed class ReservationManager : BaseManager, IReservationService
         if (reservation.StatusId != paymentSubmittedStatusId)
             throw new BusinessRuleException("Bu rezervasiyanın ödəniş çeki təsdiq gözləmir.");
 
+        if (reservation.ReservedAt <= now)
+            throw new BusinessRuleException(ErrorCode.ReservationTimeAlreadyPassed);
+
         await _workflowActionService.EnsureCanExecuteAsync(
             ReservationFlowCode,
             reservation.StatusId,
