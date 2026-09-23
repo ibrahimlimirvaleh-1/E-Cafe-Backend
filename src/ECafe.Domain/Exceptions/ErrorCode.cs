@@ -124,5 +124,6 @@ public enum ErrorCode
     ReservationNotBelongsToRestaurant = 5021,
 
     ThisOperatioCannotBePerformedForThisReservation = 5022,
-    OnlyRestaurantManagersCanSendPaymentInstruction = 5023
+    OnlyRestaurantManagersCanSendPaymentInstruction = 5023,
+    CustomerAlreadyHasReservationToday = 5024
 }

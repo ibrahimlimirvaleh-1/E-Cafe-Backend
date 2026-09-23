@@ -126,6 +126,7 @@ public sealed class ErrorMessageProvider : IErrorMessageProvider
         [ErrorCode.ReservationNotBelongsToRestaurant] = "Rezervasiya restorana aid deyil.",
         [ErrorCode.ThisOperatioCannotBePerformedForThisReservation] = "Bu rezervasiya üçün bu əməliyyatı yerinə yetirmək olmaz.",
         [ErrorCode.OnlyRestaurantManagersCanSendPaymentInstruction] = "Ödəniş məlumatını yalnız restoran sahibi və ya meneceri göndərə bilər.",
+        [ErrorCode.CustomerAlreadyHasReservationToday] = "Bu gün bu restoran üçün artıq aktiv rezervasiyanız var.",
 
     };
 
