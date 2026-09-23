@@ -12,6 +12,17 @@ namespace ECafe.Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.Sql("""
+                -- id=11 takes id=14's old composite key. Free it before EF updates id=11.
+                UPDATE core.workflow_action_rules
+                SET action_code = '__workflow_sync_14'
+                WHERE id = 14
+                  AND flow_code = 'reservation'
+                  AND status_id = 1002
+                  AND role_id = 5
+                  AND action_code = 'cancel';
+                """);
+
             migrationBuilder.DeleteData(
                 schema: "core",
                 table: "workflow_action_rules",
