@@ -860,6 +860,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
             PeopleCount = reservation.PeopleCount,
             StatusId = reservation.StatusId,
             Status = reservation.Status?.Name ?? ReservationStatus.PendingPayment.ToString(),
+            WorkflowFlowCode = ReservationFlowCode,
             DepositAmount = reservation.DepositAmount,
             HoldExpiresAt = ToUtcOffset(reservation.HoldExpiresAt),
             RestaurantResponseExpiresAt = ToUtcOffset(reservation.RestaurantResponseExpiresAt),

@@ -1,13 +1,12 @@
 using ECafe.Application.Features.Queries.Workflow;
-using ECafe.Domain.Enums;
-using ECafe.Infrastructure.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ECafe.Api.Controllers;
 
 public class WorkflowController : BaseController
 {
-    [HasPermission(PermissionCode.ViewRestaurantInfo)]
+    [Authorize]
     [HttpGet("api/v1/workflows/{flowCode}/actions")]
     public async Task<IActionResult> GetActions(
         string flowCode,
