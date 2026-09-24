@@ -32,6 +32,7 @@ public static class WorkflowActionRuleSeeder
         AddOwnerReservationRules(rules, ref id);
         AddPaymentInstructionReservationRules(rules, ref id);
         AddReservationResponseRules(rules, ref id);
+        AddReservationSessionRules(rules, ref id);
 
         modelBuilder.Entity<WorkflowActionRule>().HasData(rules);
     }
@@ -61,6 +62,14 @@ public static class WorkflowActionRuleSeeder
         rules.Add(Rule(id++, flowCode, StatusTypeEnum.Reservation, ReservationStatus.PendingPayment, RoleCode.Manager, "cancel", "Rezervasiyanı ləğv et", "POST", "/api/v1/restaurants/{restaurantId}/reservations/{reservationId}/cancel", 90, true));
         rules.Add(Rule(id++, flowCode, StatusTypeEnum.Reservation, ReservationStatus.PendingPayment, RoleCode.SuperAdmin, "cancel", "Rezervasiyanı ləğv et", "POST", "/api/v1/restaurants/{restaurantId}/reservations/{reservationId}/cancel", 90, true));
         rules.Add(Rule(id++, ReservationFlow, StatusTypeEnum.Reservation, ReservationStatus.Confirmed, RoleCode.Customer, "cancel", "Rezervasiyanı ləğv et", "POST", "/api/v1/public/reservations/{reservationId}/cancel", 90, true));
+    }
+
+    private static void AddReservationSessionRules(List<WorkflowActionRule> rules, ref int id)
+    {
+        rules.Add(Rule(id++, ReservationFlow, StatusTypeEnum.Reservation, ReservationStatus.Confirmed, RoleCode.Manager, "checkIn", "Müştərini check-in et", "POST", "/api/v1/restaurants/{restaurantId}/reservations/{reservationId}/check-in", 10, true));
+        rules.Add(Rule(id++, ReservationFlow, StatusTypeEnum.Reservation, ReservationStatus.Confirmed, RoleCode.Owner, "checkIn", "Müştərini check-in et", "POST", "/api/v1/restaurants/{restaurantId}/reservations/{reservationId}/check-in", 10, true));
+        rules.Add(Rule(id++, ReservationFlow, StatusTypeEnum.Reservation, ReservationStatus.Seated, RoleCode.Manager, "complete", "Masa sessiyasını bağla", "POST", "/api/v1/restaurants/{restaurantId}/reservations/{reservationId}/complete", 10, true));
+        rules.Add(Rule(id++, ReservationFlow, StatusTypeEnum.Reservation, ReservationStatus.Seated, RoleCode.Owner, "complete", "Masa sessiyasını bağla", "POST", "/api/v1/restaurants/{restaurantId}/reservations/{reservationId}/complete", 10, true));
     }
 
     private static void AddReceiptReservationRules(List<WorkflowActionRule> rules, ref int id)

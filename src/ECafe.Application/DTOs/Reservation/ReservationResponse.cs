@@ -6,6 +6,8 @@ public sealed class ReservationResponse
     public int RestaurantId { get; init; }
     public int TableId { get; init; }
     public DateTimeOffset ReservedAt { get; init; }
+    public DateTimeOffset NoShowDeadlineAt { get; init; }
+    public DateTimeOffset? MustVacateAt { get; init; }
     public int PeopleCount { get; init; }
     public int StatusId { get; init; }
     public string Status { get; init; } = null!;

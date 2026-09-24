@@ -41,6 +41,16 @@ public interface IReservationService
         int batchSize,
         CancellationToken cancellationToken);
 
+    Task<ReservationActionResponse> CheckInReservationAsync(
+        int restaurantId,
+        int reservationId,
+        CancellationToken cancellationToken = default);
+
+    Task<ReservationActionResponse> CompleteReservationAsync(
+        int restaurantId,
+        int reservationId,
+        CancellationToken cancellationToken = default);
+
     Task<PaymentInstructionResponse> SendPaymentInstructionAsync(
         int restaurantId,
         int reservationId,

@@ -42,6 +42,8 @@ namespace ECafe.Infrastructure.Configurations.Concrete
                 .HasColumnName("reject_reason");
             builder.Property(e => e.RefundEligible).HasColumnName("refund_eligible");
             builder.Property(e => e.ReservedAt).HasColumnName("reserved_at");
+            builder.Property(e => e.NoShowDeadlineAt).HasColumnName("no_show_deadline_at");
+            builder.Property(e => e.MustVacateAt).HasColumnName("must_vacate_at");
             builder.Property(e => e.RestaurantId).HasColumnName("restaurant_id");
             builder.Property(e => e.SeatedAt).HasColumnName("seated_at");
             builder.Property(e => e.StatusId).HasColumnName("status_id");

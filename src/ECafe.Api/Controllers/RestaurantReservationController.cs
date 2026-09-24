@@ -1,6 +1,8 @@
 using ECafe.Application.DTOs.Reservation;
 using ECafe.Application.Features.Commands.Reservation.ApprovePaymentProof;
 using ECafe.Application.Features.Commands.Reservation.CancelRestaurantReservation;
+using ECafe.Application.Features.Commands.Reservation.CheckIn;
+using ECafe.Application.Features.Commands.Reservation.Complete;
 using ECafe.Application.Features.Commands.Reservation.RejectPaymentProof;
 using ECafe.Application.Features.Commands.Reservation.SendPaymentInstruction;
 using ECafe.Application.Features.Queries.Reservation.GetRestaurant;
@@ -103,6 +105,38 @@ public sealed class RestaurantReservationController : BaseController
             RestaurantId = restaurantId,
             ReservationId = reservationId,
             Reason = request?.Reason ?? string.Empty
+        }, cancellationToken);
+
+        return Ok(result);
+    }
+
+    [HasPermission(PermissionCode.ManageReservations)]
+    [HttpPost("api/v1/restaurants/{restaurantId:int}/reservations/{reservationId:int}/check-in")]
+    public async Task<IActionResult> CheckIn(
+        [FromRoute] int restaurantId,
+        [FromRoute] int reservationId,
+        CancellationToken cancellationToken)
+    {
+        var result = await Mediator.Send(new CheckInReservationCommand
+        {
+            RestaurantId = restaurantId,
+            ReservationId = reservationId
+        }, cancellationToken);
+
+        return Ok(result);
+    }
+
+    [HasPermission(PermissionCode.ManageReservations)]
+    [HttpPost("api/v1/restaurants/{restaurantId:int}/reservations/{reservationId:int}/complete")]
+    public async Task<IActionResult> Complete(
+        [FromRoute] int restaurantId,
+        [FromRoute] int reservationId,
+        CancellationToken cancellationToken)
+    {
+        var result = await Mediator.Send(new CompleteReservationCommand
+        {
+            RestaurantId = restaurantId,
+            ReservationId = reservationId
         }, cancellationToken);
 
         return Ok(result);

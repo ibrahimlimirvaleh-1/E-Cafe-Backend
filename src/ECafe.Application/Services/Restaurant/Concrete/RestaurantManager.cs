@@ -405,6 +405,11 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             restaurant.BranchName = branchName;
             restaurant.DepositAmount = request.DepositAmount;
             restaurant.CancellationWindowMinutes = request.CancellationWindowMinutes;
+            restaurant.ReservationPreBlockMinutes = request.ReservationPreBlockMinutes;
+            restaurant.TableTurnoverBufferMinutes = request.TableTurnoverBufferMinutes;
+            restaurant.NoShowGraceMinutes = request.NoShowGraceMinutes;
+            restaurant.PaymentHoldMinutes = request.PaymentHoldMinutes;
+            restaurant.RestaurantResponseMinutes = request.RestaurantResponseMinutes;
             restaurant.ServiceFeePercent = request.ServiceFeePercent;
             restaurant.StaffSettlementPeriod = request.StaffSettlementPeriod;
             restaurant.TimeZone = NormalizeTimeZone(request.TimeZone);
@@ -432,6 +437,11 @@ namespace ECafe.Application.Services.Restaurant.Concrete
                     GroupEmail = restaurant.RestaurantGroup?.Email,
                     restaurant.DepositAmount,
                     restaurant.CancellationWindowMinutes,
+                    restaurant.ReservationPreBlockMinutes,
+                    restaurant.TableTurnoverBufferMinutes,
+                    restaurant.NoShowGraceMinutes,
+                    restaurant.PaymentHoldMinutes,
+                    restaurant.RestaurantResponseMinutes,
                     restaurant.ServiceFeePercent,
                     restaurant.StaffSettlementPeriod,
                     restaurant.TimeZone,

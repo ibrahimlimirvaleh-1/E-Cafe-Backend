@@ -15,5 +15,7 @@ namespace ECafe.Application.DTOs.Table
         public bool IsActive { get; set; }
 
         public bool IsEmpty { get; set; }
+
+        public DateTimeOffset? MustVacateAt { get; set; }
     }
 }

@@ -10,5 +10,7 @@
 
         public string? Note { get; set; }
 
+        public bool AcceptsLimitedSeating { get; set; }
+
     }
 }

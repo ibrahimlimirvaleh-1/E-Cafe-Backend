@@ -30,6 +30,16 @@ namespace ECafe.Application.DTOs.Restaurant
 
         public int CancellationWindowMinutes { get; set; } = 60;
 
+        public int ReservationPreBlockMinutes { get; set; } = 60;
+
+        public int TableTurnoverBufferMinutes { get; set; } = 15;
+
+        public int NoShowGraceMinutes { get; set; } = 15;
+
+        public int PaymentHoldMinutes { get; set; } = 15;
+
+        public int RestaurantResponseMinutes { get; set; } = 15;
+
         public decimal ServiceFeePercent { get; set; }
 
         public int StaffSettlementPeriod { get; set; } = 2;
