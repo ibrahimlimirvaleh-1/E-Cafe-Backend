@@ -59,6 +59,21 @@ namespace ECafe.Infrastructure.Configurations.Concrete
             builder.Property(e => e.CancellationWindowMinutes)
                 .HasDefaultValue(60)
                 .HasColumnName("cancellation_window_minutes");
+            builder.Property(e => e.ReservationPreBlockMinutes)
+                .HasDefaultValue(60)
+                .HasColumnName("reservation_pre_block_minutes");
+            builder.Property(e => e.TableTurnoverBufferMinutes)
+                .HasDefaultValue(15)
+                .HasColumnName("table_turnover_buffer_minutes");
+            builder.Property(e => e.NoShowGraceMinutes)
+                .HasDefaultValue(15)
+                .HasColumnName("no_show_grace_minutes");
+            builder.Property(e => e.PaymentHoldMinutes)
+                .HasDefaultValue(15)
+                .HasColumnName("payment_hold_minutes");
+            builder.Property(e => e.RestaurantResponseMinutes)
+                .HasDefaultValue(15)
+                .HasColumnName("restaurant_response_minutes");
             builder.Property(e => e.ServiceFeePercent)
                 .HasPrecision(5, 2)
                 .HasDefaultValue(0m)

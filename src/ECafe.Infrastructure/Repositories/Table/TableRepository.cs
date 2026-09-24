@@ -56,43 +56,82 @@ namespace ECafe.Infrastructure.Repositories.Table
             DateTimeOffset reservedAt,
             int? excludedReservationId = null)
         {
-            var reservationInterval = await GetReservationIntervalUtcAsync(restaurantId, reservedAt);
-            if (reservationInterval is null)
-                return false;
-
-            return await BuildAvailableTablesForReservationQuery(restaurantId, reservationInterval.Value, excludedReservationId)
-                .AnyAsync(t => t.Id == tableId);
+            return await GetReservationTableAvailabilityAsync(
+                    restaurantId,
+                    tableId,
+                    reservedAt,
+                    excludedReservationId) is not null;
         }
 
         public async Task<bool> HasAvailableTableForReservationAsync(int restaurantId, DateTimeOffset reservedAt)
         {
-            var reservationInterval = await GetReservationIntervalUtcAsync(restaurantId, reservedAt);
-            if (reservationInterval is null)
-                return false;
-
-            return await BuildAvailableTablesForReservationQuery(restaurantId, reservationInterval.Value)
-                .AnyAsync();
+            return (await GetReservationTableAvailabilityAsync(restaurantId, reservedAt)).Count > 0;
         }
 
         public async Task<List<Domain.Entities.Table>> GetAvailableTablesForReservationAsync(int restaurantId, DateTimeOffset reservedAt)
         {
-            var reservationInterval = await GetReservationIntervalUtcAsync(restaurantId, reservedAt);
-            if (reservationInterval is null)
+            return (await GetReservationTableAvailabilityAsync(restaurantId, reservedAt))
+                .Select(availability => availability.Table)
+                .ToList();
+        }
+
+        public async Task<List<ReservationTableAvailability>> GetReservationTableAvailabilityAsync(
+            int restaurantId,
+            DateTimeOffset reservedAt)
+        {
+            var policy = await GetReservationPolicyAsync(restaurantId);
+            if (policy is null)
                 return [];
 
-            return await BuildAvailableTablesForReservationQuery(restaurantId, reservationInterval.Value)
-                .OrderBy(t => t.TableNo)
+            return await BuildReservationAvailabilityQuery(
+                    restaurantId,
+                    reservedAt.UtcDateTime,
+                    policy.Value)
+                .OrderBy(result => result.Table.TableNo)
+                .Select(result => new ReservationTableAvailability(
+                    result.Table,
+                    result.NextReservationAt == null
+                        ? null
+                        : result.NextReservationAt.Value.AddMinutes(-policy.Value.TableTurnoverBufferMinutes)))
                 .ToListAsync();
         }
 
-        private IQueryable<Domain.Entities.Table> BuildAvailableTablesForReservationQuery(
+        public async Task<ReservationTableAvailability?> GetReservationTableAvailabilityAsync(
             int restaurantId,
-            ReservationIntervalUtc reservationInterval,
+            int tableId,
+            DateTimeOffset reservedAt,
             int? excludedReservationId = null)
         {
-            var nowUtc = DateTime.UtcNow;
-            var awaitingPaymentInstructionStatusId = StatusIds.Reservation(ReservationStatus.AwaitingPaymentInstruction);
-            var pendingPaymentStatusId = StatusIds.Reservation(ReservationStatus.PendingPayment);
+            var policy = await GetReservationPolicyAsync(restaurantId);
+            if (policy is null)
+                return null;
+
+            var result = await BuildReservationAvailabilityQuery(
+                    restaurantId,
+                    reservedAt.UtcDateTime,
+                    policy.Value,
+                    excludedReservationId)
+                .Where(candidate => candidate.Table.Id == tableId)
+                .Select(candidate => new ReservationTableAvailability(
+                    candidate.Table,
+                    candidate.NextReservationAt == null
+                        ? null
+                        : candidate.NextReservationAt.Value.AddMinutes(-policy.Value.TableTurnoverBufferMinutes)))
+                .SingleOrDefaultAsync();
+
+            return result;
+        }
+
+        private IQueryable<ReservationAvailabilityCandidate> BuildReservationAvailabilityQuery(
+            int restaurantId,
+            DateTime reservedAtUtc,
+            ReservationAvailabilityPolicy policy,
+            int? excludedReservationId = null)
+        {
+            var blockingReservations = BuildBlockingReservationsQuery(
+                restaurantId,
+                DateTime.UtcNow,
+                excludedReservationId);
 
             return Query()
                 .Where(t =>
@@ -102,47 +141,60 @@ namespace ECafe.Infrastructure.Repositories.Table
                         ts.RestaurantId == restaurantId &&
                         ts.StatusId == OpenTableSessionStatusId &&
                         ts.ClosedAt == null) &&
-                    !t.Reservations.Any(r =>
-                        r.RestaurantId == restaurantId &&
+                    !blockingReservations.Any(r =>
                         r.TableId == t.Id &&
-                        (!excludedReservationId.HasValue || r.Id != excludedReservationId.Value) &&
-                        r.Status.BlocksTableAvailability &&
-                        ((r.StatusId == awaitingPaymentInstructionStatusId &&
-                          r.RestaurantResponseExpiresAt != null &&
-                          r.RestaurantResponseExpiresAt > nowUtc) ||
-                         (r.StatusId == pendingPaymentStatusId &&
-                          (r.HoldExpiresAt == null || r.HoldExpiresAt > nowUtc)) ||
-                         (r.StatusId != awaitingPaymentInstructionStatusId &&
-                          r.StatusId != pendingPaymentStatusId)) &&
-                        r.ReservedAt >= reservationInterval.StartsAtUtc &&
-                        r.ReservedAt < reservationInterval.EndsAtUtc));
+                        r.ReservedAt <= reservedAtUtc))
+                .Select(t => new ReservationAvailabilityCandidate(
+                    t,
+                    blockingReservations
+                        .Where(r => r.TableId == t.Id && r.ReservedAt > reservedAtUtc)
+                        .OrderBy(r => r.ReservedAt)
+                        .Select(r => (DateTime?)r.ReservedAt)
+                        .FirstOrDefault()))
+                .Where(candidate =>
+                    candidate.NextReservationAt == null ||
+                    reservedAtUtc < candidate.NextReservationAt.Value.AddMinutes(-policy.ReservationPreBlockMinutes));
         }
 
-        private async Task<ReservationIntervalUtc?> GetReservationIntervalUtcAsync(int restaurantId, DateTimeOffset reservedAt)
+        private IQueryable<Domain.Entities.Reservation> BuildBlockingReservationsQuery(
+            int restaurantId,
+            DateTime nowUtc,
+            int? excludedReservationId)
         {
-            var workingHours = await Context.RestaurantWorkingHours
-                .AsNoTracking()
-                .Where(wh => wh.RestaurantId == restaurantId && !wh.IsClosed)
-                .ToListAsync();
+            var awaitingPaymentInstructionStatusId = StatusIds.Reservation(ReservationStatus.AwaitingPaymentInstruction);
+            var pendingPaymentStatusId = StatusIds.Reservation(ReservationStatus.PendingPayment);
 
-            var timeZoneId = await Context.Restaurants
-                .Where(restaurant => restaurant.Id == restaurantId && restaurant.IsActive)
-                .Select(restaurant => restaurant.TimeZone)
-                .SingleOrDefaultAsync();
-
-            if (timeZoneId is null)
-                return null;
-
-            var restaurantLocalTime = RestaurantTimeZoneConverter.ToRestaurantLocalTime(
-                reservedAt.ToUniversalTime(),
-                timeZoneId);
-
-            return RestaurantWorkingHoursCalculator.TryGetActiveInterval(workingHours, restaurantLocalTime, out var interval)
-                ? new ReservationIntervalUtc(interval.StartsAt.UtcDateTime, interval.EndsAt.UtcDateTime)
-                : null;
+            return Context.Reservations.Where(r =>
+                r.RestaurantId == restaurantId &&
+                (!excludedReservationId.HasValue || r.Id != excludedReservationId.Value) &&
+                r.Status.BlocksTableAvailability &&
+                ((r.StatusId == awaitingPaymentInstructionStatusId &&
+                  r.RestaurantResponseExpiresAt != null &&
+                  r.RestaurantResponseExpiresAt > nowUtc) ||
+                 (r.StatusId == pendingPaymentStatusId &&
+                  (r.HoldExpiresAt == null || r.HoldExpiresAt > nowUtc)) ||
+                 (r.StatusId != awaitingPaymentInstructionStatusId &&
+                  r.StatusId != pendingPaymentStatusId)));
         }
 
-        private readonly record struct ReservationIntervalUtc(DateTime StartsAtUtc, DateTime EndsAtUtc);
+        private Task<ReservationAvailabilityPolicy?> GetReservationPolicyAsync(int restaurantId)
+        {
+            return Context.Restaurants
+                .AsNoTracking()
+                .Where(restaurant => restaurant.Id == restaurantId && restaurant.IsActive)
+                .Select(restaurant => (ReservationAvailabilityPolicy?)new ReservationAvailabilityPolicy(
+                    restaurant.ReservationPreBlockMinutes,
+                    restaurant.TableTurnoverBufferMinutes))
+                .SingleOrDefaultAsync();
+        }
+
+        private readonly record struct ReservationAvailabilityPolicy(
+            int ReservationPreBlockMinutes,
+            int TableTurnoverBufferMinutes);
+
+        private sealed record ReservationAvailabilityCandidate(
+            Domain.Entities.Table Table,
+            DateTime? NextReservationAt);
 
     }
 }

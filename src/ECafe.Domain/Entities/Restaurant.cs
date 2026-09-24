@@ -28,6 +28,16 @@ public partial class Restaurant : AuditableSoftDeletableEntity<int>
 
     public int CancellationWindowMinutes { get; set; }
 
+    public int ReservationPreBlockMinutes { get; set; }
+
+    public int TableTurnoverBufferMinutes { get; set; }
+
+    public int NoShowGraceMinutes { get; set; }
+
+    public int PaymentHoldMinutes { get; set; }
+
+    public int RestaurantResponseMinutes { get; set; }
+
     public decimal ServiceFeePercent { get; set; }
 
     public int StaffSettlementPeriod { get; set; }

@@ -83,6 +83,19 @@ public class WorkflowActionManager : BaseManager, IWorkflowActionService
                 .ToList();
         }
 
+        if (restaurantId.HasValue &&
+            entityId.HasValue &&
+            normalizedFlowCode == WorkflowFlowCode.FromStatusType(StatusType.Reservation) &&
+            !await IsReservationCheckInWindowOpenAsync(restaurantId.Value, entityId.Value))
+        {
+            rules = rules
+                .Where(rule => !string.Equals(
+                    rule.ActionCode,
+                    "checkIn",
+                    StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
+
         if (roleId == (int)RoleCode.Customer &&
             restaurantId.HasValue &&
             entityId.HasValue &&
@@ -141,6 +154,15 @@ public class WorkflowActionManager : BaseManager, IWorkflowActionService
             throw new ForbiddenException("Workflow action is not allowed for this user.");
 
         var normalizedActionCode = actionCode.Trim();
+
+        if (restaurantId.HasValue &&
+            entityId.HasValue &&
+            string.Equals(normalizedFlowCode, WorkflowFlowCode.FromStatusType(StatusType.Reservation), StringComparison.Ordinal) &&
+            string.Equals(normalizedActionCode, "checkIn", StringComparison.OrdinalIgnoreCase) &&
+            !await IsReservationCheckInWindowOpenAsync(restaurantId.Value, entityId.Value))
+        {
+            throw new ForbiddenException("Rezervasiya hazırda check-in üçün uyğun vaxtda deyil.");
+        }
 
         if (roleId == (int)RoleCode.Customer &&
             string.Equals(normalizedFlowCode, WorkflowFlowCode.FromStatusType(StatusType.Reservation), StringComparison.Ordinal) &&
@@ -213,6 +235,14 @@ public class WorkflowActionManager : BaseManager, IWorkflowActionService
                 reservation.RestaurantId == restaurantId &&
                 reservation.CancellationDeadline.HasValue &&
                 reservation.CancellationDeadline.Value <= DateTime.UtcNow)
+            .AnyAsync();
+
+    private Task<bool> IsReservationCheckInWindowOpenAsync(int restaurantId, int reservationId)
+        => _reservationRepository.Query(reservation =>
+                reservation.Id == reservationId &&
+                reservation.RestaurantId == restaurantId &&
+                reservation.ReservedAt <= DateTime.UtcNow &&
+                reservation.NoShowDeadlineAt >= DateTime.UtcNow)
             .AnyAsync();
 
     private static string BuildActionEndpoint(string template, int? restaurantId, int? entityId)

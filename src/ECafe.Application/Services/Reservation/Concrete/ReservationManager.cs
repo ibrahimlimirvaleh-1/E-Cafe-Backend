@@ -12,6 +12,7 @@ using ECafe.Application.Repositories.RestaurantContract;
 using ECafe.Application.Repositories.ReservationPaymentInstruction;
 using ECafe.Application.Repositories.ReservationPaymentProof;
 using ECafe.Application.Repositories.Table;
+using ECafe.Application.Repositories.TableSession;
 using ECafe.Application.Repositories.UserRestaurant;
 using ECafe.Application.Repository;
 using ECafe.Application.Services.Notification.Abstract;
@@ -35,8 +36,6 @@ namespace ECafe.Application.Services.Reservation.Concrete;
 
 public sealed class ReservationManager : BaseManager, IReservationService
 {
-    private const int DefaultHoldMinutes = 15;
-    private const int DefaultRestaurantResponseMinutes = 15;
     private const string SubmitPaymentProofActionCode = "submitPaymentProof";
     private static string ReservationFlowCode
         => WorkflowFlowCode.FromStatusType(StatusTypeEnum.Reservation);
@@ -48,6 +47,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
     ];
 
     private readonly ITableRepository _tableRepository;
+    private readonly ITableSessionRepository _tableSessionRepository;
     private readonly IRestaurantRepository _restaurantRepository;
     private readonly IRestaurantContractRepository _restaurantContractRepository;
     private readonly IReservationRepository _reservationRepository;
@@ -66,6 +66,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
         IMapper mapper,
         IConfiguration configuration,
         ITableRepository tableRepository,
+        ITableSessionRepository tableSessionRepository,
         IRestaurantRepository restaurantRepository,
         IRestaurantContractRepository restaurantContractRepository,
         IReservationRepository reservationRepository,
@@ -81,6 +82,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
         : base(httpContextAccessor, mapper, configuration)
     {
         _tableRepository = tableRepository;
+        _tableSessionRepository = tableSessionRepository;
         _restaurantRepository = restaurantRepository;
         _restaurantContractRepository = restaurantContractRepository;
         _reservationRepository = reservationRepository;
@@ -142,9 +144,18 @@ public sealed class ReservationManager : BaseManager, IReservationService
             request.TableId,
             cancellationToken);
 
-        await EnsureTableIsAvailableAsync(restaurantId, request.TableId, request.ReservedAt);
+        var tableAvailability = await EnsureTableIsAvailableAsync(
+            restaurantId,
+            request.TableId,
+            request.ReservedAt,
+            request.AcceptsLimitedSeating);
 
-        var reservation = BuildReservation(restaurantId, userId, restaurant, request);
+        var reservation = BuildReservation(
+            restaurantId,
+            userId,
+            restaurant,
+            request,
+            tableAvailability.MustVacateAt);
         reservation.StatusHistory.Add(new ReservationStatusHistory
         {
             ToStatusId = reservation.StatusId,
@@ -268,10 +279,209 @@ public sealed class ReservationManager : BaseManager, IReservationService
 
     public async Task<int> ExpirePendingReservationsAsync(int batchSize, CancellationToken cancellationToken)
     {
-        return await _reservationRepository.ExpirePendingPaymentsAsync(
-            DateTime.UtcNow,
+        var nowUtc = DateTime.UtcNow;
+        var expiredPaymentCount = await _reservationRepository.ExpirePendingPaymentsAsync(
+            nowUtc,
             batchSize,
             cancellationToken);
+        var noShowCount = await _reservationRepository.ExpireNoShowReservationsAsync(
+            nowUtc,
+            batchSize,
+            cancellationToken);
+
+        return expiredPaymentCount + noShowCount;
+    }
+
+    public async Task<ReservationActionResponse> CheckInReservationAsync(
+        int restaurantId,
+        int reservationId,
+        CancellationToken cancellationToken = default)
+    {
+        ValidateRestaurantId(restaurantId);
+        ValidateReservationId(reservationId);
+        await EnsureRestaurantReservationAccessAsync(restaurantId);
+
+        var userId = GetCurrentUserId();
+        var nowUtc = DateTime.UtcNow;
+        var confirmedStatusId = StatusIds.Reservation(ReservationStatus.Confirmed);
+        var seatedStatusId = StatusIds.Reservation(ReservationStatus.Seated);
+
+        await using var transaction = await _transactionFactory.BeginTransactionAsync(
+            IsolationLevel.ReadCommitted,
+            cancellationToken);
+
+        var snapshot = await _reservationRepository.GetByIdForRestaurantSnapshotAsync(
+            reservationId,
+            restaurantId,
+            cancellationToken)
+            ?? throw new NotFoundException(ErrorCode.ReservationNotFound);
+
+        await _tableRepository.AcquireReservationLockAsync(
+            restaurantId,
+            snapshot.TableId,
+            cancellationToken);
+
+        var reservation = await _reservationRepository.GetByIdForRestaurantAsync(
+            reservationId,
+            restaurantId,
+            cancellationToken)
+            ?? throw new NotFoundException(ErrorCode.ReservationNotFound);
+
+        await _workflowActionService.EnsureCanExecuteAsync(
+            ReservationFlowCode,
+            reservation.StatusId,
+            "checkIn",
+            restaurantId,
+            reservation.Id);
+
+        if (reservation.StatusId != confirmedStatusId)
+            throw new BusinessRuleException("Bu rezervasiya check-in üçün təsdiqlənmiş vəziyyətdə deyil.");
+
+        if (reservation.ReservedAt > nowUtc)
+            throw new BusinessRuleException("Rezervasiya vaxtı hələ çatmayıb.");
+
+        if (reservation.NoShowDeadlineAt < nowUtc)
+            throw new BusinessRuleException("Rezervasiyanın check-in müddəti bitib.");
+
+        if (await _tableRepository.HasOpenTableSessionAsync(restaurantId, reservation.TableId))
+            throw new BusinessRuleException(ErrorCode.TableAlreadyReserved);
+
+        await _tableSessionRepository.Add(new TableSession
+        {
+            RestaurantId = restaurantId,
+            TableId = reservation.TableId,
+            CustomerUserId = reservation.CustomerUserId,
+            WaiterUserId = userId,
+            ReservationId = reservation.Id,
+            StatusId = StatusIds.TableSession(TableSessionStatus.Open),
+            OpenedAt = nowUtc
+        });
+
+        reservation.StatusId = seatedStatusId;
+        reservation.SeatedAt = nowUtc;
+        reservation.CheckedInByUserId = userId;
+        reservation.StatusHistory.Add(new ReservationStatusHistory
+        {
+            FromStatusId = confirmedStatusId,
+            ToStatusId = seatedStatusId,
+            ChangedByUserId = userId,
+            ChangedAt = nowUtc,
+            Reason = "Müştəri check-in etdi və masa sessiyası açıldı."
+        });
+
+        await _reservationRepository.SaveChangesAsync();
+        await NotifyReservationCustomerAsync(
+            restaurantId,
+            reservation,
+            NotificationType.ReservationCheckedIn,
+            "Rezervasiya check-in edildi",
+            $"Rezervasiya #{reservation.Id} üçün masa sessiyası açıldı.");
+        await _auditLogService.RecordRestaurantActionAsync(
+            restaurantId,
+            AuditActions.ReservationCheckedIn,
+            new { reservationId = reservation.Id, tableId = reservation.TableId },
+            AuditEntityTypes.Reservation,
+            reservation.Id);
+
+        await transaction.CommitAsync(cancellationToken);
+
+        return BuildActionResponse(
+            reservation.Id,
+            seatedStatusId,
+            ReservationStatus.Seated,
+            "Müştəri check-in edildi, masa sessiyası açıldı.");
+    }
+
+    public async Task<ReservationActionResponse> CompleteReservationAsync(
+        int restaurantId,
+        int reservationId,
+        CancellationToken cancellationToken = default)
+    {
+        ValidateRestaurantId(restaurantId);
+        ValidateReservationId(reservationId);
+        await EnsureRestaurantReservationAccessAsync(restaurantId);
+
+        var userId = GetCurrentUserId();
+        var nowUtc = DateTime.UtcNow;
+        var seatedStatusId = StatusIds.Reservation(ReservationStatus.Seated);
+        var completedStatusId = StatusIds.Reservation(ReservationStatus.Completed);
+
+        await using var transaction = await _transactionFactory.BeginTransactionAsync(
+            IsolationLevel.ReadCommitted,
+            cancellationToken);
+
+        var snapshot = await _reservationRepository.GetByIdForRestaurantSnapshotAsync(
+            reservationId,
+            restaurantId,
+            cancellationToken)
+            ?? throw new NotFoundException(ErrorCode.ReservationNotFound);
+
+        await _tableRepository.AcquireReservationLockAsync(
+            restaurantId,
+            snapshot.TableId,
+            cancellationToken);
+
+        var reservation = await _reservationRepository.GetByIdForRestaurantAsync(
+            reservationId,
+            restaurantId,
+            cancellationToken)
+            ?? throw new NotFoundException(ErrorCode.ReservationNotFound);
+
+        await _workflowActionService.EnsureCanExecuteAsync(
+            ReservationFlowCode,
+            reservation.StatusId,
+            "complete",
+            restaurantId,
+            reservation.Id);
+
+        if (reservation.StatusId != seatedStatusId)
+            throw new BusinessRuleException("Bu rezervasiya tamamlanmaq üçün aktiv masa sessiyasında deyil.");
+
+        var session = await _tableSessionRepository.QueryTracked(session =>
+                session.RestaurantId == restaurantId &&
+                session.ReservationId == reservation.Id &&
+                session.StatusId == StatusIds.TableSession(TableSessionStatus.Open) &&
+                session.ClosedAt == null)
+            .SingleOrDefaultAsync(cancellationToken);
+
+        if (session is null)
+            throw new BusinessRuleException("Bu rezervasiya üçün açıq masa sessiyası tapılmadı.");
+
+        session.StatusId = StatusIds.TableSession(TableSessionStatus.Closed);
+        session.ClosedAt = nowUtc;
+        reservation.StatusId = completedStatusId;
+        reservation.CompletedAt = nowUtc;
+        reservation.CompletedByUserId = userId;
+        reservation.StatusHistory.Add(new ReservationStatusHistory
+        {
+            FromStatusId = seatedStatusId,
+            ToStatusId = completedStatusId,
+            ChangedByUserId = userId,
+            ChangedAt = nowUtc,
+            Reason = "Masa sessiyası bağlandı, rezervasiya tamamlandı."
+        });
+
+        await _reservationRepository.SaveChangesAsync();
+        await NotifyReservationCustomerAsync(
+            restaurantId,
+            reservation,
+            NotificationType.ReservationCompleted,
+            "Rezervasiya tamamlandı",
+            $"Rezervasiya #{reservation.Id} üzrə masa sessiyası bağlandı.");
+        await _auditLogService.RecordRestaurantActionAsync(
+            restaurantId,
+            AuditActions.ReservationCompleted,
+            new { reservationId = reservation.Id, tableId = reservation.TableId },
+            AuditEntityTypes.Reservation,
+            reservation.Id);
+
+        await transaction.CommitAsync(cancellationToken);
+
+        return BuildActionResponse(
+            reservation.Id,
+            completedStatusId,
+            ReservationStatus.Completed,
+            "Masa sessiyası bağlandı, rezervasiya tamamlandı.");
     }
 
 
@@ -308,6 +518,9 @@ public sealed class ReservationManager : BaseManager, IReservationService
 
         if (reservation is null)
             throw new BusinessRuleException(ErrorCode.ReservationNotBelongsToRestaurant);
+
+        var restaurant = await _restaurantRepository.GetByIdAsync(restaurantId)
+            ?? throw new NotFoundException(ErrorCode.RestaurantNotFound);
 
         var previousStatusId = reservation.StatusId;
 
@@ -351,11 +564,12 @@ public sealed class ReservationManager : BaseManager, IReservationService
                 restaurantId,
                 reservation.TableId,
                 reservation.ReservedAt,
-                reservation.Id);
+                acceptsLimitedSeating: true,
+                excludedReservationId: reservation.Id);
 
             reservation.StatusId = paymentPendingStatusId;
             reservation.RestaurantResponseExpiresAt = null;
-            reservation.HoldExpiresAt = now.AddMinutes(GetHoldMinutes());
+            reservation.HoldExpiresAt = now.AddMinutes(restaurant.PaymentHoldMinutes);
         }
         else if (reservation.HoldExpiresAt is null)
         {
@@ -363,9 +577,10 @@ public sealed class ReservationManager : BaseManager, IReservationService
                 restaurantId,
                 reservation.TableId,
                 reservation.ReservedAt,
-                reservation.Id);
+                acceptsLimitedSeating: true,
+                excludedReservationId: reservation.Id);
 
-            reservation.HoldExpiresAt = now.AddMinutes(GetHoldMinutes());
+            reservation.HoldExpiresAt = now.AddMinutes(restaurant.PaymentHoldMinutes);
         }
 
         if (reservation.StatusId != previousStatusId)
@@ -657,30 +872,44 @@ public sealed class ReservationManager : BaseManager, IReservationService
             throw new BusinessRuleException(ErrorCode.RestaurantClosedForReservation);
     }
 
-    private async Task EnsureTableIsAvailableAsync(
+    private async Task<ReservationTableAvailability> EnsureTableIsAvailableAsync(
         int restaurantId,
         int tableId,
         DateTimeOffset reservedAt,
+        bool acceptsLimitedSeating,
         int? excludedReservationId = null)
     {
         if (await _tableRepository.HasOpenTableSessionAsync(restaurantId, tableId))
             throw new BusinessRuleException(ErrorCode.TableAlreadyReserved);
 
-        if (!await _tableRepository.IsTableAvailableForReservationAsync(
+        var availability = await _tableRepository.GetReservationTableAvailabilityAsync(
                 restaurantId,
                 tableId,
                 reservedAt,
-                excludedReservationId))
+                excludedReservationId);
+
+        if (availability is null)
             throw new BusinessRuleException(ErrorCode.TableAlreadyReserved);
+
+        if (availability.MustVacateAt.HasValue && !acceptsLimitedSeating)
+        {
+            throw new BusinessRuleException(
+                $"Bu masa üçün növbəti rezervasiya var. Masanı ən geci {availability.MustVacateAt.Value:HH:mm}-də təhvil vermə şərtini təsdiqləyin.");
+        }
+
+        return availability;
     }
 
     private Domain.Entities.Reservation BuildReservation(
         int restaurantId,
         int userId,
         Domain.Entities.Restaurant restaurant,
-        CreateReservationRequest request)
+        CreateReservationRequest request,
+        DateTime? mustVacateAt)
     {
         var cancellationWindowMinutes = Math.Max(restaurant.CancellationWindowMinutes, 0);
+        var noShowGraceMinutes = Math.Max(restaurant.NoShowGraceMinutes, 0);
+        var reservedAtUtc = request.ReservedAt.UtcDateTime;
 
         return new Domain.Entities.Reservation
         {
@@ -691,10 +920,12 @@ public sealed class ReservationManager : BaseManager, IReservationService
             StatusId = StatusIds.Reservation(ReservationStatus.AwaitingPaymentInstruction),
             DepositAmount = restaurant.DepositAmount,
             CancellationWindowMinutes = cancellationWindowMinutes,
-            CancellationDeadline = request.ReservedAt.UtcDateTime.AddMinutes(-cancellationWindowMinutes),
-            ReservedAt = request.ReservedAt.UtcDateTime,
+            CancellationDeadline = reservedAtUtc.AddMinutes(-cancellationWindowMinutes),
+            ReservedAt = reservedAtUtc,
+            NoShowDeadlineAt = reservedAtUtc.AddMinutes(noShowGraceMinutes),
+            MustVacateAt = mustVacateAt,
             HoldExpiresAt = null,
-            RestaurantResponseExpiresAt = DateTime.UtcNow.AddMinutes(GetRestaurantResponseMinutes()),
+            RestaurantResponseExpiresAt = DateTime.UtcNow.AddMinutes(restaurant.RestaurantResponseMinutes),
             Note = request.Note?.Trim()
         };
     }
@@ -726,20 +957,6 @@ public sealed class ReservationManager : BaseManager, IReservationService
                 RelatedEntityId = reservation.Id
             });
         }
-    }
-
-    private int GetHoldMinutes()
-    {
-        return int.TryParse(_configuration["Reservations:HoldMinutes"], out var configuredMinutes)
-            ? Math.Max(configuredMinutes, 1)
-            : DefaultHoldMinutes;
-    }
-
-    private int GetRestaurantResponseMinutes()
-    {
-        return int.TryParse(_configuration["Reservations:RestaurantResponseMinutes"], out var configuredMinutes)
-            ? Math.Max(configuredMinutes, 1)
-            : DefaultRestaurantResponseMinutes;
     }
 
     private static void ValidateRestaurantId(int restaurantId)
@@ -878,6 +1095,8 @@ public sealed class ReservationManager : BaseManager, IReservationService
             RestaurantId = reservation.RestaurantId,
             TableId = reservation.TableId,
             ReservedAt = ToUtcOffset(reservation.ReservedAt)!.Value,
+            NoShowDeadlineAt = ToUtcOffset(reservation.NoShowDeadlineAt)!.Value,
+            MustVacateAt = ToUtcOffset(reservation.MustVacateAt),
             PeopleCount = reservation.PeopleCount,
             StatusId = reservation.StatusId,
             Status = reservation.Status?.Name ?? ReservationStatus.PendingPayment.ToString(),
@@ -1091,6 +1310,9 @@ public sealed class ReservationManager : BaseManager, IReservationService
         if (reservation is null)
             throw new NotFoundException(ErrorCode.ReservationNotFound);
 
+        var restaurant = await _restaurantRepository.GetByIdAsync(restaurantId)
+            ?? throw new NotFoundException(ErrorCode.RestaurantNotFound);
+
         if (reservation.StatusId != paymentSubmittedStatusId)
             throw new BusinessRuleException("Bu rezervasiyanın ödəniş çeki rədd edilə bilməz.");
 
@@ -1116,7 +1338,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
         paymentProof.RejectReason = normalizedReason;
 
         reservation.StatusId = pendingPaymentStatusId;
-        reservation.HoldExpiresAt = now.AddMinutes(GetHoldMinutes());
+        reservation.HoldExpiresAt = now.AddMinutes(restaurant.PaymentHoldMinutes);
         reservation.RestaurantResponseExpiresAt = null;
         reservation.StatusHistory.Add(new ReservationStatusHistory
         {

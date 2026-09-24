@@ -38,6 +38,12 @@ namespace ECafe.Application.Features.Commands.Restaurant
                 .When(x => !string.IsNullOrWhiteSpace(x.TimeZone))
                 .WithMessage("Time zone is invalid.");
 
+            AddReservationPolicyRules();
+
+            RuleFor(x => x)
+                .Must(x => x.TableTurnoverBufferMinutes < x.ReservationPreBlockMinutes)
+                .WithMessage("Masa hazırlıq buferi rezervasiya qoruma müddətindən qısa olmalıdır.");
+
             RuleFor(x => x.WorkingHours)
                 .Must(HaveUniqueDays)
                 .WithMessage("Working hours must contain unique days.");
@@ -98,6 +104,25 @@ namespace ECafe.Application.Features.Commands.Restaurant
                         (!string.IsNullOrWhiteSpace(owner.SearchText) && owner.SearchText.Contains('@')))
                     .WithMessage("Select an existing owner or enter a new owner email.");
             });
+        }
+
+        private void AddReservationPolicyRules()
+        {
+            RuleFor(x => x.ReservationPreBlockMinutes)
+                .InclusiveBetween(15, 180)
+                .WithMessage("Reservation pre-block period must be between 15 and 180 minutes.");
+            RuleFor(x => x.TableTurnoverBufferMinutes)
+                .InclusiveBetween(0, 120)
+                .WithMessage("Table turnover buffer must be between 0 and 120 minutes.");
+            RuleFor(x => x.NoShowGraceMinutes)
+                .InclusiveBetween(0, 120)
+                .WithMessage("No-show grace period must be between 0 and 120 minutes.");
+            RuleFor(x => x.PaymentHoldMinutes)
+                .InclusiveBetween(1, 120)
+                .WithMessage("Payment hold period must be between 1 and 120 minutes.");
+            RuleFor(x => x.RestaurantResponseMinutes)
+                .InclusiveBetween(1, 120)
+                .WithMessage("Restaurant response period must be between 1 and 120 minutes.");
         }
 
         private static bool HaveUniqueDays(IEnumerable<ECafe.Application.DTOs.Restaurant.RestaurantWorkingHourDto>? workingHours)

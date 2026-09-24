@@ -7,6 +7,24 @@ namespace ECafe.Application.Features.Commands.Restaurant
     {
         public UpdateRestaurantCommandValidator()
         {
+            RuleFor(x => x.ReservationPreBlockMinutes)
+                .InclusiveBetween(15, 180)
+                .WithMessage("Reservation pre-block period must be between 15 and 180 minutes.");
+            RuleFor(x => x.TableTurnoverBufferMinutes)
+                .InclusiveBetween(0, 120)
+                .WithMessage("Table turnover buffer must be between 0 and 120 minutes.");
+            RuleFor(x => x.NoShowGraceMinutes)
+                .InclusiveBetween(0, 120)
+                .WithMessage("No-show grace period must be between 0 and 120 minutes.");
+            RuleFor(x => x.PaymentHoldMinutes)
+                .InclusiveBetween(1, 120)
+                .WithMessage("Payment hold period must be between 1 and 120 minutes.");
+            RuleFor(x => x.RestaurantResponseMinutes)
+                .InclusiveBetween(1, 120)
+                .WithMessage("Restaurant response period must be between 1 and 120 minutes.");
+            RuleFor(x => x)
+                .Must(x => x.TableTurnoverBufferMinutes < x.ReservationPreBlockMinutes)
+                .WithMessage("Masa hazırlıq buferi rezervasiya qoruma müddətindən qısa olmalıdır.");
             RuleFor(x => x.Phone)
                 .MustBePhoneNumber("Restaurant phone");
 

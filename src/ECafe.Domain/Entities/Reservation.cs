@@ -25,6 +25,11 @@ public partial class Reservation : AuditableSoftDeletableEntity<int>
 
     public DateTime ReservedAt { get; set; }
 
+    public DateTime NoShowDeadlineAt { get; set; }
+
+    // Set only when this reservation is accepted before another reservation on the same table.
+    public DateTime? MustVacateAt { get; set; }
+
     public DateTime? HoldExpiresAt { get; set; }
 
     public DateTime? RestaurantResponseExpiresAt { get; set; }

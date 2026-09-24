@@ -154,6 +154,48 @@ public class ReservationRepository : BaseRepository<Domain.Entities.Reservation>
         return await Context.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task<int> ExpireNoShowReservationsAsync(
+        DateTime nowUtc,
+        int batchSize,
+        CancellationToken cancellationToken = default)
+    {
+        if (batchSize <= 0)
+            return 0;
+
+        var confirmedStatusId = StatusIds.Reservation(ReservationStatus.Confirmed);
+        var noShowStatusId = StatusIds.Reservation(ReservationStatus.NoShow);
+
+        var reservations = await QueryTracked()
+            .Include(reservation => reservation.TableSessions)
+            .Where(reservation =>
+                reservation.StatusId == confirmedStatusId &&
+                reservation.NoShowDeadlineAt <= nowUtc &&
+                !reservation.TableSessions.Any(session =>
+                    session.StatusId == StatusIds.TableSession(TableSessionStatus.Open) &&
+                    session.ClosedAt == null))
+            .OrderBy(reservation => reservation.NoShowDeadlineAt)
+            .Take(batchSize)
+            .ToListAsync(cancellationToken);
+
+        foreach (var reservation in reservations)
+        {
+            reservation.StatusId = noShowStatusId;
+            reservation.NoShowAt = nowUtc;
+            reservation.StatusHistory.Add(new ReservationStatusHistory
+            {
+                ReservationId = reservation.Id,
+                FromStatusId = confirmedStatusId,
+                ToStatusId = noShowStatusId,
+                ChangedAt = nowUtc,
+                Reason = "Müştəri no-show müddəti ərzində check-in etmədi."
+            });
+        }
+
+        return reservations.Count == 0
+            ? 0
+            : await Context.SaveChangesAsync(cancellationToken);
+    }
+
     public Task<Domain.Entities.Reservation?> GetByIdForRestaurantAsync(
         int reservationId,
         int restaurantId,

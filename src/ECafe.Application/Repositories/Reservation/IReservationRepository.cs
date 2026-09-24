@@ -50,6 +50,11 @@ public interface IReservationRepository : IBaseRepository<Domain.Entities.Reserv
         int batchSize,
         CancellationToken cancellationToken = default);
 
+    Task<int> ExpireNoShowReservationsAsync(
+        DateTime nowUtc,
+        int batchSize,
+        CancellationToken cancellationToken = default);
+
     Task<Domain.Entities.Reservation?> GetByIdForRestaurantAsync(
         int reservationId,
         int restaurantId,

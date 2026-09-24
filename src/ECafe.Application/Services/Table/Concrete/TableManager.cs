@@ -243,14 +243,35 @@ namespace ECafe.Application.Services.Table.Concrete
         {
             await EnsureReservationAvailabilityCanBeCheckedAsync(restaurantId, reservedAt);
 
+            var restaurant = await _restaurantRepository.GetByIdAsync(restaurantId)
+                ?? throw new BadRequestException("Restoran tapılmadı.");
+            var reservationPreBlockMinutes = Math.Max(restaurant.ReservationPreBlockMinutes, 15);
+            var tableTurnoverBufferMinutes = Math.Max(restaurant.TableTurnoverBufferMinutes, 0);
+
             var restaurantIsOpen = await _restaurantRepository.IsRestaurantOpenAsync(restaurantId, reservedAt);
 
             if (!restaurantIsOpen)
-                return BuildTableAvailabilityResponse(reservedAt, [], false);
+                return BuildTableAvailabilityResponse(
+                    reservedAt,
+                    reservationPreBlockMinutes,
+                    tableTurnoverBufferMinutes,
+                    [],
+                    false,
+                    "RestaurantClosed",
+                    "Seçilmiş gəliş vaxtında restoran bağlıdır.");
 
-            var availableTables = await _tableRepository.GetAvailableTablesForReservationAsync(restaurantId, reservedAt);
+            var availableTables = await _tableRepository.GetReservationTableAvailabilityAsync(restaurantId, reservedAt);
 
-            return BuildTableAvailabilityResponse(reservedAt, availableTables, true);
+            return BuildTableAvailabilityResponse(
+                reservedAt,
+                reservationPreBlockMinutes,
+                tableTurnoverBufferMinutes,
+                availableTables,
+                true,
+                availableTables.Count > 0 ? "ReservationSlotAvailable" : "NoTableForReservationSlot",
+                availableTables.Count > 0
+                    ? "Uyğun masalar tapıldı. Məhdud vaxtlı masalar seçildikdə çıxış vaxtı ayrıca göstəriləcək."
+                    : "Bu vaxt üçün uyğun masa yoxdur.");
         }
 
         public async Task<List<TableResponse>> GetAvailableForReservationAsync(int restaurantId, DateTimeOffset reservedAt)
@@ -280,20 +301,35 @@ namespace ECafe.Application.Services.Table.Concrete
 
         private static TableAvailabilityResponse BuildTableAvailabilityResponse(
             DateTimeOffset reservedAt,
-            IReadOnlyCollection<Domain.Entities.Table> availableTables,
-            bool isRestaurantOpen)
+            int reservationPreBlockMinutes,
+            int tableTurnoverBufferMinutes,
+            IReadOnlyCollection<ReservationTableAvailability> availableTables,
+            bool isRestaurantOpen,
+            string messageCode,
+            string message)
         {
             var tables = availableTables
-                .Select(MapTableResponse)
+                .Select(availability =>
+                {
+                    var table = MapTableResponse(availability.Table);
+                    table.MustVacateAt = availability.MustVacateAt is null
+                        ? null
+                        : new DateTimeOffset(DateTime.SpecifyKind(availability.MustVacateAt.Value, DateTimeKind.Utc));
+                    return table;
+                })
                 .ToList();
 
             return new TableAvailabilityResponse
             {
                 ReservedAt = reservedAt,
+                ReservationPreBlockMinutes = reservationPreBlockMinutes,
+                TableTurnoverBufferMinutes = tableTurnoverBufferMinutes,
                 IsRestaurantOpen = isRestaurantOpen,
                 HasAvailableTable = tables.Count > 0,
                 AvailableCount = tables.Count,
-                Tables = tables
+                Tables = tables,
+                MessageCode = messageCode,
+                Message = message
             };
         }
 

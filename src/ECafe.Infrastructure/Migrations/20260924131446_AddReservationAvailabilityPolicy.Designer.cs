@@ -3,6 +3,7 @@ using System;
 using ECafe.Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace ECafe.Infrastructure.Migrations
 {
     [DbContext(typeof(ECafeDbContext))]
-    partial class ECafeDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260924131446_AddReservationAvailabilityPolicy")]
+    partial class AddReservationAvailabilityPolicy
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -2239,12 +2242,6 @@ namespace ECafe.Infrastructure.Migrations
                         .HasDefaultValue(15)
                         .HasColumnName("no_show_grace_minutes");
 
-                    b.Property<int>("PaymentHoldMinutes")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(15)
-                        .HasColumnName("payment_hold_minutes");
-
                     b.Property<string>("Phone")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -2276,12 +2273,6 @@ namespace ECafe.Infrastructure.Migrations
                     b.Property<int?>("RestaurantGroupId")
                         .HasColumnType("integer")
                         .HasColumnName("restaurant_group_id");
-
-                    b.Property<int>("RestaurantResponseMinutes")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(15)
-                        .HasColumnName("restaurant_response_minutes");
 
                     b.Property<decimal>("ServiceFeePercent")
                         .ValueGeneratedOnAdd()

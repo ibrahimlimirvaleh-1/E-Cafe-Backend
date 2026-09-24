@@ -16,6 +16,9 @@
         ReservationPaymentProofSubmitted = 12,
         ReservationConfirmed = 13,
         ReservationPaymentProofRejected = 14,
-        ReservationCancelled = 15
+        ReservationCancelled = 15,
+        ReservationCheckedIn = 16,
+        ReservationCompleted = 17,
+        ReservationNoShow = 18
     }
 }
