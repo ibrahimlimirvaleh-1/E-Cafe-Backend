@@ -148,7 +148,8 @@ public sealed class ReservationManager : BaseManager, IReservationService
             restaurantId,
             request.TableId,
             request.ReservedAt,
-            request.AcceptsLimitedSeating);
+            request.AcceptsLimitedSeating,
+            restaurantTimeZone: restaurant.TimeZone);
 
         var reservation = BuildReservation(
             restaurantId,
@@ -565,6 +566,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
                 reservation.TableId,
                 reservation.ReservedAt,
                 acceptsLimitedSeating: true,
+                restaurantTimeZone: restaurant.TimeZone,
                 excludedReservationId: reservation.Id);
 
             reservation.StatusId = paymentPendingStatusId;
@@ -578,6 +580,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
                 reservation.TableId,
                 reservation.ReservedAt,
                 acceptsLimitedSeating: true,
+                restaurantTimeZone: restaurant.TimeZone,
                 excludedReservationId: reservation.Id);
 
             reservation.HoldExpiresAt = now.AddMinutes(restaurant.PaymentHoldMinutes);
@@ -874,10 +877,11 @@ public sealed class ReservationManager : BaseManager, IReservationService
 
     private async Task<ReservationTableAvailability> EnsureTableIsAvailableAsync(
         int restaurantId,
-        int tableId,
-        DateTimeOffset reservedAt,
-        bool acceptsLimitedSeating,
-        int? excludedReservationId = null)
+            int tableId,
+            DateTimeOffset reservedAt,
+            bool acceptsLimitedSeating,
+            string? restaurantTimeZone = null,
+            int? excludedReservationId = null)
     {
         if (await _tableRepository.HasOpenTableSessionAsync(restaurantId, tableId))
             throw new BusinessRuleException(ErrorCode.TableAlreadyReserved);
@@ -893,8 +897,14 @@ public sealed class ReservationManager : BaseManager, IReservationService
 
         if (availability.MustVacateAt.HasValue && !acceptsLimitedSeating)
         {
+            var mustVacateAtUtc = new DateTimeOffset(
+                DateTime.SpecifyKind(availability.MustVacateAt.Value, DateTimeKind.Utc));
+            var mustVacateAt = RestaurantTimeZoneConverter.ToRestaurantLocalTime(
+                mustVacateAtUtc,
+                restaurantTimeZone);
+
             throw new BusinessRuleException(
-                $"Bu masa üçün növbəti rezervasiya var. Masanı ən geci {availability.MustVacateAt.Value:HH:mm}-də təhvil vermə şərtini təsdiqləyin.");
+                $"Bu masa üçün növbəti rezervasiya var. Masanı ən geci {mustVacateAt:HH:mm}-də təhvil vermə şərtini təsdiqləyin.");
         }
 
         return availability;
