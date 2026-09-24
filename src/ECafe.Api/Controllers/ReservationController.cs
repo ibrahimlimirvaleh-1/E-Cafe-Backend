@@ -58,7 +58,8 @@ public sealed class ReservationController : BaseController
             TableId = request.TableId,
             ReservedAt = request.ReservedAt,
             PeopleCount = request.PeopleCount,
-            Note = request.Note
+            Note = request.Note,
+            AcceptsLimitedSeating = request.AcceptsLimitedSeating
         }, cancellationToken);
 
         return StatusCode(StatusCodes.Status201Created, result);
