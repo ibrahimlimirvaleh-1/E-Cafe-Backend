@@ -83,17 +83,36 @@ namespace ECafe.Infrastructure.Repositories.Table
             if (policy is null)
                 return [];
 
-            return await BuildReservationAvailabilityQuery(
+            var reservedAtUtc = reservedAt.UtcDateTime;
+            var blockingReservations = BuildBlockingReservationsQuery(
+                restaurantId,
+                DateTime.UtcNow,
+                excludedReservationId: null);
+
+            var candidates = await BuildAvailableReservationTablesQuery(
                     restaurantId,
-                    reservedAt.UtcDateTime,
-                    policy.Value)
-                .OrderBy(result => result.Table.TableNo)
-                .Select(result => new ReservationTableAvailability(
-                    result.Table,
-                    result.NextReservationAt == null
-                        ? null
-                        : result.NextReservationAt.Value.AddMinutes(-policy.Value.TableTurnoverBufferMinutes)))
+                    reservedAtUtc,
+                    policy.Value,
+                    blockingReservations)
+                .OrderBy(table => table.TableNo)
+                .Select(table => new
+                {
+                    Table = table,
+                    NextReservationAt = blockingReservations
+                        .Where(reservation =>
+                            reservation.TableId == table.Id &&
+                            reservation.ReservedAt > reservedAtUtc)
+                        .OrderBy(reservation => reservation.ReservedAt)
+                        .Select(reservation => (DateTime?)reservation.ReservedAt)
+                        .FirstOrDefault()
+                })
                 .ToListAsync();
+
+            return candidates
+                .Select(candidate => new ReservationTableAvailability(
+                    candidate.Table,
+                    candidate.NextReservationAt?.AddMinutes(-policy.Value.TableTurnoverBufferMinutes)))
+                .ToList();
         }
 
         public async Task<ReservationTableAvailability?> GetReservationTableAvailabilityAsync(
@@ -106,32 +125,45 @@ namespace ECafe.Infrastructure.Repositories.Table
             if (policy is null)
                 return null;
 
-            var result = await BuildReservationAvailabilityQuery(
-                    restaurantId,
-                    reservedAt.UtcDateTime,
-                    policy.Value,
-                    excludedReservationId)
-                .Where(candidate => candidate.Table.Id == tableId)
-                .Select(candidate => new ReservationTableAvailability(
-                    candidate.Table,
-                    candidate.NextReservationAt == null
-                        ? null
-                        : candidate.NextReservationAt.Value.AddMinutes(-policy.Value.TableTurnoverBufferMinutes)))
-                .SingleOrDefaultAsync();
-
-            return result;
-        }
-
-        private IQueryable<ReservationAvailabilityCandidate> BuildReservationAvailabilityQuery(
-            int restaurantId,
-            DateTime reservedAtUtc,
-            ReservationAvailabilityPolicy policy,
-            int? excludedReservationId = null)
-        {
+            var reservedAtUtc = reservedAt.UtcDateTime;
             var blockingReservations = BuildBlockingReservationsQuery(
                 restaurantId,
                 DateTime.UtcNow,
                 excludedReservationId);
+
+            var candidate = await BuildAvailableReservationTablesQuery(
+                    restaurantId,
+                    reservedAtUtc,
+                    policy.Value,
+                    blockingReservations)
+                .Where(table => table.Id == tableId)
+                .Select(table => new
+                {
+                    Table = table,
+                    NextReservationAt = blockingReservations
+                        .Where(reservation =>
+                            reservation.TableId == table.Id &&
+                            reservation.ReservedAt > reservedAtUtc)
+                        .OrderBy(reservation => reservation.ReservedAt)
+                        .Select(reservation => (DateTime?)reservation.ReservedAt)
+                        .FirstOrDefault()
+                })
+                .SingleOrDefaultAsync();
+
+            return candidate is null
+                ? null
+                : new ReservationTableAvailability(
+                    candidate.Table,
+                    candidate.NextReservationAt?.AddMinutes(-policy.Value.TableTurnoverBufferMinutes));
+        }
+
+        private IQueryable<Domain.Entities.Table> BuildAvailableReservationTablesQuery(
+            int restaurantId,
+            DateTime reservedAtUtc,
+            ReservationAvailabilityPolicy policy,
+            IQueryable<Domain.Entities.Reservation> blockingReservations)
+        {
+            var reservationPreBlockEndsAt = reservedAtUtc.AddMinutes(policy.ReservationPreBlockMinutes);
 
             return Query()
                 .Where(t =>
@@ -143,17 +175,7 @@ namespace ECafe.Infrastructure.Repositories.Table
                         ts.ClosedAt == null) &&
                     !blockingReservations.Any(r =>
                         r.TableId == t.Id &&
-                        r.ReservedAt <= reservedAtUtc))
-                .Select(t => new ReservationAvailabilityCandidate(
-                    t,
-                    blockingReservations
-                        .Where(r => r.TableId == t.Id && r.ReservedAt > reservedAtUtc)
-                        .OrderBy(r => r.ReservedAt)
-                        .Select(r => (DateTime?)r.ReservedAt)
-                        .FirstOrDefault()))
-                .Where(candidate =>
-                    candidate.NextReservationAt == null ||
-                    reservedAtUtc < candidate.NextReservationAt.Value.AddMinutes(-policy.ReservationPreBlockMinutes));
+                        r.ReservedAt <= reservationPreBlockEndsAt));
         }
 
         private IQueryable<Domain.Entities.Reservation> BuildBlockingReservationsQuery(
@@ -191,10 +213,6 @@ namespace ECafe.Infrastructure.Repositories.Table
         private readonly record struct ReservationAvailabilityPolicy(
             int ReservationPreBlockMinutes,
             int TableTurnoverBufferMinutes);
-
-        private sealed record ReservationAvailabilityCandidate(
-            Domain.Entities.Table Table,
-            DateTime? NextReservationAt);
 
     }
 }
