@@ -278,6 +278,13 @@ public class ReservationRepository : BaseRepository<Domain.Entities.Reservation>
         if (request.StatusId.HasValue)
             query = query.Where(r => r.StatusId == request.StatusId.Value);
 
+        if (request.ReservedDate.HasValue)
+        {
+            var dayStartUtc = request.ReservedDate.Value.UtcDateTime;
+            var nextDayStartUtc = dayStartUtc.AddDays(1);
+            query = query.Where(r => r.ReservedAt >= dayStartUtc && r.ReservedAt < nextDayStartUtc);
+        }
+
         query = query.OrderByDescending(r => r.ReservedAt).ThenByDescending(r => r.Id);
         var count = await query.CountAsync(cancellationToken);
         var items = await query
