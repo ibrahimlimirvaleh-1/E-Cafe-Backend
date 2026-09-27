@@ -86,7 +86,7 @@ public sealed class ReservationRefundManager : BaseManager, IReservationRefundSe
         int reservationId,
         CancellationToken cancellationToken = default)
     {
-        ValidateId(reservationId, "Rezervasiya seçimi düzgün deyil.");
+        ValidateReservationId(reservationId);
         var userId = GetCurrentUserId();
 
         var refund = await _refundRepository.GetByReservationForCustomerAsync(
@@ -103,7 +103,7 @@ public sealed class ReservationRefundManager : BaseManager, IReservationRefundSe
         CancellationToken cancellationToken = default)
     {
         ValidateRestaurantId(restaurantId);
-        ValidateId(reservationId, "Rezervasiya seçimi düzgün deyil.");
+        ValidateReservationId(reservationId);
         await EnsureRestaurantAccessAsync(restaurantId);
 
         var refund = await _refundRepository.GetByReservationForRestaurantAsync(
@@ -114,11 +114,52 @@ public sealed class ReservationRefundManager : BaseManager, IReservationRefundSe
         return refund is null ? null : MapResponse(refund);
     }
 
+    public async Task<RestaurantReservationRefundPayoutDetailsResponse> GetPayoutDetailsForRestaurantAsync(
+        int restaurantId,
+        int refundId,
+        CancellationToken cancellationToken = default)
+    {
+        ValidateRestaurantId(restaurantId);
+        ValidateRefundId(refundId);
+        await EnsureRestaurantAccessAsync(restaurantId);
+
+        var refund = await _refundRepository.GetByIdForRestaurantSnapshotAsync(
+            restaurantId,
+            refundId,
+            cancellationToken);
+
+        if (refund is null)
+            throw new NotFoundException(ErrorCode.ReservationRefundNotFound);
+
+        if (refund.PayoutDetails is null)
+            throw new BusinessRuleException(ErrorCode.RefundPayoutDetailsNotSubmitted);
+
+        var details = _payoutDetailsProtector.Unprotect(refund.PayoutDetails.EncryptedDetails);
+
+        await _auditLogService.RecordRestaurantActionAsync(
+            restaurantId,
+            AuditActions.ReservationRefundPayoutDetailsViewed,
+            new
+            {
+                reservationId = refund.ReservationId,
+                refundId = refund.Id
+            },
+            AuditEntityTypes.ReservationRefund,
+            refund.Id);
+
+        return new RestaurantReservationRefundPayoutDetailsResponse
+        {
+            RefundId = refund.Id,
+            Details = details,
+            SubmittedAt = ToUtcOffset(refund.PayoutDetails.SubmittedAt)
+        };
+    }
+
     public async Task<ReservationRefundResponse> RequestAsync(
         int reservationId,
         CancellationToken cancellationToken = default)
     {
-        ValidateId(reservationId, "Rezervasiya seçimi düzgün deyil.");
+        ValidateReservationId(reservationId);
         var userId = GetCurrentUserId();
 
         var snapshot = await _reservationRepository.GetByIdForCustomerSnapshotAsync(
@@ -155,17 +196,17 @@ public sealed class ReservationRefundManager : BaseManager, IReservationRefundSe
             reservation.Id);
 
         if (reservation.RefundEligible != true)
-            throw new BusinessRuleException("Bu rezervasiya üçün geri ödəniş əlçatan deyil.");
+            throw new BusinessRuleException(ErrorCode.ReservationRefundNotEligible);
 
         if (await _refundRepository.HasForReservationAsync(reservation.Id, cancellationToken))
-            throw new BusinessRuleException("Bu rezervasiya üçün artıq geri ödəniş sorğusu mövcuddur.");
+            throw new BusinessRuleException(ErrorCode.ReservationRefundAlreadyRequested);
 
         var sourcePaymentProof = await _paymentProofRepository.GetLatestConfirmedByReservationAsync(
             reservation.Id,
             cancellationToken);
 
         if (sourcePaymentProof is null)
-            throw new BusinessRuleException("Təsdiqlənmiş depozit ödənişi tapılmadı.");
+            throw new BusinessRuleException(ErrorCode.ConfirmedReservationDepositNotFound);
 
         var now = DateTime.UtcNow;
         var awaitingPayoutDetailsStatusId = StatusIds.Refund(RefundStatus.AwaitingPayoutDetails);
@@ -225,7 +266,7 @@ public sealed class ReservationRefundManager : BaseManager, IReservationRefundSe
         string details,
         CancellationToken cancellationToken = default)
     {
-        ValidateId(refundId, "Geri ödəniş seçimi düzgün deyil.");
+        ValidateRefundId(refundId);
         var normalizedDetails = NormalizePayoutDetails(details);
         var userId = GetCurrentUserId();
 
@@ -235,7 +276,7 @@ public sealed class ReservationRefundManager : BaseManager, IReservationRefundSe
             cancellationToken);
 
         if (snapshot is null)
-            throw new NotFoundException("Geri ödəniş sorğusu tapılmadı.");
+            throw new NotFoundException(ErrorCode.ReservationRefundNotFound);
 
         await using var transaction = await _transactionFactory.BeginTransactionAsync(
             IsolationLevel.ReadCommitted,
@@ -252,7 +293,7 @@ public sealed class ReservationRefundManager : BaseManager, IReservationRefundSe
             cancellationToken);
 
         if (refund is null)
-            throw new NotFoundException("Geri ödəniş sorğusu tapılmadı.");
+            throw new NotFoundException(ErrorCode.ReservationRefundNotFound);
 
         await _workflowActionService.EnsureCanExecuteAsync(
             RefundFlowCode,
@@ -316,7 +357,7 @@ public sealed class ReservationRefundManager : BaseManager, IReservationRefundSe
             throw new BusinessRuleException(ErrorCode.UserNotBelongsToRestaurant);
 
         if (!RestaurantManagerRoleIds.Contains(GetCurrentRoleId(restaurantId)))
-            throw new ForbiddenException("Yalnız restoran meneceri geri ödəniş sorğularını idarə edə bilər.");
+            throw new ForbiddenException(ErrorCode.OnlyRestaurantManagersCanManageRefund);
     }
 
     private async Task NotifyRestaurantAsync(
@@ -421,10 +462,16 @@ public sealed class ReservationRefundManager : BaseManager, IReservationRefundSe
             : "Restoran təsdiqlənmiş rezervasiyanı ləğv edib.";
     }
 
-    private static void ValidateId(int value, string message)
+    private static void ValidateReservationId(int reservationId)
     {
-        if (value <= 0)
-            throw new BadRequestException(message);
+        if (reservationId <= 0)
+            throw new BadRequestException(ErrorCode.InvalidReservationId);
+    }
+
+    private static void ValidateRefundId(int refundId)
+    {
+        if (refundId <= 0)
+            throw new BadRequestException(ErrorCode.InvalidReservationRefundId);
     }
 
     private static string NormalizePayoutDetails(string? details)
@@ -432,12 +479,11 @@ public sealed class ReservationRefundManager : BaseManager, IReservationRefundSe
         var normalizedDetails = details?.Trim() ?? string.Empty;
 
         if (normalizedDetails.Length is < 4 or > 1000)
-            throw new BadRequestException("Geri ödəniş məlumatı 4 ilə 1000 simvol arasında olmalıdır.");
+            throw new BadRequestException(ErrorCode.InvalidRefundPayoutDetails);
 
         if (ProhibitedPayoutDetailsPattern.IsMatch(normalizedDetails))
         {
-            throw new BadRequestException(
-                "CVV, CVC və PIN göndərmək olmaz. Yalnız geri ödəniş üçün lazım olan hesab və ya kart məlumatını daxil edin.");
+            throw new BadRequestException(ErrorCode.RefundPayoutSensitiveDataProhibited);
         }
 
         return normalizedDetails;
@@ -446,7 +492,7 @@ public sealed class ReservationRefundManager : BaseManager, IReservationRefundSe
     private static void ValidateRestaurantId(int restaurantId)
     {
         if (restaurantId <= 0)
-            throw new BadRequestException("Restoran seçimi düzgün deyil.");
+            throw new BadRequestException(ErrorCode.InvalidRestaurantId);
     }
 
     private static DateTimeOffset ToUtcOffset(DateTime value)

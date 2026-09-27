@@ -39,10 +39,9 @@ public sealed class ReservationRefundRepository
         int refundId,
         CancellationToken cancellationToken = default)
     {
-        return Query(refund =>
+        return WithDetails(Query(refund =>
                 refund.Id == refundId &&
-                refund.Reservation.RestaurantId == restaurantId)
-            .Include(refund => refund.Reservation)
+                refund.Reservation.RestaurantId == restaurantId))
             .FirstOrDefaultAsync(cancellationToken);
     }
 

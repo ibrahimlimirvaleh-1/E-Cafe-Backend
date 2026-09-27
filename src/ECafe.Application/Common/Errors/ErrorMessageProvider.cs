@@ -128,6 +128,16 @@ public sealed class ErrorMessageProvider : IErrorMessageProvider
         [ErrorCode.OnlyRestaurantManagersCanSendPaymentInstruction] = "Ödəniş məlumatını yalnız restoran sahibi və ya meneceri göndərə bilər.",
         [ErrorCode.CustomerAlreadyHasReservationToday] = "Bu gün bu restoran üçün artıq aktiv rezervasiyanız var.",
         [ErrorCode.ReservationTimeAlreadyPassed] = "Rezervasiyanın vaxtı keçdiyi üçün ödəniş təsdiqlənə bilməz.",
+        [ErrorCode.InvalidReservationId] = "Rezervasiya seçimi düzgün deyil.",
+        [ErrorCode.InvalidReservationRefundId] = "Geri ödəniş seçimi düzgün deyil.",
+        [ErrorCode.ReservationRefundNotFound] = "Geri ödəniş sorğusu tapılmadı.",
+        [ErrorCode.ReservationRefundNotEligible] = "Bu rezervasiya üçün geri ödəniş əlçatan deyil.",
+        [ErrorCode.ReservationRefundAlreadyRequested] = "Bu rezervasiya üçün artıq geri ödəniş sorğusu mövcuddur.",
+        [ErrorCode.ConfirmedReservationDepositNotFound] = "Təsdiqlənmiş depozit ödənişi tapılmadı.",
+        [ErrorCode.RefundPayoutDetailsNotSubmitted] = "Müştəri hələ geri ödəniş məlumatlarını göndərməyib.",
+        [ErrorCode.InvalidRefundPayoutDetails] = "Geri ödəniş məlumatı 4 ilə 1000 simvol arasında olmalıdır.",
+        [ErrorCode.RefundPayoutSensitiveDataProhibited] = "CVV, CVC və PIN göndərmək olmaz. Yalnız geri ödəniş üçün lazım olan hesab və ya kart məlumatını daxil edin.",
+        [ErrorCode.OnlyRestaurantManagersCanManageRefund] = "Geri ödəniş sorğularını yalnız restoran sahibi və ya meneceri idarə edə bilər.",
 
     };
 
