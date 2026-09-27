@@ -40,30 +40,6 @@ public interface IReservationRepository : IBaseRepository<Domain.Entities.Reserv
         int customerUserId,
         CancellationToken cancellationToken = default);
 
-    Task<bool> IsOwnedByCustomerAsync(
-        int restaurantId,
-        int reservationId,
-        int customerUserId,
-        CancellationToken cancellationToken = default);
-
-    Task<bool> IsReservedTimePassedAsync(
-        int restaurantId,
-        int reservationId,
-        DateTime nowUtc,
-        CancellationToken cancellationToken = default);
-
-    Task<bool> IsCancellationDeadlinePassedAsync(
-        int restaurantId,
-        int reservationId,
-        DateTime nowUtc,
-        CancellationToken cancellationToken = default);
-
-    Task<bool> IsCheckInWindowOpenAsync(
-        int restaurantId,
-        int reservationId,
-        DateTime nowUtc,
-        CancellationToken cancellationToken = default);
-
     Task<PaginatedList<Domain.Entities.Reservation>> GetForCustomerAsync(
         int customerUserId,
         ReservationQueryRequest request,

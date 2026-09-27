@@ -19,7 +19,6 @@
         ReservationCancelled = 15,
         ReservationCheckedIn = 16,
         ReservationCompleted = 17,
-        ReservationNoShow = 18,
-        ReservationRefundRequested = 19
+        ReservationNoShow = 18
     }
 }

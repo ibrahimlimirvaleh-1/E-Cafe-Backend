@@ -41,7 +41,6 @@ namespace ECafe.Application.Common.Audit
         public const string ReservationCancelled = "ReservationCancelled";
         public const string ReservationCheckedIn = "ReservationCheckedIn";
         public const string ReservationCompleted = "ReservationCompleted";
-        public const string ReservationRefundRequested = "ReservationRefundRequested";
         public const string OrderCreated = "OrderCreated";
 
         public static IReadOnlyCollection<AuditActionDefinition> All { get; } =
@@ -82,7 +81,6 @@ namespace ECafe.Application.Common.Audit
             new(48, ReservationCancelled, "Rezervasiya ləğv edildi"),
             new(49, ReservationCheckedIn, "Rezervasiya check-in edildi"),
             new(50, ReservationCompleted, "Rezervasiya tamamlandı"),
-            new(54, ReservationRefundRequested, "Rezervasiya geri ödənişi soruşuldu"),
             new(50, OrderCreated, "Sifariş yaradıldı")
         ];
 

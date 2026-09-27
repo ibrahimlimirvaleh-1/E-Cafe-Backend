@@ -16,9 +16,6 @@ namespace ECafe.Domain.Enums
         public static int Item(ItemStatus status)
             => Build(StatusType.ItemStatus, (int)status);
 
-        public static int Refund(RefundStatus status)
-            => Build(StatusType.Refund, (int)status);
-
         public static int Build(StatusType type, int status)
             => ((int)type * StatusTypeMultiplier) + status;
     }

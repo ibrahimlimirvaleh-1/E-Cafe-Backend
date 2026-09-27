@@ -1106,7 +1106,6 @@ public sealed class ReservationManager : BaseManager, IReservationService
             .OrderByDescending(proof => proof.SubmittedAt)
             .ThenByDescending(proof => proof.Id)
             .FirstOrDefault();
-        var refund = reservation.Refunds.SingleOrDefault();
 
         return new ReservationResponse
         {
@@ -1121,7 +1120,6 @@ public sealed class ReservationManager : BaseManager, IReservationService
             Status = reservation.Status?.Name ?? ReservationStatus.PendingPayment.ToString(),
             WorkflowFlowCode = ReservationFlowCode,
             DepositAmount = reservation.DepositAmount,
-            IsRefundEligible = reservation.RefundEligible == true,
             HoldExpiresAt = ToUtcOffset(reservation.HoldExpiresAt),
             RestaurantResponseExpiresAt = ToUtcOffset(reservation.RestaurantResponseExpiresAt),
             CancellationDeadline = ToUtcOffset(reservation.CancellationDeadline),
@@ -1155,24 +1153,6 @@ public sealed class ReservationManager : BaseManager, IReservationService
                     Status = latestPaymentProof.Status?.Name ?? ReservationStatus.PaymentSubmitted.GetName(),
                     SubmittedAt = latestPaymentProof.SubmittedAt,
                     FileViewUrl = _fileAccessUrlService.BuildViewUrl(latestPaymentProof.FileId)
-                },
-            Refund = refund is null
-                ? null
-                : new ReservationRefundResponse
-                {
-                    Id = refund.Id,
-                    ReservationId = refund.ReservationId,
-                    SourcePaymentProofId = refund.SourcePaymentProofId,
-                    StatusId = refund.StatusId,
-                    Status = refund.Status?.Name ?? RefundStatus.AwaitingPayoutDetails.GetName(),
-                    WorkflowFlowCode = WorkflowFlowCode.FromStatusType(StatusTypeEnum.Refund),
-                    Amount = refund.Amount,
-                    CurrencyCode = refund.CurrencyCode,
-                    RequestedAt = ToUtcOffset(refund.RequestedAt)!.Value,
-                    ApprovedAt = ToUtcOffset(refund.ApprovedAt),
-                    RefundedAt = ToUtcOffset(refund.RefundedAt),
-                    EligibilityReason = refund.EligibilityReason,
-                    CancellationReason = refund.CancellationReasonSnapshot
                 }
         };
     }
@@ -1473,9 +1453,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
         var normalizedReason = NormalizeReason(
             reason,
             isCustomer ? "Müştəri rezervasiyanı ləğv etdi." : "Rezervasiya restoran tərəfindən ləğv edildi.");
-        var now = DateTime.UtcNow;
         var cancelledStatusId = StatusIds.Reservation(ReservationStatus.Cancelled);
-        var confirmedStatusId = StatusIds.Reservation(ReservationStatus.Confirmed);
         var paymentSubmittedStatusId = StatusIds.Reservation(ReservationStatus.PaymentSubmitted);
 
         await using var transaction = await _transactionFactory.BeginTransactionAsync(
@@ -1527,9 +1505,6 @@ public sealed class ReservationManager : BaseManager, IReservationService
             throw new BusinessRuleException("Bu rezervasiya artıq aktiv deyil.");
         }
 
-        var refundEligible = reservation.StatusId == confirmedStatusId &&
-            reservation.PaymentProofs.Any(proof => proof.StatusId == confirmedStatusId);
-
         if (reservation.StatusId == paymentSubmittedStatusId)
         {
             var paymentProof = await GetLatestPaymentProofForReviewAsync(
@@ -1541,17 +1516,13 @@ public sealed class ReservationManager : BaseManager, IReservationService
             {
                 paymentProof.StatusId = StatusIds.Reservation(ReservationStatus.Rejected);
                 paymentProof.ReviewedByUserId = userId;
-                paymentProof.ReviewedAt = now;
+                paymentProof.ReviewedAt = DateTime.UtcNow;
                 paymentProof.RejectReason = normalizedReason;
             }
         }
 
         var previousStatusId = reservation.StatusId;
         reservation.StatusId = cancelledStatusId;
-        reservation.CancelledAt = now;
-        reservation.CancelledByUserId = userId;
-        reservation.CancelReason = normalizedReason;
-        reservation.RefundEligible = refundEligible;
         reservation.HoldExpiresAt = null;
         reservation.RestaurantResponseExpiresAt = null;
         reservation.StatusHistory.Add(new ReservationStatusHistory
@@ -1559,7 +1530,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
             FromStatusId = previousStatusId,
             ToStatusId = cancelledStatusId,
             ChangedByUserId = userId,
-            ChangedAt = now,
+            ChangedAt = DateTime.UtcNow,
             Reason = normalizedReason
         });
 
@@ -1580,13 +1551,13 @@ public sealed class ReservationManager : BaseManager, IReservationService
                 reservation,
                 NotificationType.ReservationCancelled,
                 "Rezervasiya ləğv edildi",
-                $"Rezervasiya #{reservation.Id} restoran tərəfindən ləğv edildi. Səbəb: {normalizedReason}");
+                $"Rezervasiya #{reservation.Id} restoran tərəfindən ləğv edildi.");
         }
 
         await _auditLogService.RecordRestaurantActionAsync(
             restaurantId,
             AuditActions.ReservationCancelled,
-            new { reservationId = reservation.Id, reason = normalizedReason, initiatedByCustomer = isCustomer, refundEligible },
+            new { reservationId = reservation.Id, reason = normalizedReason, initiatedByCustomer = isCustomer },
             AuditEntityTypes.Reservation,
             reservation.Id);
 

@@ -50,8 +50,6 @@ using ECafe.Application.Services.Monitoring.Concrete;
 using Microsoft.Extensions.Configuration;
 using ECafe.Application.Services.Reservation.Abstract;
 using ECafe.Application.Services.Reservation.Concrete;
-using ECafe.Application.Services.ReservationRefund.Abstract;
-using ECafe.Application.Services.ReservationRefund.Concrete;
 
 namespace ECafe.Application
 {
@@ -124,7 +122,6 @@ namespace ECafe.Application
             services.AddScoped<IInventoryMovementService, InventoryMovementManager>();
             services.AddScoped<IRecipeService, RecipeManager>();
             services.AddScoped<IReservationService,ReservationManager>();
-            services.AddScoped<IReservationRefundService, ReservationRefundManager>();
 
             return services;
         }

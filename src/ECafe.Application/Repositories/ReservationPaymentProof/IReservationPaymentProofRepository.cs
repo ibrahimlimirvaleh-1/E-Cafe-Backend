@@ -5,7 +5,4 @@ namespace ECafe.Application.Repositories.ReservationPaymentProof;
 public interface IReservationPaymentProofRepository
     : IBaseRepository<Domain.Entities.ReservationPaymentProof>
 {
-    Task<Domain.Entities.ReservationPaymentProof?> GetLatestConfirmedByReservationAsync(
-        int reservationId,
-        CancellationToken cancellationToken = default);
 }

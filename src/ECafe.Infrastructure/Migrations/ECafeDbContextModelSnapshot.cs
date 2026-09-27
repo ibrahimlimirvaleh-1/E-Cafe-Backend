@@ -2222,76 +2222,6 @@ namespace ECafe.Infrastructure.Migrations
                     b.ToTable("reservation_refunds", "billing");
                 });
 
-            modelBuilder.Entity("ECafe.Domain.Entities.ReservationRefundStatusHistory", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("ChangedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("changed_at");
-
-                    b.Property<int?>("ChangedByUserId")
-                        .HasColumnType("integer")
-                        .HasColumnName("changed_by_user_id");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("CreatedBy")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("DeletedBy")
-                        .HasColumnType("text");
-
-                    b.Property<int?>("FromStatusId")
-                        .HasColumnType("integer")
-                        .HasColumnName("from_status_id");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("Reason")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)")
-                        .HasColumnName("reason");
-
-                    b.Property<int>("ReservationRefundId")
-                        .HasColumnType("integer")
-                        .HasColumnName("reservation_refund_id");
-
-                    b.Property<int>("ToStatusId")
-                        .HasColumnType("integer")
-                        .HasColumnName("to_status_id");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("text");
-
-                    b.HasKey("Id")
-                        .HasName("reservation_refund_status_histories_pkey");
-
-                    b.HasIndex("ChangedByUserId");
-
-                    b.HasIndex("FromStatusId");
-
-                    b.HasIndex("ToStatusId");
-
-                    b.HasIndex(new[] { "ReservationRefundId", "ChangedAt" }, "reservation_refund_status_histories_refund_changed_at_idx");
-
-                    b.ToTable("reservation_refund_status_histories", "billing");
-                });
-
             modelBuilder.Entity("ECafe.Domain.Entities.ReservationRefundTransfer", b =>
                 {
                     b.Property<int>("Id")
@@ -4928,12 +4858,6 @@ namespace ECafe.Infrastructure.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("requires_confirmation");
 
-                    b.Property<bool>("RequiresReason")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false)
-                        .HasColumnName("requires_reason");
-
                     b.Property<int>("RoleId")
                         .HasColumnType("integer")
                         .HasColumnName("role_id");
@@ -4970,7 +4894,6 @@ namespace ECafe.Infrastructure.Migrations
                             IsEnabled = true,
                             Label = "Sahibkar təsdiqinə göndər",
                             RequiresConfirmation = false,
-                            RequiresReason = false,
                             RoleId = 1,
                             SortOrder = 10,
                             StatusId = 6001
@@ -4985,7 +4908,6 @@ namespace ECafe.Infrastructure.Migrations
                             IsEnabled = true,
                             Label = "Müqaviləni ləğv et",
                             RequiresConfirmation = true,
-                            RequiresReason = false,
                             RoleId = 1,
                             SortOrder = 90,
                             StatusId = 6001
@@ -5000,7 +4922,6 @@ namespace ECafe.Infrastructure.Migrations
                             IsEnabled = true,
                             Label = "Müqaviləni təsdiqlə",
                             RequiresConfirmation = true,
-                            RequiresReason = false,
                             RoleId = 2,
                             SortOrder = 10,
                             StatusId = 6002
@@ -5015,7 +4936,6 @@ namespace ECafe.Infrastructure.Migrations
                             IsEnabled = true,
                             Label = "Müqaviləni ləğv et",
                             RequiresConfirmation = true,
-                            RequiresReason = false,
                             RoleId = 1,
                             SortOrder = 90,
                             StatusId = 6002
@@ -5030,7 +4950,6 @@ namespace ECafe.Infrastructure.Migrations
                             IsEnabled = true,
                             Label = "Müqaviləni aktivləşdir",
                             RequiresConfirmation = false,
-                            RequiresReason = false,
                             RoleId = 1,
                             SortOrder = 10,
                             StatusId = 6006
@@ -5045,7 +4964,6 @@ namespace ECafe.Infrastructure.Migrations
                             IsEnabled = true,
                             Label = "Müqaviləni ləğv et",
                             RequiresConfirmation = true,
-                            RequiresReason = false,
                             RoleId = 1,
                             SortOrder = 90,
                             StatusId = 6006
@@ -5060,7 +4978,6 @@ namespace ECafe.Infrastructure.Migrations
                             IsEnabled = true,
                             Label = "Müqaviləni ləğv et",
                             RequiresConfirmation = true,
-                            RequiresReason = false,
                             RoleId = 1,
                             SortOrder = 90,
                             StatusId = 6003
@@ -5075,7 +4992,6 @@ namespace ECafe.Infrastructure.Migrations
                             IsEnabled = true,
                             Label = "Rezervasiyanı ləğv et",
                             RequiresConfirmation = true,
-                            RequiresReason = false,
                             RoleId = 5,
                             SortOrder = 90,
                             StatusId = 1001
@@ -5090,7 +5006,6 @@ namespace ECafe.Infrastructure.Migrations
                             IsEnabled = true,
                             Label = "Rezervasiyanı ləğv et",
                             RequiresConfirmation = true,
-                            RequiresReason = false,
                             RoleId = 3,
                             SortOrder = 90,
                             StatusId = 1001
@@ -5105,7 +5020,6 @@ namespace ECafe.Infrastructure.Migrations
                             IsEnabled = true,
                             Label = "Rezervasiyanı ləğv et",
                             RequiresConfirmation = true,
-                            RequiresReason = false,
                             RoleId = 1,
                             SortOrder = 90,
                             StatusId = 1001
@@ -5120,7 +5034,6 @@ namespace ECafe.Infrastructure.Migrations
                             IsEnabled = true,
                             Label = "Rezervasiyanı ləğv et",
                             RequiresConfirmation = true,
-                            RequiresReason = false,
                             RoleId = 5,
                             SortOrder = 90,
                             StatusId = 1002
@@ -5135,7 +5048,6 @@ namespace ECafe.Infrastructure.Migrations
                             IsEnabled = true,
                             Label = "Müqaviləni ləğv et",
                             RequiresConfirmation = true,
-                            RequiresReason = false,
                             RoleId = 1,
                             SortOrder = 90,
                             StatusId = 6007
@@ -5150,7 +5062,6 @@ namespace ECafe.Infrastructure.Migrations
                             IsEnabled = true,
                             Label = "Ödəniş çekini göndər",
                             RequiresConfirmation = false,
-                            RequiresReason = false,
                             RoleId = 5,
                             SortOrder = 10,
                             StatusId = 1001
@@ -5165,7 +5076,6 @@ namespace ECafe.Infrastructure.Migrations
                             IsEnabled = true,
                             Label = "Ödənişi təsdiqlə",
                             RequiresConfirmation = false,
-                            RequiresReason = false,
                             RoleId = 3,
                             SortOrder = 10,
                             StatusId = 1008
@@ -5180,7 +5090,6 @@ namespace ECafe.Infrastructure.Migrations
                             IsEnabled = true,
                             Label = "Ödənişi rədd et",
                             RequiresConfirmation = true,
-                            RequiresReason = true,
                             RoleId = 3,
                             SortOrder = 20,
                             StatusId = 1008
@@ -5195,7 +5104,6 @@ namespace ECafe.Infrastructure.Migrations
                             IsEnabled = true,
                             Label = "Rezervasiyanı ləğv et",
                             RequiresConfirmation = true,
-                            RequiresReason = false,
                             RoleId = 3,
                             SortOrder = 90,
                             StatusId = 1008
@@ -5210,7 +5118,6 @@ namespace ECafe.Infrastructure.Migrations
                             IsEnabled = true,
                             Label = "Rezervasiyanı ləğv et",
                             RequiresConfirmation = true,
-                            RequiresReason = false,
                             RoleId = 2,
                             SortOrder = 90,
                             StatusId = 1001
@@ -5225,7 +5132,6 @@ namespace ECafe.Infrastructure.Migrations
                             IsEnabled = true,
                             Label = "Ödənişi təsdiqlə",
                             RequiresConfirmation = false,
-                            RequiresReason = false,
                             RoleId = 2,
                             SortOrder = 10,
                             StatusId = 1008
@@ -5240,7 +5146,6 @@ namespace ECafe.Infrastructure.Migrations
                             IsEnabled = true,
                             Label = "Ödənişi rədd et",
                             RequiresConfirmation = true,
-                            RequiresReason = true,
                             RoleId = 2,
                             SortOrder = 20,
                             StatusId = 1008
@@ -5255,7 +5160,6 @@ namespace ECafe.Infrastructure.Migrations
                             IsEnabled = true,
                             Label = "Rezervasiyanı ləğv et",
                             RequiresConfirmation = true,
-                            RequiresReason = false,
                             RoleId = 2,
                             SortOrder = 90,
                             StatusId = 1008
@@ -5270,7 +5174,6 @@ namespace ECafe.Infrastructure.Migrations
                             IsEnabled = true,
                             Label = "Ödəniş məlumatı göndər",
                             RequiresConfirmation = false,
-                            RequiresReason = false,
                             RoleId = 3,
                             SortOrder = 10,
                             StatusId = 1001
@@ -5285,7 +5188,6 @@ namespace ECafe.Infrastructure.Migrations
                             IsEnabled = true,
                             Label = "Ödəniş məlumatı göndər",
                             RequiresConfirmation = false,
-                            RequiresReason = false,
                             RoleId = 2,
                             SortOrder = 10,
                             StatusId = 1001
@@ -5300,7 +5202,6 @@ namespace ECafe.Infrastructure.Migrations
                             IsEnabled = true,
                             Label = "Rezervasiyanı ləğv et",
                             RequiresConfirmation = true,
-                            RequiresReason = false,
                             RoleId = 5,
                             SortOrder = 90,
                             StatusId = 1010
@@ -5315,7 +5216,6 @@ namespace ECafe.Infrastructure.Migrations
                             IsEnabled = true,
                             Label = "Rezervasiyanı ləğv et",
                             RequiresConfirmation = true,
-                            RequiresReason = false,
                             RoleId = 3,
                             SortOrder = 90,
                             StatusId = 1010
@@ -5330,7 +5230,6 @@ namespace ECafe.Infrastructure.Migrations
                             IsEnabled = true,
                             Label = "Rezervasiyanı ləğv et",
                             RequiresConfirmation = true,
-                            RequiresReason = false,
                             RoleId = 1,
                             SortOrder = 90,
                             StatusId = 1010
@@ -5345,7 +5244,6 @@ namespace ECafe.Infrastructure.Migrations
                             IsEnabled = true,
                             Label = "Rezervasiyanı ləğv et",
                             RequiresConfirmation = true,
-                            RequiresReason = false,
                             RoleId = 2,
                             SortOrder = 90,
                             StatusId = 1010
@@ -5360,7 +5258,6 @@ namespace ECafe.Infrastructure.Migrations
                             IsEnabled = true,
                             Label = "Ödəniş məlumatı göndər",
                             RequiresConfirmation = false,
-                            RequiresReason = false,
                             RoleId = 3,
                             SortOrder = 10,
                             StatusId = 1010
@@ -5375,7 +5272,6 @@ namespace ECafe.Infrastructure.Migrations
                             IsEnabled = true,
                             Label = "Ödəniş məlumatı göndər",
                             RequiresConfirmation = false,
-                            RequiresReason = false,
                             RoleId = 2,
                             SortOrder = 10,
                             StatusId = 1010
@@ -5390,7 +5286,6 @@ namespace ECafe.Infrastructure.Migrations
                             IsEnabled = true,
                             Label = "Müştərini check-in et",
                             RequiresConfirmation = true,
-                            RequiresReason = false,
                             RoleId = 3,
                             SortOrder = 10,
                             StatusId = 1002
@@ -5405,7 +5300,6 @@ namespace ECafe.Infrastructure.Migrations
                             IsEnabled = true,
                             Label = "Müştərini check-in et",
                             RequiresConfirmation = true,
-                            RequiresReason = false,
                             RoleId = 2,
                             SortOrder = 10,
                             StatusId = 1002
@@ -5420,7 +5314,6 @@ namespace ECafe.Infrastructure.Migrations
                             IsEnabled = true,
                             Label = "Masa sessiyasını bağla",
                             RequiresConfirmation = true,
-                            RequiresReason = false,
                             RoleId = 3,
                             SortOrder = 10,
                             StatusId = 1003
@@ -5435,55 +5328,9 @@ namespace ECafe.Infrastructure.Migrations
                             IsEnabled = true,
                             Label = "Masa sessiyasını bağla",
                             RequiresConfirmation = true,
-                            RequiresReason = false,
                             RoleId = 2,
                             SortOrder = 10,
                             StatusId = 1003
-                        },
-                        new
-                        {
-                            Id = 33,
-                            ActionCode = "cancel",
-                            EndpointTemplate = "/api/v1/restaurants/{restaurantId}/reservations/{reservationId}/cancel",
-                            FlowCode = "reservation",
-                            HttpMethod = "POST",
-                            IsEnabled = true,
-                            Label = "Rezervasiyanı ləğv et",
-                            RequiresConfirmation = true,
-                            RequiresReason = false,
-                            RoleId = 3,
-                            SortOrder = 90,
-                            StatusId = 1002
-                        },
-                        new
-                        {
-                            Id = 34,
-                            ActionCode = "cancel",
-                            EndpointTemplate = "/api/v1/restaurants/{restaurantId}/reservations/{reservationId}/cancel",
-                            FlowCode = "reservation",
-                            HttpMethod = "POST",
-                            IsEnabled = true,
-                            Label = "Rezervasiyanı ləğv et",
-                            RequiresConfirmation = true,
-                            RequiresReason = false,
-                            RoleId = 2,
-                            SortOrder = 90,
-                            StatusId = 1002
-                        },
-                        new
-                        {
-                            Id = 35,
-                            ActionCode = "requestRefund",
-                            EndpointTemplate = "/api/v1/public/reservations/{reservationId}/refunds",
-                            FlowCode = "reservation",
-                            HttpMethod = "POST",
-                            IsEnabled = true,
-                            Label = "Geri ödəniş soruş",
-                            RequiresConfirmation = true,
-                            RequiresReason = false,
-                            RoleId = 5,
-                            SortOrder = 100,
-                            StatusId = 1005
                         });
                 });
 
@@ -6042,43 +5889,6 @@ namespace ECafe.Infrastructure.Migrations
                     b.Navigation("Status");
                 });
 
-            modelBuilder.Entity("ECafe.Domain.Entities.ReservationRefundStatusHistory", b =>
-                {
-                    b.HasOne("ECafe.Domain.Entities.User", "ChangedByUser")
-                        .WithMany()
-                        .HasForeignKey("ChangedByUserId")
-                        .OnDelete(DeleteBehavior.SetNull)
-                        .HasConstraintName("reservation_refund_status_histories_changed_by_user_id_fkey");
-
-                    b.HasOne("ECafe.Domain.Entities.Status", "FromStatus")
-                        .WithMany()
-                        .HasForeignKey("FromStatusId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .HasConstraintName("reservation_refund_status_histories_from_status_id_fkey");
-
-                    b.HasOne("ECafe.Domain.Entities.ReservationRefund", "ReservationRefund")
-                        .WithMany("StatusHistory")
-                        .HasForeignKey("ReservationRefundId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired()
-                        .HasConstraintName("reservation_refund_status_histories_refund_id_fkey");
-
-                    b.HasOne("ECafe.Domain.Entities.Status", "ToStatus")
-                        .WithMany()
-                        .HasForeignKey("ToStatusId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired()
-                        .HasConstraintName("reservation_refund_status_histories_to_status_id_fkey");
-
-                    b.Navigation("ChangedByUser");
-
-                    b.Navigation("FromStatus");
-
-                    b.Navigation("ReservationRefund");
-
-                    b.Navigation("ToStatus");
-                });
-
             modelBuilder.Entity("ECafe.Domain.Entities.ReservationRefundTransfer", b =>
                 {
                     b.HasOne("ECafe.Domain.Entities.File", "ProofFile")
@@ -6540,8 +6350,6 @@ namespace ECafe.Infrastructure.Migrations
 
             modelBuilder.Entity("ECafe.Domain.Entities.ReservationRefund", b =>
                 {
-                    b.Navigation("StatusHistory");
-
                     b.Navigation("TransferAttempts");
                 });
 
