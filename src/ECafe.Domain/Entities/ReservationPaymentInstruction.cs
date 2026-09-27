@@ -17,4 +17,6 @@ public class ReservationPaymentInstruction : AuditableSoftDeletableEntity<int>
     public virtual Reservation Reservation { get; set; } = null!;
 
     public virtual User SentByUser { get; set; } = null!;
+
+    public virtual ICollection<ReservationPaymentProof> PaymentProofs { get; set; } = new List<ReservationPaymentProof>();
 }

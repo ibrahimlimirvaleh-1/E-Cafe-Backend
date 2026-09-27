@@ -1,4 +1,4 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 
 namespace ECafe.Domain.Enums
 {
@@ -23,8 +23,9 @@ namespace ECafe.Domain.Enums
         Contract,
 
         [Description("Masa sessiyası statusları")]
-        TableSession
+        TableSession,
+
+        [Description("Geri ödəniş statusları")]
+        Refund
     }
-
-
 }

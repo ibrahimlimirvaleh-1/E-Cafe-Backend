@@ -82,6 +82,8 @@ public partial class Reservation : AuditableSoftDeletableEntity<int>
 
     public virtual ICollection<ReservationPaymentInstruction> PaymentInstructions { get; set; } = new List<ReservationPaymentInstruction>();
 
+    public virtual ICollection<ReservationRefund> Refunds { get; set; } = new List<ReservationRefund>();
+
     public virtual ICollection<ReservationStatusHistory> StatusHistory { get; set; } = new List<ReservationStatusHistory>();
 
     public virtual ICollection<TableSession> TableSessions { get; set; } = new List<TableSession>();

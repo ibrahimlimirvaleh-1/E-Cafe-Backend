@@ -8,6 +8,8 @@ public class ReservationPaymentProof : AuditableSoftDeletableEntity<int>
 
     public int FileId { get; set; }
 
+    public int? PaymentInstructionId { get; set; }
+
     public decimal Amount { get; set; }
 
     public int StatusId { get; set; }
@@ -24,7 +26,11 @@ public class ReservationPaymentProof : AuditableSoftDeletableEntity<int>
 
     public virtual File File { get; set; } = null!;
 
+    public virtual ReservationPaymentInstruction? PaymentInstruction { get; set; }
+
     public virtual Status Status { get; set; } = null!;
 
     public virtual User? ReviewedByUser { get; set; }
+
+    public virtual ICollection<ReservationRefund> SourceRefunds { get; set; } = new List<ReservationRefund>();
 }
