@@ -126,5 +126,15 @@ public enum ErrorCode
     ThisOperatioCannotBePerformedForThisReservation = 5022,
     OnlyRestaurantManagersCanSendPaymentInstruction = 5023,
     CustomerAlreadyHasReservationToday = 5024,
-    ReservationTimeAlreadyPassed = 5025
+    ReservationTimeAlreadyPassed = 5025,
+    InvalidReservationId = 5026,
+    InvalidReservationRefundId = 5027,
+    ReservationRefundNotFound = 5028,
+    ReservationRefundNotEligible = 5029,
+    ReservationRefundAlreadyRequested = 5030,
+    ConfirmedReservationDepositNotFound = 5031,
+    RefundPayoutDetailsNotSubmitted = 5032,
+    InvalidRefundPayoutDetails = 5033,
+    RefundPayoutSensitiveDataProhibited = 5034,
+    OnlyRestaurantManagersCanManageRefund = 5035
 }

@@ -21,4 +21,9 @@ public interface IReservationRefundService
         int refundId,
         string details,
         CancellationToken cancellationToken = default);
+
+    Task<RestaurantReservationRefundPayoutDetailsResponse> GetPayoutDetailsForRestaurantAsync(
+        int restaurantId,
+        int refundId,
+        CancellationToken cancellationToken = default);
 }

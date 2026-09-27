@@ -14,6 +14,8 @@ public sealed class DataProtectionRefundPayoutDetailsProtector : IRefundPayoutDe
 
     public string Protect(string details) => _protector.Protect(details);
 
+    public string Unprotect(string encryptedDetails) => _protector.Unprotect(encryptedDetails);
+
     public string CreateMaskedDetails(string details)
     {
         var visibleCharacters = details
