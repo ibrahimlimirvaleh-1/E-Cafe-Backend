@@ -22,6 +22,7 @@ public class WorkflowActionRuleConfiguration : DbEntityConfig<WorkflowActionRule
         builder.Property(e => e.EndpointTemplate).HasMaxLength(256).HasColumnName("endpoint_template");
         builder.Property(e => e.SortOrder).HasColumnName("sort_order");
         builder.Property(e => e.RequiresConfirmation).HasColumnName("requires_confirmation");
+        builder.Property(e => e.RequiresReason).HasColumnName("requires_reason").HasDefaultValue(false);
         builder.Property(e => e.IsEnabled).HasColumnName("is_enabled").HasDefaultValue(true);
 
         builder.HasIndex(e => new { e.FlowCode, e.StatusId, e.RoleId, e.ActionCode })

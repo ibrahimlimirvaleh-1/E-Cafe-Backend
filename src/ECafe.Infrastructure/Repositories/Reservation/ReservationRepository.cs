@@ -102,6 +102,60 @@ public class ReservationRepository : BaseRepository<Domain.Entities.Reservation>
                 cancellationToken);
     }
 
+    public Task<bool> IsOwnedByCustomerAsync(
+        int restaurantId,
+        int reservationId,
+        int customerUserId,
+        CancellationToken cancellationToken = default)
+    {
+        return Query(reservation =>
+                reservation.Id == reservationId &&
+                reservation.RestaurantId == restaurantId &&
+                reservation.CustomerUserId == customerUserId)
+            .AnyAsync(cancellationToken);
+    }
+
+    public Task<bool> IsReservedTimePassedAsync(
+        int restaurantId,
+        int reservationId,
+        DateTime nowUtc,
+        CancellationToken cancellationToken = default)
+    {
+        return Query(reservation =>
+                reservation.Id == reservationId &&
+                reservation.RestaurantId == restaurantId &&
+                reservation.ReservedAt <= nowUtc)
+            .AnyAsync(cancellationToken);
+    }
+
+    public Task<bool> IsCancellationDeadlinePassedAsync(
+        int restaurantId,
+        int reservationId,
+        DateTime nowUtc,
+        CancellationToken cancellationToken = default)
+    {
+        return Query(reservation =>
+                reservation.Id == reservationId &&
+                reservation.RestaurantId == restaurantId &&
+                reservation.CancellationDeadline.HasValue &&
+                reservation.CancellationDeadline.Value <= nowUtc)
+            .AnyAsync(cancellationToken);
+    }
+
+    public Task<bool> IsCheckInWindowOpenAsync(
+        int restaurantId,
+        int reservationId,
+        DateTime nowUtc,
+        CancellationToken cancellationToken = default)
+    {
+        return Query(reservation =>
+                reservation.Id == reservationId &&
+                reservation.RestaurantId == restaurantId &&
+                reservation.ReservedAt <= nowUtc &&
+                reservation.NoShowDeadlineAt >= nowUtc)
+            .AnyAsync(cancellationToken);
+    }
+
     public Task<PaginatedList<Domain.Entities.Reservation>> GetForCustomerAsync(
         int customerUserId,
         ReservationQueryRequest request,
@@ -254,7 +308,9 @@ public class ReservationRepository : BaseRepository<Domain.Entities.Reservation>
                 .OrderByDescending(proof => proof.SubmittedAt)
                 .ThenByDescending(proof => proof.Id)
                 .Take(1))
-                .ThenInclude(proof => proof.Status);
+                .ThenInclude(proof => proof.Status)
+            .Include(r => r.Refunds)
+                .ThenInclude(refund => refund.Status);
     }
 
     private static IQueryable<Domain.Entities.Reservation> WithHistory(

@@ -3,6 +3,7 @@ using ECafe.Application.Common.Exceptions;
 using ECafe.Application.DTOs.Workflow;
 using ECafe.Application.Repositories.UserRestaurant;
 using ECafe.Application.Repositories.Reservation;
+using ECafe.Application.Repositories.ReservationRefund;
 using ECafe.Application.Repository;
 using ECafe.Application.Services.Workflow.Abstract;
 using ECafe.Domain.Enums;
@@ -18,6 +19,7 @@ public class WorkflowActionManager : BaseManager, IWorkflowActionService
     private readonly IBaseRepository<Domain.Entities.WorkflowActionRule> _workflowActionRuleRepository;
     private readonly IUserRestaurantRepository _userRestaurantRepository;
     private readonly IReservationRepository _reservationRepository;
+    private readonly IReservationRefundRepository _reservationRefundRepository;
 
     public WorkflowActionManager(
         IHttpContextAccessor httpContextAccessor,
@@ -25,12 +27,14 @@ public class WorkflowActionManager : BaseManager, IWorkflowActionService
         IConfiguration configuration,
         IBaseRepository<Domain.Entities.WorkflowActionRule> workflowActionRuleRepository,
         IUserRestaurantRepository userRestaurantRepository,
-        IReservationRepository reservationRepository)
+        IReservationRepository reservationRepository,
+        IReservationRefundRepository reservationRefundRepository)
         : base(httpContextAccessor, mapper, configuration)
     {
         _workflowActionRuleRepository = workflowActionRuleRepository;
         _userRestaurantRepository = userRestaurantRepository;
         _reservationRepository = reservationRepository;
+        _reservationRefundRepository = reservationRefundRepository;
     }
 
     public async Task<List<WorkflowActionResponse>> GetAvailableActionsAsync(
@@ -73,12 +77,15 @@ public class WorkflowActionManager : BaseManager, IWorkflowActionService
         if (restaurantId.HasValue &&
             entityId.HasValue &&
             normalizedFlowCode == WorkflowFlowCode.FromStatusType(StatusType.Reservation) &&
-            await IsReservationTimeAlreadyPassedAsync(restaurantId.Value, entityId.Value))
+            await _reservationRepository.IsReservedTimePassedAsync(
+                restaurantId.Value,
+                entityId.Value,
+                DateTime.UtcNow))
         {
             rules = rules
                 .Where(rule => !string.Equals(
                     rule.ActionCode,
-                    "approvePaymentProof",
+                    WorkflowActionCode.Reservation.ApprovePaymentProof,
                     StringComparison.OrdinalIgnoreCase))
                 .ToList();
         }
@@ -86,12 +93,15 @@ public class WorkflowActionManager : BaseManager, IWorkflowActionService
         if (restaurantId.HasValue &&
             entityId.HasValue &&
             normalizedFlowCode == WorkflowFlowCode.FromStatusType(StatusType.Reservation) &&
-            !await IsReservationCheckInWindowOpenAsync(restaurantId.Value, entityId.Value))
+            !await _reservationRepository.IsCheckInWindowOpenAsync(
+                restaurantId.Value,
+                entityId.Value,
+                DateTime.UtcNow))
         {
             rules = rules
                 .Where(rule => !string.Equals(
                     rule.ActionCode,
-                    "checkIn",
+                    WorkflowActionCode.Reservation.CheckIn,
                     StringComparison.OrdinalIgnoreCase))
                 .ToList();
         }
@@ -100,12 +110,31 @@ public class WorkflowActionManager : BaseManager, IWorkflowActionService
             restaurantId.HasValue &&
             entityId.HasValue &&
             normalizedFlowCode == WorkflowFlowCode.FromStatusType(StatusType.Reservation) &&
-            await IsReservationCancellationDeadlinePassedAsync(restaurantId.Value, entityId.Value))
+            await _reservationRepository.IsCancellationDeadlinePassedAsync(
+                restaurantId.Value,
+                entityId.Value,
+                DateTime.UtcNow))
         {
             rules = rules
                 .Where(rule => !string.Equals(
                     rule.ActionCode,
-                    "cancel",
+                    WorkflowActionCode.Reservation.Cancel,
+                    StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
+
+        if (roleId == (int)RoleCode.Customer &&
+            restaurantId.HasValue &&
+            entityId.HasValue &&
+            normalizedFlowCode == WorkflowFlowCode.FromStatusType(StatusType.Reservation) &&
+            !await _reservationRefundRepository.IsRequestAvailableAsync(
+                restaurantId.Value,
+                entityId.Value))
+        {
+            rules = rules
+                .Where(rule => !string.Equals(
+                    rule.ActionCode,
+                    WorkflowActionCode.Reservation.RequestRefund,
                     StringComparison.OrdinalIgnoreCase))
                 .ToList();
         }
@@ -118,7 +147,7 @@ public class WorkflowActionManager : BaseManager, IWorkflowActionService
                 HttpMethod = rule.HttpMethod,
                 Endpoint = BuildActionEndpoint(rule.EndpointTemplate, restaurantId, entityId),
                 RequiresConfirmation = rule.RequiresConfirmation,
-                RequiresReason = ActionRequiresReason(rule.ActionCode),
+                RequiresReason = rule.RequiresReason,
                 SortOrder = rule.SortOrder
             })
             .ToList();
@@ -158,18 +187,24 @@ public class WorkflowActionManager : BaseManager, IWorkflowActionService
         if (restaurantId.HasValue &&
             entityId.HasValue &&
             string.Equals(normalizedFlowCode, WorkflowFlowCode.FromStatusType(StatusType.Reservation), StringComparison.Ordinal) &&
-            string.Equals(normalizedActionCode, "checkIn", StringComparison.OrdinalIgnoreCase) &&
-            !await IsReservationCheckInWindowOpenAsync(restaurantId.Value, entityId.Value))
+            string.Equals(normalizedActionCode, WorkflowActionCode.Reservation.CheckIn, StringComparison.OrdinalIgnoreCase) &&
+            !await _reservationRepository.IsCheckInWindowOpenAsync(
+                restaurantId.Value,
+                entityId.Value,
+                DateTime.UtcNow))
         {
             throw new ForbiddenException("Rezervasiya hazırda check-in üçün uyğun vaxtda deyil.");
         }
 
         if (roleId == (int)RoleCode.Customer &&
             string.Equals(normalizedFlowCode, WorkflowFlowCode.FromStatusType(StatusType.Reservation), StringComparison.Ordinal) &&
-            string.Equals(normalizedActionCode, "cancel", StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(normalizedActionCode, WorkflowActionCode.Reservation.Cancel, StringComparison.OrdinalIgnoreCase) &&
             restaurantId.HasValue &&
             entityId.HasValue &&
-            await IsReservationCancellationDeadlinePassedAsync(restaurantId.Value, entityId.Value))
+            await _reservationRepository.IsCancellationDeadlinePassedAsync(
+                restaurantId.Value,
+                entityId.Value,
+                DateTime.UtcNow))
         {
             throw new ForbiddenException("Rezervasiyanı ləğv etmək üçün icazə verilən müddət bitib.");
         }
@@ -208,42 +243,14 @@ public class WorkflowActionManager : BaseManager, IWorkflowActionService
             return false;
         }
 
-        var userId = GetCurrentUserId();
-        return await _reservationRepository.Query(reservation =>
-                reservation.Id == entityId.Value &&
-                reservation.RestaurantId == restaurantId.Value &&
-                reservation.CustomerUserId == userId)
-            .AnyAsync();
+        return await _reservationRepository.IsOwnedByCustomerAsync(
+            restaurantId.Value,
+            entityId.Value,
+            GetCurrentUserId());
     }
 
     private static string NormalizeFlowCode(string flowCode)
         => flowCode.Trim().ToLowerInvariant();
-
-    private static bool ActionRequiresReason(string actionCode)
-        => string.Equals(actionCode, "rejectPaymentProof", StringComparison.OrdinalIgnoreCase);
-
-    private Task<bool> IsReservationTimeAlreadyPassedAsync(int restaurantId, int reservationId)
-        => _reservationRepository.Query(reservation =>
-                reservation.Id == reservationId &&
-                reservation.RestaurantId == restaurantId &&
-                reservation.ReservedAt <= DateTime.UtcNow)
-            .AnyAsync();
-
-    private Task<bool> IsReservationCancellationDeadlinePassedAsync(int restaurantId, int reservationId)
-        => _reservationRepository.Query(reservation =>
-                reservation.Id == reservationId &&
-                reservation.RestaurantId == restaurantId &&
-                reservation.CancellationDeadline.HasValue &&
-                reservation.CancellationDeadline.Value <= DateTime.UtcNow)
-            .AnyAsync();
-
-    private Task<bool> IsReservationCheckInWindowOpenAsync(int restaurantId, int reservationId)
-        => _reservationRepository.Query(reservation =>
-                reservation.Id == reservationId &&
-                reservation.RestaurantId == restaurantId &&
-                reservation.ReservedAt <= DateTime.UtcNow &&
-                reservation.NoShowDeadlineAt >= DateTime.UtcNow)
-            .AnyAsync();
 
     private static string BuildActionEndpoint(string template, int? restaurantId, int? entityId)
     {
@@ -253,6 +260,7 @@ public class WorkflowActionManager : BaseManager, IWorkflowActionService
             .Replace("{restaurantId}", restaurantId?.ToString() ?? string.Empty)
             .Replace("{contractId}", entityIdText)
             .Replace("{reservationId}", entityIdText)
+            .Replace("{refundId}", entityIdText)
             .Replace("{orderId}", entityIdText)
             .Replace("{paymentId}", entityIdText);
     }

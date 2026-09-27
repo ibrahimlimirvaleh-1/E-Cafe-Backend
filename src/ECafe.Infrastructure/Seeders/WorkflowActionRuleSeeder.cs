@@ -33,6 +33,7 @@ public static class WorkflowActionRuleSeeder
         AddPaymentInstructionReservationRules(rules, ref id);
         AddReservationResponseRules(rules, ref id);
         AddReservationSessionRules(rules, ref id);
+        AddReservationRefundRules(rules, ref id);
 
         modelBuilder.Entity<WorkflowActionRule>().HasData(rules);
     }
@@ -72,11 +73,18 @@ public static class WorkflowActionRuleSeeder
         rules.Add(Rule(id++, ReservationFlow, StatusTypeEnum.Reservation, ReservationStatus.Seated, RoleCode.Owner, "complete", "Masa sessiyasını bağla", "POST", "/api/v1/restaurants/{restaurantId}/reservations/{reservationId}/complete", 10, true));
     }
 
+    private static void AddReservationRefundRules(List<WorkflowActionRule> rules, ref int id)
+    {
+        rules.Add(Rule(id++, ReservationFlow, StatusTypeEnum.Reservation, ReservationStatus.Confirmed, RoleCode.Manager, "cancel", "Rezervasiyanı ləğv et", "POST", "/api/v1/restaurants/{restaurantId}/reservations/{reservationId}/cancel", 90, true));
+        rules.Add(Rule(id++, ReservationFlow, StatusTypeEnum.Reservation, ReservationStatus.Confirmed, RoleCode.Owner, "cancel", "Rezervasiyanı ləğv et", "POST", "/api/v1/restaurants/{restaurantId}/reservations/{reservationId}/cancel", 90, true));
+        rules.Add(Rule(id++, ReservationFlow, StatusTypeEnum.Reservation, ReservationStatus.Cancelled, RoleCode.Customer, WorkflowActionCode.Reservation.RequestRefund, "Geri ödəniş soruş", "POST", "/api/v1/public/reservations/{reservationId}/refunds", 100, true));
+    }
+
     private static void AddReceiptReservationRules(List<WorkflowActionRule> rules, ref int id)
     {
         rules.Add(Rule(id++, ReservationFlow, StatusTypeEnum.Reservation, ReservationStatus.PendingPayment, RoleCode.Customer, "submitPaymentProof", "Ödəniş çekini göndər", "POST", "/api/v1/restaurants/{restaurantId}/reservations/{reservationId}/payment-proofs", 10));
         rules.Add(Rule(id++, ReservationFlow, StatusTypeEnum.Reservation, ReservationStatus.PaymentSubmitted, RoleCode.Manager, "approvePaymentProof", "Ödənişi təsdiqlə", "POST", "/api/v1/restaurants/{restaurantId}/reservations/{reservationId}/payment-proofs/approve", 10));
-        rules.Add(Rule(id++, ReservationFlow, StatusTypeEnum.Reservation, ReservationStatus.PaymentSubmitted, RoleCode.Manager, "rejectPaymentProof", "Ödənişi rədd et", "POST", "/api/v1/restaurants/{restaurantId}/reservations/{reservationId}/payment-proofs/reject", 20, true));
+        rules.Add(Rule(id++, ReservationFlow, StatusTypeEnum.Reservation, ReservationStatus.PaymentSubmitted, RoleCode.Manager, WorkflowActionCode.Reservation.RejectPaymentProof, "Ödənişi rədd et", "POST", "/api/v1/restaurants/{restaurantId}/reservations/{reservationId}/payment-proofs/reject", 20, true, requiresReason: true));
         rules.Add(Rule(id++, ReservationFlow, StatusTypeEnum.Reservation, ReservationStatus.PaymentSubmitted, RoleCode.Manager, "cancel", "Rezervasiyanı ləğv et", "POST", "/api/v1/restaurants/{restaurantId}/reservations/{reservationId}/cancel", 90, true));
     }
 
@@ -84,7 +92,7 @@ public static class WorkflowActionRuleSeeder
     {
         rules.Add(Rule(id++, ReservationFlow, StatusTypeEnum.Reservation, ReservationStatus.PendingPayment, RoleCode.Owner, "cancel", "Rezervasiyanı ləğv et", "POST", "/api/v1/restaurants/{restaurantId}/reservations/{reservationId}/cancel", 90, true));
         rules.Add(Rule(id++, ReservationFlow, StatusTypeEnum.Reservation, ReservationStatus.PaymentSubmitted, RoleCode.Owner, "approvePaymentProof", "Ödənişi təsdiqlə", "POST", "/api/v1/restaurants/{restaurantId}/reservations/{reservationId}/payment-proofs/approve", 10));
-        rules.Add(Rule(id++, ReservationFlow, StatusTypeEnum.Reservation, ReservationStatus.PaymentSubmitted, RoleCode.Owner, "rejectPaymentProof", "Ödənişi rədd et", "POST", "/api/v1/restaurants/{restaurantId}/reservations/{reservationId}/payment-proofs/reject", 20, true));
+        rules.Add(Rule(id++, ReservationFlow, StatusTypeEnum.Reservation, ReservationStatus.PaymentSubmitted, RoleCode.Owner, WorkflowActionCode.Reservation.RejectPaymentProof, "Ödənişi rədd et", "POST", "/api/v1/restaurants/{restaurantId}/reservations/{reservationId}/payment-proofs/reject", 20, true, requiresReason: true));
         rules.Add(Rule(id++, ReservationFlow, StatusTypeEnum.Reservation, ReservationStatus.PaymentSubmitted, RoleCode.Owner, "cancel", "Rezervasiyanı ləğv et", "POST", "/api/v1/restaurants/{restaurantId}/reservations/{reservationId}/cancel", 90, true));
     }
 
@@ -142,6 +150,7 @@ public static class WorkflowActionRuleSeeder
         string endpointTemplate,
         int sortOrder,
         bool requiresConfirmation = false,
+        bool requiresReason = false,
         bool isEnabled = true)
         where TStatus : struct, Enum
         => new()
@@ -156,6 +165,7 @@ public static class WorkflowActionRuleSeeder
             EndpointTemplate = endpointTemplate,
             SortOrder = sortOrder,
             RequiresConfirmation = requiresConfirmation,
+            RequiresReason = requiresReason,
             IsEnabled = isEnabled
         };
 }

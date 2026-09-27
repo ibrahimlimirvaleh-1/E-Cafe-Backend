@@ -22,6 +22,8 @@ public class WorkflowActionRule : BaseEntity<int>
 
     public bool RequiresConfirmation { get; set; }
 
+    public bool RequiresReason { get; set; }
+
     public bool IsEnabled { get; set; } = true;
 
     public virtual Status Status { get; set; } = null!;
