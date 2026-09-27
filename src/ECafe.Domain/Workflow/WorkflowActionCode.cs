@@ -12,4 +12,9 @@ public static class WorkflowActionCode
         public const string RequestRefund = "requestRefund";
     }
 
+    public static class Refund
+    {
+        public const string SubmitPayoutDetails = "submitPayoutDetails";
+    }
+
 }

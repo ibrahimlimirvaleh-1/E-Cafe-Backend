@@ -20,6 +20,7 @@
         ReservationCheckedIn = 16,
         ReservationCompleted = 17,
         ReservationNoShow = 18,
-        ReservationRefundRequested = 19
+        ReservationRefundRequested = 19,
+        ReservationRefundPayoutDetailsSubmitted = 20
     }
 }

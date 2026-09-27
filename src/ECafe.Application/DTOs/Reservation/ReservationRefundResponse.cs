@@ -15,5 +15,6 @@ public sealed class ReservationRefundResponse
     public DateTimeOffset? RefundedAt { get; init; }
     public string EligibilityReason { get; init; } = null!;
     public string? CancellationReason { get; init; }
+    public ReservationRefundPayoutDetailsResponse? PayoutDetails { get; init; }
     public IReadOnlyList<ReservationRefundStatusHistoryResponse> History { get; init; } = [];
 }

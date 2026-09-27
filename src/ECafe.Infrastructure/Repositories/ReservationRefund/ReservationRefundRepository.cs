@@ -57,6 +57,42 @@ public sealed class ReservationRefundRepository
             .FirstOrDefaultAsync(cancellationToken);
     }
 
+    public Task<Domain.Entities.ReservationRefund?> GetByIdForCustomerSnapshotAsync(
+        int refundId,
+        int customerUserId,
+        CancellationToken cancellationToken = default)
+    {
+        return Query(refund =>
+                refund.Id == refundId &&
+                refund.Reservation.CustomerUserId == customerUserId)
+            .Include(refund => refund.Reservation)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    public Task<Domain.Entities.ReservationRefund?> GetByIdForCustomerForUpdateAsync(
+        int refundId,
+        int customerUserId,
+        CancellationToken cancellationToken = default)
+    {
+        return WithDetails(QueryTracked(refund =>
+                refund.Id == refundId &&
+                refund.Reservation.CustomerUserId == customerUserId))
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    public Task<bool> IsOwnedByCustomerAsync(
+        int restaurantId,
+        int refundId,
+        int customerUserId,
+        CancellationToken cancellationToken = default)
+    {
+        return Query(refund =>
+                refund.Id == refundId &&
+                refund.Reservation.RestaurantId == restaurantId &&
+                refund.Reservation.CustomerUserId == customerUserId)
+            .AnyAsync(cancellationToken);
+    }
+
     public Task<bool> HasForReservationAsync(int reservationId, CancellationToken cancellationToken = default)
     {
         return Query(refund => refund.ReservationId == reservationId)
@@ -85,6 +121,7 @@ public sealed class ReservationRefundRepository
         return query
             .Include(refund => refund.Reservation)
             .Include(refund => refund.Status)
+            .Include(refund => refund.PayoutDetails)
             .Include(refund => refund.StatusHistory)
                 .ThenInclude(history => history.FromStatus)
             .Include(refund => refund.StatusHistory)

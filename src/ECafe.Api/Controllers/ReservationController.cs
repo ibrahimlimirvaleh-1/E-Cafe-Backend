@@ -2,6 +2,7 @@ using ECafe.Application.DTOs.Reservation;
 using ECafe.Application.Features.Commands.Reservation.Cancel;
 using ECafe.Application.Features.Commands.Reservation.Create;
 using ECafe.Application.Features.Commands.Reservation.RequestRefund;
+using ECafe.Application.Features.Commands.Reservation.SubmitRefundPayoutDetails;
 using ECafe.Application.Features.Commands.Reservation.SubmitPaymentProof;
 using ECafe.Application.Features.Queries.Reservation.GetById;
 using ECafe.Application.Features.Queries.Reservation.GetHistory;
@@ -119,5 +120,20 @@ public sealed class ReservationController : BaseController
             cancellationToken);
 
         return StatusCode(StatusCodes.Status201Created, result);
+    }
+
+    [HttpPost("api/v1/public/refunds/{refundId:int}/payout-details")]
+    public async Task<IActionResult> SubmitRefundPayoutDetails(
+        [FromRoute] int refundId,
+        [FromBody] SubmitReservationRefundPayoutDetailsRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await Mediator.Send(new SubmitReservationRefundPayoutDetailsCommand
+        {
+            RefundId = refundId,
+            Details = request.Details
+        }, cancellationToken);
+
+        return Ok(result);
     }
 }
