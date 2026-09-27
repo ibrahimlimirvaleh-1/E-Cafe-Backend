@@ -682,6 +682,11 @@ public sealed class ReservationManager : BaseManager, IReservationService
             reservation,
             cancellationToken);
 
+        var paymentInstruction = reservation.PaymentInstructions
+            .OrderByDescending(instruction => instruction.SentAt)
+            .ThenByDescending(instruction => instruction.Id)
+            .First();
+
         var file = await _fileRepository.GetAttachableByIdAsync(fileId);
         if (file is null ||
             file.FileTypeId != (int)FileTypeCode.PaymentReceipt ||
@@ -694,6 +699,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
         {
             ReservationId = reservation.Id,
             FileId = file.Id,
+            PaymentInstructionId = paymentInstruction.Id,
             Amount = reservation.DepositAmount,
             StatusId = paymentSubmittedStatusId,
             SubmittedAt = now
@@ -723,6 +729,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
             {
                 reservationId = reservation.Id,
                 paymentProofId = paymentProof.Id,
+                paymentInstructionId = paymentProof.PaymentInstructionId,
                 fileId = file.Id,
                 amount = paymentProof.Amount
             },
@@ -736,6 +743,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
             Id = paymentProof.Id,
             ReservationId = paymentProof.ReservationId,
             FileId = paymentProof.FileId,
+            PaymentInstructionId = paymentProof.PaymentInstructionId,
             Amount = paymentProof.Amount,
             Status = ReservationStatus.PaymentSubmitted.GetName(),
             SubmittedAt = paymentProof.SubmittedAt,
@@ -1140,6 +1148,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
                     Id = latestPaymentProof.Id,
                     ReservationId = reservation.Id,
                     FileId = latestPaymentProof.FileId,
+                    PaymentInstructionId = latestPaymentProof.PaymentInstructionId,
                     Amount = latestPaymentProof.Amount,
                     Status = latestPaymentProof.Status?.Name ?? ReservationStatus.PaymentSubmitted.GetName(),
                     SubmittedAt = latestPaymentProof.SubmittedAt,

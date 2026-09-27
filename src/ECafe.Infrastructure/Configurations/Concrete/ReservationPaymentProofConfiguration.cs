@@ -15,6 +15,7 @@ public class ReservationPaymentProofConfiguration : DbEntityConfig<ReservationPa
         builder.Property(e => e.Id).HasColumnName("id");
         builder.Property(e => e.ReservationId).HasColumnName("reservation_id");
         builder.Property(e => e.FileId).HasColumnName("file_id");
+        builder.Property(e => e.PaymentInstructionId).HasColumnName("payment_instruction_id");
         builder.Property(e => e.Amount)
             .HasPrecision(18, 2)
             .HasColumnName("amount");
@@ -30,6 +31,7 @@ public class ReservationPaymentProofConfiguration : DbEntityConfig<ReservationPa
 
         builder.HasIndex(e => new { e.ReservationId, e.StatusId }, "reservation_payment_proofs_reservation_status_idx");
         builder.HasIndex(e => e.FileId, "reservation_payment_proofs_file_id_idx");
+        builder.HasIndex(e => e.PaymentInstructionId, "reservation_payment_proofs_payment_instruction_id_idx");
         builder.HasIndex(e => e.ReviewedByUserId, "reservation_payment_proofs_reviewed_by_user_id_idx");
 
         builder.HasOne(e => e.Reservation)
@@ -43,6 +45,12 @@ public class ReservationPaymentProofConfiguration : DbEntityConfig<ReservationPa
             .HasForeignKey(e => e.FileId)
             .OnDelete(DeleteBehavior.Restrict)
             .HasConstraintName("reservation_payment_proofs_file_id_fkey");
+
+        builder.HasOne(e => e.PaymentInstruction)
+            .WithMany(e => e.PaymentProofs)
+            .HasForeignKey(e => e.PaymentInstructionId)
+            .OnDelete(DeleteBehavior.Restrict)
+            .HasConstraintName("reservation_payment_proofs_payment_instruction_id_fkey");
 
         builder.HasOne(e => e.Status)
             .WithMany()

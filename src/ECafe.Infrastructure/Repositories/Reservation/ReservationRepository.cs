@@ -248,6 +248,7 @@ public class ReservationRepository : BaseRepository<Domain.Entities.Reservation>
             .Include(r => r.CustomerUser)
             .Include(r => r.PaymentInstructions
                 .OrderByDescending(instruction => instruction.SentAt)
+                .ThenByDescending(instruction => instruction.Id)
                 .Take(1))
             .Include(r => r.PaymentProofs
                 .OrderByDescending(proof => proof.SubmittedAt)
