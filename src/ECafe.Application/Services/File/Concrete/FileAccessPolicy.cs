@@ -67,6 +67,25 @@ namespace ECafe.Application.Services.FileAccess.Concrete
                 return;
             }
 
+            var refundTransferReservations = file.ReservationRefundTransferProofs
+                .Select(transfer => transfer.ReservationRefund.Reservation)
+                .ToList();
+
+            if (refundTransferReservations.Count > 0)
+            {
+                if (refundTransferReservations.Any(reservation => reservation.CustomerUserId == GetCurrentUserId()))
+                    return;
+
+                foreach (var restaurantId in refundTransferReservations
+                             .Select(reservation => reservation.RestaurantId)
+                             .Distinct())
+                {
+                    EnsureCurrentUserCanAccessRestaurant(restaurantId);
+                }
+
+                return;
+            }
+
             var itemRestaurantIds = file.Items
                 .Select(item => item.RestaurantId)
                 .Distinct()

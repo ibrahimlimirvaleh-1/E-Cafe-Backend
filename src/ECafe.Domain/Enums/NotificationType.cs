@@ -21,6 +21,7 @@
         ReservationCompleted = 17,
         ReservationNoShow = 18,
         ReservationRefundRequested = 19,
-        ReservationRefundPayoutDetailsSubmitted = 20
+        ReservationRefundPayoutDetailsSubmitted = 20,
+        ReservationRefundTransferSubmitted = 21
     }
 }

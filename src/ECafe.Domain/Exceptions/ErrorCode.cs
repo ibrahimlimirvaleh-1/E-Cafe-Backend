@@ -136,5 +136,7 @@ public enum ErrorCode
     RefundPayoutDetailsNotSubmitted = 5032,
     InvalidRefundPayoutDetails = 5033,
     RefundPayoutSensitiveDataProhibited = 5034,
-    OnlyRestaurantManagersCanManageRefund = 5035
+    OnlyRestaurantManagersCanManageRefund = 5035,
+    RefundTransferProofRequired = 5036,
+    InvalidRefundTransferReference = 5037
 }

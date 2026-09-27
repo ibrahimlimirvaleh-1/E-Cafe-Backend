@@ -1,4 +1,5 @@
 using ECafe.Application.Repositories.ReservationRefund;
+using ECafe.Domain.Enums;
 using ECafe.Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,6 +11,13 @@ public sealed class ReservationRefundRepository
     public ReservationRefundRepository(ECafeDbContext context)
         : base(context)
     {
+    }
+
+    public Task AcquireRefundLockAsync(int refundId, CancellationToken cancellationToken = default)
+    {
+        return Context.Database.ExecuteSqlInterpolatedAsync(
+            $"SELECT pg_advisory_xact_lock({-(int)StatusType.Refund}, {refundId})",
+            cancellationToken);
     }
 
     public Task<Domain.Entities.ReservationRefund?> GetByReservationForCustomerAsync(
@@ -121,6 +129,7 @@ public sealed class ReservationRefundRepository
             .Include(refund => refund.Reservation)
             .Include(refund => refund.Status)
             .Include(refund => refund.PayoutDetails)
+            .Include(refund => refund.TransferAttempts)
             .Include(refund => refund.StatusHistory)
                 .ThenInclude(history => history.FromStatus)
             .Include(refund => refund.StatusHistory)

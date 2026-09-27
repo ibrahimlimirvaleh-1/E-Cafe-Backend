@@ -15,6 +15,7 @@ public static class WorkflowActionCode
     public static class Refund
     {
         public const string SubmitPayoutDetails = "submitPayoutDetails";
+        public const string SubmitTransfer = "submitTransfer";
     }
 
 }
