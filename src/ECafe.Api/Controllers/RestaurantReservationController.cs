@@ -5,6 +5,7 @@ using ECafe.Application.Features.Commands.Reservation.CheckIn;
 using ECafe.Application.Features.Commands.Reservation.Complete;
 using ECafe.Application.Features.Commands.Reservation.RejectPaymentProof;
 using ECafe.Application.Features.Commands.Reservation.SendPaymentInstruction;
+using ECafe.Application.Features.Commands.Reservation.SubmitRefundTransfer;
 using ECafe.Application.Features.Queries.Reservation.GetRestaurant;
 using ECafe.Application.Features.Queries.Reservation.GetRestaurantHistory;
 using ECafe.Application.Features.Queries.Reservation.GetRestaurantRefund;
@@ -192,6 +193,22 @@ public sealed class RestaurantReservationController : BaseController
         }, cancellationToken);
 
         return Ok(result);
+    }
+
+    [HasPermission(PermissionCode.ManageReservations)]
+    [HttpPost("api/v1/restaurants/{restaurantId:int}/refunds/{refundId:int}/transfers")]
+    [Consumes("multipart/form-data")]
+    public async Task<IActionResult> SubmitRefundTransfer(
+        [FromRoute] int restaurantId,
+        [FromRoute] int refundId,
+        [FromForm] SubmitReservationRefundTransferCommand request,
+        CancellationToken cancellationToken)
+    {
+        request.RestaurantId = restaurantId;
+        request.RefundId = refundId;
+
+        var result = await Mediator.Send(request, cancellationToken);
+        return StatusCode(StatusCodes.Status201Created, result);
     }
 
 }

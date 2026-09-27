@@ -34,6 +34,9 @@ namespace ECafe.Infrastructure.Repositories.File
                 .Include(file => file.RestaurantContracts)
                 .Include(file => file.ReservationPaymentProofs)
                     .ThenInclude(proof => proof.Reservation)
+                .Include(file => file.ReservationRefundTransferProofs)
+                    .ThenInclude(transfer => transfer.ReservationRefund)
+                        .ThenInclude(refund => refund.Reservation)
                 .FirstOrDefaultAsync(file => file.Id == fileId);
 
         public Task<Domain.Entities.File?> GetWithUsageByTokenAsync(string token)
@@ -43,6 +46,9 @@ namespace ECafe.Infrastructure.Repositories.File
                 .Include(file => file.User)
                 .Include(file => file.Restaurant)
                 .Include(file => file.RestaurantContracts)
+                .Include(file => file.ReservationRefundTransferProofs)
+                    .ThenInclude(transfer => transfer.ReservationRefund)
+                        .ThenInclude(refund => refund.Reservation)
                 .FirstOrDefaultAsync(file => file.Token == token);
 
         public Task<Domain.Entities.File?> GetPublicByTokenAsync(string token)
@@ -58,6 +64,7 @@ namespace ECafe.Infrastructure.Repositories.File
                      file.User != null ||
                      file.RestaurantContracts.Any() ||
                      file.ReservationPaymentProofs.Any() ||
+                     file.ReservationRefundTransferProofs.Any() ||
                      EF.Property<int?>(file, "RestaurantId") != null));
 
         public Task<List<Domain.Entities.File>> GetUnattachedOlderThanAsync(DateTime cutoffUtc, int take)
@@ -74,6 +81,7 @@ namespace ECafe.Infrastructure.Repositories.File
                     file.User == null &&
                     !file.RestaurantContracts.Any() &&
                     !file.ReservationPaymentProofs.Any() &&
+                    !file.ReservationRefundTransferProofs.Any() &&
                     EF.Property<int?>(file, "RestaurantId") == null);
     }
 }

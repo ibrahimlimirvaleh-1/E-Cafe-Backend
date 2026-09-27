@@ -26,4 +26,16 @@ public interface IReservationRefundService
         int restaurantId,
         int refundId,
         CancellationToken cancellationToken = default);
+
+    Task EnsureTransferCanBeSubmittedAsync(
+        int restaurantId,
+        int refundId,
+        CancellationToken cancellationToken = default);
+
+    Task<ReservationRefundTransferResponse> SubmitTransferAsync(
+        int restaurantId,
+        int refundId,
+        string? transferReference,
+        int proofFileId,
+        CancellationToken cancellationToken = default);
 }

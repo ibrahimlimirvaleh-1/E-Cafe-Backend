@@ -4,6 +4,8 @@ namespace ECafe.Application.Repositories.ReservationRefund;
 
 public interface IReservationRefundRepository : IBaseRepository<Domain.Entities.ReservationRefund>
 {
+    Task AcquireRefundLockAsync(int refundId, CancellationToken cancellationToken = default);
+
     Task<Domain.Entities.ReservationRefund?> GetByReservationForCustomerAsync(
         int reservationId,
         int customerUserId,

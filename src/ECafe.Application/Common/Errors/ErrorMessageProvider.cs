@@ -138,6 +138,8 @@ public sealed class ErrorMessageProvider : IErrorMessageProvider
         [ErrorCode.InvalidRefundPayoutDetails] = "Geri ödəniş məlumatı 4 ilə 1000 simvol arasında olmalıdır.",
         [ErrorCode.RefundPayoutSensitiveDataProhibited] = "CVV, CVC və PIN göndərmək olmaz. Yalnız geri ödəniş üçün lazım olan hesab və ya kart məlumatını daxil edin.",
         [ErrorCode.OnlyRestaurantManagersCanManageRefund] = "Geri ödəniş sorğularını yalnız restoran sahibi və ya meneceri idarə edə bilər.",
+        [ErrorCode.RefundTransferProofRequired] = "Geri ödəniş çekini seçin.",
+        [ErrorCode.InvalidRefundTransferReference] = "Transfer referansı 100 simvoldan uzun ola bilməz.",
 
     };
 

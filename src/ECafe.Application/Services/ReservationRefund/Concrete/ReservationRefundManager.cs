@@ -1,20 +1,19 @@
 using System.Data;
-using System.Text.Json;
 using System.Text.RegularExpressions;
 using ECafe.Application.Common.Audit;
 using ECafe.Application.Common.Exceptions;
-using ECafe.Application.DTOs.Notification;
 using ECafe.Application.DTOs.Reservation;
 using ECafe.Application.Repositories.Reservation;
 using ECafe.Application.Repositories.ReservationPaymentProof;
 using ECafe.Application.Repositories.ReservationRefund;
+using ECafe.Application.Repositories.File;
 using ECafe.Application.Repositories.UserRestaurant;
 using ECafe.Application.Repository;
 using ECafe.Application.Services.AuditLog.Abstract;
-using ECafe.Application.Services.Notification.Abstract;
 using ECafe.Application.Services.ReservationRefund.Abstract;
 using ECafe.Application.Services.RefundPayoutDetails.Abstract;
 using ECafe.Application.Services.Workflow.Abstract;
+using ECafe.Application.Services.FileAccess.Abstract;
 using ECafe.Domain.Entities;
 using ECafe.Domain.Enums;
 using ECafe.Domain.Exceptions;
@@ -49,11 +48,13 @@ public sealed class ReservationRefundManager : BaseManager, IReservationRefundSe
     private readonly IReservationRepository _reservationRepository;
     private readonly IReservationPaymentProofRepository _paymentProofRepository;
     private readonly IReservationRefundRepository _refundRepository;
+    private readonly IFileRepository _fileRepository;
     private readonly IUserRestaurantRepository _userRestaurantRepository;
     private readonly IApplicationDbTransactionFactory _transactionFactory;
     private readonly IWorkflowActionService _workflowActionService;
     private readonly IRefundPayoutDetailsProtector _payoutDetailsProtector;
-    private readonly INotificationService _notificationService;
+    private readonly IFileAccessUrlService _fileAccessUrlService;
+    private readonly IReservationRefundNotifier _refundNotifier;
     private readonly IAuditLogService _auditLogService;
 
     public ReservationRefundManager(
@@ -63,22 +64,26 @@ public sealed class ReservationRefundManager : BaseManager, IReservationRefundSe
         IReservationRepository reservationRepository,
         IReservationPaymentProofRepository paymentProofRepository,
         IReservationRefundRepository refundRepository,
+        IFileRepository fileRepository,
         IUserRestaurantRepository userRestaurantRepository,
         IApplicationDbTransactionFactory transactionFactory,
         IWorkflowActionService workflowActionService,
         IRefundPayoutDetailsProtector payoutDetailsProtector,
-        INotificationService notificationService,
+        IFileAccessUrlService fileAccessUrlService,
+        IReservationRefundNotifier refundNotifier,
         IAuditLogService auditLogService)
         : base(httpContextAccessor, mapper, configuration)
     {
         _reservationRepository = reservationRepository;
         _paymentProofRepository = paymentProofRepository;
         _refundRepository = refundRepository;
+        _fileRepository = fileRepository;
         _userRestaurantRepository = userRestaurantRepository;
         _transactionFactory = transactionFactory;
         _workflowActionService = workflowActionService;
         _payoutDetailsProtector = payoutDetailsProtector;
-        _notificationService = notificationService;
+        _fileAccessUrlService = fileAccessUrlService;
+        _refundNotifier = refundNotifier;
         _auditLogService = auditLogService;
     }
 
@@ -94,7 +99,7 @@ public sealed class ReservationRefundManager : BaseManager, IReservationRefundSe
             userId,
             cancellationToken);
 
-        return refund is null ? null : MapResponse(refund);
+        return refund is null ? null : ReservationRefundResponseMapper.Map(refund);
     }
 
     public async Task<ReservationRefundResponse?> GetRestaurantByReservationAsync(
@@ -111,7 +116,7 @@ public sealed class ReservationRefundManager : BaseManager, IReservationRefundSe
             reservationId,
             cancellationToken);
 
-        return refund is null ? null : MapResponse(refund);
+        return refund is null ? null : ReservationRefundResponseMapper.Map(refund);
     }
 
     public async Task<RestaurantReservationRefundPayoutDetailsResponse> GetPayoutDetailsForRestaurantAsync(
@@ -151,7 +156,7 @@ public sealed class ReservationRefundManager : BaseManager, IReservationRefundSe
         {
             RefundId = refund.Id,
             Details = details,
-            SubmittedAt = ToUtcOffset(refund.PayoutDetails.SubmittedAt)
+            SubmittedAt = ReservationRefundResponseMapper.ToUtcOffset(refund.PayoutDetails.SubmittedAt)
         };
     }
 
@@ -236,7 +241,7 @@ public sealed class ReservationRefundManager : BaseManager, IReservationRefundSe
         await _refundRepository.Add(refund);
         await _refundRepository.SaveChangesAsync();
 
-        await NotifyRestaurantAsync(
+        await _refundNotifier.NotifyRestaurantAsync(
             reservation,
             refund,
             NotificationType.ReservationRefundRequested,
@@ -258,7 +263,7 @@ public sealed class ReservationRefundManager : BaseManager, IReservationRefundSe
 
         await transaction.CommitAsync(cancellationToken);
 
-        return MapResponse(refund);
+        return ReservationRefundResponseMapper.Map(refund);
     }
 
     public async Task<ReservationRefundResponse> SubmitPayoutDetailsAsync(
@@ -311,19 +316,16 @@ public sealed class ReservationRefundManager : BaseManager, IReservationRefundSe
             SubmittedByUserId = userId,
             SubmittedAt = now
         };
-        refund.StatusHistory.Add(new ReservationRefundStatusHistory
-        {
-            FromStatusId = refund.StatusId,
-            ToStatusId = readyForPayoutStatusId,
-            ChangedByUserId = userId,
-            ChangedAt = now,
-            Reason = "Müştəri geri ödəniş məlumatlarını göndərdi. Restoran ödənişi həyata keçirə bilər."
-        });
-        refund.StatusId = readyForPayoutStatusId;
+        ReservationRefundStatusTransition.Apply(
+            refund,
+            readyForPayoutStatusId,
+            userId,
+            now,
+            "Müştəri geri ödəniş məlumatlarını göndərdi. Restoran ödənişi həyata keçirə bilər.");
 
         await _refundRepository.SaveChangesAsync();
 
-        await NotifyRestaurantAsync(
+        await _refundNotifier.NotifyRestaurantAsync(
             refund.Reservation,
             refund,
             NotificationType.ReservationRefundPayoutDetailsSubmitted,
@@ -344,7 +346,118 @@ public sealed class ReservationRefundManager : BaseManager, IReservationRefundSe
 
         await transaction.CommitAsync(cancellationToken);
 
-        return MapResponse(refund);
+        return ReservationRefundResponseMapper.Map(refund);
+    }
+
+    public async Task EnsureTransferCanBeSubmittedAsync(
+        int restaurantId,
+        int refundId,
+        CancellationToken cancellationToken = default)
+    {
+        ValidateRestaurantId(restaurantId);
+        ValidateRefundId(refundId);
+        await EnsureRestaurantAccessAsync(restaurantId);
+
+        var refund = await _refundRepository.GetByIdForRestaurantSnapshotAsync(
+            restaurantId,
+            refundId,
+            cancellationToken);
+
+        if (refund is null)
+            throw new NotFoundException(ErrorCode.ReservationRefundNotFound);
+
+        await _workflowActionService.EnsureCanExecuteAsync(
+            RefundFlowCode,
+            refund.StatusId,
+            WorkflowActionCode.Refund.SubmitTransfer,
+            restaurantId,
+            refund.Id);
+    }
+
+    public async Task<ReservationRefundTransferResponse> SubmitTransferAsync(
+        int restaurantId,
+        int refundId,
+        string? transferReference,
+        int proofFileId,
+        CancellationToken cancellationToken = default)
+    {
+        ValidateRestaurantId(restaurantId);
+        ValidateRefundId(refundId);
+        if (proofFileId <= 0)
+            throw new BadRequestException(ErrorCode.RefundTransferProofRequired);
+
+        await EnsureRestaurantAccessAsync(restaurantId);
+        var normalizedTransferReference = NormalizeTransferReference(transferReference);
+        var userId = GetCurrentUserId();
+
+        await using var transaction = await _transactionFactory.BeginTransactionAsync(
+            IsolationLevel.ReadCommitted,
+            cancellationToken);
+
+        await _refundRepository.AcquireRefundLockAsync(refundId, cancellationToken);
+
+        var refund = await _refundRepository.GetByIdForRestaurantForUpdateAsync(
+            restaurantId,
+            refundId,
+            cancellationToken);
+
+        if (refund is null)
+            throw new NotFoundException(ErrorCode.ReservationRefundNotFound);
+
+        await _workflowActionService.EnsureCanExecuteAsync(
+            RefundFlowCode,
+            refund.StatusId,
+            WorkflowActionCode.Refund.SubmitTransfer,
+            restaurantId,
+            refund.Id);
+
+        var proofFile = await _fileRepository.GetAttachableByIdAsync(proofFileId);
+        if (proofFile is null ||
+            proofFile.FileTypeId != (int)FileTypeCode.PaymentReceipt ||
+            !string.Equals(proofFile.CreatedBy, userId.ToString(), StringComparison.Ordinal))
+        {
+            throw new BusinessRuleException(ErrorCode.FileNotFoundOrAlreadyAttached);
+        }
+
+        var now = DateTime.UtcNow;
+        var processingStatusId = StatusIds.Refund(RefundStatus.Processing);
+        var transfer = new ReservationRefundTransfer
+        {
+            Amount = refund.Amount,
+            TransferReference = normalizedTransferReference,
+            ProofFileId = proofFile.Id,
+            SubmittedByUserId = userId,
+            SubmittedAt = now
+        };
+        refund.TransferAttempts.Add(transfer);
+        ReservationRefundStatusTransition.Apply(
+            refund,
+            processingStatusId,
+            userId,
+            now,
+            "Restoran geri ödəniş çekini göndərdi. Müştərinin təsdiqi gözlənilir.");
+
+        await _refundRepository.SaveChangesAsync();
+
+        await _refundNotifier.NotifyCustomerTransferSubmittedAsync(refund, transfer);
+
+        await _auditLogService.RecordRestaurantActionAsync(
+            restaurantId,
+            AuditActions.ReservationRefundTransferSubmitted,
+            new
+            {
+                reservationId = refund.ReservationId,
+                refundId = refund.Id,
+                refundTransferId = transfer.Id,
+                proofFileId = proofFile.Id,
+                amount = transfer.Amount
+            },
+            AuditEntityTypes.ReservationRefund,
+            refund.Id);
+
+        await transaction.CommitAsync(cancellationToken);
+
+        return ReservationRefundResponseMapper.MapTransfer(refund, transfer, _fileAccessUrlService);
     }
 
     private async Task EnsureRestaurantAccessAsync(int restaurantId)
@@ -358,101 +471,6 @@ public sealed class ReservationRefundManager : BaseManager, IReservationRefundSe
 
         if (!RestaurantManagerRoleIds.Contains(GetCurrentRoleId(restaurantId)))
             throw new ForbiddenException(ErrorCode.OnlyRestaurantManagersCanManageRefund);
-    }
-
-    private async Task NotifyRestaurantAsync(
-        ReservationEntity reservation,
-        ReservationRefundEntity refund,
-        NotificationType notificationType,
-        string title,
-        string message)
-    {
-        var assignments = await _userRestaurantRepository.GetActiveByRestaurantAndRolesAsync(
-            reservation.RestaurantId,
-            RestaurantManagerRoleIds);
-
-        if (assignments.Count == 0)
-        {
-            var ownerAssignment = await _userRestaurantRepository
-                .GetActiveOwnerByRestaurantAsync(reservation.RestaurantId);
-
-            if (ownerAssignment is not null)
-                assignments.Add(ownerAssignment);
-        }
-
-        foreach (var assignment in assignments)
-        {
-            await _notificationService.CreateAsync(new CreateNotificationRequest
-            {
-                UserId = assignment.UserId,
-                RestaurantId = reservation.RestaurantId,
-                Title = title,
-                Message = message,
-                TypeId = (int)notificationType,
-                ChannelId = (int)NotificationChannel.InApp,
-                PayloadJson = SerializeNotificationPayload(reservation.RestaurantId, reservation.Id, refund),
-                RelatedEntityType = AuditEntityTypes.ReservationRefund,
-                RelatedEntityId = refund.Id
-            });
-        }
-    }
-
-    private static string SerializeNotificationPayload(
-        int restaurantId,
-        int reservationId,
-        ReservationRefundEntity refund)
-    {
-        return JsonSerializer.Serialize(new
-        {
-            restaurantId,
-            reservationId,
-            refundId = refund.Id,
-            refundStatusId = refund.StatusId
-        });
-    }
-
-    private static ReservationRefundResponse MapResponse(ReservationRefundEntity refund)
-    {
-        return new ReservationRefundResponse
-        {
-            Id = refund.Id,
-            ReservationId = refund.ReservationId,
-            SourcePaymentProofId = refund.SourcePaymentProofId,
-            StatusId = refund.StatusId,
-            Status = refund.Status?.Name ?? RefundStatus.AwaitingPayoutDetails.GetName(),
-            WorkflowFlowCode = RefundFlowCode,
-            Amount = refund.Amount,
-            CurrencyCode = refund.CurrencyCode,
-            RequestedAt = ToUtcOffset(refund.RequestedAt),
-            ApprovedAt = ToNullableUtcOffset(refund.ApprovedAt),
-            RefundedAt = ToNullableUtcOffset(refund.RefundedAt),
-            EligibilityReason = refund.EligibilityReason,
-            CancellationReason = refund.CancellationReasonSnapshot,
-            PayoutDetails = refund.PayoutDetails is null
-                ? null
-                : new ReservationRefundPayoutDetailsResponse
-                {
-                    MaskedDetails = refund.PayoutDetails.MaskedDetails,
-                    SubmittedAt = ToUtcOffset(refund.PayoutDetails.SubmittedAt)
-                },
-            History = refund.StatusHistory
-                .OrderBy(history => history.ChangedAt)
-                .ThenBy(history => history.Id)
-                .Select(history => new ReservationRefundStatusHistoryResponse
-                {
-                    Id = history.Id,
-                    FromStatus = history.FromStatus?.Name,
-                    ToStatus = history.ToStatus?.Name ?? RefundStatus.AwaitingPayoutDetails.GetName(),
-                    ChangedAt = ToUtcOffset(history.ChangedAt),
-                    ActorType = history.ChangedByUserId is null
-                        ? "System"
-                        : history.ChangedByUserId == refund.Reservation.CustomerUserId
-                            ? "Customer"
-                            : "Restaurant",
-                    Reason = history.Reason
-                })
-                .ToList()
-        };
     }
 
     private static string BuildEligibilityReason(ReservationEntity reservation)
@@ -489,16 +507,19 @@ public sealed class ReservationRefundManager : BaseManager, IReservationRefundSe
         return normalizedDetails;
     }
 
+    private static string? NormalizeTransferReference(string? transferReference)
+    {
+        var normalizedReference = transferReference?.Trim();
+        if (normalizedReference?.Length > 100)
+            throw new BadRequestException(ErrorCode.InvalidRefundTransferReference);
+
+        return string.IsNullOrWhiteSpace(normalizedReference) ? null : normalizedReference;
+    }
+
     private static void ValidateRestaurantId(int restaurantId)
     {
         if (restaurantId <= 0)
             throw new BadRequestException(ErrorCode.InvalidRestaurantId);
     }
-
-    private static DateTimeOffset ToUtcOffset(DateTime value)
-        => new(DateTime.SpecifyKind(value, DateTimeKind.Utc), TimeSpan.Zero);
-
-    private static DateTimeOffset? ToNullableUtcOffset(DateTime? value)
-        => value.HasValue ? ToUtcOffset(value.Value) : null;
 
 }

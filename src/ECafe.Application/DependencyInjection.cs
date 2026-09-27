@@ -124,6 +124,7 @@ namespace ECafe.Application
             services.AddScoped<IInventoryMovementService, InventoryMovementManager>();
             services.AddScoped<IRecipeService, RecipeManager>();
             services.AddScoped<IReservationService,ReservationManager>();
+            services.AddScoped<IReservationRefundNotifier, ReservationRefundNotifier>();
             services.AddScoped<IReservationRefundService, ReservationRefundManager>();
 
             return services;
