@@ -7,6 +7,7 @@ using ECafe.Application.Features.Commands.Reservation.RejectPaymentProof;
 using ECafe.Application.Features.Commands.Reservation.SendPaymentInstruction;
 using ECafe.Application.Features.Queries.Reservation.GetRestaurant;
 using ECafe.Application.Features.Queries.Reservation.GetRestaurantHistory;
+using ECafe.Application.Features.Queries.Reservation.GetRestaurantRefund;
 using ECafe.Domain.Enums;
 using ECafe.Infrastructure.Authorization;
 using Microsoft.AspNetCore.Authorization;
@@ -159,4 +160,21 @@ public sealed class RestaurantReservationController : BaseController
 
         return Ok(result);
     }
+
+    [HasPermission(PermissionCode.ManageReservations)]
+    [HttpGet("api/v1/restaurants/{restaurantId:int}/reservations/{reservationId:int}/refund")]
+    public async Task<IActionResult> GetRefund(
+        [FromRoute] int restaurantId,
+        [FromRoute] int reservationId,
+        CancellationToken cancellationToken)
+    {
+        var result = await Mediator.Send(new GetRestaurantReservationRefundQuery
+        {
+            RestaurantId = restaurantId,
+            ReservationId = reservationId
+        }, cancellationToken);
+
+        return result is null ? NoContent() : Ok(result);
+    }
+
 }

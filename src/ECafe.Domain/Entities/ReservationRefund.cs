@@ -40,4 +40,7 @@ public class ReservationRefund : AuditableSoftDeletableEntity<int>
 
     public virtual ICollection<ReservationRefundTransfer> TransferAttempts { get; set; }
         = new List<ReservationRefundTransfer>();
+
+    public virtual ICollection<ReservationRefundStatusHistory> StatusHistory { get; set; }
+        = new List<ReservationRefundStatusHistory>();
 }

@@ -1,10 +1,12 @@
 using ECafe.Application.DTOs.Reservation;
 using ECafe.Application.Features.Commands.Reservation.Cancel;
 using ECafe.Application.Features.Commands.Reservation.Create;
+using ECafe.Application.Features.Commands.Reservation.RequestRefund;
 using ECafe.Application.Features.Commands.Reservation.SubmitPaymentProof;
 using ECafe.Application.Features.Queries.Reservation.GetById;
 using ECafe.Application.Features.Queries.Reservation.GetHistory;
 using ECafe.Application.Features.Queries.Reservation.GetMy;
+using ECafe.Application.Features.Queries.Reservation.GetMyRefund;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -93,5 +95,29 @@ public sealed class ReservationController : BaseController
         }, cancellationToken);
 
         return Ok(result);
+    }
+
+    [HttpGet("api/v1/public/reservations/{reservationId:int}/refund")]
+    public async Task<IActionResult> GetRefund(
+        [FromRoute] int reservationId,
+        CancellationToken cancellationToken)
+    {
+        var result = await Mediator.Send(
+            new GetMyReservationRefundQuery(reservationId),
+            cancellationToken);
+
+        return result is null ? NoContent() : Ok(result);
+    }
+
+    [HttpPost("api/v1/public/reservations/{reservationId:int}/refunds")]
+    public async Task<IActionResult> RequestRefund(
+        [FromRoute] int reservationId,
+        CancellationToken cancellationToken)
+    {
+        var result = await Mediator.Send(
+            new RequestReservationRefundCommand { ReservationId = reservationId },
+            cancellationToken);
+
+        return StatusCode(StatusCodes.Status201Created, result);
     }
 }

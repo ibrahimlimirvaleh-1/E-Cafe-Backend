@@ -9,6 +9,7 @@ namespace ECafe.Application.Common.Audit
         public const string Category = "Category";
         public const string Item = "Item";
         public const string Reservation = "Reservation";
+        public const string ReservationRefund = "ReservationRefund";
         public const string Order = "Order";
     }
 }
