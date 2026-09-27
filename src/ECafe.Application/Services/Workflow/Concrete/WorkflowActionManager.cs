@@ -50,16 +50,16 @@ public class WorkflowActionManager : BaseManager, IWorkflowActionService
         var roleId = restaurantId.HasValue
             ? GetCurrentRoleId(restaurantId.Value)
             : GetCurrentRoleId();
-        var isOwnedCustomerReservation = await IsOwnedCustomerReservationContextAsync(
+        var isOwnedCustomerWorkflowContext = await IsOwnedCustomerWorkflowContextAsync(
             normalizedFlowCode,
             roleId,
             restaurantId,
             entityId);
 
-        if (roleId == (int)RoleCode.Customer && !isOwnedCustomerReservation)
+        if (roleId == (int)RoleCode.Customer && !isOwnedCustomerWorkflowContext)
             return [];
 
-        if (restaurantId.HasValue && !isOwnedCustomerReservation)
+        if (restaurantId.HasValue && !isOwnedCustomerWorkflowContext)
             EnsureCurrentUserCanAccessRestaurant(restaurantId.Value);
 
         if (!await IsCurrentUserAllowedForWorkflowContextAsync(restaurantId, roleId))
@@ -167,16 +167,16 @@ public class WorkflowActionManager : BaseManager, IWorkflowActionService
         var roleId = restaurantId.HasValue
             ? GetCurrentRoleId(restaurantId.Value)
             : GetCurrentRoleId();
-        var isOwnedCustomerReservation = await IsOwnedCustomerReservationContextAsync(
+        var isOwnedCustomerWorkflowContext = await IsOwnedCustomerWorkflowContextAsync(
             normalizedFlowCode,
             roleId,
             restaurantId,
             entityId);
 
-        if (roleId == (int)RoleCode.Customer && !isOwnedCustomerReservation)
+        if (roleId == (int)RoleCode.Customer && !isOwnedCustomerWorkflowContext)
             throw new ForbiddenException("Workflow action is not allowed for this reservation.");
 
-        if (restaurantId.HasValue && !isOwnedCustomerReservation)
+        if (restaurantId.HasValue && !isOwnedCustomerWorkflowContext)
             EnsureCurrentUserCanAccessRestaurant(restaurantId.Value);
 
         if (!await IsCurrentUserAllowedForWorkflowContextAsync(restaurantId, roleId))
@@ -229,24 +229,38 @@ public class WorkflowActionManager : BaseManager, IWorkflowActionService
         return owner?.UserId == GetCurrentUserId();
     }
 
-    private async Task<bool> IsOwnedCustomerReservationContextAsync(
+    private async Task<bool> IsOwnedCustomerWorkflowContextAsync(
         string normalizedFlowCode,
         int roleId,
         int? restaurantId,
         int? entityId)
     {
         if (roleId != (int)RoleCode.Customer ||
-            normalizedFlowCode != WorkflowFlowCode.FromStatusType(StatusType.Reservation) ||
             !restaurantId.HasValue ||
             !entityId.HasValue)
         {
             return false;
         }
 
-        return await _reservationRepository.IsOwnedByCustomerAsync(
-            restaurantId.Value,
-            entityId.Value,
-            GetCurrentUserId());
+        var userId = GetCurrentUserId();
+
+        if (normalizedFlowCode == WorkflowFlowCode.FromStatusType(StatusType.Reservation))
+        {
+            return await _reservationRepository.IsOwnedByCustomerAsync(
+                restaurantId.Value,
+                entityId.Value,
+                userId);
+        }
+
+        if (normalizedFlowCode == WorkflowFlowCode.FromStatusType(StatusType.Refund))
+        {
+            return await _reservationRefundRepository.IsOwnedByCustomerAsync(
+                restaurantId.Value,
+                entityId.Value,
+                userId);
+        }
+
+        return false;
     }
 
     private static string NormalizeFlowCode(string flowCode)

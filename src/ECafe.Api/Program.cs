@@ -15,6 +15,7 @@ using ECafe.Infrastructure.Context;
 using ECafe.Infrastructure.Redis;
 using ECafe.Shared.Services.Jwt.Abstract;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -27,6 +28,17 @@ using System.Text;
 using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
+
+var dataProtection = builder.Services
+    .AddDataProtection()
+    .SetApplicationName("ECafe");
+
+var dataProtectionKeyRingPath = builder.Configuration["DataProtection:KeyRingPath"];
+if (string.IsNullOrWhiteSpace(dataProtectionKeyRingPath) && builder.Environment.IsProduction())
+    dataProtectionKeyRingPath = "/var/lib/ecafe/data-protection-keys";
+
+if (!string.IsNullOrWhiteSpace(dataProtectionKeyRingPath))
+    dataProtection.PersistKeysToFileSystem(new DirectoryInfo(dataProtectionKeyRingPath));
 
 if (builder.Environment.IsEnvironment("Local"))
 {

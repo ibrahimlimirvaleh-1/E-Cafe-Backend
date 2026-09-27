@@ -24,6 +24,22 @@ public interface IReservationRefundRepository : IBaseRepository<Domain.Entities.
         int refundId,
         CancellationToken cancellationToken = default);
 
+    Task<Domain.Entities.ReservationRefund?> GetByIdForCustomerSnapshotAsync(
+        int refundId,
+        int customerUserId,
+        CancellationToken cancellationToken = default);
+
+    Task<Domain.Entities.ReservationRefund?> GetByIdForCustomerForUpdateAsync(
+        int refundId,
+        int customerUserId,
+        CancellationToken cancellationToken = default);
+
+    Task<bool> IsOwnedByCustomerAsync(
+        int restaurantId,
+        int refundId,
+        int customerUserId,
+        CancellationToken cancellationToken = default);
+
     Task<bool> HasForReservationAsync(int reservationId, CancellationToken cancellationToken = default);
 
     Task<bool> IsRequestAvailableAsync(

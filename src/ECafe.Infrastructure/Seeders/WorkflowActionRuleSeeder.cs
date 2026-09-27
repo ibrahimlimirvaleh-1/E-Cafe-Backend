@@ -20,6 +20,9 @@ public static class WorkflowActionRuleSeeder
     private static string PaymentFlow
         => WorkflowFlowCode.FromStatusType(StatusTypeEnum.PaymentStatus);
 
+    private static string RefundFlow
+        => WorkflowFlowCode.FromStatusType(StatusTypeEnum.Refund);
+
     public static void Seed(ModelBuilder modelBuilder)
     {
         var rules = new List<WorkflowActionRule>();
@@ -34,6 +37,7 @@ public static class WorkflowActionRuleSeeder
         AddReservationResponseRules(rules, ref id);
         AddReservationSessionRules(rules, ref id);
         AddReservationRefundRules(rules, ref id);
+        AddRefundPayoutDetailsRules(rules, ref id);
 
         modelBuilder.Entity<WorkflowActionRule>().HasData(rules);
     }
@@ -78,6 +82,21 @@ public static class WorkflowActionRuleSeeder
         rules.Add(Rule(id++, ReservationFlow, StatusTypeEnum.Reservation, ReservationStatus.Confirmed, RoleCode.Manager, "cancel", "Rezervasiyanı ləğv et", "POST", "/api/v1/restaurants/{restaurantId}/reservations/{reservationId}/cancel", 90, true));
         rules.Add(Rule(id++, ReservationFlow, StatusTypeEnum.Reservation, ReservationStatus.Confirmed, RoleCode.Owner, "cancel", "Rezervasiyanı ləğv et", "POST", "/api/v1/restaurants/{restaurantId}/reservations/{reservationId}/cancel", 90, true));
         rules.Add(Rule(id++, ReservationFlow, StatusTypeEnum.Reservation, ReservationStatus.Cancelled, RoleCode.Customer, WorkflowActionCode.Reservation.RequestRefund, "Geri ödəniş soruş", "POST", "/api/v1/public/reservations/{reservationId}/refunds", 100, true));
+    }
+
+    private static void AddRefundPayoutDetailsRules(List<WorkflowActionRule> rules, ref int id)
+    {
+        rules.Add(Rule(
+            id++,
+            RefundFlow,
+            StatusTypeEnum.Refund,
+            RefundStatus.AwaitingPayoutDetails,
+            RoleCode.Customer,
+            WorkflowActionCode.Refund.SubmitPayoutDetails,
+            "Geri ödəniş məlumatını göndər",
+            "POST",
+            "/api/v1/public/refunds/{refundId}/payout-details",
+            10));
     }
 
     private static void AddReceiptReservationRules(List<WorkflowActionRule> rules, ref int id)

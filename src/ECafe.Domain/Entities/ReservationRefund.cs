@@ -38,6 +38,8 @@ public class ReservationRefund : AuditableSoftDeletableEntity<int>
 
     public virtual User? ApprovedByUser { get; set; }
 
+    public virtual ReservationRefundPayoutDetail? PayoutDetails { get; set; }
+
     public virtual ICollection<ReservationRefundTransfer> TransferAttempts { get; set; }
         = new List<ReservationRefundTransfer>();
 

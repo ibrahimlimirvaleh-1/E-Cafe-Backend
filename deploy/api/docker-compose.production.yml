@@ -16,6 +16,8 @@ services:
       retries: 3
       start_period: 30s
     restart: unless-stopped
+    volumes:
+      - data_protection_keys:/var/lib/ecafe/data-protection-keys
 
   migrator:
     image: ${ECAFE_MIGRATOR_IMAGE:-ecafe-api-migrator:local}
@@ -28,3 +30,6 @@ services:
     profiles:
       - migrate
     restart: "no"
+
+volumes:
+  data_protection_keys:
