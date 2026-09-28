@@ -349,13 +349,13 @@ public sealed class ReservationManager : BaseManager, IReservationService
             reservation.Id);
 
         if (reservation.StatusId != confirmedStatusId)
-            throw new BusinessRuleException("Bu rezervasiya check-in üçün təsdiqlənmiş vəziyyətdə deyil.");
+            throw new BusinessRuleException("Bu rezervasiya müştərini masaya əyləşdirmək üçün təsdiqlənməyib.");
 
         if (reservation.ReservedAt > nowUtc)
             throw new BusinessRuleException("Rezervasiya vaxtı hələ çatmayıb.");
 
         if (reservation.NoShowDeadlineAt < nowUtc)
-            throw new BusinessRuleException("Rezervasiyanın check-in müddəti bitib.");
+            throw new BusinessRuleException("Müştərini masaya əyləşdirmək üçün ayrılan vaxt bitib.");
 
         if (await _tableRepository.HasOpenTableSessionAsync(restaurantId, reservation.TableId))
             throw new BusinessRuleException(ErrorCode.TableAlreadyReserved);
@@ -380,7 +380,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
             ToStatusId = seatedStatusId,
             ChangedByUserId = userId,
             ChangedAt = nowUtc,
-            Reason = "Müştəri check-in etdi və masa sessiyası açıldı."
+            Reason = "Müştəri masaya əyləşdi və masa açıldı."
         });
 
         await _reservationRepository.SaveChangesAsync();
@@ -388,8 +388,8 @@ public sealed class ReservationManager : BaseManager, IReservationService
             restaurantId,
             reservation,
             NotificationType.ReservationCheckedIn,
-            "Rezervasiya check-in edildi",
-            $"Rezervasiya #{reservation.Id} üçün masa sessiyası açıldı.");
+            "Masanız açıldı",
+            $"Rezervasiya #{reservation.Id} üzrə restoran gəlişinizi təsdiqlədi və masanız açıldı.");
         await _auditLogService.RecordRestaurantActionAsync(
             restaurantId,
             AuditActions.ReservationCheckedIn,
@@ -403,7 +403,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
             reservation.Id,
             seatedStatusId,
             ReservationStatus.Seated,
-            "Müştəri check-in edildi, masa sessiyası açıldı.");
+            "Müştərinin gəlişi təsdiqləndi və masa açıldı.");
     }
 
     public async Task<ReservationActionResponse> CompleteReservationAsync(
