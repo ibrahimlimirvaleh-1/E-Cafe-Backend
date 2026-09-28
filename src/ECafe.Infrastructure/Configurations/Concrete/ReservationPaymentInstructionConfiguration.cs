@@ -14,9 +14,15 @@ public class ReservationPaymentInstructionConfiguration : DbEntityConfig<Reserva
 
         builder.Property(e => e.Id).HasColumnName("id");
         builder.Property(e => e.ReservationId).HasColumnName("reservation_id");
-        builder.Property(e => e.DisplayText)
+        builder.Property(e => e.LegacyDisplayText)
             .HasMaxLength(1000)
-            .HasColumnName("display_text");
+            .HasColumnName("legacy_display_text");
+        builder.Property(e => e.EncryptedDetails)
+            .HasMaxLength(4000)
+            .HasColumnName("encrypted_details");
+        builder.Property(e => e.MaskedDetails)
+            .HasMaxLength(100)
+            .HasColumnName("masked_details");
         builder.Property(e => e.Amount)
             .HasPrecision(18, 2)
             .HasColumnName("amount");

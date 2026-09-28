@@ -140,6 +140,8 @@ public sealed class ErrorMessageProvider : IErrorMessageProvider
         [ErrorCode.OnlyRestaurantManagersCanManageRefund] = "Geri ödəniş sorğularını yalnız restoran sahibi və ya meneceri idarə edə bilər.",
         [ErrorCode.RefundTransferProofRequired] = "Geri ödəniş çekini seçin.",
         [ErrorCode.InvalidRefundTransferReference] = "Transfer referansı 100 simvoldan uzun ola bilməz.",
+        [ErrorCode.InvalidReservationPaymentInstruction] = "Ödəniş məlumatı 4 ilə 1000 simvol arasında olmalıdır.",
+        [ErrorCode.ReservationPaymentInstructionSensitiveDataProhibited] = "CVV, CVC və PIN göndərmək olmaz. Yalnız ödəniş üçün lazım olan hesab və ya kart məlumatını daxil edin.",
 
     };
 

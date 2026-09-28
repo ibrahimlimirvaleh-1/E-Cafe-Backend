@@ -281,6 +281,7 @@ builder.Services.AddHostedService<AuditOutboxWorker>();
 builder.Services.AddHostedService<EmailOutboxWorker>();
 builder.Services.AddHostedService<ContractExpiryWorker>();
 builder.Services.AddHostedService<ReservationExpiryWorker>();
+builder.Services.AddHostedService<PaymentInstructionEncryptionBackfillWorker>();
 
 builder.Services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
 builder.Services.AddScoped<IAuthorizationHandler, ActiveRestaurantContractAuthorizationHandler>();

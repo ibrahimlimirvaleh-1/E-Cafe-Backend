@@ -6,7 +6,12 @@ public class ReservationPaymentInstruction : AuditableSoftDeletableEntity<int>
 {
     public int ReservationId { get; set; }
 
-    public string DisplayText { get; set; } = null!;
+    // Kept only until the background worker encrypts records created before this change.
+    public string? LegacyDisplayText { get; set; }
+
+    public string? EncryptedDetails { get; set; }
+
+    public string? MaskedDetails { get; set; }
 
     public decimal Amount { get; set; }
 

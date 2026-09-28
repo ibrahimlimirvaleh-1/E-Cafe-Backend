@@ -138,5 +138,7 @@ public enum ErrorCode
     RefundPayoutSensitiveDataProhibited = 5034,
     OnlyRestaurantManagersCanManageRefund = 5035,
     RefundTransferProofRequired = 5036,
-    InvalidRefundTransferReference = 5037
+    InvalidRefundTransferReference = 5037,
+    InvalidReservationPaymentInstruction = 5038,
+    ReservationPaymentInstructionSensitiveDataProhibited = 5039
 }

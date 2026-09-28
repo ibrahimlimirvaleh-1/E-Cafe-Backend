@@ -1,5 +1,6 @@
 using System.Data;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using AutoMapper;
 using ECafe.Application.Common.Audit;
 using ECafe.Application.Common.Exceptions;
@@ -19,6 +20,7 @@ using ECafe.Application.Services.Notification.Abstract;
 using ECafe.Application.Services.AuditLog.Abstract;
 using ECafe.Application.Services.FileAccess.Abstract;
 using ECafe.Application.Services.Reservation.Abstract;
+using ECafe.Application.Services.PaymentInstructionDetails.Abstract;
 using ECafe.Application.Services.Workflow.Abstract;
 using ECafe.Domain.Entities;
 using ECafe.Domain.Enums;
@@ -37,6 +39,9 @@ namespace ECafe.Application.Services.Reservation.Concrete;
 public sealed class ReservationManager : BaseManager, IReservationService
 {
     private const string SubmitPaymentProofActionCode = "submitPaymentProof";
+    private static readonly Regex ProhibitedPaymentInstructionDetailsPattern = new(
+        @"\b(cvv|cvc|pin)(?:\s*2)?\b",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
     private static string ReservationFlowCode
         => WorkflowFlowCode.FromStatusType(StatusTypeEnum.Reservation);
 
@@ -60,6 +65,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
     private readonly IFileRepository _fileRepository;
     private readonly IFileAccessUrlService _fileAccessUrlService;
     private readonly IWorkflowActionService _workflowActionService;
+    private readonly IPaymentInstructionDetailsProtector _paymentInstructionDetailsProtector;
 
     public ReservationManager(
         IHttpContextAccessor httpContextAccessor,
@@ -78,7 +84,8 @@ public sealed class ReservationManager : BaseManager, IReservationService
         IReservationPaymentProofRepository reservationPaymentProofRepository,
         IFileRepository fileRepository,
         IFileAccessUrlService fileAccessUrlService,
-        IWorkflowActionService workflowActionService)
+        IWorkflowActionService workflowActionService,
+        IPaymentInstructionDetailsProtector paymentInstructionDetailsProtector)
         : base(httpContextAccessor, mapper, configuration)
     {
         _tableRepository = tableRepository;
@@ -95,6 +102,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
         _fileRepository = fileRepository;
         _fileAccessUrlService = fileAccessUrlService;
         _workflowActionService = workflowActionService;
+        _paymentInstructionDetailsProtector = paymentInstructionDetailsProtector;
     }
 
     public async Task<ReservationResponse> CreateReservationAsync(
@@ -488,12 +496,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
 
     public async Task<PaymentInstructionResponse> SendPaymentInstructionAsync(int restaurantId, int reservationId, PaymentInstructionRequest request, CancellationToken cancellationToken = default)
     {
-        if (request is null || string.IsNullOrWhiteSpace(request.DisplayText))
-            throw new BadRequestException("Ödəniş məlumatı boş ola bilməz.");
-
-        var displayText = request.DisplayText.Trim();
-        if (displayText.Length > 1000)
-            throw new BadRequestException("Ödəniş məlumatı 1000 simvoldan çox ola bilməz.");
+        var displayText = NormalizePaymentInstructionDetails(request?.DisplayText);
 
         var userId = GetCurrentUserId();
 
@@ -544,7 +547,8 @@ public sealed class ReservationManager : BaseManager, IReservationService
         var paymentInstruction = new ReservationPaymentInstruction
         {
             ReservationId = reservation.Id,
-            DisplayText = displayText,
+            EncryptedDetails = _paymentInstructionDetailsProtector.Protect(displayText),
+            MaskedDetails = _paymentInstructionDetailsProtector.CreateMaskedDetails(displayText),
             Amount = reservation.DepositAmount,
             SentByUserId = userId,
             SentAt = now
@@ -632,17 +636,11 @@ public sealed class ReservationManager : BaseManager, IReservationService
 
         await transaction.CommitAsync(cancellationToken);
 
-        return new PaymentInstructionResponse
-        {
-            Id = paymentInstruction.Id,
-            ReservationId = reservation.Id,
-            Status = reservation.StatusId == paymentPendingStatusId
+        return MapPaymentInstructionResponse(
+            paymentInstruction,
+            reservation.StatusId == paymentPendingStatusId
                 ? ReservationStatus.PendingPayment.GetName()
-                : reservation.Status?.Name ?? ReservationStatus.PendingPayment.ToString(),
-            DisplayText = paymentInstruction.DisplayText,
-            Amount = paymentInstruction.Amount,
-            SentAt = paymentInstruction.SentAt
-        };
+                : reservation.Status?.Name ?? ReservationStatus.PendingPayment.ToString());
     }
 
     public async Task<PaymentProofResponse> SubmitPaymentProofAsync(
@@ -1097,6 +1095,44 @@ public sealed class ReservationManager : BaseManager, IReservationService
             throw new BadRequestException("Rezervasiya vaxtı gələcək tarix olmalıdır.");
     }
 
+    private static string NormalizePaymentInstructionDetails(string? details)
+    {
+        var normalizedDetails = details?.Trim() ?? string.Empty;
+
+        if (normalizedDetails.Length is < 4 or > 1000)
+            throw new BadRequestException(ErrorCode.InvalidReservationPaymentInstruction);
+
+        if (ProhibitedPaymentInstructionDetailsPattern.IsMatch(normalizedDetails))
+        {
+            throw new BadRequestException(
+                ErrorCode.ReservationPaymentInstructionSensitiveDataProhibited);
+        }
+
+        return normalizedDetails;
+    }
+
+    private PaymentInstructionResponse MapPaymentInstructionResponse(
+        ReservationPaymentInstruction instruction,
+        string status)
+    {
+        var details = !string.IsNullOrWhiteSpace(instruction.EncryptedDetails)
+            ? _paymentInstructionDetailsProtector.Unprotect(instruction.EncryptedDetails)
+            : instruction.LegacyDisplayText
+                ?? throw new BusinessRuleException(ErrorCode.InvalidReservationPaymentInstruction);
+
+        return new PaymentInstructionResponse
+        {
+            Id = instruction.Id,
+            ReservationId = instruction.ReservationId,
+            Status = status,
+            DisplayText = details,
+            MaskedDetails = instruction.MaskedDetails,
+            IsDetailsProtected = !string.IsNullOrWhiteSpace(instruction.EncryptedDetails),
+            Amount = instruction.Amount,
+            SentAt = instruction.SentAt
+        };
+    }
+
     private ReservationResponse MapResponse(Domain.Entities.Reservation reservation)
     {
         var latestPaymentInstruction = reservation.PaymentInstructions
@@ -1134,15 +1170,9 @@ public sealed class ReservationManager : BaseManager, IReservationService
                 : $"{reservation.CustomerUser.Name} {reservation.CustomerUser.Surname}".Trim(),
             LatestPaymentInstruction = latestPaymentInstruction is null
                 ? null
-                : new PaymentInstructionResponse
-                {
-                    Id = latestPaymentInstruction.Id,
-                    ReservationId = reservation.Id,
-                    Status = reservation.Status?.Name ?? ReservationStatus.PendingPayment.ToString(),
-                    DisplayText = latestPaymentInstruction.DisplayText,
-                    Amount = latestPaymentInstruction.Amount,
-                    SentAt = latestPaymentInstruction.SentAt
-                },
+                : MapPaymentInstructionResponse(
+                    latestPaymentInstruction,
+                    reservation.Status?.Name ?? ReservationStatus.PendingPayment.ToString()),
             LatestPaymentProof = latestPaymentProof is null
                 ? null
                 : new PaymentProofResponse
