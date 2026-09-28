@@ -241,7 +241,7 @@ public class ReservationRepository : BaseRepository<Domain.Entities.Reservation>
                 FromStatusId = confirmedStatusId,
                 ToStatusId = noShowStatusId,
                 ChangedAt = nowUtc,
-                Reason = "Müştəri no-show müddəti ərzində check-in etmədi."
+                Reason = "Müştəri gəliş üçün ayrılan vaxtda masaya əyləşmədi."
             });
         }
 

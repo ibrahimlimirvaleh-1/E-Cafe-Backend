@@ -193,7 +193,7 @@ public class WorkflowActionManager : BaseManager, IWorkflowActionService
                 entityId.Value,
                 DateTime.UtcNow))
         {
-            throw new ForbiddenException("Rezervasiya hazırda check-in üçün uyğun vaxtda deyil.");
+            throw new ForbiddenException("Müştərini masaya əyləşdirmək üçün uyğun vaxt deyil.");
         }
 
         if (roleId == (int)RoleCode.Customer &&
