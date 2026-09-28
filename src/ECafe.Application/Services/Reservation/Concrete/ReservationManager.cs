@@ -1115,18 +1115,26 @@ public sealed class ReservationManager : BaseManager, IReservationService
         ReservationPaymentInstruction instruction,
         string status)
     {
-        var details = !string.IsNullOrWhiteSpace(instruction.EncryptedDetails)
-            ? _paymentInstructionDetailsProtector.Unprotect(instruction.EncryptedDetails)
-            : instruction.LegacyDisplayText
-                ?? throw new BusinessRuleException(ErrorCode.InvalidReservationPaymentInstruction);
+        var isSuperAdmin = IsCurrentUserSuperAdmin();
+        var details = isSuperAdmin ? instruction.MaskedDetails : null;
+        if (string.IsNullOrWhiteSpace(details))
+        {
+            details = !string.IsNullOrWhiteSpace(instruction.EncryptedDetails)
+                ? _paymentInstructionDetailsProtector.Unprotect(instruction.EncryptedDetails)
+                : instruction.LegacyDisplayText
+                    ?? throw new BusinessRuleException(ErrorCode.InvalidReservationPaymentInstruction);
+        }
+
+        var maskedDetails = instruction.MaskedDetails
+            ?? _paymentInstructionDetailsProtector.CreateMaskedDetails(details);
 
         return new PaymentInstructionResponse
         {
             Id = instruction.Id,
             ReservationId = instruction.ReservationId,
             Status = status,
-            DisplayText = details,
-            MaskedDetails = instruction.MaskedDetails,
+            DisplayText = isSuperAdmin ? maskedDetails : details,
+            MaskedDetails = maskedDetails,
             IsDetailsProtected = !string.IsNullOrWhiteSpace(instruction.EncryptedDetails),
             Amount = instruction.Amount,
             SentAt = instruction.SentAt
