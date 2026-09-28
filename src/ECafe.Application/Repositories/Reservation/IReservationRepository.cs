@@ -66,7 +66,7 @@ public interface IReservationRepository : IBaseRepository<Domain.Entities.Reserv
 
     Task<PaginatedList<Domain.Entities.Reservation>> GetForCustomerAsync(
         int customerUserId,
-        ReservationQueryRequest request,
+        MyReservationsQueryRequest request,
         CancellationToken cancellationToken = default);
 
     Task<int> ExpirePendingPaymentsAsync(

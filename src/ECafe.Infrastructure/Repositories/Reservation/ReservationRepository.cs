@@ -158,10 +158,18 @@ public class ReservationRepository : BaseRepository<Domain.Entities.Reservation>
 
     public Task<PaginatedList<Domain.Entities.Reservation>> GetForCustomerAsync(
         int customerUserId,
-        ReservationQueryRequest request,
+        MyReservationsQueryRequest request,
         CancellationToken cancellationToken = default)
     {
         var query = WithDetails(Query().Where(r => r.CustomerUserId == customerUserId));
+
+        var restaurantName = request.RestaurantName?.Trim();
+        if (!string.IsNullOrEmpty(restaurantName))
+        {
+            var escapedName = restaurantName.Replace(@"\", @"\\").Replace("%", @"\%").Replace("_", @"\_");
+            query = query.Where(r => EF.Functions.ILike(r.Restaurant.Name, $"%{escapedName}%", @"\"));
+        }
+
         return CreatePageAsync(query, request, cancellationToken);
     }
 

@@ -5,7 +5,7 @@ using MediatR;
 
 namespace ECafe.Application.Features.Queries.Reservation.GetMy;
 
-public sealed class GetMyReservationsQuery : ReservationQueryRequest, IRequest<PaginatedList<ReservationResponse>>
+public sealed class GetMyReservationsQuery : MyReservationsQueryRequest, IRequest<PaginatedList<ReservationResponse>>
 {
 }
 

@@ -223,9 +223,12 @@ public sealed class ReservationManager : BaseManager, IReservationService
     }
 
     public async Task<PaginatedList<ReservationResponse>> GetMyReservationsAsync(
-        ReservationQueryRequest request,
+        MyReservationsQueryRequest request,
         CancellationToken cancellationToken = default)
     {
+        if (request.RestaurantName is { Length: > 100 })
+            throw new BadRequestException("Restoran adı üzrə axtarış maksimum 100 simvol ola bilər.");
+
         var reservations = await _reservationRepository.GetForCustomerAsync(
             GetCurrentUserId(),
             request,
