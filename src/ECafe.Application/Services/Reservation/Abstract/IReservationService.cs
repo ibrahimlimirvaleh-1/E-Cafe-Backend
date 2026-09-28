@@ -14,7 +14,7 @@ public interface IReservationService
         CancellationToken cancellationToken = default);
 
     Task<PaginatedList<ReservationResponse>> GetMyReservationsAsync(
-        ReservationQueryRequest request,
+        MyReservationsQueryRequest request,
         CancellationToken cancellationToken = default);
 
     Task<PaginatedList<ReservationResponse>> GetRestaurantReservationsAsync(

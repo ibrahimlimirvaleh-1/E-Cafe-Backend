@@ -7,3 +7,8 @@ public class ReservationQueryRequest
     public int? StatusId { get; set; }
     public DateTimeOffset? ReservedDate { get; set; }
 }
+
+public class MyReservationsQueryRequest : ReservationQueryRequest
+{
+    public string? RestaurantName { get; set; }
+}
