@@ -142,6 +142,13 @@ public sealed class ReservationRefundManager : BaseManager, IReservationRefundSe
         if (refund.PayoutDetails is null)
             throw new BusinessRuleException(ErrorCode.RefundPayoutDetailsNotSubmitted);
 
+        await _workflowActionService.EnsureCanExecuteAsync(
+            RefundFlowCode,
+            refund.StatusId,
+            WorkflowActionCode.Refund.ViewPayoutDetails,
+            restaurantId,
+            refund.Id);
+
         var details = _payoutDetailsProtector.Unprotect(refund.PayoutDetails.EncryptedDetails);
 
         await _auditLogService.RecordRestaurantActionAsync(
@@ -221,6 +228,7 @@ public sealed class ReservationRefundManager : BaseManager, IReservationRefundSe
         var refund = new ReservationRefundEntity
         {
             ReservationId = reservation.Id,
+            Reservation = reservation,
             SourcePaymentProofId = sourcePaymentProof.Id,
             StatusId = awaitingPayoutDetailsStatusId,
             Amount = sourcePaymentProof.Amount,
