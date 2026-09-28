@@ -2,6 +2,7 @@ using AutoMapper;
 using ECafe.Application.DTOs.Notification;
 using ECafe.Application.Repositories.Notification;
 using ECafe.Application.Services.Notification.Abstract;
+using ECafe.Application.Services.Realtime.Abstract;
 using ECafe.Domain.Enums;
 using ECafe.Domain.Exceptions;
 using FluentValidation;
@@ -14,17 +15,20 @@ namespace ECafe.Application.Services.Notification.Concrete
     {
         private readonly INotificationRepository _notificationRepository;
         private readonly IValidator<CreateNotificationRequest> _validator;
+        private readonly INotificationChangeDispatcher _notificationDispatcher;
 
         public NotificationManager(
             IHttpContextAccessor httpContextAccessor,
             IMapper mapper,
             IConfiguration configuration,
             INotificationRepository notificationRepository,
-            IValidator<CreateNotificationRequest> validator)
+            IValidator<CreateNotificationRequest> validator,
+            INotificationChangeDispatcher notificationDispatcher)
             : base(httpContextAccessor, mapper, configuration)
         {
             _notificationRepository = notificationRepository;
             _validator = validator;
+            _notificationDispatcher = notificationDispatcher;
         }
 
         public async Task CreateAsync(CreateNotificationRequest request)
@@ -38,6 +42,7 @@ namespace ECafe.Application.Services.Notification.Concrete
 
             await _notificationRepository.Add(notification);
             await _notificationRepository.SaveChangesAsync();
+            await _notificationDispatcher.NotifyChangedAsync(request.UserId);
         }
 
         public async Task<List<NotificationResponse>> GetMyNotificationsAsync()
@@ -68,6 +73,7 @@ namespace ECafe.Application.Services.Notification.Concrete
             }
 
             await _notificationRepository.SaveChangesAsync();
+            await _notificationDispatcher.NotifyChangedAsync(GetCurrentUserId());
         }
 
         public async Task MarkAsReadAsync(int notificationId)
@@ -88,6 +94,7 @@ namespace ECafe.Application.Services.Notification.Concrete
 
             MarkAsRead(notification);
             await _notificationRepository.SaveChangesAsync();
+            await _notificationDispatcher.NotifyChangedAsync(GetCurrentUserId());
         }
 
         private static void MarkAsRead(Domain.Entities.Notification notification)

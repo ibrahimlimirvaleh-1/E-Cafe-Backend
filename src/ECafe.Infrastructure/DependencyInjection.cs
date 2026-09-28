@@ -63,6 +63,8 @@ using ECafe.Infrastructure.Services.RefundPayoutDetails;
 using ECafe.Application.Services.RefundPayoutDetails.Abstract;
 using ECafe.Infrastructure.Services.PaymentInstructionDetails;
 using ECafe.Application.Services.PaymentInstructionDetails.Abstract;
+using ECafe.Application.Services.Realtime.Abstract;
+using ECafe.Infrastructure.Services;
 namespace ECafe.Infrastructure
 {
     public static class DependencyInjection
@@ -84,6 +86,7 @@ namespace ECafe.Infrastructure
 
             services.AddScoped(typeof(IBaseRepository<>), typeof(BaseRepository<>));
             services.AddScoped<IApplicationDbTransactionFactory, EfApplicationDbTransactionFactory>();
+            services.AddScoped<INotificationChangeDispatcher, NotificationChangeDispatcher>();
             services.AddScoped<IUserRepository, UserRepository>();
             services.AddScoped<IPasswordResetTokenRepository, PasswordResetTokenRepository>();
             services.AddScoped<IUserPasswordSetupTokenRepository, UserPasswordSetupTokenRepository>();
