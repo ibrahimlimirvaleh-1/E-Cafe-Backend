@@ -1,4 +1,5 @@
 using System.Data;
+using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using AutoMapper;
@@ -32,6 +33,7 @@ using ECafe.Shared.Extensions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using StatusTypeEnum = ECafe.Domain.Enums.StatusType;
 
 namespace ECafe.Application.Services.Reservation.Concrete;
@@ -66,6 +68,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
     private readonly IFileAccessUrlService _fileAccessUrlService;
     private readonly IWorkflowActionService _workflowActionService;
     private readonly IPaymentInstructionDetailsProtector _paymentInstructionDetailsProtector;
+    private readonly ILogger<ReservationManager> _logger;
 
     public ReservationManager(
         IHttpContextAccessor httpContextAccessor,
@@ -85,7 +88,8 @@ public sealed class ReservationManager : BaseManager, IReservationService
         IFileRepository fileRepository,
         IFileAccessUrlService fileAccessUrlService,
         IWorkflowActionService workflowActionService,
-        IPaymentInstructionDetailsProtector paymentInstructionDetailsProtector)
+        IPaymentInstructionDetailsProtector paymentInstructionDetailsProtector,
+        ILogger<ReservationManager> logger)
         : base(httpContextAccessor, mapper, configuration)
     {
         _tableRepository = tableRepository;
@@ -103,6 +107,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
         _fileAccessUrlService = fileAccessUrlService;
         _workflowActionService = workflowActionService;
         _paymentInstructionDetailsProtector = paymentInstructionDetailsProtector;
+        _logger = logger;
     }
 
     public async Task<ReservationResponse> CreateReservationAsync(
@@ -1116,17 +1121,36 @@ public sealed class ReservationManager : BaseManager, IReservationService
         string status)
     {
         var isSuperAdmin = IsCurrentUserSuperAdmin();
-        var details = isSuperAdmin ? instruction.MaskedDetails : null;
-        if (string.IsNullOrWhiteSpace(details))
+        var detailsAvailable = true;
+        var maskedDetails = instruction.MaskedDetails;
+        string details;
+        if (isSuperAdmin)
         {
-            details = !string.IsNullOrWhiteSpace(instruction.EncryptedDetails)
-                ? _paymentInstructionDetailsProtector.Unprotect(instruction.EncryptedDetails)
-                : instruction.LegacyDisplayText
-                    ?? throw new BusinessRuleException(ErrorCode.InvalidReservationPaymentInstruction);
+            details = maskedDetails ?? "Ödəniş məlumatı gizlidir";
+        }
+        else if (!string.IsNullOrWhiteSpace(instruction.EncryptedDetails))
+        {
+            try
+            {
+                details = _paymentInstructionDetailsProtector.Unprotect(instruction.EncryptedDetails);
+            }
+            catch (CryptographicException exception)
+            {
+                _logger.LogError(exception,
+                    "Reservation payment instruction {InstructionId} cannot be decrypted.", instruction.Id);
+                detailsAvailable = false;
+                details = maskedDetails ?? "Ödəniş məlumatı əlçatan deyil";
+            }
+        }
+        else
+        {
+            details = instruction.LegacyDisplayText
+                ?? throw new BusinessRuleException(ErrorCode.InvalidReservationPaymentInstruction);
         }
 
-        var maskedDetails = instruction.MaskedDetails
-            ?? _paymentInstructionDetailsProtector.CreateMaskedDetails(details);
+        maskedDetails ??= detailsAvailable && !isSuperAdmin
+            ? _paymentInstructionDetailsProtector.CreateMaskedDetails(details)
+            : "Ödəniş məlumatı əlçatan deyil";
 
         return new PaymentInstructionResponse
         {
@@ -1136,6 +1160,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
             DisplayText = isSuperAdmin ? maskedDetails : details,
             MaskedDetails = maskedDetails,
             IsDetailsProtected = !string.IsNullOrWhiteSpace(instruction.EncryptedDetails),
+            IsDetailsAvailable = detailsAvailable,
             Amount = instruction.Amount,
             SentAt = instruction.SentAt
         };

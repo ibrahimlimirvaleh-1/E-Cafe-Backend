@@ -13,6 +13,8 @@
 
         public bool IsDetailsProtected { get; set; }
 
+        public bool IsDetailsAvailable { get; set; } = true;
+
         public decimal Amount { get; set; }
 
         public DateTime SentAt { get; set; }
