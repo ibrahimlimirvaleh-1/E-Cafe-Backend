@@ -126,6 +126,9 @@ public sealed class ReservationRefundManager : BaseManager, IReservationRefundSe
     {
         ValidateRestaurantId(restaurantId);
         ValidateRefundId(refundId);
+        if (IsCurrentUserSuperAdmin())
+            throw new ForbiddenException(ErrorCode.OnlyRestaurantManagersCanManageRefund);
+
         await EnsureRestaurantAccessAsync(restaurantId);
 
         var refund = await _refundRepository.GetByIdForRestaurantSnapshotAsync(
