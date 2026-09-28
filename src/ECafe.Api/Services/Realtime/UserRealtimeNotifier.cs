@@ -9,6 +9,7 @@ public sealed class UserRealtimeNotifier : IUserRealtimeNotifier
     private const string UserDeactivatedEvent = "UserDeactivated";
     private const string UserRoleChangedEvent = "UserRoleChanged";
     private const string RestaurantAccessChangedEvent = "RestaurantAccessChanged";
+    private const string NotificationsChangedEvent = "NotificationsChanged";
 
     private readonly IHubContext<UserEventsHub> _hubContext;
 
@@ -16,6 +17,12 @@ public sealed class UserRealtimeNotifier : IUserRealtimeNotifier
     {
         _hubContext = hubContext;
     }
+
+    public Task NotifyNotificationsChangedAsync(int userId, CancellationToken cancellationToken = default)
+        => SendUserEventAsync(userId, NotificationsChangedEvent, new
+        {
+            occurredAtUtc = DateTime.UtcNow
+        }, cancellationToken);
 
     public Task NotifyUserDeactivatedAsync(int userId, string message, CancellationToken cancellationToken = default)
         => SendUserEventAsync(userId, UserDeactivatedEvent, new
