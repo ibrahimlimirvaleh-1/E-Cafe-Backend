@@ -11,12 +11,12 @@ namespace ECafe.Api.Controllers
     public class RestaurantController : BaseController
     {
         [HasPermission(Domain.Enums.PermissionCode.ManageRestaurants)]
-        [HttpPost("api/v1/admin/restaurants")]
+        [HttpPost(ApiRoutes.Restaurant.RegisterRestaurant)]
         public async Task<IActionResult> RegisterRestaurant([FromForm] RegisterRestaurantCommand command)
         => Ok(await Mediator.Send(command));
 
         [HasPermission(Domain.Enums.PermissionCode.ManageRestaurants)]
-        [HttpPut("api/v1/admin/restaurants/{id}")]
+        [HttpPut(ApiRoutes.Restaurant.UpdateRestaurant)]
         public async Task<IActionResult> UpdateRestaurant(int id, [FromBody] UpdateRestaurantCommand command)
         {
             command.RestaurantId = id;
@@ -25,7 +25,7 @@ namespace ECafe.Api.Controllers
         }
 
         [HasPermission(Domain.Enums.PermissionCode.ManageRestaurants)]
-        [HttpPatch("api/v1/admin/restaurants/{id}/deactivate")]
+        [HttpPatch(ApiRoutes.Restaurant.DeactivateRestaurant)]
         public async Task<IActionResult> DeactivateRestaurant(int id)
         {
             await Mediator.Send(new DeactivateRestaurantCommand { RestaurantId = id });
@@ -33,19 +33,19 @@ namespace ECafe.Api.Controllers
         }
 
         [HasPermission(Domain.Enums.PermissionCode.ViewRestaurantInfo)]
-        [HttpGet("api/v1/restaurants/getAll")]
+        [HttpGet(ApiRoutes.Restaurant.GetAllRestaurants)]
         public async Task<IActionResult> GetAllRestaurants([FromQuery] GetAllRestaurantsQuery query)
         {
             return Ok(await Mediator.Send(query));
         }
 
         [HasPermission(Domain.Enums.PermissionCode.ViewRestaurantInfo)]
-        [HttpGet("api/v1/restaurant/getById/{id}")]
+        [HttpGet(ApiRoutes.Restaurant.GetByIdRestaurant)]
         public async Task<IActionResult> GetByIdRestaurant(int id)
         => Ok(await Mediator.Send(new GetRestaurantQuery(id)));
 
         [HasPermission(Domain.Enums.PermissionCode.ManageRestaurants)]
-        [HttpGet("api/v1/admin/restaurants/geocode")]
+        [HttpGet(ApiRoutes.Restaurant.GeocodeAddress)]
         public async Task<IActionResult> GeocodeAddress([FromQuery] GeocodeAddressQuery query)
         => Ok(await Mediator.Send(query));
 

@@ -10,31 +10,31 @@ namespace ECafe.Api.Controllers
     [EnableRateLimiting(RateLimitPolicyNames.PublicRead)]
     public class PublicRestaurantController : BaseController
     {
-        [HttpGet("api/v1/public/restaurants")]
+        [HttpGet(ApiRoutes.PublicRestaurant.GetRestaurants)]
         public async Task<IActionResult> GetRestaurants([FromQuery] GetPublicRestaurantsQuery query)
             => Ok(await Mediator.Send(query));
 
-        [HttpGet("api/v1/public/restaurants/{restaurantId}")]
+        [HttpGet(ApiRoutes.PublicRestaurant.GetRestaurant)]
         public async Task<IActionResult> GetRestaurant(int restaurantId)
             => Ok(await Mediator.Send(new GetPublicRestaurantProfileQuery(restaurantId)));
 
-        [HttpGet("api/v1/public/restaurants/{restaurantId}/menu")]
+        [HttpGet(ApiRoutes.PublicRestaurant.GetMenu)]
         public async Task<IActionResult> GetMenu(int restaurantId)
             => Ok(await Mediator.Send(new GetPublicRestaurantMenuQuery(restaurantId)));
 
-        [HttpGet("api/v1/public/restaurants/{restaurantId}/staff")]
+        [HttpGet(ApiRoutes.PublicRestaurant.GetStaff)]
         public async Task<IActionResult> GetStaff(int restaurantId)
             => Ok(await Mediator.Send(new GetPublicRestaurantStaffQuery(restaurantId)));
 
-        [HttpGet("api/v1/public/restaurants/{restaurantId}/tables")]
+        [HttpGet(ApiRoutes.PublicRestaurant.GetTables)]
         public async Task<IActionResult> GetTables(int restaurantId)
             => Ok(await Mediator.Send(new GetPublicRestaurantTablesQuery(restaurantId)));
 
-        [HttpGet("api/v1/public/restaurants/{restaurantId}/tables/availability")]
+        [HttpGet(ApiRoutes.PublicRestaurant.CheckTableAvailability)]
         public async Task<IActionResult> CheckTableAvailability(int restaurantId, [FromQuery] DateTimeOffset reservedAt)
             => Ok(await Mediator.Send(new GetPublicRestaurantTableAvailabilityQuery(restaurantId, reservedAt)));
 
-        [HttpGet("api/v1/public/restaurants/{restaurantId}/tables/available")]
+        [HttpGet(ApiRoutes.PublicRestaurant.GetAvailableTables)]
         public async Task<IActionResult> GetAvailableTables(int restaurantId, [FromQuery] DateTimeOffset reservedAt)
             => Ok(await Mediator.Send(new GetPublicRestaurantAvailableTablesQuery(restaurantId, reservedAt)));
     }

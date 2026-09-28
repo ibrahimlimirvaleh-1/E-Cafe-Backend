@@ -9,12 +9,12 @@ namespace ECafe.Api.Controllers
     public class RestaurantGroupController : BaseController
     {
         [HasPermission(PermissionCode.ViewRestaurantInfo)]
-        [HttpGet("api/v1/restaurant-groups")]
+        [HttpGet(ApiRoutes.RestaurantGroup.GetAll)]
         public async Task<IActionResult> GetAll()
             => Ok(await Mediator.Send(new GetRestaurantGroupsQuery()));
 
         [HasPermission(PermissionCode.ManageRestaurants)]
-        [HttpPost("api/v1/restaurant-groups")]
+        [HttpPost(ApiRoutes.RestaurantGroup.Create)]
         public async Task<IActionResult> Create([FromBody] CreateRestaurantGroupCommand command)
             => Ok(await Mediator.Send(command));
     }

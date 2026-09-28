@@ -8,6 +8,7 @@ using ECafe.Application.Features.Queries.Reservation.GetById;
 using ECafe.Application.Features.Queries.Reservation.GetHistory;
 using ECafe.Application.Features.Queries.Reservation.GetMy;
 using ECafe.Application.Features.Queries.Reservation.GetMyRefund;
+using ECafe.Api.Routes;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -16,7 +17,7 @@ namespace ECafe.Api.Controllers;
 [Authorize(Roles = "5")]
 public sealed class ReservationController : BaseController
 {
-    [HttpGet("api/v1/public/reservations/my")]
+    [HttpGet(ApiRoutes.Reservation.GetMy)]
     public async Task<IActionResult> GetMy(
         [FromQuery] GetMyReservationsQuery request,
         CancellationToken cancellationToken)
@@ -25,7 +26,7 @@ public sealed class ReservationController : BaseController
         return Ok(result);
     }
 
-    [HttpGet("api/v1/public/reservations/{reservationId:int}")]
+    [HttpGet(ApiRoutes.Reservation.GetById)]
     public async Task<IActionResult> GetById(
         [FromRoute] int reservationId,
         CancellationToken cancellationToken)
@@ -37,7 +38,7 @@ public sealed class ReservationController : BaseController
         return Ok(result);
     }
 
-    [HttpGet("api/v1/public/reservations/{reservationId:int}/history")]
+    [HttpGet(ApiRoutes.Reservation.GetHistory)]
     public async Task<IActionResult> GetHistory(
         [FromRoute] int reservationId,
         CancellationToken cancellationToken)
@@ -49,7 +50,7 @@ public sealed class ReservationController : BaseController
         return Ok(result);
     }
 
-    [HttpPost("api/v1/restaurants/{restaurantId:int}/reservations")]
+    [HttpPost(ApiRoutes.Reservation.Create)]
     public async Task<IActionResult> Create(
         [FromRoute] int restaurantId,
         [FromBody] CreateReservationRequest request,
@@ -68,7 +69,7 @@ public sealed class ReservationController : BaseController
         return StatusCode(StatusCodes.Status201Created, result);
     }
 
-    [HttpPost("api/v1/restaurants/{restaurantId:int}/reservations/{reservationId:int}/payment-proofs")]
+    [HttpPost(ApiRoutes.Reservation.SubmitPaymentProof)]
     [Consumes("multipart/form-data")]
     public async Task<IActionResult> SubmitPaymentProof(
         [FromRoute] int restaurantId,
@@ -83,7 +84,7 @@ public sealed class ReservationController : BaseController
         return StatusCode(StatusCodes.Status201Created, result);
     }
 
-    [HttpPost("api/v1/public/reservations/{reservationId:int}/cancel")]
+    [HttpPost(ApiRoutes.Reservation.Cancel)]
     public async Task<IActionResult> Cancel(
         [FromRoute] int reservationId,
         [FromBody] ReservationCancellationRequest? request,
@@ -98,7 +99,7 @@ public sealed class ReservationController : BaseController
         return Ok(result);
     }
 
-    [HttpGet("api/v1/public/reservations/{reservationId:int}/refund")]
+    [HttpGet(ApiRoutes.Reservation.GetRefund)]
     public async Task<IActionResult> GetRefund(
         [FromRoute] int reservationId,
         CancellationToken cancellationToken)
@@ -110,7 +111,7 @@ public sealed class ReservationController : BaseController
         return result is null ? NoContent() : Ok(result);
     }
 
-    [HttpPost("api/v1/public/reservations/{reservationId:int}/refunds")]
+    [HttpPost(ApiRoutes.Reservation.RequestRefund)]
     public async Task<IActionResult> RequestRefund(
         [FromRoute] int reservationId,
         CancellationToken cancellationToken)
@@ -122,7 +123,7 @@ public sealed class ReservationController : BaseController
         return StatusCode(StatusCodes.Status201Created, result);
     }
 
-    [HttpPost("api/v1/public/refunds/{refundId:int}/payout-details")]
+    [HttpPost(ApiRoutes.Reservation.SubmitRefundPayoutDetails)]
     public async Task<IActionResult> SubmitRefundPayoutDetails(
         [FromRoute] int refundId,
         [FromBody] SubmitReservationRefundPayoutDetailsRequest request,

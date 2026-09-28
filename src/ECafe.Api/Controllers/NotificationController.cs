@@ -9,17 +9,17 @@ namespace ECafe.Api.Controllers
     public class NotificationController : BaseController
     {
         [Authorize]
-        [HttpGet("api/v1/notifications")]
+        [HttpGet(ApiRoutes.Notification.GetMine)]
         public async Task<IActionResult> GetMine()
             => Ok(await Mediator.Send(new GetMyNotificationsQuery()));
 
         [Authorize]
-        [HttpGet("api/v1/notifications/unread-count")]
+        [HttpGet(ApiRoutes.Notification.GetUnreadCount)]
         public async Task<IActionResult> GetUnreadCount()
             => Ok(await Mediator.Send(new GetUnreadNotificationCountQuery()));
 
         [Authorize]
-        [HttpPost("api/v1/notifications/{notificationId:int}/read")]
+        [HttpPost(ApiRoutes.Notification.MarkAsRead)]
         public async Task<IActionResult> MarkAsRead(int notificationId)
         {
             await Mediator.Send(new MarkNotificationAsReadCommand
@@ -31,7 +31,7 @@ namespace ECafe.Api.Controllers
         }
 
         [Authorize]
-        [HttpPost("api/v1/notifications/read-all")]
+        [HttpPost(ApiRoutes.Notification.MarkAllAsRead)]
         public async Task<IActionResult> MarkAllAsRead()
         {
             await Mediator.Send(new MarkAllNotificationsAsReadCommand());

@@ -14,7 +14,7 @@ namespace ECafe.Api.Controllers
     public class FileController : BaseController
     {
         [HasPermission(PermissionCode.ViewRestaurantInfo)]
-        [HttpPost("api/v1/file/upload")]
+        [HttpPost(ApiRoutes.File.Upload)]
         [Consumes("multipart/form-data")]
         [EnableRateLimiting(RateLimitPolicyNames.FileUpload)]
         public async Task<IActionResult> Upload([FromForm] FileUploadCommand command)
@@ -24,7 +24,7 @@ namespace ECafe.Api.Controllers
         }
 
         [HasPermission(PermissionCode.ViewRestaurantInfo)]
-        [HttpDelete("api/v1/file/{fileId:int}")]
+        [HttpDelete(ApiRoutes.File.Delete)]
         public async Task<IActionResult> Delete(int fileId)
         {
             await Mediator.Send(new DeleteFileCommand { FileId = fileId });
@@ -32,7 +32,7 @@ namespace ECafe.Api.Controllers
         }
 
         [HasPermission(PermissionCode.ViewRestaurantInfo)]
-        [HttpGet("api/v1/file/{fileId:int}")]
+        [HttpGet(ApiRoutes.File.GetById)]
         public async Task<IActionResult> GetById(int fileId)
         {
             var file = await Mediator.Send(new GetFileMetadataQuery { FileId = fileId });
@@ -40,7 +40,7 @@ namespace ECafe.Api.Controllers
         }
 
         [Authorize]
-        [HttpGet("api/v1/files/{fileId:int}/view")]
+        [HttpGet(ApiRoutes.File.View)]
         [EnableRateLimiting(RateLimitPolicyNames.FileDownload)]
         public async Task<IActionResult> View(int fileId)
         {
@@ -51,7 +51,7 @@ namespace ECafe.Api.Controllers
 
 
         [Authorize]                                                     
-        [HttpGet("api/v1/files/{fileId:int}/download")]
+        [HttpGet(ApiRoutes.File.Download)]
         [EnableRateLimiting(RateLimitPolicyNames.FileDownload)]
         public async Task<IActionResult> Download(int fileId)
         {
@@ -61,7 +61,7 @@ namespace ECafe.Api.Controllers
         }
 
         [AllowAnonymous]
-        [HttpGet("api/v1/file/getFile")]
+        [HttpGet(ApiRoutes.File.GetFile)]
         [EnableRateLimiting(RateLimitPolicyNames.FileDownload)]
         public async Task<IActionResult> GetFile([FromQuery] GetFileQuery query)
         {

@@ -7,7 +7,7 @@ namespace ECafe.Api.Controllers
     public class AuditLogController : BaseController
     {
         [HasPermission(Domain.Enums.PermissionCode.ViewAuditLogs)]
-        [HttpGet("api/v1/restaurants/{restaurantId}/audit-logs")]
+        [HttpGet(ApiRoutes.AuditLog.GetRestaurantTimeline)]
         public async Task<IActionResult> GetRestaurantTimeline(
             int restaurantId,
             [FromQuery] GetRestaurantAuditLogsQuery query)

@@ -19,28 +19,28 @@ public sealed class DeveloperNotificationTestController : BaseController
         _environment = environment;
     }
 
-    [HttpPost("api/v1/developer/test/email")]
+    [HttpPost(ApiRoutes.DeveloperNotificationTest.SendEmail)]
     public async Task<IActionResult> SendEmail([FromBody] SendTestEmailCommand command)
     {
         EnsureDeveloperTestEndpointIsAllowed();
         return Ok(await Mediator.Send(command));
     }
 
-    [HttpPost("api/v1/developer/test/sms")]
+    [HttpPost(ApiRoutes.DeveloperNotificationTest.SendSms)]
     public async Task<IActionResult> SendSms([FromBody] SendTestSmsCommand command)
     {
         EnsureDeveloperTestEndpointIsAllowed();
         return Ok(await Mediator.Send(command));
     }
 
-    [HttpGet("api/v1/developer/test/sms/balance")]
+    [HttpGet(ApiRoutes.DeveloperNotificationTest.GetSmsBalance)]
     public async Task<IActionResult> GetSmsBalance()
     {
         EnsureDeveloperTestEndpointIsAllowed();
         return Ok(await Mediator.Send(new GetSmsBalanceQuery()));
     }
 
-    [HttpGet("api/v1/developer/test/sms/status/{messageId}")]
+    [HttpGet(ApiRoutes.DeveloperNotificationTest.GetSmsStatus)]
     public async Task<IActionResult> GetSmsStatus([FromRoute] string messageId)
     {
         EnsureDeveloperTestEndpointIsAllowed();

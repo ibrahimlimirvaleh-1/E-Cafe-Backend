@@ -11,7 +11,7 @@ namespace ECafe.Api.Controllers
     public class ItemController : BaseController
     {
         [HasPermission(PermissionCode.ManageCatalog)]
-        [HttpPost("api/v1/restaurants/{restaurantId}/items")]
+        [HttpPost(ApiRoutes.Item.Create)]
         public async Task<IActionResult> Create(int restaurantId, [FromForm] CreateItemFormRequest request)
         {
             var command = new CreateItemCommand
@@ -31,7 +31,7 @@ namespace ECafe.Api.Controllers
         }
 
         [HasPermission(PermissionCode.ManageCatalog)]
-        [HttpPut("api/v1/restaurants/{restaurantId}/items/{itemId}")]
+        [HttpPut(ApiRoutes.Item.Update)]
         public async Task<IActionResult> Update(int restaurantId, int itemId, [FromForm] UpdateItemFormRequest request)
         {
             var command = new UpdateItemCommand
@@ -52,7 +52,7 @@ namespace ECafe.Api.Controllers
         }
 
         [HasPermission(PermissionCode.ManageCatalog)]
-        [HttpPatch("api/v1/restaurants/{restaurantId}/items/{itemId}/deactivate")]
+        [HttpPatch(ApiRoutes.Item.Deactivate)]
         public async Task<IActionResult> Deactivate(int restaurantId, int itemId)
         {
             return Ok(await Mediator.Send(new DeactivateItemCommand
@@ -63,7 +63,7 @@ namespace ECafe.Api.Controllers
         }
 
         [HasPermission(PermissionCode.ManageCatalog)]
-        [HttpDelete("api/v1/restaurants/{restaurantId}/items/{itemId}")]
+        [HttpDelete(ApiRoutes.Item.Delete)]
         public async Task<IActionResult> Delete(int restaurantId, int itemId)
         {
             return Ok(await Mediator.Send(new DeleteItemCommand
@@ -74,7 +74,7 @@ namespace ECafe.Api.Controllers
         }
 
         [HasPermission(PermissionCode.ViewRestaurantInfo)]
-        [HttpGet("api/v1/items/getAll")]
+        [HttpGet(ApiRoutes.Item.GetAll)]
         public async Task<IActionResult> GetAll([FromQuery] GetAllItemsQuery query)
         => Ok(await Mediator.Send(query));
     }

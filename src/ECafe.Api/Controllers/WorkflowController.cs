@@ -7,7 +7,7 @@ namespace ECafe.Api.Controllers;
 public class WorkflowController : BaseController
 {
     [Authorize]
-    [HttpGet("api/v1/workflows/{flowCode}/actions")]
+    [HttpGet(ApiRoutes.Workflow.GetActions)]
     public async Task<IActionResult> GetActions(
         string flowCode,
         [FromQuery] int statusId,

@@ -299,16 +299,16 @@ if (!app.Environment.IsProduction())
     app.UseSwaggerUI(options =>
     {
         options.DocumentTitle = "ECafe API Explorer";
-        options.SwaggerEndpoint("/swagger/v1/swagger.json", "ECafe API v1");
-        options.RoutePrefix = "swagger";
+        options.SwaggerEndpoint(ApiRoutes.SwaggerJson, "ECafe API v1");
+        options.RoutePrefix = ApiRoutes.SwaggerUi;
         options.EnableFilter();
         options.DisplayRequestDuration();
         options.EnablePersistAuthorization();
         options.DocExpansion(DocExpansion.None);
         options.DefaultModelsExpandDepth(1);
         options.DefaultModelRendering(ModelRendering.Example);
-        options.InjectStylesheet("/swagger-ui/ecafe-swagger.css?v=20260714-3");
-        options.InjectJavascript("/swagger-ui/ecafe-swagger.js?v=20260714-3");
+        options.InjectStylesheet(ApiRoutes.SwaggerStylesheet);
+        options.InjectJavascript(ApiRoutes.SwaggerJavascript);
     });
 }
 
@@ -322,15 +322,15 @@ app.UseRateLimiter();
 app.UseAuthorization();
 
 app.MapControllers();
-app.MapHub<UserEventsHub>("/hubs/user-events");
-app.MapGet("/health/live", () => Results.Ok(new
+app.MapHub<UserEventsHub>(ApiRoutes.UserEventsHub);
+app.MapGet(ApiRoutes.HealthLive, () => Results.Ok(new
 {
     status = "Healthy",
     service = "ECafe.Api",
     timestamp = DateTime.UtcNow
 })).AllowAnonymous();
 
-app.MapGet("/health/ready", async (ECafeDbContext dbContext, CancellationToken cancellationToken) =>
+app.MapGet(ApiRoutes.HealthReady, async (ECafeDbContext dbContext, CancellationToken cancellationToken) =>
 {
     var canConnect = await dbContext.Database.CanConnectAsync(cancellationToken);
 

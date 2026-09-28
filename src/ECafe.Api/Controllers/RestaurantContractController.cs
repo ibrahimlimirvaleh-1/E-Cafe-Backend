@@ -8,7 +8,7 @@ namespace ECafe.Api.Controllers
     public class RestaurantContractController : BaseController
     {
         [HasPermission(Domain.Enums.PermissionCode.ManageRestaurantContracts)]
-        [HttpPost("api/v1/admin/restaurants/{restaurantId}/contracts")]
+        [HttpPost(ApiRoutes.RestaurantContract.Create)]
         public async Task<IActionResult> Create(int restaurantId, [FromBody] CreateRestaurantContractCommand command)
         {
             command.RestaurantId = restaurantId;
@@ -16,7 +16,7 @@ namespace ECafe.Api.Controllers
         }
 
         [HasPermission(Domain.Enums.PermissionCode.ManageRestaurantContracts)]
-        [HttpPut("api/v1/admin/restaurants/{restaurantId}/contracts/{contractId}")]
+        [HttpPut(ApiRoutes.RestaurantContract.Update)]
         public async Task<IActionResult> Update(int restaurantId, int contractId, [FromBody] UpdateRestaurantContractCommand command)
         {
             command.RestaurantId = restaurantId;
@@ -26,12 +26,12 @@ namespace ECafe.Api.Controllers
         }
 
         [HasPermission(Domain.Enums.PermissionCode.ViewRestaurantContracts)]
-        [HttpGet("api/v1/restaurants/{restaurantId}/contracts")]
+        [HttpGet(ApiRoutes.RestaurantContract.GetByRestaurant)]
         public async Task<IActionResult> GetByRestaurant(int restaurantId)
             => Ok(await Mediator.Send(new GetRestaurantContractsQuery(restaurantId)));
 
         [HasPermission(Domain.Enums.PermissionCode.ViewRestaurantContracts)]
-        [HttpGet("api/v1/restaurants/{restaurantId}/contracts/paged")]
+        [HttpGet(ApiRoutes.RestaurantContract.GetPagedByRestaurant)]
         public async Task<IActionResult> GetPagedByRestaurant(int restaurantId, [FromQuery] GetPagedRestaurantContractsQuery query)
         {
             query.RestaurantId = restaurantId;
@@ -39,17 +39,17 @@ namespace ECafe.Api.Controllers
         }
 
         [HasPermission(Domain.Enums.PermissionCode.ViewRestaurantContracts)]
-        [HttpGet("api/v1/restaurants/{restaurantId}/contracts/active")]
+        [HttpGet(ApiRoutes.RestaurantContract.GetActive)]
         public async Task<IActionResult> GetActive(int restaurantId)
             => Ok(await Mediator.Send(new GetActiveRestaurantContractQuery(restaurantId)));
 
         [HasPermission(Domain.Enums.PermissionCode.ViewRestaurantContracts)]
-        [HttpGet("api/v1/restaurants/{restaurantId}/contracts/{contractId}/actions")]
+        [HttpGet(ApiRoutes.RestaurantContract.GetActions)]
         public async Task<IActionResult> GetActions(int restaurantId, int contractId)
             => Ok(await Mediator.Send(new GetRestaurantContractActionsQuery(restaurantId, contractId)));
 
         [HasPermission(Domain.Enums.PermissionCode.ManageRestaurantContracts)]
-        [HttpPost("api/v1/admin/restaurants/{restaurantId}/contracts/{contractId}/send-for-signature")]
+        [HttpPost(ApiRoutes.RestaurantContract.SendForSignature)]
         public async Task<IActionResult> SendForSignature(int restaurantId, int contractId)
         {
             await Mediator.Send(new SendRestaurantContractForSignatureCommand
@@ -62,7 +62,7 @@ namespace ECafe.Api.Controllers
         }
 
         [HasPermission(Domain.Enums.PermissionCode.ViewRestaurantContracts)]
-        [HttpPost("api/v1/restaurants/{restaurantId}/contracts/{contractId}/approve")]
+        [HttpPost(ApiRoutes.RestaurantContract.Approve)]
         public async Task<IActionResult> Approve(
             int restaurantId,
             int contractId,
@@ -77,7 +77,7 @@ namespace ECafe.Api.Controllers
         }
 
         [HasPermission(Domain.Enums.PermissionCode.ManageRestaurantContracts)]
-        [HttpPost("api/v1/admin/restaurants/{restaurantId}/contracts/{contractId}/activate")]
+        [HttpPost(ApiRoutes.RestaurantContract.Activate)]
         public async Task<IActionResult> Activate(int restaurantId, int contractId)
         {
             await Mediator.Send(new ActivateRestaurantContractCommand
@@ -91,7 +91,7 @@ namespace ECafe.Api.Controllers
 
 
         [HasPermission(Domain.Enums.PermissionCode.ManageRestaurantContracts)]
-        [HttpPost("api/v1/admin/restaurants/{restaurantId}/contracts/{contractId}/terminate")]
+        [HttpPost(ApiRoutes.RestaurantContract.Terminate)]
         public async Task<IActionResult> Terminate(int restaurantId, int contractId)
         {
             await Mediator.Send(new TerminateRestaurantContractCommand

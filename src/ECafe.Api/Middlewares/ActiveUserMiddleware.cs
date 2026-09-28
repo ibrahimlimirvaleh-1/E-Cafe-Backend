@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using ECafe.Api.Routes;
 using ECafe.Application.Services.Auth.Abstract;
 using ECafe.Domain.Exceptions;
 
@@ -45,7 +46,7 @@ public sealed class ActiveUserMiddleware
     }
 
     private static bool ShouldSkipActiveUserCheck(HttpContext context)
-        => context.Request.Path.Equals("/api/v1/user/refresh", StringComparison.OrdinalIgnoreCase);
+        => context.Request.Path.Equals(ApiRoutes.UserRefreshPath, StringComparison.OrdinalIgnoreCase);
 
     private static int? GetUserId(ClaimsPrincipal principal)
     {

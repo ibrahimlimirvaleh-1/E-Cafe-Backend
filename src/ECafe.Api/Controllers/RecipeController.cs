@@ -15,7 +15,7 @@ namespace ECafe.Api.Controllers
     public class RecipeController : BaseController
     {
         [HasPermission(PermissionCode.ViewRecipes)]
-        [HttpGet("api/v1/restaurants/{restaurantId}/items/{itemId}/recipes")]
+        [HttpGet(ApiRoutes.Recipe.GetByItem)]
         public async Task<IActionResult> GetByItem(
             [FromRoute] int restaurantId,
             [FromRoute] int itemId)
@@ -30,7 +30,7 @@ namespace ECafe.Api.Controllers
         }
 
         [HasPermission(PermissionCode.ManageRecipes)]
-        [HttpPost("api/v1/restaurants/{restaurantId}/items/{itemId}/recipes")]
+        [HttpPost(ApiRoutes.Recipe.Create)]
         public async Task<IActionResult> Create(
             [FromRoute] int restaurantId,
             [FromRoute] int itemId,
@@ -49,7 +49,7 @@ namespace ECafe.Api.Controllers
         }
 
         [HasPermission(PermissionCode.ManageRecipes)]
-        [HttpPut("api/v1/restaurants/{restaurantId}/items/{itemId}/recipes/{recipeId}")]
+        [HttpPut(ApiRoutes.Recipe.Update)]
         public async Task<IActionResult> Update(
             [FromRoute] int restaurantId,
             [FromRoute] int itemId,
@@ -71,7 +71,7 @@ namespace ECafe.Api.Controllers
         }
 
         [HasPermission(PermissionCode.ManageRecipes)]
-        [HttpPatch("api/v1/restaurants/{restaurantId}/items/{itemId}/recipes/{recipeId}/activate")]
+        [HttpPatch(ApiRoutes.Recipe.Activate)]
         public async Task<IActionResult> Activate(
             [FromRoute] int restaurantId,
             [FromRoute] int itemId,
@@ -88,7 +88,7 @@ namespace ECafe.Api.Controllers
         }
 
         [HasPermission(PermissionCode.ManageRecipes)]
-        [HttpPatch("api/v1/restaurants/{restaurantId}/items/{itemId}/recipes/{recipeId}/deactivate")]
+        [HttpPatch(ApiRoutes.Recipe.Deactivate)]
         public async Task<IActionResult> Deactivate(
             [FromRoute] int restaurantId,
             [FromRoute] int itemId,
@@ -105,7 +105,7 @@ namespace ECafe.Api.Controllers
         }
 
         [HasPermission(PermissionCode.ManageRecipes)]
-        [HttpDelete("api/v1/restaurants/{restaurantId}/items/{itemId}/recipes/{recipeId}")]
+        [HttpDelete(ApiRoutes.Recipe.Delete)]
         public async Task<IActionResult> Delete(
             [FromRoute] int restaurantId,
             [FromRoute] int itemId,

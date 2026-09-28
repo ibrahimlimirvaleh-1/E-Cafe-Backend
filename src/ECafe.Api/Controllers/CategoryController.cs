@@ -11,12 +11,12 @@ namespace ECafe.Api.Controllers
     public class CategoryController : BaseController
     {
         [HasPermission(PermissionCode.ViewRestaurantInfo)]
-        [HttpGet("api/v1/category/{restaurantId}")]
+        [HttpGet(ApiRoutes.Category.GetAll)]
         public async Task<IActionResult> GetAll([FromRoute] int restaurantId)
         => Ok(await Mediator.Send(new GetAllCategoryQuery(restaurantId)));
 
         [HasPermission(PermissionCode.ManageCatalog)]
-        [HttpPost("api/v1/restaurants/{restaurantId}/categories")]
+        [HttpPost(ApiRoutes.Category.Create)]
         public async Task<IActionResult> Create(int restaurantId, [FromForm] CreateCategoryCommand command)
         {
             command.RestaurantId = restaurantId;
@@ -24,7 +24,7 @@ namespace ECafe.Api.Controllers
         }
 
         [HasPermission(PermissionCode.ManageCatalog)]
-        [HttpPut("api/v1/restaurants/{restaurantId}/categories/{categoryId}")]
+        [HttpPut(ApiRoutes.Category.Update)]
         public async Task<IActionResult> Update(int restaurantId, int categoryId, [FromBody] UpdateCategoryCommand command)
         {
             command.RestaurantId = restaurantId;
@@ -33,7 +33,7 @@ namespace ECafe.Api.Controllers
         }
 
         [HasPermission(PermissionCode.ManageCatalog)]
-        [HttpPatch("api/v1/restaurants/{restaurantId}/categories/{categoryId}/activate")]
+        [HttpPatch(ApiRoutes.Category.Activate)]
         public async Task<IActionResult> Activate(int restaurantId, int categoryId)
         {
             return Ok(await Mediator.Send(new ActivateCategoryCommand
@@ -44,7 +44,7 @@ namespace ECafe.Api.Controllers
         }
 
         [HasPermission(PermissionCode.ManageCatalog)]
-        [HttpPatch("api/v1/restaurants/{restaurantId}/categories/{categoryId}/deactivate")]
+        [HttpPatch(ApiRoutes.Category.Deactivate)]
         public async Task<IActionResult> Deactivate(int restaurantId, int categoryId)
         {
             return Ok(await Mediator.Send(new DeactivateCategoryCommand
@@ -55,7 +55,7 @@ namespace ECafe.Api.Controllers
         }
 
         [HasPermission(PermissionCode.ManageCatalog)]
-        [HttpDelete("api/v1/restaurants/{restaurantId}/categories/{categoryId}")]
+        [HttpDelete(ApiRoutes.Category.Delete)]
         public async Task<IActionResult> Delete(int restaurantId, int categoryId)
         {
             return Ok(await Mediator.Send(new DeleteCategoryCommand
