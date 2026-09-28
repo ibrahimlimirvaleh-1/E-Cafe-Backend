@@ -40,6 +40,7 @@ public static class WorkflowActionRuleSeeder
         AddRefundPayoutDetailsRules(rules, ref id);
         AddRefundTransferRules(rules, ref id);
         AddRefundCustomerReviewRules(rules, ref id);
+        AddRefundPayoutViewRules(rules, ref id);
 
         modelBuilder.Entity<WorkflowActionRule>().HasData(rules);
     }
@@ -156,6 +157,22 @@ public static class WorkflowActionRuleSeeder
             "Geri ödənişə etiraz et", "POST",
             "/api/v1/public/refunds/{refundId}/transfers/dispute", 20,
             requiresConfirmation: true, requiresReason: true));
+    }
+
+    private static void AddRefundPayoutViewRules(List<WorkflowActionRule> rules, ref int id)
+    {
+        const string endpoint = "/api/v1/restaurants/{restaurantId}/refunds/{refundId}/payout-details";
+
+        foreach (var status in new[] { RefundStatus.ReadyForPayout, RefundStatus.Processing, RefundStatus.Disputed })
+        {
+            foreach (var role in new[] { RoleCode.Manager, RoleCode.Owner })
+            {
+                rules.Add(Rule(
+                    id++, RefundFlow, StatusTypeEnum.Refund, status, role,
+                    WorkflowActionCode.Refund.ViewPayoutDetails,
+                    "Ödəniş rekvizitinə bax", "GET", endpoint, 5));
+            }
+        }
     }
 
     private static void AddReceiptReservationRules(List<WorkflowActionRule> rules, ref int id)

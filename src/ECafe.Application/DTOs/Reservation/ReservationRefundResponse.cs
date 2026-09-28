@@ -17,5 +17,6 @@ public sealed class ReservationRefundResponse
     public string? CancellationReason { get; init; }
     public ReservationRefundPayoutDetailsResponse? PayoutDetails { get; init; }
     public ReservationRefundTransferResponse? LatestTransfer { get; init; }
+    public IReadOnlyList<ReservationRefundTransferResponse> TransferAttempts { get; init; } = [];
     public IReadOnlyList<ReservationRefundStatusHistoryResponse> History { get; init; } = [];
 }

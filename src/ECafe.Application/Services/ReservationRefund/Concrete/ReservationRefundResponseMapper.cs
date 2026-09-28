@@ -16,10 +16,11 @@ internal static class ReservationRefundResponseMapper
         ReservationRefundEntity refund,
         IFileAccessUrlService fileAccessUrlService)
     {
-        var latestTransfer = refund.TransferAttempts
+        var transfers = refund.TransferAttempts
             .OrderByDescending(transfer => transfer.SubmittedAt)
             .ThenByDescending(transfer => transfer.Id)
-            .FirstOrDefault();
+            .Select(transfer => MapTransfer(refund, transfer, fileAccessUrlService))
+            .ToList();
 
         return new ReservationRefundResponse
         {
@@ -43,9 +44,8 @@ internal static class ReservationRefundResponseMapper
                     MaskedDetails = refund.PayoutDetails.MaskedDetails,
                     SubmittedAt = ToUtcOffset(refund.PayoutDetails.SubmittedAt)
                 },
-            LatestTransfer = latestTransfer is null
-                ? null
-                : MapTransfer(refund, latestTransfer, fileAccessUrlService),
+            LatestTransfer = transfers.FirstOrDefault(),
+            TransferAttempts = transfers,
             History = refund.StatusHistory
                 .OrderBy(history => history.ChangedAt)
                 .ThenBy(history => history.Id)
