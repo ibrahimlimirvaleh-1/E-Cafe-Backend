@@ -9,6 +9,10 @@
 
         public string DisplayText { get; set; } = null!;
 
+        public string? MaskedDetails { get; set; }
+
+        public bool IsDetailsProtected { get; set; }
+
         public decimal Amount { get; set; }
 
         public DateTime SentAt { get; set; }
