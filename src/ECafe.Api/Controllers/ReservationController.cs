@@ -2,6 +2,7 @@ using ECafe.Application.DTOs.Reservation;
 using ECafe.Application.Features.Commands.Reservation.Cancel;
 using ECafe.Application.Features.Commands.Reservation.Create;
 using ECafe.Application.Features.Commands.Reservation.RequestRefund;
+using ECafe.Application.Features.Commands.Reservation.ReviewRefundTransfer;
 using ECafe.Application.Features.Commands.Reservation.SubmitRefundPayoutDetails;
 using ECafe.Application.Features.Commands.Reservation.SubmitPaymentProof;
 using ECafe.Application.Features.Queries.Reservation.GetById;
@@ -133,6 +134,32 @@ public sealed class ReservationController : BaseController
             RefundId = refundId,
             Details = request.Details
         }, cancellationToken);
+
+        return Ok(result);
+    }
+
+    [HttpPost("api/v1/public/refunds/{refundId:int}/transfers/confirm")]
+    public async Task<IActionResult> ConfirmRefundTransfer(
+        [FromRoute] int refundId,
+        [FromBody] ConfirmReservationRefundTransferRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await Mediator.Send(
+            new ConfirmReservationRefundTransferCommand(refundId, request.TransferId),
+            cancellationToken);
+
+        return Ok(result);
+    }
+
+    [HttpPost("api/v1/public/refunds/{refundId:int}/transfers/dispute")]
+    public async Task<IActionResult> DisputeRefundTransfer(
+        [FromRoute] int refundId,
+        [FromBody] DisputeReservationRefundTransferRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await Mediator.Send(
+            new DisputeReservationRefundTransferCommand(refundId, request.TransferId, request.Reason),
+            cancellationToken);
 
         return Ok(result);
     }

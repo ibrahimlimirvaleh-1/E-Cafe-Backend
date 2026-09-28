@@ -38,4 +38,15 @@ public interface IReservationRefundService
         string? transferReference,
         int proofFileId,
         CancellationToken cancellationToken = default);
+
+    Task<ReservationRefundResponse> ConfirmTransferAsync(
+        int refundId,
+        int transferId,
+        CancellationToken cancellationToken = default);
+
+    Task<ReservationRefundResponse> DisputeTransferAsync(
+        int refundId,
+        int transferId,
+        string reason,
+        CancellationToken cancellationToken = default);
 }

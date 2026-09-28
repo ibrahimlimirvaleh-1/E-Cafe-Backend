@@ -140,5 +140,8 @@ public enum ErrorCode
     RefundTransferProofRequired = 5036,
     InvalidRefundTransferReference = 5037,
     InvalidReservationPaymentInstruction = 5038,
-    ReservationPaymentInstructionSensitiveDataProhibited = 5039
+    ReservationPaymentInstructionSensitiveDataProhibited = 5039,
+    InvalidRefundTransferId = 5040,
+    RefundTransferNotCurrent = 5041,
+    InvalidRefundTransferDisputeReason = 5042
 }

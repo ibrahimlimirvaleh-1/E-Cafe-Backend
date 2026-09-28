@@ -12,15 +12,22 @@ internal static class ReservationRefundResponseMapper
 {
     private static string RefundFlowCode => WorkflowFlowCode.FromStatusType(StatusType.Refund);
 
-    public static ReservationRefundResponse Map(ReservationRefundEntity refund)
+    public static ReservationRefundResponse Map(
+        ReservationRefundEntity refund,
+        IFileAccessUrlService fileAccessUrlService)
     {
+        var latestTransfer = refund.TransferAttempts
+            .OrderByDescending(transfer => transfer.SubmittedAt)
+            .ThenByDescending(transfer => transfer.Id)
+            .FirstOrDefault();
+
         return new ReservationRefundResponse
         {
             Id = refund.Id,
             ReservationId = refund.ReservationId,
             SourcePaymentProofId = refund.SourcePaymentProofId,
             StatusId = refund.StatusId,
-            Status = refund.Status?.Name ?? RefundStatus.AwaitingPayoutDetails.GetName(),
+            Status = ResolveStatusName(refund.StatusId, refund.Status?.Name),
             WorkflowFlowCode = RefundFlowCode,
             Amount = refund.Amount,
             CurrencyCode = refund.CurrencyCode,
@@ -36,6 +43,9 @@ internal static class ReservationRefundResponseMapper
                     MaskedDetails = refund.PayoutDetails.MaskedDetails,
                     SubmittedAt = ToUtcOffset(refund.PayoutDetails.SubmittedAt)
                 },
+            LatestTransfer = latestTransfer is null
+                ? null
+                : MapTransfer(refund, latestTransfer, fileAccessUrlService),
             History = refund.StatusHistory
                 .OrderBy(history => history.ChangedAt)
                 .ThenBy(history => history.Id)
@@ -43,7 +53,7 @@ internal static class ReservationRefundResponseMapper
                 {
                     Id = history.Id,
                     FromStatus = history.FromStatus?.Name,
-                    ToStatus = history.ToStatus?.Name ?? RefundStatus.AwaitingPayoutDetails.GetName(),
+                    ToStatus = ResolveStatusName(history.ToStatusId, history.ToStatus?.Name),
                     ChangedAt = ToUtcOffset(history.ChangedAt),
                     ActorType = history.ChangedByUserId is null
                         ? "System"
@@ -72,9 +82,24 @@ internal static class ReservationRefundResponseMapper
             TransferReference = transfer.TransferReference,
             ProofFileId = proofFileId,
             ProofFileViewUrl = fileAccessUrlService.BuildViewUrl(proofFileId),
-            Status = RefundStatus.Processing.GetName(),
-            SubmittedAt = ToUtcOffset(transfer.SubmittedAt)
+            Status = transfer.CustomerConfirmedAt.HasValue
+                ? RefundStatus.Refunded.GetName()
+                : transfer.DisputedAt.HasValue
+                    ? RefundStatus.Disputed.GetName()
+                    : RefundStatus.Processing.GetName(),
+            SubmittedAt = ToUtcOffset(transfer.SubmittedAt),
+            CustomerConfirmedAt = ToNullableUtcOffset(transfer.CustomerConfirmedAt),
+            DisputedAt = ToNullableUtcOffset(transfer.DisputedAt),
+            DisputeReason = transfer.DisputeReason
         };
+    }
+
+    private static string ResolveStatusName(int statusId, string? loadedName)
+    {
+        var statusValue = statusId - (int)StatusType.Refund * 1000;
+        return Enum.IsDefined(typeof(RefundStatus), statusValue)
+            ? ((RefundStatus)statusValue).GetName()
+            : loadedName ?? statusId.ToString();
     }
 
     public static DateTimeOffset ToUtcOffset(DateTime value)

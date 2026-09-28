@@ -45,6 +45,8 @@ namespace ECafe.Application.Common.Audit
         public const string ReservationRefundPayoutDetailsSubmitted = "ReservationRefundPayoutDetailsSubmitted";
         public const string ReservationRefundPayoutDetailsViewed = "ReservationRefundPayoutDetailsViewed";
         public const string ReservationRefundTransferSubmitted = "ReservationRefundTransferSubmitted";
+        public const string ReservationRefundTransferConfirmed = "ReservationRefundTransferConfirmed";
+        public const string ReservationRefundTransferDisputed = "ReservationRefundTransferDisputed";
         public const string OrderCreated = "OrderCreated";
 
         public static IReadOnlyCollection<AuditActionDefinition> All { get; } =
@@ -89,6 +91,8 @@ namespace ECafe.Application.Common.Audit
             new(55, ReservationRefundPayoutDetailsSubmitted, "Rezervasiya geri ödəniş məlumatları göndərildi"),
             new(56, ReservationRefundPayoutDetailsViewed, "Rezervasiya geri ödəniş məlumatlarına baxıldı"),
             new(57, ReservationRefundTransferSubmitted, "Rezervasiya geri ödəniş çeki göndərildi"),
+            new(58, ReservationRefundTransferConfirmed, "Rezervasiya geri ödənişi müştəri tərəfindən təsdiqləndi"),
+            new(59, ReservationRefundTransferDisputed, "Rezervasiya geri ödənişinə etiraz edildi"),
             new(50, OrderCreated, "Sifariş yaradıldı")
         ];
 
