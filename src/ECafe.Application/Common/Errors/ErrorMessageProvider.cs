@@ -142,6 +142,9 @@ public sealed class ErrorMessageProvider : IErrorMessageProvider
         [ErrorCode.InvalidRefundTransferReference] = "Transfer referansı 100 simvoldan uzun ola bilməz.",
         [ErrorCode.InvalidReservationPaymentInstruction] = "Ödəniş məlumatı 4 ilə 1000 simvol arasında olmalıdır.",
         [ErrorCode.ReservationPaymentInstructionSensitiveDataProhibited] = "CVV, CVC və PIN göndərmək olmaz. Yalnız ödəniş üçün lazım olan hesab və ya kart məlumatını daxil edin.",
+        [ErrorCode.InvalidRefundTransferId] = "Geri ödəniş köçürməsi düzgün seçilməyib.",
+        [ErrorCode.RefundTransferNotCurrent] = "Bu çek artıq son göndərilən geri ödəniş çeki deyil. Səhifəni yeniləyin.",
+        [ErrorCode.InvalidRefundTransferDisputeReason] = "Etiraz səbəbi 5 ilə 500 simvol arasında olmalıdır.",
 
     };
 

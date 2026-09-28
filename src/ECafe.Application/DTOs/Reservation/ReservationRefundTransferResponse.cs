@@ -10,4 +10,7 @@ public sealed class ReservationRefundTransferResponse
     public string ProofFileViewUrl { get; init; } = null!;
     public string Status { get; init; } = null!;
     public DateTimeOffset SubmittedAt { get; init; }
+    public DateTimeOffset? CustomerConfirmedAt { get; init; }
+    public DateTimeOffset? DisputedAt { get; init; }
+    public string? DisputeReason { get; init; }
 }

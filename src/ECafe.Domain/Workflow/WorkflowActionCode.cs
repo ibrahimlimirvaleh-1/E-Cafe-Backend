@@ -16,6 +16,8 @@ public static class WorkflowActionCode
     {
         public const string SubmitPayoutDetails = "submitPayoutDetails";
         public const string SubmitTransfer = "submitTransfer";
+        public const string ConfirmTransfer = "confirmTransfer";
+        public const string DisputeTransfer = "disputeTransfer";
     }
 
 }

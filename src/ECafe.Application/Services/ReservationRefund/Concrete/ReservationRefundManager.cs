@@ -99,7 +99,7 @@ public sealed class ReservationRefundManager : BaseManager, IReservationRefundSe
             userId,
             cancellationToken);
 
-        return refund is null ? null : ReservationRefundResponseMapper.Map(refund);
+        return refund is null ? null : ReservationRefundResponseMapper.Map(refund, _fileAccessUrlService);
     }
 
     public async Task<ReservationRefundResponse?> GetRestaurantByReservationAsync(
@@ -116,7 +116,7 @@ public sealed class ReservationRefundManager : BaseManager, IReservationRefundSe
             reservationId,
             cancellationToken);
 
-        return refund is null ? null : ReservationRefundResponseMapper.Map(refund);
+        return refund is null ? null : ReservationRefundResponseMapper.Map(refund, _fileAccessUrlService);
     }
 
     public async Task<RestaurantReservationRefundPayoutDetailsResponse> GetPayoutDetailsForRestaurantAsync(
@@ -266,7 +266,7 @@ public sealed class ReservationRefundManager : BaseManager, IReservationRefundSe
 
         await transaction.CommitAsync(cancellationToken);
 
-        return ReservationRefundResponseMapper.Map(refund);
+        return ReservationRefundResponseMapper.Map(refund, _fileAccessUrlService);
     }
 
     public async Task<ReservationRefundResponse> SubmitPayoutDetailsAsync(
@@ -349,7 +349,7 @@ public sealed class ReservationRefundManager : BaseManager, IReservationRefundSe
 
         await transaction.CommitAsync(cancellationToken);
 
-        return ReservationRefundResponseMapper.Map(refund);
+        return ReservationRefundResponseMapper.Map(refund, _fileAccessUrlService);
     }
 
     public async Task EnsureTransferCanBeSubmittedAsync(
@@ -463,6 +463,126 @@ public sealed class ReservationRefundManager : BaseManager, IReservationRefundSe
         return ReservationRefundResponseMapper.MapTransfer(refund, transfer, _fileAccessUrlService);
     }
 
+    public Task<ReservationRefundResponse> ConfirmTransferAsync(
+        int refundId,
+        int transferId,
+        CancellationToken cancellationToken = default)
+        => ReviewTransferAsync(refundId, transferId, null, cancellationToken);
+
+    public Task<ReservationRefundResponse> DisputeTransferAsync(
+        int refundId,
+        int transferId,
+        string reason,
+        CancellationToken cancellationToken = default)
+        => ReviewTransferAsync(refundId, transferId, NormalizeDisputeReason(reason), cancellationToken);
+
+    private async Task<ReservationRefundResponse> ReviewTransferAsync(
+        int refundId,
+        int transferId,
+        string? disputeReason,
+        CancellationToken cancellationToken)
+    {
+        ValidateRefundId(refundId);
+        if (transferId <= 0)
+            throw new BadRequestException(ErrorCode.InvalidRefundTransferId);
+
+        var userId = GetCurrentUserId();
+        var isDispute = disputeReason is not null;
+
+        await using var transaction = await _transactionFactory.BeginTransactionAsync(
+            IsolationLevel.ReadCommitted,
+            cancellationToken);
+
+        await _refundRepository.AcquireRefundLockAsync(refundId, cancellationToken);
+        var refund = await _refundRepository.GetByIdForCustomerForUpdateAsync(
+            refundId,
+            userId,
+            cancellationToken);
+
+        if (refund is null)
+            throw new NotFoundException(ErrorCode.ReservationRefundNotFound);
+
+        var latestTransfer = refund.TransferAttempts
+            .OrderByDescending(transfer => transfer.SubmittedAt)
+            .ThenByDescending(transfer => transfer.Id)
+            .FirstOrDefault();
+
+        if (latestTransfer?.Id != transferId)
+            throw new BusinessRuleException(ErrorCode.RefundTransferNotCurrent);
+
+        if (!isDispute &&
+            refund.StatusId == StatusIds.Refund(RefundStatus.Refunded) &&
+            latestTransfer.CustomerConfirmedAt.HasValue)
+        {
+            return ReservationRefundResponseMapper.Map(refund, _fileAccessUrlService);
+        }
+
+        if (isDispute &&
+            refund.StatusId == StatusIds.Refund(RefundStatus.Disputed) &&
+            latestTransfer.DisputedAt.HasValue &&
+            string.Equals(latestTransfer.DisputeReason, disputeReason, StringComparison.Ordinal))
+        {
+            return ReservationRefundResponseMapper.Map(refund, _fileAccessUrlService);
+        }
+
+        await _workflowActionService.EnsureCanExecuteAsync(
+            RefundFlowCode,
+            refund.StatusId,
+            isDispute ? WorkflowActionCode.Refund.DisputeTransfer : WorkflowActionCode.Refund.ConfirmTransfer,
+            refund.Reservation.RestaurantId,
+            refund.Id);
+
+        var now = DateTime.UtcNow;
+        if (isDispute)
+        {
+            latestTransfer.DisputedAt = now;
+            latestTransfer.DisputeReason = disputeReason;
+        }
+        else
+        {
+            latestTransfer.CustomerConfirmedAt = now;
+            refund.RefundedAt = now;
+        }
+
+        ReservationRefundStatusTransition.Apply(
+            refund,
+            StatusIds.Refund(isDispute ? RefundStatus.Disputed : RefundStatus.Refunded),
+            userId,
+            now,
+            isDispute ? disputeReason! : "Müştəri geri ödənişin hesabına çatdığını təsdiqlədi.");
+
+        await _refundRepository.SaveChangesAsync();
+
+        await _refundNotifier.NotifyRestaurantAsync(
+            refund.Reservation,
+            refund,
+            isDispute
+                ? NotificationType.ReservationRefundTransferDisputed
+                : NotificationType.ReservationRefundTransferConfirmed,
+            isDispute ? "Geri ödənişə etiraz edildi" : "Geri ödəniş təsdiqləndi",
+            isDispute
+                ? $"Rezervasiya #{refund.ReservationId} üçün geri ödənişə etiraz edildi: {disputeReason}"
+                : $"Rezervasiya #{refund.ReservationId} üçün geri ödəniş müştəri tərəfindən təsdiqləndi.");
+
+        await _auditLogService.RecordRestaurantActionAsync(
+            refund.Reservation.RestaurantId,
+            isDispute
+                ? AuditActions.ReservationRefundTransferDisputed
+                : AuditActions.ReservationRefundTransferConfirmed,
+            new
+            {
+                reservationId = refund.ReservationId,
+                refundId = refund.Id,
+                refundTransferId = latestTransfer.Id,
+                reason = disputeReason
+            },
+            AuditEntityTypes.ReservationRefund,
+            refund.Id);
+
+        await transaction.CommitAsync(cancellationToken);
+        return ReservationRefundResponseMapper.Map(refund, _fileAccessUrlService);
+    }
+
     private async Task EnsureRestaurantAccessAsync(int restaurantId)
     {
         if (IsCurrentUserSuperAdmin())
@@ -517,6 +637,15 @@ public sealed class ReservationRefundManager : BaseManager, IReservationRefundSe
             throw new BadRequestException(ErrorCode.InvalidRefundTransferReference);
 
         return string.IsNullOrWhiteSpace(normalizedReference) ? null : normalizedReference;
+    }
+
+    private static string NormalizeDisputeReason(string? reason)
+    {
+        var normalizedReason = reason?.Trim() ?? string.Empty;
+        if (normalizedReason.Length is < 5 or > 500)
+            throw new BadRequestException(ErrorCode.InvalidRefundTransferDisputeReason);
+
+        return normalizedReason;
     }
 
     private static void ValidateRestaurantId(int restaurantId)
