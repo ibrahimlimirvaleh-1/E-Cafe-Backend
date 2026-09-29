@@ -41,6 +41,7 @@ public static class WorkflowActionRuleSeeder
         AddRefundTransferRules(rules, ref id);
         AddRefundCustomerReviewRules(rules, ref id);
         AddRefundPayoutViewRules(rules, ref id);
+        AddReservationDepositWaiverRules(rules, ref id);
 
         modelBuilder.Entity<WorkflowActionRule>().HasData(rules);
     }
@@ -181,6 +182,21 @@ public static class WorkflowActionRuleSeeder
         rules.Add(Rule(id++, ReservationFlow, StatusTypeEnum.Reservation, ReservationStatus.PaymentSubmitted, RoleCode.Manager, "approvePaymentProof", "Ödənişi təsdiqlə", "POST", "/api/v1/restaurants/{restaurantId}/reservations/{reservationId}/payment-proofs/approve", 10));
         rules.Add(Rule(id++, ReservationFlow, StatusTypeEnum.Reservation, ReservationStatus.PaymentSubmitted, RoleCode.Manager, WorkflowActionCode.Reservation.RejectPaymentProof, "Ödənişi rədd et", "POST", "/api/v1/restaurants/{restaurantId}/reservations/{reservationId}/payment-proofs/reject", 20, true, requiresReason: true));
         rules.Add(Rule(id++, ReservationFlow, StatusTypeEnum.Reservation, ReservationStatus.PaymentSubmitted, RoleCode.Manager, "cancel", "Rezervasiyanı ləğv et", "POST", "/api/v1/restaurants/{restaurantId}/reservations/{reservationId}/cancel", 90, true));
+    }
+
+    private static void AddReservationDepositWaiverRules(List<WorkflowActionRule> rules, ref int id)
+    {
+        const string endpoint = "/api/v1/restaurants/{restaurantId}/reservations/{reservationId}/deposit-waiver";
+
+        foreach (var role in new[] { RoleCode.Manager, RoleCode.Owner })
+        {
+            rules.Add(Rule(
+                id++, ReservationFlow, StatusTypeEnum.Reservation,
+                ReservationStatus.AwaitingPaymentInstruction, role,
+                WorkflowActionCode.Reservation.WaiveDeposit,
+                "Depozitdən imtina et", "POST", endpoint, 20,
+                requiresConfirmation: true, requiresReason: true));
+        }
     }
 
     private static void AddOwnerReservationRules(List<WorkflowActionRule> rules, ref int id)

@@ -21,6 +21,7 @@ namespace ECafe.Application.DTOs.Restaurant.Public
         public int TableTurnoverBufferMinutes { get; set; }
         public int PaymentHoldMinutes { get; set; }
         public int RestaurantResponseMinutes { get; set; }
+        public decimal? DepositAmount { get; set; }
         public string TimeZone { get; set; } = "Asia/Baku";
         public List<RestaurantWorkingHourDto> WorkingHours { get; set; } = [];
         public bool IsOpen { get; set; }

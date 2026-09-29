@@ -12,6 +12,7 @@ namespace ECafe.Application.Features.Queries.Restaurant.Public
         public int PageNumber { get; set; }
         public int PageSize { get; set; }
         public string? Search { get; set; }
+        public DateOnly? ReservationDate { get; set; }
     }
 
     public class GetPublicRestaurantsQueryHandler
@@ -29,7 +30,7 @@ namespace ECafe.Application.Features.Queries.Restaurant.Public
             CancellationToken cancellationToken)
         {
             var filter = new PaginationFilter(request.PageNumber, request.PageSize);
-            return _restaurantService.GetPublicRestaurantsAsync(filter, request.Search);
+            return _restaurantService.GetPublicRestaurantsAsync(filter, request.Search, request.ReservationDate);
         }
     }
 

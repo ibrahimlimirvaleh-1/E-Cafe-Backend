@@ -45,6 +45,18 @@ public sealed class RestaurantDepositService : BaseManager, IRestaurantDepositSe
             .FirstOrDefaultAsync(cancellationToken) ?? 0m;
     }
 
+    public async Task<IReadOnlyDictionary<int, decimal>> GetAmountsForDateAsync(
+        IReadOnlyCollection<int> restaurantIds,
+        DateOnly reservationDate)
+    {
+        if (restaurantIds.Count == 0)
+            return new Dictionary<int, decimal>();
+
+        var ids = restaurantIds.ToArray();
+        return await _rules.Query(rule => ids.Contains(rule.RestaurantId) && rule.ReservationDate == reservationDate)
+            .ToDictionaryAsync(rule => rule.RestaurantId, rule => rule.Amount);
+    }
+
     public Task SetRuleAsync(int restaurantId, DateOnly reservationDate, decimal amount)
         => ChangeRuleAsync(restaurantId, reservationDate, amount);
 
