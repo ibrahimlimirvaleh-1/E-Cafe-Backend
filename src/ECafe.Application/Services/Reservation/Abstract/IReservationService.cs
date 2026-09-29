@@ -68,6 +68,12 @@ public interface IReservationService
         int reservationId,
         CancellationToken cancellationToken = default);
 
+    Task<ReservationActionResponse> WaiveDepositAsync(
+        int restaurantId,
+        int reservationId,
+        string reason,
+        CancellationToken cancellationToken = default);
+
     Task<ReservationActionResponse> RejectPaymentProofAsync(
         int restaurantId,
         int reservationId,

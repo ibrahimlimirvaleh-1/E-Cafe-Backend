@@ -41,6 +41,7 @@ namespace ECafe.Application.Common.Audit
         public const string ReservationCancelled = "ReservationCancelled";
         public const string ReservationCheckedIn = "ReservationCheckedIn";
         public const string ReservationCompleted = "ReservationCompleted";
+        public const string ReservationDepositWaived = "ReservationDepositWaived";
         public const string ReservationRefundRequested = "ReservationRefundRequested";
         public const string ReservationRefundPayoutDetailsSubmitted = "ReservationRefundPayoutDetailsSubmitted";
         public const string ReservationRefundPayoutDetailsViewed = "ReservationRefundPayoutDetailsViewed";
@@ -87,6 +88,7 @@ namespace ECafe.Application.Common.Audit
             new(48, ReservationCancelled, "Rezervasiya ləğv edildi"),
             new(49, ReservationCheckedIn, "Rezervasiya check-in edildi"),
             new(50, ReservationCompleted, "Rezervasiya tamamlandı"),
+            new(60, ReservationDepositWaived, "Rezervasiya depozitindən imtina edildi"),
             new(54, ReservationRefundRequested, "Rezervasiya geri ödənişi soruşuldu"),
             new(55, ReservationRefundPayoutDetailsSubmitted, "Rezervasiya geri ödəniş məlumatları göndərildi"),
             new(56, ReservationRefundPayoutDetailsViewed, "Rezervasiya geri ödəniş məlumatlarına baxıldı"),

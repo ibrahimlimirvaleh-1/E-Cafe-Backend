@@ -529,8 +529,6 @@ public sealed class ReservationManager : BaseManager, IReservationService
 
         var userId = GetCurrentUserId();
 
-        var now = DateTime.UtcNow;
-
         int awaitingPaymentInstructionStatusId = StatusIds.Reservation(ReservationStatus.AwaitingPaymentInstruction);
         int paymentPendingStatusId = StatusIds.Reservation(ReservationStatus.PendingPayment);
 
@@ -544,6 +542,23 @@ public sealed class ReservationManager : BaseManager, IReservationService
             throw new ForbiddenException(ErrorCode.OnlyRestaurantManagersCanSendPaymentInstruction);
 
 
+        await using var transaction = await _transactionFactory.BeginTransactionAsync(
+            IsolationLevel.ReadCommitted,
+            cancellationToken);
+
+        var snapshot = await _reservationRepository.GetByIdForRestaurantSnapshotAsync(
+            reservationId,
+            restaurantId,
+            cancellationToken);
+
+        if (snapshot is null)
+            throw new BusinessRuleException(ErrorCode.ReservationNotBelongsToRestaurant);
+
+        await _tableRepository.AcquireReservationLockAsync(
+            restaurantId,
+            snapshot.TableId,
+            cancellationToken);
+
         var reservation = await _reservationRepository.GetByIdForRestaurantAsync(
             reservationId,
             restaurantId,
@@ -555,6 +570,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
         var restaurant = await _restaurantRepository.GetByIdAsync(restaurantId)
             ?? throw new NotFoundException(ErrorCode.RestaurantNotFound);
 
+        var now = DateTime.UtcNow;
         var previousStatusId = reservation.StatusId;
 
         var canSendInstruction = reservation.StatusId == awaitingPaymentInstructionStatusId &&
@@ -564,6 +580,9 @@ public sealed class ReservationManager : BaseManager, IReservationService
             (reservation.HoldExpiresAt is null || reservation.HoldExpiresAt > now);
 
         if (!canSendInstruction && !isLegacyPendingPayment)
+            throw new BusinessRuleException(ErrorCode.ThisOperatioCannotBePerformedForThisReservation);
+
+        if (reservation.DepositAmount <= 0)
             throw new BusinessRuleException(ErrorCode.ThisOperatioCannotBePerformedForThisReservation);
 
         await _workflowActionService.EnsureCanExecuteAsync(
@@ -582,15 +601,6 @@ public sealed class ReservationManager : BaseManager, IReservationService
             SentByUserId = userId,
             SentAt = now
         };
-
-        await using var transaction = await _transactionFactory.BeginTransactionAsync(
-            IsolationLevel.ReadCommitted,
-            cancellationToken);
-
-        await _tableRepository.AcquireReservationLockAsync(
-            restaurantId,
-            reservation.TableId,
-            cancellationToken);
 
         if (reservation.StatusId == awaitingPaymentInstructionStatusId)
         {
@@ -1300,6 +1310,103 @@ public sealed class ReservationManager : BaseManager, IReservationService
             ReservationId = reservation.Id,
             Items = items
         };
+    }
+
+    public async Task<ReservationActionResponse> WaiveDepositAsync(
+        int restaurantId,
+        int reservationId,
+        string reason,
+        CancellationToken cancellationToken = default)
+    {
+        ValidateRestaurantId(restaurantId);
+        ValidateReservationId(reservationId);
+        var normalizedReason = NormalizeRequiredReason(reason, "Depozitdən imtinanın səbəbini yazın.");
+        await EnsureRestaurantReservationAccessAsync(restaurantId);
+
+        await using var transaction = await _transactionFactory.BeginTransactionAsync(
+            IsolationLevel.ReadCommitted,
+            cancellationToken);
+
+        var snapshot = await _reservationRepository.GetByIdForRestaurantSnapshotAsync(
+            reservationId,
+            restaurantId,
+            cancellationToken);
+        if (snapshot is null)
+            throw new NotFoundException(ErrorCode.ReservationNotFound);
+
+        await _tableRepository.AcquireReservationLockAsync(
+            restaurantId,
+            snapshot.TableId,
+            cancellationToken);
+
+        var reservation = await _reservationRepository.GetByIdForRestaurantAsync(
+            reservationId,
+            restaurantId,
+            cancellationToken);
+        if (reservation is null)
+            throw new NotFoundException(ErrorCode.ReservationNotFound);
+
+        var now = DateTime.UtcNow;
+        var awaitingStatusId = StatusIds.Reservation(ReservationStatus.AwaitingPaymentInstruction);
+        var confirmedStatusId = StatusIds.Reservation(ReservationStatus.Confirmed);
+
+        if (reservation.StatusId != awaitingStatusId ||
+            reservation.RestaurantResponseExpiresAt is null ||
+            reservation.RestaurantResponseExpiresAt <= now ||
+            reservation.ReservedAt <= now ||
+            reservation.DepositAmount <= 0 ||
+            reservation.PaymentInstructions.Any() ||
+            reservation.PaymentProofs.Any() ||
+            reservation.PaymentSubmittedAt.HasValue ||
+            reservation.PaidAt.HasValue)
+        {
+            throw new BusinessRuleException(
+                "Depozitdən yalnız ödəniş məlumatı göndərilməmiş, aktiv rezervasiyada imtina etmək olar. Ödəniş başlamış ola bilərsə, əvvəl onu yoxlayın.");
+        }
+
+        await _workflowActionService.EnsureCanExecuteAsync(
+            ReservationFlowCode,
+            reservation.StatusId,
+            WorkflowActionCode.Reservation.WaiveDeposit,
+            restaurantId,
+            reservation.Id);
+
+        var previousAmount = reservation.DepositAmount;
+        reservation.DepositAmount = 0;
+        reservation.StatusId = confirmedStatusId;
+        reservation.RestaurantResponseExpiresAt = null;
+        reservation.HoldExpiresAt = null;
+        reservation.ConfirmedAt = now;
+        reservation.StatusHistory.Add(new ReservationStatusHistory
+        {
+            FromStatusId = awaitingStatusId,
+            ToStatusId = confirmedStatusId,
+            ChangedByUserId = GetCurrentUserId(),
+            ChangedAt = now,
+            Reason = $"Restoran {previousAmount:0.00} AZN depozitdən imtina etdi. Səbəb: {normalizedReason}"
+        });
+
+        await _reservationRepository.SaveChangesAsync();
+        await NotifyReservationCustomerAsync(
+            restaurantId,
+            reservation,
+            NotificationType.ReservationConfirmed,
+            "Depozit tələbi ləğv edildi",
+            $"Rezervasiya #{reservation.Id} depozitsiz təsdiqləndi. Ödəniş etməyin. Səbəb: {normalizedReason}");
+        await _auditLogService.RecordRestaurantActionAsync(
+            restaurantId,
+            AuditActions.ReservationDepositWaived,
+            new { reservationId = reservation.Id, previousAmount, reason = normalizedReason },
+            AuditEntityTypes.Reservation,
+            reservation.Id);
+
+        await transaction.CommitAsync(cancellationToken);
+
+        return BuildActionResponse(
+            reservation.Id,
+            confirmedStatusId,
+            ReservationStatus.Confirmed,
+            "Depozit tələbi ləğv edildi və rezervasiya depozitsiz təsdiqləndi.");
     }
 
     public async Task<ReservationActionResponse> ApprovePaymentProofAsync(

@@ -27,7 +27,8 @@ namespace ECafe.Application.Services.Restaurant.Abstract
 
         Task<PaginatedList<PublicRestaurantListItemDto>> GetPublicRestaurantsAsync(
             PaginationFilter filter,
-            string? search);
+            string? search,
+            DateOnly? reservationDate);
 
         Task<PublicRestaurantProfileDto> GetPublicRestaurantProfileAsync(int restaurantId);
 

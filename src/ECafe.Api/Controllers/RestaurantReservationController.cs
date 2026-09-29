@@ -6,6 +6,7 @@ using ECafe.Application.Features.Commands.Reservation.Complete;
 using ECafe.Application.Features.Commands.Reservation.RejectPaymentProof;
 using ECafe.Application.Features.Commands.Reservation.SendPaymentInstruction;
 using ECafe.Application.Features.Commands.Reservation.SubmitRefundTransfer;
+using ECafe.Application.Features.Commands.Reservation.WaiveDeposit;
 using ECafe.Application.Features.Queries.Reservation.GetRestaurant;
 using ECafe.Application.Features.Queries.Reservation.GetRestaurantHistory;
 using ECafe.Application.Features.Queries.Reservation.GetRestaurantRefund;
@@ -59,6 +60,24 @@ public sealed class RestaurantReservationController : BaseController
         {
             RestaurantId = restaurantId,
             ReservationId = reservationId
+        }, cancellationToken);
+
+        return Ok(result);
+    }
+
+    [HasPermission(PermissionCode.ManageReservations)]
+    [HttpPost("api/v1/restaurants/{restaurantId:int}/reservations/{reservationId:int}/deposit-waiver")]
+    public async Task<IActionResult> WaiveDeposit(
+        [FromRoute] int restaurantId,
+        [FromRoute] int reservationId,
+        [FromBody] ReservationCancellationRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await Mediator.Send(new WaiveDepositCommand
+        {
+            RestaurantId = restaurantId,
+            ReservationId = reservationId,
+            Reason = request?.Reason ?? string.Empty
         }, cancellationToken);
 
         return Ok(result);

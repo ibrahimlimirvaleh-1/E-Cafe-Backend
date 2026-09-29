@@ -34,6 +34,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
     public class RestaurantManager : BaseManager, IRestaurantService
     {
         private readonly IRestaurantRepository _restaurantRepository;
+        private readonly IRestaurantDepositService _restaurantDepositService;
         private readonly IRestaurantGroupRepository _restaurantGroupRepository;
         private readonly IUserRestaurantRepository _userRestaurantRepository;
         private readonly IEmailOutboxService _emailOutboxService;
@@ -52,6 +53,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             IMapper mapper,
             IConfiguration configuration,
             IRestaurantRepository restaurantRepository,
+            IRestaurantDepositService restaurantDepositService,
             IRestaurantGroupRepository restaurantGroupRepository,
             IEmailOutboxService emailOutboxService,
             IMinioService minioService,
@@ -66,6 +68,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             : base(httpContextAccessor, mapper, configuration)
         {
             _restaurantRepository = restaurantRepository;
+            _restaurantDepositService = restaurantDepositService;
             _restaurantGroupRepository = restaurantGroupRepository;
             _emailOutboxService = emailOutboxService;
             _minioService = minioService;
@@ -172,7 +175,8 @@ namespace ECafe.Application.Services.Restaurant.Concrete
 
         public async Task<PaginatedList<PublicRestaurantListItemDto>> GetPublicRestaurantsAsync(
             PaginationFilter filter,
-            string? search)
+            string? search,
+            DateOnly? reservationDate)
         {
             filter = PaginationFilterNormalizer.Normalize(filter);
 
@@ -207,6 +211,14 @@ namespace ECafe.Application.Services.Restaurant.Concrete
 
             var responseTasks = restaurants.Select(MapToPublicListItemAsync);
             var response = (await Task.WhenAll(responseTasks)).ToList();
+
+            if (reservationDate.HasValue)
+            {
+                var amounts = await _restaurantDepositService.GetAmountsForDateAsync(
+                    restaurants.Select(restaurant => restaurant.Id).ToArray(), reservationDate.Value);
+                foreach (var item in response)
+                    item.DepositAmount = amounts.GetValueOrDefault(item.Id);
+            }
 
             return new PaginatedList<PublicRestaurantListItemDto>(
                 response,
