@@ -79,7 +79,7 @@ namespace ECafe.Infrastructure.Repositories.Table
             int restaurantId,
             DateTimeOffset reservedAt)
         {
-            var policy = await GetReservationPolicyAsync(restaurantId);
+            var policy = await GetReservationPolicyAsync(restaurantId, reservedAt);
             if (policy is null)
                 return [];
 
@@ -87,7 +87,8 @@ namespace ECafe.Infrastructure.Repositories.Table
             var blockingReservations = BuildBlockingReservationsQuery(
                 restaurantId,
                 DateTime.UtcNow,
-                excludedReservationId: null);
+                excludedReservationId: null,
+                policy.Value);
 
             var candidates = await BuildAvailableReservationTablesQuery(
                     restaurantId,
@@ -121,7 +122,7 @@ namespace ECafe.Infrastructure.Repositories.Table
             DateTimeOffset reservedAt,
             int? excludedReservationId = null)
         {
-            var policy = await GetReservationPolicyAsync(restaurantId);
+            var policy = await GetReservationPolicyAsync(restaurantId, reservedAt);
             if (policy is null)
                 return null;
 
@@ -129,7 +130,8 @@ namespace ECafe.Infrastructure.Repositories.Table
             var blockingReservations = BuildBlockingReservationsQuery(
                 restaurantId,
                 DateTime.UtcNow,
-                excludedReservationId);
+                excludedReservationId,
+                policy.Value);
 
             var candidate = await BuildAvailableReservationTablesQuery(
                     restaurantId,
@@ -181,13 +183,16 @@ namespace ECafe.Infrastructure.Repositories.Table
         private IQueryable<Domain.Entities.Reservation> BuildBlockingReservationsQuery(
             int restaurantId,
             DateTime nowUtc,
-            int? excludedReservationId)
+            int? excludedReservationId,
+            ReservationAvailabilityPolicy policy)
         {
             var awaitingPaymentInstructionStatusId = StatusIds.Reservation(ReservationStatus.AwaitingPaymentInstruction);
             var pendingPaymentStatusId = StatusIds.Reservation(ReservationStatus.PendingPayment);
 
             return Context.Reservations.Where(r =>
                 r.RestaurantId == restaurantId &&
+                r.ReservedAt >= policy.IntervalStartsAtUtc &&
+                r.ReservedAt < policy.IntervalEndsAtUtc &&
                 (!excludedReservationId.HasValue || r.Id != excludedReservationId.Value) &&
                 r.Status.BlocksTableAvailability &&
                 ((r.StatusId == awaitingPaymentInstructionStatusId &&
@@ -199,20 +204,39 @@ namespace ECafe.Infrastructure.Repositories.Table
                   r.StatusId != pendingPaymentStatusId)));
         }
 
-        private Task<ReservationAvailabilityPolicy?> GetReservationPolicyAsync(int restaurantId)
+        private async Task<ReservationAvailabilityPolicy?> GetReservationPolicyAsync(
+            int restaurantId,
+            DateTimeOffset reservedAt)
         {
-            return Context.Restaurants
+            var restaurant = await Context.Restaurants
                 .AsNoTracking()
-                .Where(restaurant => restaurant.Id == restaurantId && restaurant.IsActive)
-                .Select(restaurant => (ReservationAvailabilityPolicy?)new ReservationAvailabilityPolicy(
-                    restaurant.ReservationPreBlockMinutes,
-                    restaurant.TableTurnoverBufferMinutes))
-                .SingleOrDefaultAsync();
+                .Include(item => item.WorkingHours)
+                .SingleOrDefaultAsync(item => item.Id == restaurantId && item.IsActive);
+
+            if (restaurant is null)
+                return null;
+
+            var localTime = RestaurantTimeZoneConverter.ToRestaurantLocalTime(
+                reservedAt,
+                restaurant.TimeZone);
+            if (!RestaurantWorkingHoursCalculator.TryGetActiveInterval(
+                    restaurant.WorkingHours,
+                    localTime,
+                    out var interval))
+                return null;
+
+            return new ReservationAvailabilityPolicy(
+                restaurant.ReservationPreBlockMinutes,
+                restaurant.TableTurnoverBufferMinutes,
+                interval.StartsAt.UtcDateTime,
+                interval.EndsAt.UtcDateTime);
         }
 
         private readonly record struct ReservationAvailabilityPolicy(
             int ReservationPreBlockMinutes,
-            int TableTurnoverBufferMinutes);
+            int TableTurnoverBufferMinutes,
+            DateTime IntervalStartsAtUtc,
+            DateTime IntervalEndsAtUtc);
 
     }
 }
