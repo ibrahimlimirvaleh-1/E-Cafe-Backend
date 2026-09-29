@@ -105,6 +105,7 @@ namespace ECafe.Application
             services.AddScoped<IEmailOutboxService>(provider => provider.GetRequiredService<EmailOutboxManager>());
             services.AddScoped<IEmailOutboxProcessor>(provider => provider.GetRequiredService<EmailOutboxManager>());
             services.AddScoped<IRestaurantService, RestaurantManager>();
+            services.AddScoped<IRestaurantDepositService, RestaurantDepositService>();
             services.AddScoped<IRestaurantGroupService, RestaurantGroupManager>();
             services.AddScoped<IContractDocumentGenerator, ContractDocumentGenerator>();
             services.AddScoped<IContractFileService, ContractFileService>();

@@ -26,8 +26,6 @@ namespace ECafe.Application.DTOs.Restaurant
 
         public int? RatingCount { get; set; }
 
-        public decimal DepositAmount { get; set; }
-
         public int CancellationWindowMinutes { get; set; } = 60;
 
         public int ReservationPreBlockMinutes { get; set; } = 60;

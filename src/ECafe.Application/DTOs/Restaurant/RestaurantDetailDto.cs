@@ -25,7 +25,7 @@
 
         public int? RatingCount { get; set; }
 
-        public decimal DepositAmount { get; set; }
+        public List<RestaurantDepositRuleDto> DepositRules { get; set; } = [];
 
         public int CancellationWindowMinutes { get; set; }
 

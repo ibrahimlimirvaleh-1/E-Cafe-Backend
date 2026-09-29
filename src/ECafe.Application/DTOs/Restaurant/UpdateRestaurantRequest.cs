@@ -22,7 +22,11 @@ namespace ECafe.Application.DTOs.Restaurant
 
         public string? BranchName { get; set; }
 
-        public decimal DepositAmount { get; set; }
+        public decimal? DepositAmount { get; set; }
+
+        public DateOnly? DepositDate { get; set; }
+
+        public bool RemoveDepositDateOverride { get; set; }
 
         public int CancellationWindowMinutes { get; set; } = 60;
 
@@ -36,9 +40,9 @@ namespace ECafe.Application.DTOs.Restaurant
 
         public int RestaurantResponseMinutes { get; set; } = 15;
 
-        public decimal ServiceFeePercent { get; set; }
+        public decimal? ServiceFeePercent { get; set; }
 
-        public int StaffSettlementPeriod { get; set; } = 2;
+        public int? StaffSettlementPeriod { get; set; }
 
         public string? TimeZone { get; set; }
 

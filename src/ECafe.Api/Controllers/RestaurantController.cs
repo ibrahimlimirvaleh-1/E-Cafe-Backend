@@ -3,6 +3,7 @@ using ECafe.Application.Features.Queries.Geocoding;
 using ECafe.Application.Features.Queries.Restaurant.GetAll;
 using ECafe.Application.Features.Queries.Restaurant.GetById;
 using ECafe.Infrastructure.Authorization;
+using ECafe.Domain.Enums;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ECafe.Api.Controllers
@@ -15,11 +16,11 @@ namespace ECafe.Api.Controllers
         public async Task<IActionResult> RegisterRestaurant([FromForm] RegisterRestaurantCommand command)
         => Ok(await Mediator.Send(command));
 
-        [HasPermission(Domain.Enums.PermissionCode.ManageRestaurants)]
-        [HttpPut("api/v1/admin/restaurants/{id}")]
-        public async Task<IActionResult> UpdateRestaurant(int id, [FromBody] UpdateRestaurantCommand command)
+        [HasPermission(PermissionCode.EditRestaurantInfo)]
+        [HttpPut("api/v1/admin/restaurants/{restaurantId:int}")]
+        public async Task<IActionResult> UpdateRestaurant(int restaurantId, [FromBody] UpdateRestaurantCommand command)
         {
-            command.RestaurantId = id;
+            command.RestaurantId = restaurantId;
             await Mediator.Send(command);
             return Ok();
         }
@@ -44,7 +45,7 @@ namespace ECafe.Api.Controllers
         public async Task<IActionResult> GetByIdRestaurant(int id)
         => Ok(await Mediator.Send(new GetRestaurantQuery(id)));
 
-        [HasPermission(Domain.Enums.PermissionCode.ManageRestaurants)]
+        [HasPermission(PermissionCode.EditRestaurantInfo)]
         [HttpGet("api/v1/admin/restaurants/geocode")]
         public async Task<IActionResult> GeocodeAddress([FromQuery] GeocodeAddressQuery query)
         => Ok(await Mediator.Send(query));

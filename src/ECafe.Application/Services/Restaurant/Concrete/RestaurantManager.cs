@@ -34,6 +34,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
     public class RestaurantManager : BaseManager, IRestaurantService
     {
         private readonly IRestaurantRepository _restaurantRepository;
+        private readonly IBaseRepository<RestaurantDepositRule> _depositRuleRepository;
         private readonly IRestaurantGroupRepository _restaurantGroupRepository;
         private readonly IUserRestaurantRepository _userRestaurantRepository;
         private readonly IEmailOutboxService _emailOutboxService;
@@ -52,6 +53,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             IMapper mapper,
             IConfiguration configuration,
             IRestaurantRepository restaurantRepository,
+            IBaseRepository<RestaurantDepositRule> depositRuleRepository,
             IRestaurantGroupRepository restaurantGroupRepository,
             IEmailOutboxService emailOutboxService,
             IMinioService minioService,
@@ -66,6 +68,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             : base(httpContextAccessor, mapper, configuration)
         {
             _restaurantRepository = restaurantRepository;
+            _depositRuleRepository = depositRuleRepository;
             _restaurantGroupRepository = restaurantGroupRepository;
             _emailOutboxService = emailOutboxService;
             _minioService = minioService;
@@ -371,7 +374,22 @@ namespace ECafe.Application.Services.Restaurant.Concrete
 
             EnsureCurrentUserCanAccessRestaurant(restaurantId);
 
+            if (request.DepositDate.HasValue)
+            {
+                await UpdateDepositRuleAsync(restaurantId, request);
+                return;
+            }
+
             var restaurant = await GetTrackedRestaurantAsync(restaurantId);
+
+            if (!IsCurrentUserSuperAdmin() &&
+                (request.RestaurantGroupId.HasValue ||
+                 request.RestaurantGroupName is not null ||
+                 request.RestaurantGroupLegalName is not null ||
+                 request.RestaurantGroupEmail is not null ||
+                 request.ServiceFeePercent.HasValue ||
+                 request.StaffSettlementPeriod.HasValue))
+                throw new ForbiddenException(ErrorCode.AccessDenied);
 
             var targetRestaurantGroup = restaurant.RestaurantGroup;
             if (request.RestaurantGroupId.GetValueOrDefault() > 0 ||
@@ -403,15 +421,16 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             restaurant.PlaceId = string.IsNullOrWhiteSpace(request.PlaceId) ? null : request.PlaceId.Trim();
             restaurant.Phone = PhoneNumberValidationExtensions.NormalizeAzerbaijanPhoneNumber(request.Phone);
             restaurant.BranchName = branchName;
-            restaurant.DepositAmount = request.DepositAmount;
             restaurant.CancellationWindowMinutes = request.CancellationWindowMinutes;
             restaurant.ReservationPreBlockMinutes = request.ReservationPreBlockMinutes;
             restaurant.TableTurnoverBufferMinutes = request.TableTurnoverBufferMinutes;
             restaurant.NoShowGraceMinutes = request.NoShowGraceMinutes;
             restaurant.PaymentHoldMinutes = request.PaymentHoldMinutes;
             restaurant.RestaurantResponseMinutes = request.RestaurantResponseMinutes;
-            restaurant.ServiceFeePercent = request.ServiceFeePercent;
-            restaurant.StaffSettlementPeriod = request.StaffSettlementPeriod;
+            if (request.ServiceFeePercent.HasValue)
+                restaurant.ServiceFeePercent = request.ServiceFeePercent.Value;
+            if (request.StaffSettlementPeriod.HasValue)
+                restaurant.StaffSettlementPeriod = request.StaffSettlementPeriod.Value;
             restaurant.TimeZone = NormalizeTimeZone(request.TimeZone);
             SyncWorkingHours(restaurant, request.WorkingHours);
 
@@ -435,7 +454,6 @@ namespace ECafe.Application.Services.Restaurant.Concrete
                     restaurant.PlaceId,
                     restaurant.Phone,
                     GroupEmail = restaurant.RestaurantGroup?.Email,
-                    restaurant.DepositAmount,
                     restaurant.CancellationWindowMinutes,
                     restaurant.ReservationPreBlockMinutes,
                     restaurant.TableTurnoverBufferMinutes,
@@ -450,6 +468,54 @@ namespace ECafe.Application.Services.Restaurant.Concrete
                 },
                 AuditEntityTypes.Restaurant,
                 restaurant.Id,
+                restaurant.Name);
+        }
+
+        private async Task UpdateDepositRuleAsync(int restaurantId, UpdateRestaurantRequest request)
+        {
+            var restaurant = await _restaurantRepository.GetByIdAsync(restaurantId);
+            if (restaurant is null || !restaurant.IsActive)
+                throw new BusinessRuleException(ErrorCode.RestaurantNotFound);
+
+            var date = request.DepositDate!.Value;
+            var localNow = RestaurantTimeZoneConverter.ToRestaurantLocalTime(DateTimeOffset.UtcNow, restaurant.TimeZone);
+            if (date < DateOnly.FromDateTime(localNow.DateTime))
+                throw new BusinessRuleException("Keçmiş tarix üçün depozit qaydası dəyişdirilə bilməz.");
+            if (!request.RemoveDepositDateOverride &&
+                (!request.DepositAmount.HasValue || request.DepositAmount <= 0 || request.DepositAmount > 100000 ||
+                 decimal.Round(request.DepositAmount.Value, 2) != request.DepositAmount.Value))
+                throw new BusinessRuleException("Tarix üzrə depozit 0-dan böyük, 100000 AZN-dən çox olmayan və iki onluq rəqəmli məbləğ olmalıdır.");
+
+            var rule = await _depositRuleRepository.QueryTracked(x =>
+                    x.RestaurantId == restaurantId && x.ReservationDate == date)
+                .FirstOrDefaultAsync();
+
+            if (request.RemoveDepositDateOverride)
+            {
+                if (rule is not null)
+                    await _depositRuleRepository.Delete(rule);
+            }
+            else if (rule is null)
+            {
+                await _depositRuleRepository.Add(new RestaurantDepositRule
+                {
+                    RestaurantId = restaurantId,
+                    ReservationDate = date,
+                    Amount = request.DepositAmount!.Value
+                });
+            }
+            else
+            {
+                rule.Amount = request.DepositAmount!.Value;
+            }
+
+            await _depositRuleRepository.SaveChangesAsync();
+            await _auditLogService.RecordRestaurantActionAsync(
+                restaurantId,
+                AuditActions.RestaurantUpdated,
+                new { DepositDate = date, Amount = request.RemoveDepositDateOverride ? (decimal?)null : request.DepositAmount },
+                AuditEntityTypes.Restaurant,
+                restaurantId,
                 restaurant.Name);
         }
 

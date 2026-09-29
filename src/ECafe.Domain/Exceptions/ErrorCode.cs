@@ -143,5 +143,6 @@ public enum ErrorCode
     ReservationPaymentInstructionSensitiveDataProhibited = 5039,
     InvalidRefundTransferId = 5040,
     RefundTransferNotCurrent = 5041,
-    InvalidRefundTransferDisputeReason = 5042
+    InvalidRefundTransferDisputeReason = 5042,
+    ReservationDepositAmountChanged = 5043
 }

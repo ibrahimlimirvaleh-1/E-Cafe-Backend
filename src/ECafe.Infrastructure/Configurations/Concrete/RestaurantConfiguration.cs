@@ -52,10 +52,6 @@ namespace ECafe.Infrastructure.Configurations.Concrete
             builder.Property(e => e.RatingCount)
                 .HasDefaultValue(0)
                 .HasColumnName("rating_count");
-            builder.Property(e => e.DepositAmount)
-                .HasPrecision(18, 2)
-                .HasDefaultValue(0m)
-                .HasColumnName("deposit_amount");
             builder.Property(e => e.CancellationWindowMinutes)
                 .HasDefaultValue(60)
                 .HasColumnName("cancellation_window_minutes");

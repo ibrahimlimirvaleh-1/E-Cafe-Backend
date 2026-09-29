@@ -16,7 +16,6 @@ namespace ECafe.Application.DTOs.Restaurant.Public
         public string? BranchName { get; set; }
         public decimal? RatingAverage { get; set; }
         public int? RatingCount { get; set; }
-        public decimal DepositAmount { get; set; }
         public int CancellationWindowMinutes { get; set; }
         public int ReservationPreBlockMinutes { get; set; }
         public int TableTurnoverBufferMinutes { get; set; }
@@ -52,7 +51,6 @@ namespace ECafe.Application.DTOs.Restaurant.Public
         public string? BranchName { get; set; }
         public decimal? RatingAverage { get; set; }
         public int? RatingCount { get; set; }
-        public decimal DepositAmount { get; set; }
         public int CancellationWindowMinutes { get; set; }
         public int ReservationPreBlockMinutes { get; set; }
         public int TableTurnoverBufferMinutes { get; set; }
