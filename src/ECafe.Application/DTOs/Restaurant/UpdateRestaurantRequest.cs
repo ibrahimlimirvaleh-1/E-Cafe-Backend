@@ -22,12 +22,6 @@ namespace ECafe.Application.DTOs.Restaurant
 
         public string? BranchName { get; set; }
 
-        public decimal? DepositAmount { get; set; }
-
-        public DateOnly? DepositDate { get; set; }
-
-        public bool RemoveDepositDateOverride { get; set; }
-
         public int CancellationWindowMinutes { get; set; } = 60;
 
         public int ReservationPreBlockMinutes { get; set; } = 60;

@@ -1,3 +1,4 @@
+using ECafe.Application.DTOs.Restaurant;
 using ECafe.Application.Features.Commands.Restaurant;
 using ECafe.Application.Features.Queries.Geocoding;
 using ECafe.Application.Features.Queries.Restaurant.GetAll;
@@ -23,6 +24,22 @@ namespace ECafe.Api.Controllers
             command.RestaurantId = restaurantId;
             await Mediator.Send(command);
             return Ok();
+        }
+
+        [HasPermission(PermissionCode.EditRestaurantInfo)]
+        [HttpPut("api/v1/admin/restaurants/{restaurantId:int}/deposit-rules/{reservationDate}")]
+        public async Task<IActionResult> SetDepositRule(int restaurantId, DateOnly reservationDate, [FromBody] SetRestaurantDepositRuleRequest request)
+        {
+            await Mediator.Send(new SetRestaurantDepositRuleCommand(restaurantId, reservationDate, request.Amount));
+            return NoContent();
+        }
+
+        [HasPermission(PermissionCode.EditRestaurantInfo)]
+        [HttpDelete("api/v1/admin/restaurants/{restaurantId:int}/deposit-rules/{reservationDate}")]
+        public async Task<IActionResult> RemoveDepositRule(int restaurantId, DateOnly reservationDate)
+        {
+            await Mediator.Send(new RemoveRestaurantDepositRuleCommand(restaurantId, reservationDate));
+            return NoContent();
         }
 
         [HasPermission(Domain.Enums.PermissionCode.ManageRestaurants)]
