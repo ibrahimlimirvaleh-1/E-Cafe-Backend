@@ -25,8 +25,6 @@
 
         public int? RatingCount { get; set; }
 
-        public decimal DepositAmount { get; set; }
-
         public int CancellationWindowMinutes { get; set; }
 
         public int ReservationPreBlockMinutes { get; set; }

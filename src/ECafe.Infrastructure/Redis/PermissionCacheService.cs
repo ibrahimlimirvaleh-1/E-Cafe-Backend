@@ -18,7 +18,7 @@ namespace ECafe.Infrastructure.Redis
             _context = context;
         }
 
-        private string Key(int roleId) => $"role_permissions_{roleId}";
+        private string Key(int roleId) => $"role_permissions_v2_{roleId}";
 
         public async Task<List<int>> GetPermissionsAsync(int roleId)
         {

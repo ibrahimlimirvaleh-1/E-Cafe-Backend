@@ -19,6 +19,7 @@ namespace ECafe.Application.Mappings
                 .ForMember(dest => dest.WorkingHours, opt => opt.MapFrom(src => src.WorkingHours.OrderBy(hour => hour.DayOfWeek)));
 
             CreateMap<RestaurantWorkingHour, RestaurantWorkingHourDto>();
+            CreateMap<RestaurantDepositRule, RestaurantDepositRuleDto>();
 
             CreateMap<Table, TableDto>()
                 .ForMember(dest => dest.IsEmpty, opt => opt.MapFrom(src =>

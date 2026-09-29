@@ -12,5 +12,7 @@
 
         public bool AcceptsLimitedSeating { get; set; }
 
+        public decimal? ExpectedDepositAmount { get; set; }
+
     }
 }

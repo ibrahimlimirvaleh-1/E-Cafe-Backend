@@ -8,6 +8,8 @@ namespace ECafe.Application.DTOs.Table
 
         public int TableTurnoverBufferMinutes { get; set; }
 
+        public decimal DepositAmount { get; set; }
+
         public string? RestaurantTimeZone { get; set; }
 
         public string MessageCode { get; set; } = string.Empty;

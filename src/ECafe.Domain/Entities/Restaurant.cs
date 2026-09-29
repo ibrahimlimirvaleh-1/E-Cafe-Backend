@@ -24,8 +24,6 @@ public partial class Restaurant : AuditableSoftDeletableEntity<int>
 
     public int? RatingCount { get; set; }
 
-    public decimal DepositAmount { get; set; }
-
     public int CancellationWindowMinutes { get; set; }
 
     public int ReservationPreBlockMinutes { get; set; }
@@ -68,4 +66,6 @@ public partial class Restaurant : AuditableSoftDeletableEntity<int>
     public virtual ICollection<RestaurantContract> Contracts { get; set; } = new List<RestaurantContract>();
 
     public virtual ICollection<RestaurantWorkingHour> WorkingHours { get; set; } = new List<RestaurantWorkingHour>();
+
+    public virtual ICollection<RestaurantDepositRule> DepositRules { get; set; } = new List<RestaurantDepositRule>();
 }

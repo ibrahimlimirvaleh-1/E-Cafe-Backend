@@ -21,6 +21,7 @@ using ECafe.Application.Services.Notification.Abstract;
 using ECafe.Application.Services.AuditLog.Abstract;
 using ECafe.Application.Services.FileAccess.Abstract;
 using ECafe.Application.Services.Reservation.Abstract;
+using ECafe.Application.Services.Restaurant.Abstract;
 using ECafe.Application.Services.PaymentInstructionDetails.Abstract;
 using ECafe.Application.Services.Workflow.Abstract;
 using ECafe.Domain.Entities;
@@ -56,6 +57,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
     private readonly ITableRepository _tableRepository;
     private readonly ITableSessionRepository _tableSessionRepository;
     private readonly IRestaurantRepository _restaurantRepository;
+    private readonly IRestaurantDepositService _restaurantDepositService;
     private readonly IRestaurantContractRepository _restaurantContractRepository;
     private readonly IReservationRepository _reservationRepository;
     private readonly IUserRestaurantRepository _userRestaurantRepository;
@@ -77,6 +79,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
         ITableRepository tableRepository,
         ITableSessionRepository tableSessionRepository,
         IRestaurantRepository restaurantRepository,
+        IRestaurantDepositService restaurantDepositService,
         IRestaurantContractRepository restaurantContractRepository,
         IReservationRepository reservationRepository,
         IUserRestaurantRepository userRestaurantRepository,
@@ -95,6 +98,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
         _tableRepository = tableRepository;
         _tableSessionRepository = tableSessionRepository;
         _restaurantRepository = restaurantRepository;
+        _restaurantDepositService = restaurantDepositService;
         _restaurantContractRepository = restaurantContractRepository;
         _reservationRepository = reservationRepository;
         _userRestaurantRepository = userRestaurantRepository;
@@ -164,22 +168,39 @@ public sealed class ReservationManager : BaseManager, IReservationService
             request.AcceptsLimitedSeating,
             restaurantTimeZone: restaurant.TimeZone);
 
+        var depositAmount = await _restaurantDepositService.ResolveAmountAsync(
+            restaurant, request.ReservedAt, cancellationToken);
+        if (request.ExpectedDepositAmount.HasValue && request.ExpectedDepositAmount.Value != depositAmount)
+            throw new BusinessRuleException(ErrorCode.ReservationDepositAmountChanged);
+
         var reservation = BuildReservation(
             restaurantId,
             userId,
             restaurant,
             request,
-            tableAvailability.MustVacateAt);
+            tableAvailability.MustVacateAt,
+            depositAmount);
         reservation.StatusHistory.Add(new ReservationStatusHistory
         {
             ToStatusId = reservation.StatusId,
             ChangedByUserId = userId,
             ChangedAt = DateTime.UtcNow,
-            Reason = "Rezervasiya yaradıldı."
+            Reason = depositAmount == 0
+                ? "Depozitsiz rezervasiya avtomatik təsdiqləndi."
+                : "Rezervasiya yaradıldı."
         });
         await _reservationRepository.Add(reservation);
         await _reservationRepository.SaveChangesAsync();
         await NotifyRestaurantResponsibleUserAsync(restaurantId, table, reservation);
+        if (depositAmount == 0)
+        {
+            await NotifyReservationCustomerAsync(
+                restaurantId,
+                reservation,
+                NotificationType.ReservationConfirmed,
+                "Rezervasiyanız təsdiqləndi",
+                $"Rezervasiya #{reservation.Id} depozit tələb olunmadan təsdiqləndi.");
+        }
 
         await transaction.CommitAsync(cancellationToken);
         return MapResponse(reservation);
@@ -929,7 +950,8 @@ public sealed class ReservationManager : BaseManager, IReservationService
         int userId,
         Domain.Entities.Restaurant restaurant,
         CreateReservationRequest request,
-        DateTime? mustVacateAt)
+        DateTime? mustVacateAt,
+        decimal depositAmount)
     {
         var cancellationWindowMinutes = Math.Max(restaurant.CancellationWindowMinutes, 0);
         var noShowGraceMinutes = Math.Max(restaurant.NoShowGraceMinutes, 0);
@@ -941,15 +963,19 @@ public sealed class ReservationManager : BaseManager, IReservationService
             CustomerUserId = userId,
             TableId = request.TableId,
             PeopleCount = request.PeopleCount,
-            StatusId = StatusIds.Reservation(ReservationStatus.AwaitingPaymentInstruction),
-            DepositAmount = restaurant.DepositAmount,
+            StatusId = StatusIds.Reservation(depositAmount == 0
+                ? ReservationStatus.Confirmed
+                : ReservationStatus.AwaitingPaymentInstruction),
+            DepositAmount = depositAmount,
             CancellationWindowMinutes = cancellationWindowMinutes,
             CancellationDeadline = reservedAtUtc.AddMinutes(-cancellationWindowMinutes),
             ReservedAt = reservedAtUtc,
             NoShowDeadlineAt = reservedAtUtc.AddMinutes(noShowGraceMinutes),
             MustVacateAt = mustVacateAt,
             HoldExpiresAt = null,
-            RestaurantResponseExpiresAt = DateTime.UtcNow.AddMinutes(restaurant.RestaurantResponseMinutes),
+            RestaurantResponseExpiresAt = depositAmount == 0
+                ? null
+                : DateTime.UtcNow.AddMinutes(restaurant.RestaurantResponseMinutes),
             Note = request.Note?.Trim()
         };
     }
@@ -968,7 +994,9 @@ public sealed class ReservationManager : BaseManager, IReservationService
                 UserId = assignment.UserId,
                 RestaurantId = restaurantId,
                 Title = "Yeni rezervasiya yaradıldı",
-                Message = $"Masa {table.Name ?? table.TableNo.ToString()} üçün yeni rezervasiya ödəniş gözləyir.",
+                Message = reservation.DepositAmount == 0
+                    ? $"Masa {table.Name ?? table.TableNo.ToString()} üçün depozitsiz rezervasiya avtomatik təsdiqləndi."
+                    : $"Masa {table.Name ?? table.TableNo.ToString()} üçün yeni rezervasiya ödəniş gözləyir.",
                 TypeId = (int)NotificationType.ReservationCreated,
                 ChannelId = (int)NotificationChannel.InApp,
                 PayloadJson = JsonSerializer.Serialize(new
@@ -1190,7 +1218,10 @@ public sealed class ReservationManager : BaseManager, IReservationService
             MustVacateAt = ToUtcOffset(reservation.MustVacateAt),
             PeopleCount = reservation.PeopleCount,
             StatusId = reservation.StatusId,
-            Status = reservation.Status?.Name ?? ReservationStatus.PendingPayment.ToString(),
+            Status = reservation.Status?.Name ?? Enum.GetValues<ReservationStatus>()
+                .Where(status => StatusIds.Reservation(status) == reservation.StatusId)
+                .Select(status => status.GetName())
+                .FirstOrDefault() ?? reservation.StatusId.ToString(),
             WorkflowFlowCode = ReservationFlowCode,
             DepositAmount = reservation.DepositAmount,
             IsRefundEligible = reservation.RefundEligible == true,

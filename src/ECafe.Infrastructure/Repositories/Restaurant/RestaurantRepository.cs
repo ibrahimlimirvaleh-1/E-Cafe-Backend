@@ -45,6 +45,7 @@ namespace ECafe.Infrastructure.Repositories.Restaurant
                 .Include(r => r.RestaurantGroup)
                 .Include(r => r.Files)
                 .Include(r => r.WorkingHours)
+                .Include(r => r.DepositRules)
                 .Include(r => r.Tables)
                     .ThenInclude(t => t.TableSessions)
                 .Include(r => r.Categories)

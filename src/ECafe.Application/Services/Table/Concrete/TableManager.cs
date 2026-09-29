@@ -6,6 +6,7 @@ using ECafe.Application.Repositories.Restaurant;
 using ECafe.Application.Repositories.Table;
 using ECafe.Application.Services.AuditLog.Abstract;
 using ECafe.Application.Services.Table.Abstract;
+using ECafe.Application.Services.Restaurant.Abstract;
 using ECafe.Domain.Enums;
 using ECafe.Domain.Exceptions;
 using Microsoft.AspNetCore.Http;
@@ -21,6 +22,7 @@ namespace ECafe.Application.Services.Table.Concrete
         private readonly ITableRepository _tableRepository;
 
         private readonly IRestaurantRepository _restaurantRepository;
+        private readonly IRestaurantDepositService _restaurantDepositService;
         private readonly IAuditLogService _auditLogService;
         private readonly IMapper _mapper;
 
@@ -30,13 +32,15 @@ namespace ECafe.Application.Services.Table.Concrete
             IConfiguration configuration,
             ITableRepository tableRepository,
             IAuditLogService auditLogService,
-            IRestaurantRepository restaurantRepository)
+            IRestaurantRepository restaurantRepository,
+            IRestaurantDepositService restaurantDepositService)
             : base(httpContextAccessor, mapper, configuration)
         {
             _tableRepository = tableRepository;
             _auditLogService = auditLogService;
             _mapper = mapper;
             _restaurantRepository = restaurantRepository;
+            _restaurantDepositService = restaurantDepositService;
         }
 
         public async Task<int> CreateAsync(int restaurantId, CreateTableRequest request)
@@ -247,6 +251,7 @@ namespace ECafe.Application.Services.Table.Concrete
                 ?? throw new BadRequestException("Restoran tapılmadı.");
             var reservationPreBlockMinutes = Math.Max(restaurant.ReservationPreBlockMinutes, 15);
             var tableTurnoverBufferMinutes = Math.Max(restaurant.TableTurnoverBufferMinutes, 0);
+            var depositAmount = await _restaurantDepositService.ResolveAmountAsync(restaurant, reservedAt);
 
             var restaurantIsOpen = await _restaurantRepository.IsRestaurantOpenAsync(restaurantId, reservedAt);
 
@@ -255,6 +260,7 @@ namespace ECafe.Application.Services.Table.Concrete
                     reservedAt,
                     reservationPreBlockMinutes,
                     tableTurnoverBufferMinutes,
+                    depositAmount,
                     restaurant.TimeZone,
                     [],
                     false,
@@ -267,6 +273,7 @@ namespace ECafe.Application.Services.Table.Concrete
                 reservedAt,
                 reservationPreBlockMinutes,
                 tableTurnoverBufferMinutes,
+                depositAmount,
                 restaurant.TimeZone,
                 availableTables,
                 true,
@@ -305,6 +312,7 @@ namespace ECafe.Application.Services.Table.Concrete
             DateTimeOffset reservedAt,
             int reservationPreBlockMinutes,
             int tableTurnoverBufferMinutes,
+            decimal depositAmount,
             string? restaurantTimeZone,
             IReadOnlyCollection<ReservationTableAvailability> availableTables,
             bool isRestaurantOpen,
@@ -327,6 +335,7 @@ namespace ECafe.Application.Services.Table.Concrete
                 ReservedAt = reservedAt,
                 ReservationPreBlockMinutes = reservationPreBlockMinutes,
                 TableTurnoverBufferMinutes = tableTurnoverBufferMinutes,
+                DepositAmount = depositAmount,
                 RestaurantTimeZone = restaurantTimeZone,
                 IsRestaurantOpen = isRestaurantOpen,
                 HasAvailableTable = tables.Count > 0,

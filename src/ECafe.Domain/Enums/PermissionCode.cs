@@ -78,6 +78,9 @@ namespace ECafe.Domain.Enums
         ViewRecipes,
 
         [Description("Reseptləri idarə etmək")]
-        ManageRecipes
+        ManageRecipes,
+
+        [Description("Restoran məlumatlarını redaktə etmək")]
+        EditRestaurantInfo
     }
 }
