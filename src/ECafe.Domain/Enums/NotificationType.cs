@@ -24,6 +24,7 @@
         ReservationRefundPayoutDetailsSubmitted = 20,
         ReservationRefundTransferSubmitted = 21,
         ReservationRefundTransferConfirmed = 22,
-        ReservationRefundTransferDisputed = 23
+        ReservationRefundTransferDisputed = 23,
+        ReservationArrivalAdjusted = 24
     }
 }

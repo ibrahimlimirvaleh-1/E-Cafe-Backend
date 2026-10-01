@@ -144,5 +144,10 @@ public enum ErrorCode
     InvalidRefundTransferId = 5040,
     RefundTransferNotCurrent = 5041,
     InvalidRefundTransferDisputeReason = 5042,
-    ReservationDepositAmountChanged = 5043
+    ReservationDepositAmountChanged = 5043,
+    ReservationArrivalNotAvailable = 5044,
+    ReservationArrivalAlreadyAdjusted = 5045,
+    ReservationArrivalTimeInvalid = 5046,
+    ReservationArrivalOfferExpired = 5047,
+    ReservationArrivalTermsChanged = 5048
 }

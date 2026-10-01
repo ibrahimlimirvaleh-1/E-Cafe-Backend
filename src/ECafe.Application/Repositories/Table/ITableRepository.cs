@@ -4,6 +4,8 @@ namespace ECafe.Application.Repositories.Table
 {
     public interface ITableRepository : IBaseRepository<Domain.Entities.Table>
     {
+        Task<DateTime?> GetNextReservationAtAsync(int restaurantId, int tableId,
+            int excludedReservationId, DateTime originalReservedAtUtc, CancellationToken cancellationToken = default);
         Task<bool> HasTableWithoutOpenSessionAsync(int restaurantId);
 
         Task<bool> HasAvailableTableForReservationAsync(int restaurantId, DateTimeOffset reservedAt);

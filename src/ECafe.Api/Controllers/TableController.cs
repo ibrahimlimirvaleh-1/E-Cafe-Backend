@@ -3,6 +3,7 @@ using ECafe.Application.Features.Queries.Table;
 using ECafe.Application.DTOs.Table;
 using ECafe.Infrastructure.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using ApiRoutes = ECafe.Application.Routes.Routes;
 
 namespace ECafe.Api.Controllers
 {
@@ -10,7 +11,7 @@ namespace ECafe.Api.Controllers
     public class TableController : BaseController
     {
         [HasPermission(Domain.Enums.PermissionCode.ManageTables)]
-        [HttpPost("api/v1/restaurants/{restaurantId}/tables")]
+        [HttpPost(ApiRoutes.Table.CreateTable)]
         public async Task<IActionResult> CreateTable(int restaurantId, [FromForm] CreateTableRequest request)
         {
             var command = new CreateTableCommand
@@ -25,12 +26,12 @@ namespace ECafe.Api.Controllers
         }
 
         [HasPermission(Domain.Enums.PermissionCode.ViewRestaurantInfo)]
-        [HttpGet("api/v1/restaurants/{restaurantId}/tables")]
+        [HttpGet(ApiRoutes.Table.GetByRestaurant)]
         public async Task<IActionResult> GetByRestaurant(int restaurantId)
             => Ok(await Mediator.Send(new GetRestaurantTablesQuery(restaurantId)));
 
         [HasPermission(Domain.Enums.PermissionCode.ManageTables)]
-        [HttpPut("api/v1/restaurants/{restaurantId}/tables/{tableId}")]
+        [HttpPut(ApiRoutes.Table.UpdateTable)]
         public async Task<IActionResult> UpdateTable(int restaurantId, int tableId, [FromBody] UpdateTableRequest request)
         {
             var command = new UpdateTableCommand
@@ -47,17 +48,17 @@ namespace ECafe.Api.Controllers
         }
 
         [HasPermission(Domain.Enums.PermissionCode.ManageTables)]
-        [HttpPatch("api/v1/restaurants/{restaurantId}/tables/{tableId}/activate")]
+        [HttpPatch(ApiRoutes.Table.ActivateTable)]
         public async Task<IActionResult> ActivateTable(int restaurantId, int tableId)
             => Ok(await Mediator.Send(new ActivateTableCommand(restaurantId, tableId)));
 
         [HasPermission(Domain.Enums.PermissionCode.ManageTables)]
-        [HttpPatch("api/v1/restaurants/{restaurantId}/tables/{tableId}/deactivate")]
+        [HttpPatch(ApiRoutes.Table.DeactivateTable)]
         public async Task<IActionResult> DeactivateTable(int restaurantId, int tableId)
             => Ok(await Mediator.Send(new DeactivateTableCommand(restaurantId, tableId)));
 
         [HasPermission(Domain.Enums.PermissionCode.ManageTables)]
-        [HttpPost("api/v1/restaurants/{restaurantId}/tables/{tableId}/copy")]
+        [HttpPost(ApiRoutes.Table.CopyTable)]
         public async Task<IActionResult> CopyTable(int restaurantId, int tableId, [FromBody] CopyTableRequest request)
         {
             request ??= new CopyTableRequest();
@@ -76,7 +77,7 @@ namespace ECafe.Api.Controllers
         }
 
         [HasPermission(Domain.Enums.PermissionCode.ManageTables)]
-        [HttpDelete("api/v1/restaurants/{restaurantId}/tables/{tableId}")]
+        [HttpDelete(ApiRoutes.Table.DeleteTable)]
         public async Task<IActionResult> DeleteTable(int restaurantId, int tableId)
             => Ok(await Mediator.Send(new DeleteTableCommand(restaurantId, tableId)));
     }

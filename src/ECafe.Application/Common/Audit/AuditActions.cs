@@ -40,6 +40,7 @@ namespace ECafe.Application.Common.Audit
         public const string ReservationPaymentProofRejected = "ReservationPaymentProofRejected";
         public const string ReservationCancelled = "ReservationCancelled";
         public const string ReservationCheckedIn = "ReservationCheckedIn";
+        public const string ReservationArrivalAdjusted = "ReservationArrivalAdjusted";
         public const string ReservationCompleted = "ReservationCompleted";
         public const string ReservationDepositWaived = "ReservationDepositWaived";
         public const string ReservationRefundRequested = "ReservationRefundRequested";

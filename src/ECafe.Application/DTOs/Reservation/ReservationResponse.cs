@@ -6,6 +6,7 @@ public sealed class ReservationResponse
     public int RestaurantId { get; init; }
     public int TableId { get; init; }
     public DateTimeOffset ReservedAt { get; init; }
+    public string? TimeZone { get; init; }
     public DateTimeOffset NoShowDeadlineAt { get; init; }
     public DateTimeOffset? MustVacateAt { get; init; }
     public int PeopleCount { get; init; }
@@ -17,6 +18,11 @@ public sealed class ReservationResponse
     public DateTimeOffset? HoldExpiresAt { get; init; }
     public DateTimeOffset? RestaurantResponseExpiresAt { get; init; }
     public DateTimeOffset? CancellationDeadline { get; init; }
+    public DateTimeOffset? RefundCancellationDeadlineAt { get; init; }
+    public bool HasConfirmedDeposit { get; init; }
+    public bool CanCancelWithRefund { get; init; }
+    public DateTimeOffset? ExpectedArrivalAt { get; init; }
+    public DateTimeOffset? ArrivalDecisionExpiresAt { get; init; }
     public string? RestaurantName { get; init; }
     public string? TableName { get; init; }
     public string? CustomerName { get; init; }

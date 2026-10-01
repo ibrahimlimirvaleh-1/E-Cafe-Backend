@@ -21,6 +21,7 @@ namespace ECafe.Infrastructure.Configurations.Concrete
                 .HasMaxLength(500)
                 .HasColumnName("cancel_reason");
             builder.Property(e => e.CancellationDeadline).HasColumnName("cancellation_deadline");
+            builder.Property(e => e.CancellationGraceDeadlineAt).HasColumnName("cancellation_grace_deadline_at");
             builder.Property(e => e.CancellationWindowMinutes).HasColumnName("cancellation_window_minutes");
             builder.Property(e => e.CheckedInByUserId).HasColumnName("checked_in_by_user_id");
             builder.Property(e => e.ConfirmedAt).HasColumnName("confirmed_at");

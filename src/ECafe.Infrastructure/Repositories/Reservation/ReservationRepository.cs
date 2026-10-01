@@ -14,6 +14,18 @@ public class ReservationRepository : BaseRepository<Domain.Entities.Reservation>
     {
     }
 
+    public Task<Domain.Entities.Reservation?> GetForArrivalAdjustmentAsync(
+        int reservationId, int customerUserId, bool tracked, CancellationToken cancellationToken = default)
+    {
+        var query = tracked ? QueryTracked() : Query();
+        return query.Include(r => r.ArrivalAdjustment)
+            .Include(r => r.Restaurant).ThenInclude(r => r.WorkingHours)
+            .Include(r => r.Table)
+            .Include(r => r.TableSessions)
+            .Include(r => r.PaymentProofs)
+            .FirstOrDefaultAsync(r => r.Id == reservationId && r.CustomerUserId == customerUserId, cancellationToken);
+    }
+
     public Task AcquireCustomerReservationLockAsync(
         int restaurantId,
         int customerUserId,
@@ -216,46 +228,71 @@ public class ReservationRepository : BaseRepository<Domain.Entities.Reservation>
         return await Context.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task<int> ExpireNoShowReservationsAsync(
+    public Task<List<ReservationNoShowCandidate>> GetNoShowCandidatesAsync(
         DateTime nowUtc,
         int batchSize,
         CancellationToken cancellationToken = default)
     {
         if (batchSize <= 0)
-            return 0;
+            return Task.FromResult(new List<ReservationNoShowCandidate>());
+
+        return GetNoShowEligibleReservationsQuery(nowUtc)
+            .AsNoTracking()
+            .OrderBy(reservation => reservation.NoShowDeadlineAt)
+            .ThenBy(reservation => reservation.Id)
+            .Take(batchSize)
+            .Select(reservation => new ReservationNoShowCandidate(
+                reservation.Id, reservation.RestaurantId, reservation.TableId))
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<bool> TryExpireNoShowReservationAsync(
+        ReservationNoShowCandidate candidate,
+        DateTime nowUtc,
+        CancellationToken cancellationToken = default)
+    {
+        // The caller holds the table lock; recheck eligibility instead of trusting the batch snapshot.
+        var reservation = await GetNoShowEligibleReservationsQuery(nowUtc)
+            .FirstOrDefaultAsync(reservation =>
+                reservation.Id == candidate.ReservationId &&
+                reservation.RestaurantId == candidate.RestaurantId &&
+                reservation.TableId == candidate.TableId,
+                cancellationToken);
+
+        if (reservation is null)
+            return false;
 
         var confirmedStatusId = StatusIds.Reservation(ReservationStatus.Confirmed);
         var noShowStatusId = StatusIds.Reservation(ReservationStatus.NoShow);
 
-        var reservations = await QueryTracked()
-            .Include(reservation => reservation.TableSessions)
-            .Where(reservation =>
-                reservation.StatusId == confirmedStatusId &&
-                reservation.NoShowDeadlineAt <= nowUtc &&
-                !reservation.TableSessions.Any(session =>
-                    session.StatusId == StatusIds.TableSession(TableSessionStatus.Open) &&
-                    session.ClosedAt == null))
-            .OrderBy(reservation => reservation.NoShowDeadlineAt)
-            .Take(batchSize)
-            .ToListAsync(cancellationToken);
-
-        foreach (var reservation in reservations)
+        reservation.StatusId = noShowStatusId;
+        reservation.NoShowAt = nowUtc;
+        reservation.StatusHistory.Add(new ReservationStatusHistory
         {
-            reservation.StatusId = noShowStatusId;
-            reservation.NoShowAt = nowUtc;
-            reservation.StatusHistory.Add(new ReservationStatusHistory
-            {
-                ReservationId = reservation.Id,
-                FromStatusId = confirmedStatusId,
-                ToStatusId = noShowStatusId,
-                ChangedAt = nowUtc,
-                Reason = "Müştəri gəliş üçün ayrılan vaxtda masaya əyləşmədi."
-            });
-        }
+            ReservationId = reservation.Id,
+            FromStatusId = confirmedStatusId,
+            ToStatusId = noShowStatusId,
+            ChangedAt = nowUtc,
+            Reason = "Müştəri gəliş üçün ayrılan vaxtda masaya əyləşmədi."
+        });
 
-        return reservations.Count == 0
-            ? 0
-            : await Context.SaveChangesAsync(cancellationToken);
+        await Context.SaveChangesAsync(cancellationToken);
+        return true;
+    }
+
+    private IQueryable<Domain.Entities.Reservation> GetNoShowEligibleReservationsQuery(DateTime nowUtc)
+    {
+        var confirmedStatusId = StatusIds.Reservation(ReservationStatus.Confirmed);
+        var openSessionStatusId = StatusIds.TableSession(TableSessionStatus.Open);
+
+        return QueryTracked().Where(reservation =>
+            reservation.StatusId == confirmedStatusId &&
+            reservation.NoShowDeadlineAt <= nowUtc &&
+            !(reservation.ArrivalAdjustment != null &&
+              reservation.ArrivalAdjustment.AcceptedAt == null &&
+              reservation.ArrivalAdjustment.DecisionExpiresAt > nowUtc) &&
+            !reservation.TableSessions.Any(session =>
+                session.StatusId == openSessionStatusId && session.ClosedAt == null));
     }
 
     public Task<Domain.Entities.Reservation?> GetByIdForRestaurantAsync(
@@ -305,6 +342,7 @@ public class ReservationRepository : BaseRepository<Domain.Entities.Reservation>
     {
         return query
             .Include(r => r.Status)
+            .Include(r => r.ArrivalAdjustment)
             .Include(r => r.Restaurant)
             .Include(r => r.Table)
             .Include(r => r.CustomerUser)

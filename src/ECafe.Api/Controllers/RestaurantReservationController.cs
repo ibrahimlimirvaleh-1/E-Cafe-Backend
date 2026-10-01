@@ -15,6 +15,7 @@ using ECafe.Domain.Enums;
 using ECafe.Infrastructure.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using ApiRoutes = ECafe.Application.Routes.Routes;
 
 namespace ECafe.Api.Controllers;
 
@@ -22,7 +23,7 @@ namespace ECafe.Api.Controllers;
 public sealed class RestaurantReservationController : BaseController
 {
     [HasPermission(PermissionCode.ManageReservations)]
-    [HttpGet("api/v1/restaurants/{restaurantId:int}/reservations")]
+    [HttpGet(ApiRoutes.RestaurantReservation.GetList)]
     public async Task<IActionResult> GetList(
         [FromRoute] int restaurantId,
         [FromQuery] GetRestaurantReservationsQuery request,
@@ -34,7 +35,7 @@ public sealed class RestaurantReservationController : BaseController
     }
 
     [HasPermission(PermissionCode.ManageReservations)]
-    [HttpGet("api/v1/restaurants/{restaurantId:int}/reservations/{reservationId:int}")]
+    [HttpGet(ApiRoutes.RestaurantReservation.GetById)]
     public async Task<IActionResult> GetById(
         [FromRoute] int restaurantId,
         [FromRoute] int reservationId,
@@ -50,7 +51,7 @@ public sealed class RestaurantReservationController : BaseController
     }
 
     [HasPermission(PermissionCode.ManageReservations)]
-    [HttpGet("api/v1/restaurants/{restaurantId:int}/reservations/{reservationId:int}/history")]
+    [HttpGet(ApiRoutes.RestaurantReservation.GetHistory)]
     public async Task<IActionResult> GetHistory(
         [FromRoute] int restaurantId,
         [FromRoute] int reservationId,
@@ -66,7 +67,7 @@ public sealed class RestaurantReservationController : BaseController
     }
 
     [HasPermission(PermissionCode.ManageReservations)]
-    [HttpPost("api/v1/restaurants/{restaurantId:int}/reservations/{reservationId:int}/deposit-waiver")]
+    [HttpPost(ApiRoutes.RestaurantReservation.WaiveDeposit)]
     public async Task<IActionResult> WaiveDeposit(
         [FromRoute] int restaurantId,
         [FromRoute] int reservationId,
@@ -84,7 +85,7 @@ public sealed class RestaurantReservationController : BaseController
     }
 
     [HasPermission(PermissionCode.ManageReservations)]
-    [HttpPost("api/v1/restaurants/{restaurantId:int}/reservations/{reservationId:int}/payment-instructions")]
+    [HttpPost(ApiRoutes.RestaurantReservation.SendPaymentInstruction)]
     public async Task<IActionResult> SendPaymentInstruction(
         [FromRoute] int restaurantId,
         [FromRoute] int reservationId,
@@ -99,7 +100,7 @@ public sealed class RestaurantReservationController : BaseController
     }
 
     [HasPermission(PermissionCode.ManageReservations)]
-    [HttpPost("api/v1/restaurants/{restaurantId:int}/reservations/{reservationId:int}/payment-proofs/approve")]
+    [HttpPost(ApiRoutes.RestaurantReservation.ApprovePaymentProof)]
     public async Task<IActionResult> ApprovePaymentProof(
         [FromRoute] int restaurantId,
         [FromRoute] int reservationId,
@@ -115,7 +116,7 @@ public sealed class RestaurantReservationController : BaseController
     }
 
     [HasPermission(PermissionCode.ManageReservations)]
-    [HttpPost("api/v1/restaurants/{restaurantId:int}/reservations/{reservationId:int}/payment-proofs/reject")]
+    [HttpPost(ApiRoutes.RestaurantReservation.RejectPaymentProof)]
     public async Task<IActionResult> RejectPaymentProof(
         [FromRoute] int restaurantId,
         [FromRoute] int reservationId,
@@ -133,7 +134,7 @@ public sealed class RestaurantReservationController : BaseController
     }
 
     [HasPermission(PermissionCode.ManageReservations)]
-    [HttpPost("api/v1/restaurants/{restaurantId:int}/reservations/{reservationId:int}/check-in")]
+    [HttpPost(ApiRoutes.RestaurantReservation.CheckIn)]
     public async Task<IActionResult> CheckIn(
         [FromRoute] int restaurantId,
         [FromRoute] int reservationId,
@@ -149,7 +150,7 @@ public sealed class RestaurantReservationController : BaseController
     }
 
     [HasPermission(PermissionCode.ManageReservations)]
-    [HttpPost("api/v1/restaurants/{restaurantId:int}/reservations/{reservationId:int}/complete")]
+    [HttpPost(ApiRoutes.RestaurantReservation.Complete)]
     public async Task<IActionResult> Complete(
         [FromRoute] int restaurantId,
         [FromRoute] int reservationId,
@@ -165,7 +166,7 @@ public sealed class RestaurantReservationController : BaseController
     }
 
     [HasPermission(PermissionCode.ManageReservations)]
-    [HttpPost("api/v1/restaurants/{restaurantId:int}/reservations/{reservationId:int}/cancel")]
+    [HttpPost(ApiRoutes.RestaurantReservation.Cancel)]
     public async Task<IActionResult> Cancel(
         [FromRoute] int restaurantId,
         [FromRoute] int reservationId,
@@ -183,7 +184,7 @@ public sealed class RestaurantReservationController : BaseController
     }
 
     [HasPermission(PermissionCode.ManageReservations)]
-    [HttpGet("api/v1/restaurants/{restaurantId:int}/reservations/{reservationId:int}/refund")]
+    [HttpGet(ApiRoutes.RestaurantReservation.GetRefund)]
     public async Task<IActionResult> GetRefund(
         [FromRoute] int restaurantId,
         [FromRoute] int reservationId,
@@ -199,7 +200,7 @@ public sealed class RestaurantReservationController : BaseController
     }
 
     [HasPermission(PermissionCode.ManageReservations)]
-    [HttpGet("api/v1/restaurants/{restaurantId:int}/refunds/{refundId:int}/payout-details")]
+    [HttpGet(ApiRoutes.RestaurantReservation.GetRefundPayoutDetails)]
     public async Task<IActionResult> GetRefundPayoutDetails(
         [FromRoute] int restaurantId,
         [FromRoute] int refundId,
@@ -215,7 +216,7 @@ public sealed class RestaurantReservationController : BaseController
     }
 
     [HasPermission(PermissionCode.ManageReservations)]
-    [HttpPost("api/v1/restaurants/{restaurantId:int}/refunds/{refundId:int}/transfers")]
+    [HttpPost(ApiRoutes.RestaurantReservation.SubmitRefundTransfer)]
     [Consumes("multipart/form-data")]
     public async Task<IActionResult> SubmitRefundTransfer(
         [FromRoute] int restaurantId,

@@ -1,0 +1,830 @@
+[
+  {
+    "Controller": "AuditLogController",
+    "Action": "GetRestaurantTimeline",
+    "HttpMethod": "GET",
+    "Template": "api/v1/restaurants/{restaurantId}/audit-logs"
+  },
+  {
+    "Controller": "AuthController",
+    "Action": "ForgotPassword",
+    "HttpMethod": "POST",
+    "Template": "api/v1/user/forgot-password"
+  },
+  {
+    "Controller": "AuthController",
+    "Action": "Login",
+    "HttpMethod": "POST",
+    "Template": "api/v1/user/login"
+  },
+  {
+    "Controller": "AuthController",
+    "Action": "Logout",
+    "HttpMethod": "POST",
+    "Template": "api/v1/user/logout"
+  },
+  {
+    "Controller": "AuthController",
+    "Action": "LogoutAll",
+    "HttpMethod": "POST",
+    "Template": "api/v1/user/logout-all"
+  },
+  {
+    "Controller": "AuthController",
+    "Action": "Refresh",
+    "HttpMethod": "POST",
+    "Template": "api/v1/user/refresh"
+  },
+  {
+    "Controller": "AuthController",
+    "Action": "Register",
+    "HttpMethod": "POST",
+    "Template": "api/v1/user/register"
+  },
+  {
+    "Controller": "AuthController",
+    "Action": "ResetPassword",
+    "HttpMethod": "POST",
+    "Template": "api/v1/user/reset-password"
+  },
+  {
+    "Controller": "AuthController",
+    "Action": "SetPassword",
+    "HttpMethod": "POST",
+    "Template": "api/v1/user/set-password"
+  },
+  {
+    "Controller": "CategoryController",
+    "Action": "Activate",
+    "HttpMethod": "PATCH",
+    "Template": "api/v1/restaurants/{restaurantId}/categories/{categoryId}/activate"
+  },
+  {
+    "Controller": "CategoryController",
+    "Action": "Create",
+    "HttpMethod": "POST",
+    "Template": "api/v1/restaurants/{restaurantId}/categories"
+  },
+  {
+    "Controller": "CategoryController",
+    "Action": "Deactivate",
+    "HttpMethod": "PATCH",
+    "Template": "api/v1/restaurants/{restaurantId}/categories/{categoryId}/deactivate"
+  },
+  {
+    "Controller": "CategoryController",
+    "Action": "Delete",
+    "HttpMethod": "DELETE",
+    "Template": "api/v1/restaurants/{restaurantId}/categories/{categoryId}"
+  },
+  {
+    "Controller": "CategoryController",
+    "Action": "GetAll",
+    "HttpMethod": "GET",
+    "Template": "api/v1/category/{restaurantId}"
+  },
+  {
+    "Controller": "CategoryController",
+    "Action": "Update",
+    "HttpMethod": "PUT",
+    "Template": "api/v1/restaurants/{restaurantId}/categories/{categoryId}"
+  },
+  {
+    "Controller": "DeveloperNotificationTestController",
+    "Action": "GetSmsBalance",
+    "HttpMethod": "GET",
+    "Template": "api/v1/developer/test/sms/balance"
+  },
+  {
+    "Controller": "DeveloperNotificationTestController",
+    "Action": "GetSmsStatus",
+    "HttpMethod": "GET",
+    "Template": "api/v1/developer/test/sms/status/{messageId}"
+  },
+  {
+    "Controller": "DeveloperNotificationTestController",
+    "Action": "SendEmail",
+    "HttpMethod": "POST",
+    "Template": "api/v1/developer/test/email"
+  },
+  {
+    "Controller": "DeveloperNotificationTestController",
+    "Action": "SendSms",
+    "HttpMethod": "POST",
+    "Template": "api/v1/developer/test/sms"
+  },
+  {
+    "Controller": "FileController",
+    "Action": "Delete",
+    "HttpMethod": "DELETE",
+    "Template": "api/v1/file/{fileId:int}"
+  },
+  {
+    "Controller": "FileController",
+    "Action": "Download",
+    "HttpMethod": "GET",
+    "Template": "api/v1/files/{fileId:int}/download"
+  },
+  {
+    "Controller": "FileController",
+    "Action": "GetById",
+    "HttpMethod": "GET",
+    "Template": "api/v1/file/{fileId:int}"
+  },
+  {
+    "Controller": "FileController",
+    "Action": "GetFile",
+    "HttpMethod": "GET",
+    "Template": "api/v1/file/getFile"
+  },
+  {
+    "Controller": "FileController",
+    "Action": "Upload",
+    "HttpMethod": "POST",
+    "Template": "api/v1/file/upload"
+  },
+  {
+    "Controller": "FileController",
+    "Action": "View",
+    "HttpMethod": "GET",
+    "Template": "api/v1/files/{fileId:int}/view"
+  },
+  {
+    "Controller": "InventoryController",
+    "Action": "Activate",
+    "HttpMethod": "PATCH",
+    "Template": "api/v1/restaurants/{restaurantId}/inventory/{inventoryItemId}/activate"
+  },
+  {
+    "Controller": "InventoryController",
+    "Action": "Create",
+    "HttpMethod": "POST",
+    "Template": "api/v1/restaurants/{restaurantId}/inventory"
+  },
+  {
+    "Controller": "InventoryController",
+    "Action": "CreateMovement",
+    "HttpMethod": "POST",
+    "Template": "api/v1/restaurants/{restaurantId}/inventory/{inventoryItemId}/movements"
+  },
+  {
+    "Controller": "InventoryController",
+    "Action": "Deactivate",
+    "HttpMethod": "PATCH",
+    "Template": "api/v1/restaurants/{restaurantId}/inventory/{inventoryItemId}/deactivate"
+  },
+  {
+    "Controller": "InventoryController",
+    "Action": "Delete",
+    "HttpMethod": "DELETE",
+    "Template": "api/v1/restaurants/{restaurantId}/inventory/{inventoryItemId}"
+  },
+  {
+    "Controller": "InventoryController",
+    "Action": "GetAll",
+    "HttpMethod": "GET",
+    "Template": "api/v1/restaurants/{restaurantId}/inventory"
+  },
+  {
+    "Controller": "InventoryController",
+    "Action": "GetById",
+    "HttpMethod": "GET",
+    "Template": "api/v1/restaurants/{restaurantId}/inventory/{inventoryItemId}"
+  },
+  {
+    "Controller": "InventoryController",
+    "Action": "GetMovementHistory",
+    "HttpMethod": "GET",
+    "Template": "api/v1/restaurants/{restaurantId}/inventory/{inventoryItemId}/movements"
+  },
+  {
+    "Controller": "InventoryController",
+    "Action": "Update",
+    "HttpMethod": "PUT",
+    "Template": "api/v1/restaurants/{restaurantId}/inventory/{inventoryItemId}"
+  },
+  {
+    "Controller": "ItemController",
+    "Action": "Create",
+    "HttpMethod": "POST",
+    "Template": "api/v1/restaurants/{restaurantId}/items"
+  },
+  {
+    "Controller": "ItemController",
+    "Action": "Deactivate",
+    "HttpMethod": "PATCH",
+    "Template": "api/v1/restaurants/{restaurantId}/items/{itemId}/deactivate"
+  },
+  {
+    "Controller": "ItemController",
+    "Action": "Delete",
+    "HttpMethod": "DELETE",
+    "Template": "api/v1/restaurants/{restaurantId}/items/{itemId}"
+  },
+  {
+    "Controller": "ItemController",
+    "Action": "GetAll",
+    "HttpMethod": "GET",
+    "Template": "api/v1/items/getAll"
+  },
+  {
+    "Controller": "ItemController",
+    "Action": "Update",
+    "HttpMethod": "PUT",
+    "Template": "api/v1/restaurants/{restaurantId}/items/{itemId}"
+  },
+  {
+    "Controller": "LookupController",
+    "Action": "GetAuditActions",
+    "HttpMethod": "GET",
+    "Template": "api/v1/lookups/actions"
+  },
+  {
+    "Controller": "LookupController",
+    "Action": "GetAuditActions",
+    "HttpMethod": "GET",
+    "Template": "api/v1/lookups/audit-actions"
+  },
+  {
+    "Controller": "LookupController",
+    "Action": "GetContractStatuses",
+    "HttpMethod": "GET",
+    "Template": "api/v1/lookups/contract-statuses"
+  },
+  {
+    "Controller": "LookupController",
+    "Action": "GetInventoryMovementTypes",
+    "HttpMethod": "GET",
+    "Template": "api/v1/lookups/getInventoryMovementTypes"
+  },
+  {
+    "Controller": "LookupController",
+    "Action": "GetInventoryMovementTypes",
+    "HttpMethod": "GET",
+    "Template": "api/v1/lookups/inventory-movement-types"
+  },
+  {
+    "Controller": "LookupController",
+    "Action": "GetItemStatuses",
+    "HttpMethod": "GET",
+    "Template": "api/v1/lookups/item-statuses"
+  },
+  {
+    "Controller": "LookupController",
+    "Action": "GetNotificationChannels",
+    "HttpMethod": "GET",
+    "Template": "api/v1/lookups/notification-channels"
+  },
+  {
+    "Controller": "LookupController",
+    "Action": "GetOutboxStatuses",
+    "HttpMethod": "GET",
+    "Template": "api/v1/lookups/outbox-statuses"
+  },
+  {
+    "Controller": "LookupController",
+    "Action": "GetPaymentPolicies",
+    "HttpMethod": "GET",
+    "Template": "api/v1/lookups/payment-policies"
+  },
+  {
+    "Controller": "LookupController",
+    "Action": "GetRoles",
+    "HttpMethod": "GET",
+    "Template": "api/v1/lookups/roles"
+  },
+  {
+    "Controller": "LookupController",
+    "Action": "GetUnits",
+    "HttpMethod": "GET",
+    "Template": "api/v1/lookups/units"
+  },
+  {
+    "Controller": "NotificationController",
+    "Action": "GetMine",
+    "HttpMethod": "GET",
+    "Template": "api/v1/notifications"
+  },
+  {
+    "Controller": "NotificationController",
+    "Action": "GetUnreadCount",
+    "HttpMethod": "GET",
+    "Template": "api/v1/notifications/unread-count"
+  },
+  {
+    "Controller": "NotificationController",
+    "Action": "MarkAllAsRead",
+    "HttpMethod": "POST",
+    "Template": "api/v1/notifications/read-all"
+  },
+  {
+    "Controller": "NotificationController",
+    "Action": "MarkAsRead",
+    "HttpMethod": "POST",
+    "Template": "api/v1/notifications/{notificationId:int}/read"
+  },
+  {
+    "Controller": "OutboxController",
+    "Action": "GetMessage",
+    "HttpMethod": "GET",
+    "Template": "api/v1/admin/outbox/messages/{id:guid}"
+  },
+  {
+    "Controller": "OutboxController",
+    "Action": "GetMessages",
+    "HttpMethod": "GET",
+    "Template": "api/v1/admin/outbox/messages"
+  },
+  {
+    "Controller": "OutboxController",
+    "Action": "Retry",
+    "HttpMethod": "POST",
+    "Template": "api/v1/admin/outbox/messages/{id:guid}/retry"
+  },
+  {
+    "Controller": "PublicRestaurantController",
+    "Action": "CheckTableAvailability",
+    "HttpMethod": "GET",
+    "Template": "api/v1/public/restaurants/{restaurantId}/tables/availability"
+  },
+  {
+    "Controller": "PublicRestaurantController",
+    "Action": "GetAvailableTables",
+    "HttpMethod": "GET",
+    "Template": "api/v1/public/restaurants/{restaurantId}/tables/available"
+  },
+  {
+    "Controller": "PublicRestaurantController",
+    "Action": "GetMenu",
+    "HttpMethod": "GET",
+    "Template": "api/v1/public/restaurants/{restaurantId}/menu"
+  },
+  {
+    "Controller": "PublicRestaurantController",
+    "Action": "GetRestaurant",
+    "HttpMethod": "GET",
+    "Template": "api/v1/public/restaurants/{restaurantId}"
+  },
+  {
+    "Controller": "PublicRestaurantController",
+    "Action": "GetRestaurants",
+    "HttpMethod": "GET",
+    "Template": "api/v1/public/restaurants"
+  },
+  {
+    "Controller": "PublicRestaurantController",
+    "Action": "GetStaff",
+    "HttpMethod": "GET",
+    "Template": "api/v1/public/restaurants/{restaurantId}/staff"
+  },
+  {
+    "Controller": "PublicRestaurantController",
+    "Action": "GetTables",
+    "HttpMethod": "GET",
+    "Template": "api/v1/public/restaurants/{restaurantId}/tables"
+  },
+  {
+    "Controller": "RecipeController",
+    "Action": "Activate",
+    "HttpMethod": "PATCH",
+    "Template": "api/v1/restaurants/{restaurantId}/items/{itemId}/recipes/{recipeId}/activate"
+  },
+  {
+    "Controller": "RecipeController",
+    "Action": "Create",
+    "HttpMethod": "POST",
+    "Template": "api/v1/restaurants/{restaurantId}/items/{itemId}/recipes"
+  },
+  {
+    "Controller": "RecipeController",
+    "Action": "Deactivate",
+    "HttpMethod": "PATCH",
+    "Template": "api/v1/restaurants/{restaurantId}/items/{itemId}/recipes/{recipeId}/deactivate"
+  },
+  {
+    "Controller": "RecipeController",
+    "Action": "Delete",
+    "HttpMethod": "DELETE",
+    "Template": "api/v1/restaurants/{restaurantId}/items/{itemId}/recipes/{recipeId}"
+  },
+  {
+    "Controller": "RecipeController",
+    "Action": "GetByItem",
+    "HttpMethod": "GET",
+    "Template": "api/v1/restaurants/{restaurantId}/items/{itemId}/recipes"
+  },
+  {
+    "Controller": "RecipeController",
+    "Action": "Update",
+    "HttpMethod": "PUT",
+    "Template": "api/v1/restaurants/{restaurantId}/items/{itemId}/recipes/{recipeId}"
+  },
+  {
+    "Controller": "ReservationArrivalController",
+    "Action": "Accept",
+    "HttpMethod": "POST",
+    "Template": "api/v1/public/reservations/{reservationId:int}/late-arrival/accept"
+  },
+  {
+    "Controller": "ReservationArrivalController",
+    "Action": "Get",
+    "HttpMethod": "GET",
+    "Template": "api/v1/public/reservations/{reservationId:int}/late-arrival"
+  },
+  {
+    "Controller": "ReservationArrivalController",
+    "Action": "Offer",
+    "HttpMethod": "POST",
+    "Template": "api/v1/public/reservations/{reservationId:int}/late-arrival/offers"
+  },
+  {
+    "Controller": "ReservationController",
+    "Action": "Cancel",
+    "HttpMethod": "POST",
+    "Template": "api/v1/public/reservations/{reservationId:int}/cancel"
+  },
+  {
+    "Controller": "ReservationController",
+    "Action": "ConfirmRefundTransfer",
+    "HttpMethod": "POST",
+    "Template": "api/v1/public/refunds/{refundId:int}/transfers/confirm"
+  },
+  {
+    "Controller": "ReservationController",
+    "Action": "Create",
+    "HttpMethod": "POST",
+    "Template": "api/v1/restaurants/{restaurantId:int}/reservations"
+  },
+  {
+    "Controller": "ReservationController",
+    "Action": "DisputeRefundTransfer",
+    "HttpMethod": "POST",
+    "Template": "api/v1/public/refunds/{refundId:int}/transfers/dispute"
+  },
+  {
+    "Controller": "ReservationController",
+    "Action": "GetById",
+    "HttpMethod": "GET",
+    "Template": "api/v1/public/reservations/{reservationId:int}"
+  },
+  {
+    "Controller": "ReservationController",
+    "Action": "GetHistory",
+    "HttpMethod": "GET",
+    "Template": "api/v1/public/reservations/{reservationId:int}/history"
+  },
+  {
+    "Controller": "ReservationController",
+    "Action": "GetMy",
+    "HttpMethod": "GET",
+    "Template": "api/v1/public/reservations/my"
+  },
+  {
+    "Controller": "ReservationController",
+    "Action": "GetRefund",
+    "HttpMethod": "GET",
+    "Template": "api/v1/public/reservations/{reservationId:int}/refund"
+  },
+  {
+    "Controller": "ReservationController",
+    "Action": "RequestRefund",
+    "HttpMethod": "POST",
+    "Template": "api/v1/public/reservations/{reservationId:int}/refunds"
+  },
+  {
+    "Controller": "ReservationController",
+    "Action": "SubmitPaymentProof",
+    "HttpMethod": "POST",
+    "Template": "api/v1/restaurants/{restaurantId:int}/reservations/{reservationId:int}/payment-proofs"
+  },
+  {
+    "Controller": "ReservationController",
+    "Action": "SubmitRefundPayoutDetails",
+    "HttpMethod": "POST",
+    "Template": "api/v1/public/refunds/{refundId:int}/payout-details"
+  },
+  {
+    "Controller": "RestaurantContractController",
+    "Action": "Activate",
+    "HttpMethod": "POST",
+    "Template": "api/v1/admin/restaurants/{restaurantId}/contracts/{contractId}/activate"
+  },
+  {
+    "Controller": "RestaurantContractController",
+    "Action": "Approve",
+    "HttpMethod": "POST",
+    "Template": "api/v1/restaurants/{restaurantId}/contracts/{contractId}/approve"
+  },
+  {
+    "Controller": "RestaurantContractController",
+    "Action": "Create",
+    "HttpMethod": "POST",
+    "Template": "api/v1/admin/restaurants/{restaurantId}/contracts"
+  },
+  {
+    "Controller": "RestaurantContractController",
+    "Action": "GetActions",
+    "HttpMethod": "GET",
+    "Template": "api/v1/restaurants/{restaurantId}/contracts/{contractId}/actions"
+  },
+  {
+    "Controller": "RestaurantContractController",
+    "Action": "GetActive",
+    "HttpMethod": "GET",
+    "Template": "api/v1/restaurants/{restaurantId}/contracts/active"
+  },
+  {
+    "Controller": "RestaurantContractController",
+    "Action": "GetByRestaurant",
+    "HttpMethod": "GET",
+    "Template": "api/v1/restaurants/{restaurantId}/contracts"
+  },
+  {
+    "Controller": "RestaurantContractController",
+    "Action": "GetPagedByRestaurant",
+    "HttpMethod": "GET",
+    "Template": "api/v1/restaurants/{restaurantId}/contracts/paged"
+  },
+  {
+    "Controller": "RestaurantContractController",
+    "Action": "SendForSignature",
+    "HttpMethod": "POST",
+    "Template": "api/v1/admin/restaurants/{restaurantId}/contracts/{contractId}/send-for-signature"
+  },
+  {
+    "Controller": "RestaurantContractController",
+    "Action": "Terminate",
+    "HttpMethod": "POST",
+    "Template": "api/v1/admin/restaurants/{restaurantId}/contracts/{contractId}/terminate"
+  },
+  {
+    "Controller": "RestaurantContractController",
+    "Action": "Update",
+    "HttpMethod": "PUT",
+    "Template": "api/v1/admin/restaurants/{restaurantId}/contracts/{contractId}"
+  },
+  {
+    "Controller": "RestaurantController",
+    "Action": "DeactivateRestaurant",
+    "HttpMethod": "PATCH",
+    "Template": "api/v1/admin/restaurants/{id}/deactivate"
+  },
+  {
+    "Controller": "RestaurantController",
+    "Action": "GeocodeAddress",
+    "HttpMethod": "GET",
+    "Template": "api/v1/admin/restaurants/geocode"
+  },
+  {
+    "Controller": "RestaurantController",
+    "Action": "GetAllRestaurants",
+    "HttpMethod": "GET",
+    "Template": "api/v1/restaurants/getAll"
+  },
+  {
+    "Controller": "RestaurantController",
+    "Action": "GetByIdRestaurant",
+    "HttpMethod": "GET",
+    "Template": "api/v1/restaurant/getById/{id}"
+  },
+  {
+    "Controller": "RestaurantController",
+    "Action": "RegisterRestaurant",
+    "HttpMethod": "POST",
+    "Template": "api/v1/admin/restaurants"
+  },
+  {
+    "Controller": "RestaurantController",
+    "Action": "RemoveDepositRule",
+    "HttpMethod": "DELETE",
+    "Template": "api/v1/admin/restaurants/{restaurantId:int}/deposit-rules/{reservationDate}"
+  },
+  {
+    "Controller": "RestaurantController",
+    "Action": "SetDepositRule",
+    "HttpMethod": "PUT",
+    "Template": "api/v1/admin/restaurants/{restaurantId:int}/deposit-rules/{reservationDate}"
+  },
+  {
+    "Controller": "RestaurantController",
+    "Action": "UpdateRestaurant",
+    "HttpMethod": "PUT",
+    "Template": "api/v1/admin/restaurants/{restaurantId:int}"
+  },
+  {
+    "Controller": "RestaurantGroupController",
+    "Action": "Create",
+    "HttpMethod": "POST",
+    "Template": "api/v1/restaurant-groups"
+  },
+  {
+    "Controller": "RestaurantGroupController",
+    "Action": "GetAll",
+    "HttpMethod": "GET",
+    "Template": "api/v1/restaurant-groups"
+  },
+  {
+    "Controller": "RestaurantReservationController",
+    "Action": "ApprovePaymentProof",
+    "HttpMethod": "POST",
+    "Template": "api/v1/restaurants/{restaurantId:int}/reservations/{reservationId:int}/payment-proofs/approve"
+  },
+  {
+    "Controller": "RestaurantReservationController",
+    "Action": "Cancel",
+    "HttpMethod": "POST",
+    "Template": "api/v1/restaurants/{restaurantId:int}/reservations/{reservationId:int}/cancel"
+  },
+  {
+    "Controller": "RestaurantReservationController",
+    "Action": "CheckIn",
+    "HttpMethod": "POST",
+    "Template": "api/v1/restaurants/{restaurantId:int}/reservations/{reservationId:int}/check-in"
+  },
+  {
+    "Controller": "RestaurantReservationController",
+    "Action": "Complete",
+    "HttpMethod": "POST",
+    "Template": "api/v1/restaurants/{restaurantId:int}/reservations/{reservationId:int}/complete"
+  },
+  {
+    "Controller": "RestaurantReservationController",
+    "Action": "GetById",
+    "HttpMethod": "GET",
+    "Template": "api/v1/restaurants/{restaurantId:int}/reservations/{reservationId:int}"
+  },
+  {
+    "Controller": "RestaurantReservationController",
+    "Action": "GetHistory",
+    "HttpMethod": "GET",
+    "Template": "api/v1/restaurants/{restaurantId:int}/reservations/{reservationId:int}/history"
+  },
+  {
+    "Controller": "RestaurantReservationController",
+    "Action": "GetList",
+    "HttpMethod": "GET",
+    "Template": "api/v1/restaurants/{restaurantId:int}/reservations"
+  },
+  {
+    "Controller": "RestaurantReservationController",
+    "Action": "GetRefund",
+    "HttpMethod": "GET",
+    "Template": "api/v1/restaurants/{restaurantId:int}/reservations/{reservationId:int}/refund"
+  },
+  {
+    "Controller": "RestaurantReservationController",
+    "Action": "GetRefundPayoutDetails",
+    "HttpMethod": "GET",
+    "Template": "api/v1/restaurants/{restaurantId:int}/refunds/{refundId:int}/payout-details"
+  },
+  {
+    "Controller": "RestaurantReservationController",
+    "Action": "RejectPaymentProof",
+    "HttpMethod": "POST",
+    "Template": "api/v1/restaurants/{restaurantId:int}/reservations/{reservationId:int}/payment-proofs/reject"
+  },
+  {
+    "Controller": "RestaurantReservationController",
+    "Action": "SendPaymentInstruction",
+    "HttpMethod": "POST",
+    "Template": "api/v1/restaurants/{restaurantId:int}/reservations/{reservationId:int}/payment-instructions"
+  },
+  {
+    "Controller": "RestaurantReservationController",
+    "Action": "SubmitRefundTransfer",
+    "HttpMethod": "POST",
+    "Template": "api/v1/restaurants/{restaurantId:int}/refunds/{refundId:int}/transfers"
+  },
+  {
+    "Controller": "RestaurantReservationController",
+    "Action": "WaiveDeposit",
+    "HttpMethod": "POST",
+    "Template": "api/v1/restaurants/{restaurantId:int}/reservations/{reservationId:int}/deposit-waiver"
+  },
+  {
+    "Controller": "TableController",
+    "Action": "ActivateTable",
+    "HttpMethod": "PATCH",
+    "Template": "api/v1/restaurants/{restaurantId}/tables/{tableId}/activate"
+  },
+  {
+    "Controller": "TableController",
+    "Action": "CopyTable",
+    "HttpMethod": "POST",
+    "Template": "api/v1/restaurants/{restaurantId}/tables/{tableId}/copy"
+  },
+  {
+    "Controller": "TableController",
+    "Action": "CreateTable",
+    "HttpMethod": "POST",
+    "Template": "api/v1/restaurants/{restaurantId}/tables"
+  },
+  {
+    "Controller": "TableController",
+    "Action": "DeactivateTable",
+    "HttpMethod": "PATCH",
+    "Template": "api/v1/restaurants/{restaurantId}/tables/{tableId}/deactivate"
+  },
+  {
+    "Controller": "TableController",
+    "Action": "DeleteTable",
+    "HttpMethod": "DELETE",
+    "Template": "api/v1/restaurants/{restaurantId}/tables/{tableId}"
+  },
+  {
+    "Controller": "TableController",
+    "Action": "GetByRestaurant",
+    "HttpMethod": "GET",
+    "Template": "api/v1/restaurants/{restaurantId}/tables"
+  },
+  {
+    "Controller": "TableController",
+    "Action": "UpdateTable",
+    "HttpMethod": "PUT",
+    "Template": "api/v1/restaurants/{restaurantId}/tables/{tableId}"
+  },
+  {
+    "Controller": "UserController",
+    "Action": "ActivateStaff",
+    "HttpMethod": "PATCH",
+    "Template": "api/v1/restaurants/{restaurantId:int}/staff/{staffId:int}/activate"
+  },
+  {
+    "Controller": "UserController",
+    "Action": "Create",
+    "HttpMethod": "POST",
+    "Template": "api/v1/users"
+  },
+  {
+    "Controller": "UserController",
+    "Action": "DeactivateStaff",
+    "HttpMethod": "PATCH",
+    "Template": "api/v1/restaurants/{restaurantId:int}/staff/{staffId:int}/deactivate"
+  },
+  {
+    "Controller": "UserController",
+    "Action": "Delete",
+    "HttpMethod": "DELETE",
+    "Template": "api/v1/users/{userId:int}"
+  },
+  {
+    "Controller": "UserController",
+    "Action": "GetAll",
+    "HttpMethod": "GET",
+    "Template": "api/v1/admin/users"
+  },
+  {
+    "Controller": "UserController",
+    "Action": "GetProfile",
+    "HttpMethod": "GET",
+    "Template": "api/v1/profile"
+  },
+  {
+    "Controller": "UserController",
+    "Action": "GetStaff",
+    "HttpMethod": "GET",
+    "Template": "api/v1/staff/{restaurantId}"
+  },
+  {
+    "Controller": "UserController",
+    "Action": "GetStaffDetail",
+    "HttpMethod": "GET",
+    "Template": "api/v1/staff/{restaurantId}/detail/{staffId}"
+  },
+  {
+    "Controller": "UserController",
+    "Action": "UpdateProfile",
+    "HttpMethod": "PUT",
+    "Template": "api/v1/profile"
+  },
+  {
+    "Controller": "UserController",
+    "Action": "UpdateRole",
+    "HttpMethod": "PATCH",
+    "Template": "api/v1/users/{userId:int}/role"
+  },
+  {
+    "Controller": "UserController",
+    "Action": "UpdateStaff",
+    "HttpMethod": "PUT",
+    "Template": "api/v1/restaurants/{restaurantId:int}/staff/{staffId:int}"
+  },
+  {
+    "Controller": "UserSessionController",
+    "Action": "GetMySessions",
+    "HttpMethod": "GET",
+    "Template": "api/v1/user/sessions"
+  },
+  {
+    "Controller": "UserSessionController",
+    "Action": "RevokeSession",
+    "HttpMethod": "DELETE",
+    "Template": "api/v1/user/sessions/{sessionId}"
+  },
+  {
+    "Controller": "WorkflowController",
+    "Action": "GetActions",
+    "HttpMethod": "GET",
+    "Template": "api/v1/workflows/{flowCode}/actions"
+  }
+]

@@ -159,6 +159,21 @@ namespace ECafe.Infrastructure.Repositories.Table
                     candidate.NextReservationAt?.AddMinutes(-policy.Value.TableTurnoverBufferMinutes));
         }
 
+        public async Task<DateTime?> GetNextReservationAtAsync(int restaurantId, int tableId,
+            int excludedReservationId, DateTime originalReservedAtUtc, CancellationToken cancellationToken = default)
+        {
+            var policy = await GetReservationPolicyAsync(restaurantId,
+                new DateTimeOffset(DateTime.SpecifyKind(originalReservedAtUtc, DateTimeKind.Utc)));
+            if (policy is null)
+                return null;
+
+            return await BuildBlockingReservationsQuery(restaurantId, DateTime.UtcNow, excludedReservationId, policy.Value)
+                .Where(r => r.TableId == tableId && r.ReservedAt > originalReservedAtUtc)
+                .OrderBy(r => r.ReservedAt)
+                .Select(r => (DateTime?)r.ReservedAt)
+                .FirstOrDefaultAsync(cancellationToken);
+        }
+
         private IQueryable<Domain.Entities.Table> BuildAvailableReservationTablesQuery(
             int restaurantId,
             DateTime reservedAtUtc,

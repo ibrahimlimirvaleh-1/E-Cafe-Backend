@@ -35,6 +35,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using StatusTypeEnum = ECafe.Domain.Enums.StatusType;
 
 namespace ECafe.Application.Services.Reservation.Concrete;
@@ -71,6 +72,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
     private readonly IWorkflowActionService _workflowActionService;
     private readonly IPaymentInstructionDetailsProtector _paymentInstructionDetailsProtector;
     private readonly ILogger<ReservationManager> _logger;
+    private readonly ReservationTimingOptions _timingOptions;
 
     public ReservationManager(
         IHttpContextAccessor httpContextAccessor,
@@ -92,7 +94,8 @@ public sealed class ReservationManager : BaseManager, IReservationService
         IFileAccessUrlService fileAccessUrlService,
         IWorkflowActionService workflowActionService,
         IPaymentInstructionDetailsProtector paymentInstructionDetailsProtector,
-        ILogger<ReservationManager> logger)
+        ILogger<ReservationManager> logger,
+        IOptions<ReservationTimingOptions> timingOptions)
         : base(httpContextAccessor, mapper, configuration)
     {
         _tableRepository = tableRepository;
@@ -112,6 +115,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
         _workflowActionService = workflowActionService;
         _paymentInstructionDetailsProtector = paymentInstructionDetailsProtector;
         _logger = logger;
+        _timingOptions = timingOptions.Value;
     }
 
     public async Task<ReservationResponse> CreateReservationAsync(
@@ -322,10 +326,32 @@ public sealed class ReservationManager : BaseManager, IReservationService
             nowUtc,
             batchSize,
             cancellationToken);
-        var noShowCount = await _reservationRepository.ExpireNoShowReservationsAsync(
+        var candidates = await _reservationRepository.GetNoShowCandidatesAsync(
             nowUtc,
             batchSize,
             cancellationToken);
+
+        var noShowCount = 0;
+        foreach (var candidate in candidates)
+        {
+            await using var transaction = await _transactionFactory.BeginTransactionAsync(
+                IsolationLevel.ReadCommitted,
+                cancellationToken);
+
+            await _tableRepository.AcquireReservationLockAsync(
+                candidate.RestaurantId,
+                candidate.TableId,
+                cancellationToken);
+
+            var expired = await _reservationRepository.TryExpireNoShowReservationAsync(
+                candidate,
+                DateTime.UtcNow,
+                cancellationToken);
+
+            await transaction.CommitAsync(cancellationToken);
+            if (expired)
+                noShowCount++;
+        }
 
         return expiredPaymentCount + noShowCount;
     }
@@ -340,7 +366,6 @@ public sealed class ReservationManager : BaseManager, IReservationService
         await EnsureRestaurantReservationAccessAsync(restaurantId);
 
         var userId = GetCurrentUserId();
-        var nowUtc = DateTime.UtcNow;
         var confirmedStatusId = StatusIds.Reservation(ReservationStatus.Confirmed);
         var seatedStatusId = StatusIds.Reservation(ReservationStatus.Seated);
 
@@ -365,6 +390,8 @@ public sealed class ReservationManager : BaseManager, IReservationService
             cancellationToken)
             ?? throw new NotFoundException(ErrorCode.ReservationNotFound);
 
+        var nowUtc = DateTime.UtcNow;
+
         await _workflowActionService.EnsureCanExecuteAsync(
             ReservationFlowCode,
             reservation.StatusId,
@@ -378,7 +405,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
         if (reservation.ReservedAt > nowUtc)
             throw new BusinessRuleException("Rezervasiya vaxtı hələ çatmayıb.");
 
-        if (reservation.NoShowDeadlineAt < nowUtc)
+        if (reservation.NoShowDeadlineAt <= nowUtc)
             throw new BusinessRuleException("Müştərini masaya əyləşdirmək üçün ayrılan vaxt bitib.");
 
         if (await _tableRepository.HasOpenTableSessionAsync(restaurantId, reservation.TableId))
@@ -977,6 +1004,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
                 ? ReservationStatus.Confirmed
                 : ReservationStatus.AwaitingPaymentInstruction),
             DepositAmount = depositAmount,
+            ConfirmedAt = depositAmount == 0 ? DateTime.UtcNow : null,
             CancellationWindowMinutes = cancellationWindowMinutes,
             CancellationDeadline = reservedAtUtc.AddMinutes(-cancellationWindowMinutes),
             ReservedAt = reservedAtUtc,
@@ -1227,6 +1255,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
             NoShowDeadlineAt = ToUtcOffset(reservation.NoShowDeadlineAt)!.Value,
             MustVacateAt = ToUtcOffset(reservation.MustVacateAt),
             PeopleCount = reservation.PeopleCount,
+            TimeZone = reservation.Restaurant?.TimeZone,
             StatusId = reservation.StatusId,
             Status = reservation.Status?.Name ?? Enum.GetValues<ReservationStatus>()
                 .Where(status => StatusIds.Reservation(status) == reservation.StatusId)
@@ -1235,6 +1264,13 @@ public sealed class ReservationManager : BaseManager, IReservationService
             WorkflowFlowCode = ReservationFlowCode,
             DepositAmount = reservation.DepositAmount,
             IsRefundEligible = reservation.RefundEligible == true,
+            RefundCancellationDeadlineAt = ToUtcOffset(ReservationCancellationRules.GetRefundDeadline(reservation)),
+            HasConfirmedDeposit = reservation.PaymentProofs.Any(p => p.StatusId == StatusIds.Reservation(ReservationStatus.Confirmed)),
+            CanCancelWithRefund = ReservationCancellationRules.CanRefund(reservation, DateTime.UtcNow, true),
+            ExpectedArrivalAt = reservation.ArrivalAdjustment?.AcceptedAt != null
+                ? ToUtcOffset(reservation.ArrivalAdjustment.RequestedArrivalAt) : null,
+            ArrivalDecisionExpiresAt = reservation.ArrivalAdjustment is { AcceptedAt: null } adjustment
+                ? ToUtcOffset(adjustment.DecisionExpiresAt) : null,
             HoldExpiresAt = ToUtcOffset(reservation.HoldExpiresAt),
             RestaurantResponseExpiresAt = ToUtcOffset(reservation.RestaurantResponseExpiresAt),
             CancellationDeadline = ToUtcOffset(reservation.CancellationDeadline),
@@ -1377,6 +1413,8 @@ public sealed class ReservationManager : BaseManager, IReservationService
         reservation.RestaurantResponseExpiresAt = null;
         reservation.HoldExpiresAt = null;
         reservation.ConfirmedAt = now;
+        reservation.CancellationGraceDeadlineAt = ReservationCancellationRules.GetGraceDeadline(
+            reservation.ReservedAt, now, _timingOptions.CancellationGraceMinutes);
         reservation.StatusHistory.Add(new ReservationStatusHistory
         {
             FromStatusId = awaitingStatusId,
@@ -1476,6 +1514,9 @@ public sealed class ReservationManager : BaseManager, IReservationService
         paymentProof.RejectReason = null;
 
         reservation.StatusId = confirmedStatusId;
+        reservation.ConfirmedAt = DateTime.UtcNow;
+        reservation.CancellationGraceDeadlineAt = ReservationCancellationRules.GetGraceDeadline(
+            reservation.ReservedAt, reservation.ConfirmedAt.Value, _timingOptions.CancellationGraceMinutes);
         reservation.HoldExpiresAt = null;
         reservation.RestaurantResponseExpiresAt = null;
         reservation.StatusHistory.Add(new ReservationStatusHistory
@@ -1632,12 +1673,6 @@ public sealed class ReservationManager : BaseManager, IReservationService
         if (snapshot is null)
             throw new NotFoundException(ErrorCode.ReservationNotFound);
 
-        if (snapshot.CancellationDeadline.HasValue &&
-            snapshot.CancellationDeadline.Value <= DateTime.UtcNow)
-        {
-            throw new BusinessRuleException("Rezervasiyanı ləğv etmək üçün icazə verilən müddət bitib.");
-        }
-
         return await CancelReservationCoreAsync(
             snapshot.RestaurantId,
             reservationId,
@@ -1731,8 +1766,8 @@ public sealed class ReservationManager : BaseManager, IReservationService
             throw new BusinessRuleException("Bu rezervasiya artıq aktiv deyil.");
         }
 
-        var refundEligible = reservation.StatusId == confirmedStatusId &&
-            reservation.PaymentProofs.Any(proof => proof.StatusId == confirmedStatusId);
+        now = DateTime.UtcNow;
+        var refundEligible = ReservationCancellationRules.CanRefund(reservation, now, isCustomer);
 
         if (reservation.StatusId == paymentSubmittedStatusId)
         {
