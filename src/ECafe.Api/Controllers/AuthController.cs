@@ -11,6 +11,7 @@ using ECafe.Api.Security;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using ApiRoutes = ECafe.Application.Routes.Routes;
 
 namespace ECafe.Api.Controllers
 {
@@ -28,7 +29,7 @@ namespace ECafe.Api.Controllers
             _environment = environment;
         }
 
-        [HttpPost("api/v1/user/login")]
+        [HttpPost(ApiRoutes.Auth.Login)]
         [Consumes("application/json")]
         [EnableRateLimiting(RateLimitPolicyNames.AuthLogin)]
         public async Task<IActionResult> Login([FromBody] LoginUserCommand command)
@@ -40,7 +41,7 @@ namespace ECafe.Api.Controllers
         }
 
 
-        [HttpPost("api/v1/user/register")]
+        [HttpPost(ApiRoutes.Auth.Register)]
         [EnableRateLimiting(RateLimitPolicyNames.AuthLogin)]
         public async Task<IActionResult> Register([FromForm] RegisterUserCommand command)
         {
@@ -50,7 +51,7 @@ namespace ECafe.Api.Controllers
             return Ok(ToClientAuthResponse(auth));
         }
 
-        [HttpPost("api/v1/user/set-password")]
+        [HttpPost(ApiRoutes.Auth.SetPassword)]
         [Consumes("application/json")]
         [EnableRateLimiting(RateLimitPolicyNames.AuthLogin)]
         public async Task<IActionResult> SetPassword([FromBody] SetPasswordCommand command)
@@ -59,7 +60,7 @@ namespace ECafe.Api.Controllers
             return Ok(new { message = "Password has been set successfully." });
         }
 
-        [HttpPost("api/v1/user/forgot-password")]
+        [HttpPost(ApiRoutes.Auth.ForgotPassword)]
         [Consumes("application/json")]
         [EnableRateLimiting(RateLimitPolicyNames.AuthPasswordReset)]
         public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordCommand command)
@@ -68,7 +69,7 @@ namespace ECafe.Api.Controllers
             return Ok(new { message = "If this email exists, a password reset link has been sent." });
         }
 
-        [HttpPost("api/v1/user/reset-password")]
+        [HttpPost(ApiRoutes.Auth.ResetPassword)]
         [Consumes("application/json")]
         [EnableRateLimiting(RateLimitPolicyNames.AuthPasswordReset)]
         public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordCommand command)
@@ -79,7 +80,7 @@ namespace ECafe.Api.Controllers
 
 
 
-        [HttpPost("api/v1/user/refresh")]
+        [HttpPost(ApiRoutes.Auth.Refresh)]
         [EnableRateLimiting(RateLimitPolicyNames.AuthRefresh)]
         public async Task<IActionResult> Refresh([FromBody(EmptyBodyBehavior = Microsoft.AspNetCore.Mvc.ModelBinding.EmptyBodyBehavior.Allow)] RefreshTokenCommand? command)
         {
@@ -92,7 +93,7 @@ namespace ECafe.Api.Controllers
             return Ok(ToClientAuthResponse(auth));
         }
 
-        [HttpPost("api/v1/user/logout")]
+        [HttpPost(ApiRoutes.Auth.Logout)]
         [EnableRateLimiting(RateLimitPolicyNames.AuthRefresh)]
         public async Task<IActionResult> Logout([FromBody] LogoutCommand? command)
         {
@@ -108,7 +109,7 @@ namespace ECafe.Api.Controllers
         }
 
         [Authorize]
-        [HttpPost("api/v1/user/logout-all")]
+        [HttpPost(ApiRoutes.Auth.LogoutAll)]
         [EnableRateLimiting(RateLimitPolicyNames.AuthRefresh)]
         public async Task<IActionResult> LogoutAll()
         {

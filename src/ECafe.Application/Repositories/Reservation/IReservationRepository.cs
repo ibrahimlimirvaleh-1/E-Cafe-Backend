@@ -6,6 +6,9 @@ namespace ECafe.Application.Repositories.Reservation;
 
 public interface IReservationRepository : IBaseRepository<Domain.Entities.Reservation>
 {
+    Task<Domain.Entities.Reservation?> GetForArrivalAdjustmentAsync(
+        int reservationId, int customerUserId, bool tracked, CancellationToken cancellationToken = default);
+
     Task AcquireCustomerReservationLockAsync(
         int restaurantId,
         int customerUserId,
@@ -74,9 +77,14 @@ public interface IReservationRepository : IBaseRepository<Domain.Entities.Reserv
         int batchSize,
         CancellationToken cancellationToken = default);
 
-    Task<int> ExpireNoShowReservationsAsync(
+    Task<List<ReservationNoShowCandidate>> GetNoShowCandidatesAsync(
         DateTime nowUtc,
         int batchSize,
+        CancellationToken cancellationToken = default);
+
+    Task<bool> TryExpireNoShowReservationAsync(
+        ReservationNoShowCandidate candidate,
+        DateTime nowUtc,
         CancellationToken cancellationToken = default);
 
     Task<Domain.Entities.Reservation?> GetByIdForRestaurantAsync(

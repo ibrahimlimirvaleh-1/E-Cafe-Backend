@@ -110,23 +110,6 @@ public class WorkflowActionManager : BaseManager, IWorkflowActionService
             restaurantId.HasValue &&
             entityId.HasValue &&
             normalizedFlowCode == WorkflowFlowCode.FromStatusType(StatusType.Reservation) &&
-            await _reservationRepository.IsCancellationDeadlinePassedAsync(
-                restaurantId.Value,
-                entityId.Value,
-                DateTime.UtcNow))
-        {
-            rules = rules
-                .Where(rule => !string.Equals(
-                    rule.ActionCode,
-                    WorkflowActionCode.Reservation.Cancel,
-                    StringComparison.OrdinalIgnoreCase))
-                .ToList();
-        }
-
-        if (roleId == (int)RoleCode.Customer &&
-            restaurantId.HasValue &&
-            entityId.HasValue &&
-            normalizedFlowCode == WorkflowFlowCode.FromStatusType(StatusType.Reservation) &&
             !await _reservationRefundRepository.IsRequestAvailableAsync(
                 restaurantId.Value,
                 entityId.Value))
@@ -194,19 +177,6 @@ public class WorkflowActionManager : BaseManager, IWorkflowActionService
                 DateTime.UtcNow))
         {
             throw new ForbiddenException("Müştərini masaya əyləşdirmək üçün uyğun vaxt deyil.");
-        }
-
-        if (roleId == (int)RoleCode.Customer &&
-            string.Equals(normalizedFlowCode, WorkflowFlowCode.FromStatusType(StatusType.Reservation), StringComparison.Ordinal) &&
-            string.Equals(normalizedActionCode, WorkflowActionCode.Reservation.Cancel, StringComparison.OrdinalIgnoreCase) &&
-            restaurantId.HasValue &&
-            entityId.HasValue &&
-            await _reservationRepository.IsCancellationDeadlinePassedAsync(
-                restaurantId.Value,
-                entityId.Value,
-                DateTime.UtcNow))
-        {
-            throw new ForbiddenException("Rezervasiyanı ləğv etmək üçün icazə verilən müddət bitib.");
         }
 
         var exists = await _workflowActionRuleRepository.CheckExistAsync(rule =>

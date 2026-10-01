@@ -12,6 +12,7 @@ using ECafe.Application.Features.Queries.InventoryMovement.History;
 using ECafe.Domain.Enums;
 using ECafe.Infrastructure.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using ApiRoutes = ECafe.Application.Routes.Routes;
 
 namespace ECafe.Api.Controllers
 {
@@ -19,7 +20,7 @@ namespace ECafe.Api.Controllers
     public class InventoryController : BaseController
     {
         [HasPermission(PermissionCode.ViewInventory)]
-        [HttpGet("api/v1/restaurants/{restaurantId}/inventory")]
+        [HttpGet(ApiRoutes.Inventory.GetAll)]
         public async Task<IActionResult> GetAll([FromRoute] int restaurantId, [FromQuery] GetInventoryItemsRequest request)
         {
             var query = new GetInventoryItemsQuery
@@ -35,7 +36,7 @@ namespace ECafe.Api.Controllers
         }
 
         [HasPermission(PermissionCode.ManageInventory)]
-        [HttpPost("api/v1/restaurants/{restaurantId}/inventory")]
+        [HttpPost(ApiRoutes.Inventory.Create)]
         public async Task<IActionResult> Create([FromRoute] int restaurantId, [FromBody] CreateInventoryItemRequest request)
         {
             var command = new CreateInventoryItemCommand
@@ -51,7 +52,7 @@ namespace ECafe.Api.Controllers
         }
 
         [HasPermission(PermissionCode.ViewInventory)]
-        [HttpGet("api/v1/restaurants/{restaurantId}/inventory/{inventoryItemId}")]
+        [HttpGet(ApiRoutes.Inventory.GetById)]
         public async Task<IActionResult> GetById(
             [FromRoute] int restaurantId,
             [FromRoute] int inventoryItemId)
@@ -66,7 +67,7 @@ namespace ECafe.Api.Controllers
         }
 
         [HasPermission(PermissionCode.ManageInventory)]
-        [HttpPut("api/v1/restaurants/{restaurantId}/inventory/{inventoryItemId}")]
+        [HttpPut(ApiRoutes.Inventory.Update)]
         public async Task<IActionResult> Update(
             [FromRoute] int restaurantId,
             [FromRoute] int inventoryItemId,
@@ -86,7 +87,7 @@ namespace ECafe.Api.Controllers
         }
 
         [HasPermission(PermissionCode.ManageInventory)]
-        [HttpPatch("api/v1/restaurants/{restaurantId}/inventory/{inventoryItemId}/activate")]
+        [HttpPatch(ApiRoutes.Inventory.Activate)]
         public async Task<IActionResult> Activate(
             [FromRoute] int restaurantId,
             [FromRoute] int inventoryItemId)
@@ -101,7 +102,7 @@ namespace ECafe.Api.Controllers
         }
 
         [HasPermission(PermissionCode.ManageInventory)]
-        [HttpPatch("api/v1/restaurants/{restaurantId}/inventory/{inventoryItemId}/deactivate")]
+        [HttpPatch(ApiRoutes.Inventory.Deactivate)]
         public async Task<IActionResult> Deactivate(
             [FromRoute] int restaurantId,
             [FromRoute] int inventoryItemId)
@@ -116,7 +117,7 @@ namespace ECafe.Api.Controllers
         }
 
         [HasPermission(PermissionCode.ManageInventory)]
-        [HttpDelete("api/v1/restaurants/{restaurantId}/inventory/{inventoryItemId}")]
+        [HttpDelete(ApiRoutes.Inventory.Delete)]
         public async Task<IActionResult> Delete(
             [FromRoute] int restaurantId,
             [FromRoute] int inventoryItemId)
@@ -131,7 +132,7 @@ namespace ECafe.Api.Controllers
         }
 
         [HasPermission(PermissionCode.ManageInventory)]
-        [HttpPost("api/v1/restaurants/{restaurantId}/inventory/{inventoryItemId}/movements")]
+        [HttpPost(ApiRoutes.Inventory.CreateMovement)]
         public async Task<IActionResult> CreateMovement(
             [FromRoute] int restaurantId,
             [FromRoute] int inventoryItemId,
@@ -151,7 +152,7 @@ namespace ECafe.Api.Controllers
         }
 
         [HasPermission(PermissionCode.ViewInventory)]
-        [HttpGet("api/v1/restaurants/{restaurantId}/inventory/{inventoryItemId}/movements")]
+        [HttpGet(ApiRoutes.Inventory.GetMovementHistory)]
         public async Task<IActionResult> GetMovementHistory(
             [FromRoute] int restaurantId,
             [FromRoute] int inventoryItemId,

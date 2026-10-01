@@ -1,13 +1,14 @@
 using ECafe.Application.Features.Queries.Workflow;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using ApiRoutes = ECafe.Application.Routes.Routes;
 
 namespace ECafe.Api.Controllers;
 
 public class WorkflowController : BaseController
 {
     [Authorize]
-    [HttpGet("api/v1/workflows/{flowCode}/actions")]
+    [HttpGet(ApiRoutes.Workflow.GetActions)]
     public async Task<IActionResult> GetActions(
         string flowCode,
         [FromQuery] int statusId,

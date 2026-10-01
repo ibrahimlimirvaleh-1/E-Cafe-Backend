@@ -6,6 +6,7 @@ using ECafe.Shared.Extensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using ApiRoutes = ECafe.Application.Routes.Routes;
 
 namespace ECafe.Api.Controllers
 {
@@ -19,7 +20,7 @@ namespace ECafe.Api.Controllers
             _roleRepository = roleRepository;
         }
 
-        [HttpGet("api/v1/lookups/roles")]
+        [HttpGet(ApiRoutes.Lookup.GetRoles)]
         public async Task<IActionResult> GetRoles()
         {
             var roles = await _roleRepository.Query()
@@ -37,24 +38,24 @@ namespace ECafe.Api.Controllers
             }));
         }
 
-        [HttpGet("api/v1/lookups/item-statuses")]
+        [HttpGet(ApiRoutes.Lookup.GetItemStatuses)]
         public IActionResult GetItemStatuses()
             => Ok(MapStatusEnum<ItemStatus>(StatusType.ItemStatus));
 
-        [HttpGet("api/v1/lookups/contract-statuses")]
+        [HttpGet(ApiRoutes.Lookup.GetContractStatuses)]
         public IActionResult GetContractStatuses()
             => Ok(MapStatusEnum<ContractStatus>(StatusType.Contract));
 
-        [HttpGet("api/v1/lookups/payment-policies")]
+        [HttpGet(ApiRoutes.Lookup.GetPaymentPolicies)]
         public IActionResult GetPaymentPolicies()
             => Ok(MapEnum<ContractPaymentPolicy>());
 
-        [HttpGet("api/v1/lookups/units")]
+        [HttpGet(ApiRoutes.Lookup.GetUnits)]
         public IActionResult GetUnits()
             => Ok(MapEnum<UnitCode>());
 
-        [HttpGet("api/v1/lookups/actions")]
-        [HttpGet("api/v1/lookups/audit-actions")]
+        [HttpGet(ApiRoutes.Lookup.GetAuditActionsLegacy)]
+        [HttpGet(ApiRoutes.Lookup.GetAuditActions)]
         public IActionResult GetAuditActions()
             => Ok(AuditActions.All
                 .OrderBy(action => action.Id)
@@ -68,16 +69,16 @@ namespace ECafe.Api.Controllers
 
 
 
-        [HttpGet("api/v1/lookups/inventory-movement-types")]
-        [HttpGet("api/v1/lookups/getInventoryMovementTypes")]
+        [HttpGet(ApiRoutes.Lookup.GetInventoryMovementTypes)]
+        [HttpGet(ApiRoutes.Lookup.GetInventoryMovementTypesLegacy)]
         public IActionResult GetInventoryMovementTypes()
             => Ok(MapEnum<InventoryMovementTypeCode>());
 
-        [HttpGet("api/v1/lookups/outbox-statuses")]
+        [HttpGet(ApiRoutes.Lookup.GetOutboxStatuses)]
         public IActionResult GetOutboxStatuses()
             => Ok(MapEnum<OutboxMessageStatus>());
 
-        [HttpGet("api/v1/lookups/notification-channels")]
+        [HttpGet(ApiRoutes.Lookup.GetNotificationChannels)]
         public IActionResult GetNotificationChannels()
             => Ok(MapEnum<OutboxMessageChannel>());
 

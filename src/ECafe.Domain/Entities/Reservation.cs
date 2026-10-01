@@ -23,6 +23,10 @@ public partial class Reservation : AuditableSoftDeletableEntity<int>
 
     public DateTime? CancellationDeadline { get; set; }
 
+    public DateTime? CancellationGraceDeadlineAt { get; set; }
+
+    public virtual ReservationArrivalAdjustment? ArrivalAdjustment { get; set; }
+
     public DateTime ReservedAt { get; set; }
 
     public DateTime NoShowDeadlineAt { get; set; }

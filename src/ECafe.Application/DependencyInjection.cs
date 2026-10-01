@@ -125,6 +125,17 @@ namespace ECafe.Application
             services.AddScoped<IInventoryMovementService, InventoryMovementManager>();
             services.AddScoped<IRecipeService, RecipeManager>();
             services.AddScoped<IReservationService,ReservationManager>();
+            services.AddScoped<IReservationArrivalService, ReservationArrivalManager>();
+            services.AddSingleton(TimeProvider.System);
+            services.AddOptions<ReservationTimingOptions>()
+                .Configure<IConfiguration>((options, configuration) =>
+                    configuration.GetSection(ReservationTimingOptions.SectionName).Bind(options))
+                .Validate(options => options.MaximumLateArrivalMinutes is > 0 and <= 180 &&
+                    options.ArrivalDecisionMinutes is > 0 and <= 10 &&
+                    options.ArrivalChoiceStepMinutes is > 0 and <= 15 &&
+                    options.CancellationGraceMinutes is >= 0 and <= 30,
+                    "Reservation timing settings are outside the supported limits.")
+                .ValidateOnStart();
             services.AddScoped<IReservationRefundNotifier, ReservationRefundNotifier>();
             services.AddScoped<IReservationRefundService, ReservationRefundManager>();
 
