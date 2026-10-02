@@ -6,6 +6,8 @@ public static class EcafeSwaggerMetadata
         new Dictionary<string, SwaggerTagInfo>(StringComparer.OrdinalIgnoreCase)
         {
             ["Auth"] = new("01. Authentication", "Login, qeydiyyat və refresh token əməliyyatları."),
+            ["RestaurantSchedule"] = new("02.1. Restaurant Schedule", "İş saatı dəyişikliyi və müştəriyə verilən təklif."),
+            ["RestaurantScheduleFlow"] = new("02.2. Restaurant Schedule Flow", "İş saatı təklifi, razılıq, tətbiq və geri götürmə."),
             ["Restaurant"] = new("02. Restaurants", "Restoran kataloqu, restoran profili və public booking üçün əsas məlumatlar."),
             ["Category"] = new("03. Menu Categories", "Restoran menyu kateqoriyalarının idarə olunması."),
             ["Item"] = new("04. Menu Items", "Menyu məhsulları, qiymət, status və şəkil məlumatları."),

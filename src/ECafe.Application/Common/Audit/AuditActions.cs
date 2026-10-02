@@ -50,6 +50,11 @@ namespace ECafe.Application.Common.Audit
         public const string ReservationRefundTransferConfirmed = "ReservationRefundTransferConfirmed";
         public const string ReservationRefundTransferDisputed = "ReservationRefundTransferDisputed";
         public const string OrderCreated = "OrderCreated";
+        public const string RestaurantScheduleProposed = "RestaurantScheduleProposed";
+        public const string RestaurantScheduleApplied = "RestaurantScheduleApplied";
+        public const string RestaurantScheduleWithdrawn = "RestaurantScheduleWithdrawn";
+        public const string RestaurantScheduleCustomerResponded = "RestaurantScheduleCustomerResponded";
+        public const string RestaurantScheduleWalkInAcknowledged = "RestaurantScheduleWalkInAcknowledged";
 
         public static IReadOnlyCollection<AuditActionDefinition> All { get; } =
         [
@@ -96,7 +101,12 @@ namespace ECafe.Application.Common.Audit
             new(57, ReservationRefundTransferSubmitted, "Rezervasiya geri ödəniş çeki göndərildi"),
             new(58, ReservationRefundTransferConfirmed, "Rezervasiya geri ödənişi müştəri tərəfindən təsdiqləndi"),
             new(59, ReservationRefundTransferDisputed, "Rezervasiya geri ödənişinə etiraz edildi"),
-            new(50, OrderCreated, "Sifariş yaradıldı")
+            new(50, OrderCreated, "Sifariş yaradıldı"),
+            new(61, RestaurantScheduleProposed, "İş saatı dəyişikliyi təklif edildi"),
+            new(62, RestaurantScheduleApplied, "İş saatı dəyişikliyi tətbiq edildi"),
+            new(63, RestaurantScheduleWithdrawn, "İş saatı dəyişikliyi geri götürüldü"),
+            new(64, RestaurantScheduleCustomerResponded, "Müştəri iş saatı təklifinə cavab verdi"),
+            new(65, RestaurantScheduleWalkInAcknowledged, "Masa sessiyası üzrə razılaşma qeyd edildi")
         ];
 
         public static string GetDisplayName(string? action)

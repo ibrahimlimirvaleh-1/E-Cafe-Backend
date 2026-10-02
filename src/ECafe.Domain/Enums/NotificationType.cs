@@ -25,6 +25,7 @@
         ReservationRefundTransferSubmitted = 21,
         ReservationRefundTransferConfirmed = 22,
         ReservationRefundTransferDisputed = 23,
-        ReservationArrivalAdjusted = 24
+        ReservationArrivalAdjusted = 24,
+        RestaurantScheduleChanged = 25
     }
 }

@@ -1,6 +1,8 @@
 ﻿using ECafe.Application.Repositories.Table;
 using ECafe.Domain.Enums;
 using ECafe.Domain.Services;
+using ECafe.Application.Services.Restaurant.Schedule;
+using ECafe.Domain.Entities;
 using ECafe.Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
 
@@ -231,6 +233,12 @@ namespace ECafe.Infrastructure.Repositories.Table
             if (restaurant is null)
                 return null;
 
+            var pending = await Context.RestaurantScheduleChanges.AsNoTracking()
+                .Where(c => c.RestaurantId == restaurantId && c.State == ScheduleChangeState.Pending)
+                .Select(c => c.ProposedHoursJson).SingleOrDefaultAsync();
+            if (pending != null && ScheduleTerms.IsAffected(restaurant.WorkingHours,
+                    ScheduleTerms.Deserialize(pending), restaurant.TimeZone, reservedAt.UtcDateTime, null, out _))
+                return null;
             var localTime = RestaurantTimeZoneConverter.ToRestaurantLocalTime(
                 reservedAt,
                 restaurant.TimeZone);

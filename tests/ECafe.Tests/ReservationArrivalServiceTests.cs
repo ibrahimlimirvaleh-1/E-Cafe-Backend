@@ -35,6 +35,7 @@ public sealed class ReservationArrivalServiceTests
         public Reservation Reservation { get; } = ReservationTimingPolicyTests.CreateReservation();
         public Mock<IReservationRepository> Reservations { get; } = new();
         public Mock<ITableRepository> Tables { get; } = new();
+        public Mock<IRestaurantRepository> Restaurants { get; } = new();
         public Mock<INotificationService> Notifications { get; } = new();
         public FixedClock Clock { get; } = new();
         public ReservationArrivalManager Service { get; }
@@ -47,8 +48,7 @@ public sealed class ReservationArrivalServiceTests
             };
             Reservations.Setup(r => r.GetForArrivalAdjustmentAsync(1, 4, It.IsAny<bool>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(Reservation);
-            var restaurants = new Mock<IRestaurantRepository>();
-            restaurants.Setup(r => r.HasRestaurantActiveContractAsync(2)).ReturnsAsync(true);
+            Restaurants.Setup(r => r.HasRestaurantActiveContractAsync(2)).ReturnsAsync(true);
             var assignments = new Mock<IUserRestaurantRepository>();
             assignments.Setup(r => r.GetActiveByRestaurantAndRolesAsync(2, It.IsAny<IReadOnlyCollection<int>>()))
                 .ReturnsAsync([new UserRestaurant { UserId = 5 }, new UserRestaurant { UserId = 6 }]);
@@ -59,7 +59,7 @@ public sealed class ReservationArrivalServiceTests
                 .ReturnsAsync(transaction.Object);
             Service = new ReservationArrivalManager(new HttpContextAccessor { HttpContext = context },
                 Mock.Of<IMapper>(), Mock.Of<IConfiguration>(), Reservations.Object, Tables.Object,
-                restaurants.Object, assignments.Object, transactions.Object, Notifications.Object,
+                Restaurants.Object, assignments.Object, transactions.Object, Notifications.Object,
                 Mock.Of<IAuditLogService>(), Options.Create(new ReservationTimingOptions()), Clock);
         }
     }
@@ -152,5 +152,28 @@ public sealed class ReservationArrivalServiceTests
         f.Reservations.Setup(r => r.GetForArrivalAdjustmentAsync(1, 4, It.IsAny<bool>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((Reservation?)null);
         await Assert.ThrowsAsync<NotFoundException>(() => f.Service.GetOptionsAsync(1, default));
+    }
+
+    [Fact]
+    public async Task PendingScheduleChangePreventsNewDelayOffer()
+    {
+        var f = new Fixture();
+        f.Restaurants.Setup(r => r.HasPendingScheduleChangeAsync(2, It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        Assert.False((await f.Service.GetOptionsAsync(1, default)).CanRequest);
+        var error = await Assert.ThrowsAsync<BusinessRuleException>(() => f.Service.OfferAsync(1,
+            new DateTimeOffset(f.Reservation.ReservedAt.AddMinutes(30)), default));
+        Assert.Equal(ErrorCode.ReservationArrivalNotAvailable, error.Code);
+        Assert.Null(f.Reservation.ArrivalAdjustment);
+    }
+
+    [Fact]
+    public async Task ScheduleProposalAfterDelayOfferPreventsAcceptanceOfStaleTerms()
+    {
+        var f = new Fixture();
+        var offer = await f.Service.OfferAsync(1, new DateTimeOffset(f.Reservation.ReservedAt.AddMinutes(30)), default);
+        f.Restaurants.Setup(r => r.HasPendingScheduleChangeAsync(2, It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        var error = await Assert.ThrowsAsync<BusinessRuleException>(() => f.Service.AcceptAsync(1, offer.ConsentToken, default));
+        Assert.Equal(ErrorCode.ReservationArrivalNotAvailable, error.Code);
+        Assert.Null(f.Reservation.ArrivalAdjustment!.AcceptedAt);
     }
 }

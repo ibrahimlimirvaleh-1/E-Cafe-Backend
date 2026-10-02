@@ -2989,6 +2989,142 @@ namespace ECafe.Infrastructure.Migrations
                     b.ToTable("restaurant_groups", "core");
                 });
 
+            modelBuilder.Entity("ECafe.Domain.Entities.RestaurantScheduleChange", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("AppliedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("ProposedHoursJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<int>("RequestedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("RestaurantId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("State")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("Token")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RestaurantId")
+                        .IsUnique()
+                        .HasFilter("\"State\" = 0 AND \"IsDeleted\" = false");
+
+                    b.ToTable("restaurant_schedule_changes", "ops");
+                });
+
+            modelBuilder.Entity("ECafe.Domain.Entities.RestaurantScheduleConsent", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("ProposedVacateAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("ReservationId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("RespondedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("RespondedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ResponseNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<int>("ScheduleChangeId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("State")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("TableSessionId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReservationId");
+
+                    b.HasIndex("TableSessionId");
+
+                    b.HasIndex("ScheduleChangeId", "ReservationId")
+                        .IsUnique();
+
+                    b.HasIndex("ScheduleChangeId", "TableSessionId")
+                        .IsUnique();
+
+                    b.ToTable("restaurant_schedule_consents", "ops", t =>
+                        {
+                            t.HasCheckConstraint("ck_schedule_consent_target", "(\"ReservationId\" IS NULL) <> (\"TableSessionId\" IS NULL)");
+                        });
+                });
+
             modelBuilder.Entity("ECafe.Domain.Entities.RestaurantWorkingHour", b =>
                 {
                     b.Property<int>("Id")
@@ -6698,6 +6834,42 @@ namespace ECafe.Infrastructure.Migrations
                     b.Navigation("Restaurant");
                 });
 
+            modelBuilder.Entity("ECafe.Domain.Entities.RestaurantScheduleChange", b =>
+                {
+                    b.HasOne("ECafe.Domain.Entities.Restaurant", "Restaurant")
+                        .WithMany()
+                        .HasForeignKey("RestaurantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Restaurant");
+                });
+
+            modelBuilder.Entity("ECafe.Domain.Entities.RestaurantScheduleConsent", b =>
+                {
+                    b.HasOne("ECafe.Domain.Entities.Reservation", "Reservation")
+                        .WithMany()
+                        .HasForeignKey("ReservationId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("ECafe.Domain.Entities.RestaurantScheduleChange", "ScheduleChange")
+                        .WithMany("Consents")
+                        .HasForeignKey("ScheduleChangeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ECafe.Domain.Entities.TableSession", "TableSession")
+                        .WithMany()
+                        .HasForeignKey("TableSessionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Reservation");
+
+                    b.Navigation("ScheduleChange");
+
+                    b.Navigation("TableSession");
+                });
+
             modelBuilder.Entity("ECafe.Domain.Entities.RestaurantWorkingHour", b =>
                 {
                     b.HasOne("ECafe.Domain.Entities.Restaurant", "Restaurant")
@@ -7083,6 +7255,11 @@ namespace ECafe.Infrastructure.Migrations
             modelBuilder.Entity("ECafe.Domain.Entities.RestaurantGroup", b =>
                 {
                     b.Navigation("Restaurants");
+                });
+
+            modelBuilder.Entity("ECafe.Domain.Entities.RestaurantScheduleChange", b =>
+                {
+                    b.Navigation("Consents");
                 });
 
             modelBuilder.Entity("ECafe.Domain.Entities.Role", b =>
