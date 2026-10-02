@@ -21,6 +21,7 @@ using ECafe.Application.Services.Notification.Abstract;
 using ECafe.Application.Services.AuditLog.Abstract;
 using ECafe.Application.Services.FileAccess.Abstract;
 using ECafe.Application.Services.Reservation.Abstract;
+using ECafe.Application.Services.ReservationRefund.Concrete;
 using ECafe.Application.Services.Restaurant.Abstract;
 using ECafe.Application.Services.PaymentInstructionDetails.Abstract;
 using ECafe.Application.Services.Workflow.Abstract;
@@ -322,10 +323,32 @@ public sealed class ReservationManager : BaseManager, IReservationService
     public async Task<int> ExpirePendingReservationsAsync(int batchSize, CancellationToken cancellationToken)
     {
         var nowUtc = DateTime.UtcNow;
-        var expiredPaymentCount = await _reservationRepository.ExpirePendingPaymentsAsync(
+        var pendingCandidates = await _reservationRepository.GetPendingExpiryCandidatesAsync(
             nowUtc,
             batchSize,
             cancellationToken);
+        var expiredPaymentCount = 0;
+        foreach (var candidate in pendingCandidates)
+        {
+            await using var transaction = await _transactionFactory.BeginTransactionAsync(
+                IsolationLevel.ReadCommitted,
+                cancellationToken);
+
+            await _tableRepository.AcquireReservationLockAsync(
+                candidate.RestaurantId,
+                candidate.TableId,
+                cancellationToken);
+
+            var expired = await _reservationRepository.TryExpirePendingReservationAsync(
+                candidate,
+                DateTime.UtcNow,
+                cancellationToken);
+
+            await transaction.CommitAsync(cancellationToken);
+            if (expired)
+                expiredPaymentCount++;
+        }
+
         var candidates = await _reservationRepository.GetNoShowCandidatesAsync(
             nowUtc,
             batchSize,
@@ -1112,7 +1135,8 @@ public sealed class ReservationManager : BaseManager, IReservationService
         Domain.Entities.Reservation reservation,
         NotificationType notificationType,
         string title,
-        string message)
+        string message,
+        ReservationRefundRequestInfo? refundRequest = null)
     {
         await _notificationService.CreateAsync(new CreateNotificationRequest
         {
@@ -1126,7 +1150,9 @@ public sealed class ReservationManager : BaseManager, IReservationService
             {
                 restaurantId,
                 reservationId = reservation.Id,
-                statusId = reservation.StatusId
+                statusId = reservation.StatusId,
+                refundRequest,
+                section = refundRequest == null ? null : "refund"
             }),
             RelatedEntityType = AuditEntityTypes.Reservation,
             RelatedEntityId = reservation.Id
@@ -1264,6 +1290,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
             WorkflowFlowCode = ReservationFlowCode,
             DepositAmount = reservation.DepositAmount,
             IsRefundEligible = reservation.RefundEligible == true,
+            RefundRequest = ReservationRefundRequestMapper.Map(reservation),
             RefundCancellationDeadlineAt = ToUtcOffset(ReservationCancellationRules.GetRefundDeadline(reservation)),
             HasConfirmedDeposit = reservation.PaymentProofs.Any(p => p.StatusId == StatusIds.Reservation(ReservationStatus.Confirmed)),
             CanCancelWithRefund = ReservationCancellationRules.CanRefund(reservation, DateTime.UtcNow, true),
@@ -1315,6 +1342,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
                     ApprovedAt = ToUtcOffset(refund.ApprovedAt),
                     RefundedAt = ToUtcOffset(refund.RefundedAt),
                     EligibilityReason = refund.EligibilityReason,
+                    CustomerNextStep = ReservationRefundRequestMapper.GetCustomerNextStep(refund.StatusId),
                     CancellationReason = refund.CancellationReasonSnapshot
                 }
         };
@@ -1804,6 +1832,20 @@ public sealed class ReservationManager : BaseManager, IReservationService
 
         await _reservationRepository.SaveChangesAsync();
 
+        var refundRequest = ReservationRefundRequestMapper.Map(reservation);
+        var customerMessage = isCustomer
+            ? $"Rezervasiya #{reservation.Id} ləğv edildi."
+            : $"Rezervasiya #{reservation.Id} restoran tərəfindən ləğv edildi. Səbəb: {normalizedReason}";
+        if (refundRequest != null)
+            customerMessage += $" {refundRequest.Message}";
+        else if (!refundEligible)
+            customerMessage += " Bu ləğv üçün geri ödəniş nəzərdə tutulmur.";
+
+        await NotifyReservationCustomerAsync(
+            restaurantId, reservation, NotificationType.ReservationCancelled,
+            refundRequest == null ? "Rezervasiya ləğv edildi" : "Geri ödəniş hüququnuz var",
+            customerMessage, refundRequest: refundRequest);
+
         if (isCustomer)
         {
             await NotifyReservationResponsibleUsersAsync(
@@ -1811,15 +1853,6 @@ public sealed class ReservationManager : BaseManager, IReservationService
                 reservation,
                 "Rezervasiya ləğv edildi",
                 $"Müştəri rezervasiya #{reservation.Id} üçün ləğv sorğusu göndərdi.");
-        }
-        else
-        {
-            await NotifyReservationCustomerAsync(
-                restaurantId,
-                reservation,
-                NotificationType.ReservationCancelled,
-                "Rezervasiya ləğv edildi",
-                $"Rezervasiya #{reservation.Id} restoran tərəfindən ləğv edildi. Səbəb: {normalizedReason}");
         }
 
         await _auditLogService.RecordRestaurantActionAsync(
@@ -1835,7 +1868,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
             reservation.Id,
             cancelledStatusId,
             ReservationStatus.Cancelled,
-            "Rezervasiya ləğv edildi.");
+            customerMessage);
     }
 
     private PaginatedList<ReservationResponse> MapPage(
