@@ -185,47 +185,66 @@ public class ReservationRepository : BaseRepository<Domain.Entities.Reservation>
         return CreatePageAsync(query, request, cancellationToken);
     }
 
-    public async Task<int> ExpirePendingPaymentsAsync(
+    public Task<List<ReservationPendingExpiryCandidate>> GetPendingExpiryCandidatesAsync(
         DateTime nowUtc,
         int batchSize,
         CancellationToken cancellationToken = default)
     {
         if (batchSize <= 0)
-            return 0;
+            return Task.FromResult(new List<ReservationPendingExpiryCandidate>());
 
+        return GetPendingExpiryEligibleReservationsQuery(nowUtc)
+            .AsNoTracking()
+            .OrderBy(r => r.RestaurantResponseExpiresAt ?? r.HoldExpiresAt)
+            .ThenBy(r => r.Id)
+            .Take(batchSize)
+            .Select(r => new ReservationPendingExpiryCandidate(r.Id, r.RestaurantId, r.TableId))
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<bool> TryExpirePendingReservationAsync(
+        ReservationPendingExpiryCandidate candidate,
+        DateTime nowUtc,
+        CancellationToken cancellationToken = default)
+    {
+        // The caller holds the table lock; recheck status and deadline after waiting for it.
+        var reservation = await GetPendingExpiryEligibleReservationsQuery(nowUtc)
+            .FirstOrDefaultAsync(r =>
+                r.Id == candidate.ReservationId &&
+                r.RestaurantId == candidate.RestaurantId &&
+                r.TableId == candidate.TableId,
+                cancellationToken);
+
+        if (reservation is null)
+            return false;
+
+        var previousStatusId = reservation.StatusId;
+        var expiredStatusId = StatusIds.Reservation(ReservationStatus.Expired);
+        reservation.StatusId = expiredStatusId;
+        Context.ReservationStatusHistory.Add(new ReservationStatusHistory
+        {
+            ReservationId = reservation.Id,
+            FromStatusId = previousStatusId,
+            ToStatusId = expiredStatusId,
+            ChangedAt = nowUtc,
+            Reason = "Rezervasiyanın cavab və ya ödəniş müddəti bitdi."
+        });
+
+        await Context.SaveChangesAsync(cancellationToken);
+        return true;
+    }
+
+    private IQueryable<Domain.Entities.Reservation> GetPendingExpiryEligibleReservationsQuery(DateTime nowUtc)
+    {
         var awaitingPaymentInstructionStatusId = StatusIds.Reservation(ReservationStatus.AwaitingPaymentInstruction);
         var pendingPaymentStatusId = StatusIds.Reservation(ReservationStatus.PendingPayment);
-        var expiredStatusId = StatusIds.Reservation(ReservationStatus.Expired);
 
-        var reservations = await QueryTracked()
-            .Where(r =>
+        return QueryTracked().Where(r =>
                 (r.StatusId == awaitingPaymentInstructionStatusId &&
                  r.RestaurantResponseExpiresAt != null &&
                  r.RestaurantResponseExpiresAt <= nowUtc) ||
                 (r.StatusId == pendingPaymentStatusId &&
-                 (r.HoldExpiresAt == null || r.HoldExpiresAt <= nowUtc)))
-            .OrderBy(r => r.RestaurantResponseExpiresAt ?? r.HoldExpiresAt)
-            .Take(batchSize)
-            .ToListAsync(cancellationToken);
-
-        if (reservations.Count == 0)
-            return 0;
-
-        foreach (var reservation in reservations)
-        {
-            var previousStatusId = reservation.StatusId;
-            reservation.StatusId = expiredStatusId;
-            Context.ReservationStatusHistory.Add(new ReservationStatusHistory
-            {
-                ReservationId = reservation.Id,
-                FromStatusId = previousStatusId,
-                ToStatusId = expiredStatusId,
-                ChangedAt = nowUtc,
-                Reason = "Rezervasiyanın cavab və ya ödəniş müddəti bitdi."
-            });
-        }
-
-        return await Context.SaveChangesAsync(cancellationToken);
+                 (r.HoldExpiresAt == null || r.HoldExpiresAt <= nowUtc)));
     }
 
     public Task<List<ReservationNoShowCandidate>> GetNoShowCandidatesAsync(

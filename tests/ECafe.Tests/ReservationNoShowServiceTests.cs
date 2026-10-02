@@ -51,6 +51,8 @@ public sealed class ReservationNoShowServiceTests
     {
         var candidate = new ReservationNoShowCandidate(1, 2, 3);
         var reservations = new Mock<IReservationRepository>();
+        reservations.Setup(r => r.GetPendingExpiryCandidatesAsync(It.IsAny<DateTime>(), 100, It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
         reservations.Setup(r => r.GetNoShowCandidatesAsync(It.IsAny<DateTime>(), 100, It.IsAny<CancellationToken>()))
             .ReturnsAsync([candidate]);
         var order = new List<string>();
@@ -94,6 +96,8 @@ public sealed class ReservationNoShowServiceTests
         using var cancellation = new CancellationTokenSource();
         var candidate = new ReservationNoShowCandidate(1, 2, 3);
         var reservations = new Mock<IReservationRepository>();
+        reservations.Setup(r => r.GetPendingExpiryCandidatesAsync(It.IsAny<DateTime>(), 100, It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
         reservations.Setup(r => r.GetNoShowCandidatesAsync(It.IsAny<DateTime>(), 100, It.IsAny<CancellationToken>()))
             .ReturnsAsync([candidate]);
         var tables = new Mock<ITableRepository>();
@@ -112,6 +116,79 @@ public sealed class ReservationNoShowServiceTests
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => resultTask);
         reservations.Verify(r => r.TryExpireNoShowReservationAsync(
             It.IsAny<ReservationNoShowCandidate>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()), Times.Never);
+        transaction.Verify(t => t.CommitAsync(It.IsAny<CancellationToken>()), Times.Never);
+        transaction.Verify(t => t.DisposeAsync(), Times.Once);
+    }
+
+    [Theory]
+    [InlineData(true, 1)]
+    [InlineData(false, 0)]
+    public async Task PendingExpiryWaitsForLockAndRechecksBeforeCommitting(bool expired, int expectedCount)
+    {
+        var candidate = new ReservationPendingExpiryCandidate(1, 2, 3);
+        var reservations = new Mock<IReservationRepository>();
+        reservations.Setup(r => r.GetPendingExpiryCandidatesAsync(It.IsAny<DateTime>(), 100, It.IsAny<CancellationToken>()))
+            .ReturnsAsync([candidate]);
+        reservations.Setup(r => r.GetNoShowCandidatesAsync(It.IsAny<DateTime>(), 100, It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+        var order = new List<string>();
+        var lockGate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var tables = new Mock<ITableRepository>();
+        tables.Setup(t => t.AcquireReservationLockAsync(2, 3, It.IsAny<CancellationToken>()))
+            .Callback(() => order.Add("lock")).Returns(lockGate.Task);
+        var transaction = new Mock<IApplicationDbTransaction>();
+        transaction.Setup(t => t.CommitAsync(It.IsAny<CancellationToken>()))
+            .Callback(() => order.Add("commit")).Returns(Task.CompletedTask);
+        transaction.Setup(t => t.DisposeAsync()).Returns(ValueTask.CompletedTask);
+        var transactions = new Mock<IApplicationDbTransactionFactory>();
+        transactions.Setup(t => t.BeginTransactionAsync(IsolationLevel.ReadCommitted, It.IsAny<CancellationToken>()))
+            .Callback(() => order.Add("begin")).ReturnsAsync(transaction.Object);
+        var releasedAt = DateTime.MaxValue;
+        reservations.Setup(r => r.TryExpirePendingReservationAsync(candidate, It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .Callback<ReservationPendingExpiryCandidate, DateTime, CancellationToken>((_, now, _) =>
+            {
+                Assert.True(now >= releasedAt);
+                order.Add("recheck");
+            }).ReturnsAsync(expired);
+
+        var resultTask = CreateManager(reservations.Object, tables.Object, transactions.Object)
+            .ExpirePendingReservationsAsync(100, CancellationToken.None);
+
+        Assert.Equal(new[] { "begin", "lock" }, order);
+        reservations.Verify(r => r.TryExpirePendingReservationAsync(
+            candidate, It.IsAny<DateTime>(), It.IsAny<CancellationToken>()), Times.Never);
+        releasedAt = DateTime.UtcNow;
+        lockGate.SetResult();
+
+        Assert.Equal(expectedCount, await resultTask);
+        Assert.Equal(new[] { "begin", "lock", "recheck", "commit" }, order);
+        transaction.Verify(t => t.DisposeAsync(), Times.Once);
+    }
+
+    [Fact]
+    public async Task PendingExpiryCancellationWhileWaitingForLockDoesNotExpireOrCommit()
+    {
+        using var cancellation = new CancellationTokenSource();
+        var candidate = new ReservationPendingExpiryCandidate(1, 2, 3);
+        var reservations = new Mock<IReservationRepository>();
+        reservations.Setup(r => r.GetPendingExpiryCandidatesAsync(It.IsAny<DateTime>(), 100, It.IsAny<CancellationToken>()))
+            .ReturnsAsync([candidate]);
+        var tables = new Mock<ITableRepository>();
+        tables.Setup(t => t.AcquireReservationLockAsync(2, 3, cancellation.Token))
+            .Returns(Task.Delay(Timeout.Infinite, cancellation.Token));
+        var transaction = new Mock<IApplicationDbTransaction>();
+        transaction.Setup(t => t.DisposeAsync()).Returns(ValueTask.CompletedTask);
+        var transactions = new Mock<IApplicationDbTransactionFactory>();
+        transactions.Setup(t => t.BeginTransactionAsync(IsolationLevel.ReadCommitted, cancellation.Token))
+            .ReturnsAsync(transaction.Object);
+
+        var resultTask = CreateManager(reservations.Object, tables.Object, transactions.Object)
+            .ExpirePendingReservationsAsync(100, cancellation.Token);
+        cancellation.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => resultTask);
+        reservations.Verify(r => r.TryExpirePendingReservationAsync(
+            It.IsAny<ReservationPendingExpiryCandidate>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()), Times.Never);
         transaction.Verify(t => t.CommitAsync(It.IsAny<CancellationToken>()), Times.Never);
         transaction.Verify(t => t.DisposeAsync(), Times.Once);
     }

@@ -14,6 +14,7 @@ public sealed class ReservationRefundResponse
     public DateTimeOffset? ApprovedAt { get; init; }
     public DateTimeOffset? RefundedAt { get; init; }
     public string EligibilityReason { get; init; } = null!;
+    public string? CustomerNextStep { get; init; }
     public string? CancellationReason { get; init; }
     public ReservationRefundPayoutDetailsResponse? PayoutDetails { get; init; }
     public ReservationRefundTransferResponse? LatestTransfer { get; init; }

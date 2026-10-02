@@ -15,6 +15,7 @@ public sealed class ReservationResponse
     public string WorkflowFlowCode { get; init; } = null!;
     public decimal DepositAmount { get; init; }
     public bool IsRefundEligible { get; init; }
+    public ReservationRefundRequestInfo? RefundRequest { get; init; }
     public DateTimeOffset? HoldExpiresAt { get; init; }
     public DateTimeOffset? RestaurantResponseExpiresAt { get; init; }
     public DateTimeOffset? CancellationDeadline { get; init; }

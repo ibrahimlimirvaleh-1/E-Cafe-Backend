@@ -36,6 +36,7 @@ internal static class ReservationRefundResponseMapper
             ApprovedAt = ToNullableUtcOffset(refund.ApprovedAt),
             RefundedAt = ToNullableUtcOffset(refund.RefundedAt),
             EligibilityReason = refund.EligibilityReason,
+            CustomerNextStep = ReservationRefundRequestMapper.GetCustomerNextStep(refund.StatusId),
             CancellationReason = refund.CancellationReasonSnapshot,
             PayoutDetails = refund.PayoutDetails is null
                 ? null

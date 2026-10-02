@@ -72,9 +72,14 @@ public interface IReservationRepository : IBaseRepository<Domain.Entities.Reserv
         MyReservationsQueryRequest request,
         CancellationToken cancellationToken = default);
 
-    Task<int> ExpirePendingPaymentsAsync(
+    Task<List<ReservationPendingExpiryCandidate>> GetPendingExpiryCandidatesAsync(
         DateTime nowUtc,
         int batchSize,
+        CancellationToken cancellationToken = default);
+
+    Task<bool> TryExpirePendingReservationAsync(
+        ReservationPendingExpiryCandidate candidate,
+        DateTime nowUtc,
         CancellationToken cancellationToken = default);
 
     Task<List<ReservationNoShowCandidate>> GetNoShowCandidatesAsync(
