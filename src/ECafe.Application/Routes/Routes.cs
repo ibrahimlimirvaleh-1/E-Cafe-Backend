@@ -127,6 +127,10 @@ public static class Routes
     public static class ReservationArrival
     {
         public const string Get = Base + "/public/reservations/{reservationId:int}/late-arrival";
+    }
+
+    public static class ReservationArrivalFlow
+    {
         public const string Offer = Base + "/public/reservations/{reservationId:int}/late-arrival/offers";
         public const string Accept = Base + "/public/reservations/{reservationId:int}/late-arrival/accept";
     }
@@ -137,13 +141,35 @@ public static class Routes
         public const string GetById = Base + "/public/reservations/{reservationId:int}";
         public const string GetHistory = Base + "/public/reservations/{reservationId:int}/history";
         public const string Create = Base + "/restaurants/{restaurantId:int}/reservations";
+    }
+
+    public static class ReservationFlow
+    {
         public const string SubmitPaymentProof = Base + "/restaurants/{restaurantId:int}/reservations/{reservationId:int}/payment-proofs";
         public const string Cancel = Base + "/public/reservations/{reservationId:int}/cancel";
+        public const string WaiveDeposit = Base + "/restaurants/{restaurantId:int}/reservations/{reservationId:int}/deposit-waiver";
+        public const string SendPaymentInstruction = Base + "/restaurants/{restaurantId:int}/reservations/{reservationId:int}/payment-instructions";
+        public const string ApprovePaymentProof = Base + "/restaurants/{restaurantId:int}/reservations/{reservationId:int}/payment-proofs/approve";
+        public const string RejectPaymentProof = Base + "/restaurants/{restaurantId:int}/reservations/{reservationId:int}/payment-proofs/reject";
+        public const string CheckIn = Base + "/restaurants/{restaurantId:int}/reservations/{reservationId:int}/check-in";
+        public const string Complete = Base + "/restaurants/{restaurantId:int}/reservations/{reservationId:int}/complete";
+        public const string CancelForRestaurant = Base + "/restaurants/{restaurantId:int}/reservations/{reservationId:int}/cancel";
+    }
+
+    public static class ReservationRefund
+    {
         public const string GetRefund = Base + "/public/reservations/{reservationId:int}/refund";
+        public const string GetRestaurantRefund = Base + "/restaurants/{restaurantId:int}/reservations/{reservationId:int}/refund";
+        public const string GetRefundPayoutDetails = Base + "/restaurants/{restaurantId:int}/refunds/{refundId:int}/payout-details";
+    }
+
+    public static class ReservationRefundFlow
+    {
         public const string RequestRefund = Base + "/public/reservations/{reservationId:int}/refunds";
         public const string SubmitRefundPayoutDetails = Base + "/public/refunds/{refundId:int}/payout-details";
         public const string ConfirmRefundTransfer = Base + "/public/refunds/{refundId:int}/transfers/confirm";
         public const string DisputeRefundTransfer = Base + "/public/refunds/{refundId:int}/transfers/dispute";
+        public const string SubmitRefundTransfer = Base + "/restaurants/{restaurantId:int}/refunds/{refundId:int}/transfers";
     }
 
     public static class RestaurantContract
@@ -154,6 +180,10 @@ public static class Routes
         public const string GetPagedByRestaurant = Base + "/restaurants/{restaurantId}/contracts/paged";
         public const string GetActive = Base + "/restaurants/{restaurantId}/contracts/active";
         public const string GetActions = Base + "/restaurants/{restaurantId}/contracts/{contractId}/actions";
+    }
+
+    public static class RestaurantContractFlow
+    {
         public const string SendForSignature = Base + "/admin/restaurants/{restaurantId}/contracts/{contractId}/send-for-signature";
         public const string Approve = Base + "/restaurants/{restaurantId}/contracts/{contractId}/approve";
         public const string Activate = Base + "/admin/restaurants/{restaurantId}/contracts/{contractId}/activate";
@@ -183,16 +213,6 @@ public static class Routes
         public const string GetList = Base + "/restaurants/{restaurantId:int}/reservations";
         public const string GetById = Base + "/restaurants/{restaurantId:int}/reservations/{reservationId:int}";
         public const string GetHistory = Base + "/restaurants/{restaurantId:int}/reservations/{reservationId:int}/history";
-        public const string WaiveDeposit = Base + "/restaurants/{restaurantId:int}/reservations/{reservationId:int}/deposit-waiver";
-        public const string SendPaymentInstruction = Base + "/restaurants/{restaurantId:int}/reservations/{reservationId:int}/payment-instructions";
-        public const string ApprovePaymentProof = Base + "/restaurants/{restaurantId:int}/reservations/{reservationId:int}/payment-proofs/approve";
-        public const string RejectPaymentProof = Base + "/restaurants/{restaurantId:int}/reservations/{reservationId:int}/payment-proofs/reject";
-        public const string CheckIn = Base + "/restaurants/{restaurantId:int}/reservations/{reservationId:int}/check-in";
-        public const string Complete = Base + "/restaurants/{restaurantId:int}/reservations/{reservationId:int}/complete";
-        public const string Cancel = Base + "/restaurants/{restaurantId:int}/reservations/{reservationId:int}/cancel";
-        public const string GetRefund = Base + "/restaurants/{restaurantId:int}/reservations/{reservationId:int}/refund";
-        public const string GetRefundPayoutDetails = Base + "/restaurants/{restaurantId:int}/refunds/{refundId:int}/payout-details";
-        public const string SubmitRefundTransfer = Base + "/restaurants/{restaurantId:int}/refunds/{refundId:int}/transfers";
     }
 
     public static class Table
