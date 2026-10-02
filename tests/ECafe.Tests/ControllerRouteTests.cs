@@ -10,13 +10,14 @@ namespace ECafe.Tests;
 public class ControllerRouteTests
 {
     [Fact]
-    public void Centralization_preserves_existing_endpoint_contracts()
+    public void Reorganization_preserves_existing_http_endpoint_contracts()
     {
         var fixturePath = Path.Combine(AppContext.BaseDirectory, "ControllerRoutes.contract.json");
         var expected = JsonSerializer.Deserialize<EndpointContract[]>(File.ReadAllText(fixturePath));
 
         Assert.NotNull(expected);
-        Assert.Equal(Sort(expected), Sort(GetEndpoints()));
+        // Controller ownership may change; the original verb and URL fixture stays unchanged.
+        Assert.Equal(SortHttpContracts(expected), SortHttpContracts(GetEndpoints()));
     }
 
     [Fact]
@@ -40,10 +41,16 @@ public class ControllerRouteTests
                     .SelectMany(attribute => attribute.HttpMethods.Select(verb => new EndpointContract(
                         type.Name, method.Name, verb, attribute.Template ?? string.Empty)))));
 
-    private static EndpointContract[] Sort(IEnumerable<EndpointContract> endpoints)
-        => endpoints.OrderBy(endpoint => endpoint.Controller, StringComparer.Ordinal)
-            .ThenBy(endpoint => endpoint.Action, StringComparer.Ordinal)
-            .ThenBy(endpoint => endpoint.HttpMethod, StringComparer.Ordinal)
+    [Fact]
+    public void Every_http_route_has_one_controller_action()
+    {
+        var endpoints = GetEndpoints().ToArray();
+        Assert.Equal(endpoints.Length, endpoints.Select(e => (e.HttpMethod, e.Template)).Distinct().Count());
+    }
+
+    private static HttpEndpointContract[] SortHttpContracts(IEnumerable<EndpointContract> endpoints)
+        => endpoints.Select(endpoint => new HttpEndpointContract(endpoint.HttpMethod, endpoint.Template))
+            .OrderBy(endpoint => endpoint.HttpMethod, StringComparer.Ordinal)
             .ThenBy(endpoint => endpoint.Template, StringComparer.Ordinal)
             .ToArray();
 
@@ -56,4 +63,5 @@ public class ControllerRouteTests
     }
 
     public sealed record EndpointContract(string Controller, string Action, string HttpMethod, string Template);
+    private sealed record HttpEndpointContract(string HttpMethod, string Template);
 }

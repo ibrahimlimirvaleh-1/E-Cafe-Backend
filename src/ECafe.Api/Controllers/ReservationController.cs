@@ -1,14 +1,8 @@
 using ECafe.Application.DTOs.Reservation;
-using ECafe.Application.Features.Commands.Reservation.Cancel;
 using ECafe.Application.Features.Commands.Reservation.Create;
-using ECafe.Application.Features.Commands.Reservation.RequestRefund;
-using ECafe.Application.Features.Commands.Reservation.ReviewRefundTransfer;
-using ECafe.Application.Features.Commands.Reservation.SubmitRefundPayoutDetails;
-using ECafe.Application.Features.Commands.Reservation.SubmitPaymentProof;
 using ECafe.Application.Features.Queries.Reservation.GetById;
 using ECafe.Application.Features.Queries.Reservation.GetHistory;
 using ECafe.Application.Features.Queries.Reservation.GetMy;
-using ECafe.Application.Features.Queries.Reservation.GetMyRefund;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ApiRoutes = ECafe.Application.Routes.Routes;
@@ -68,100 +62,5 @@ public sealed class ReservationController : BaseController
         }, cancellationToken);
 
         return StatusCode(StatusCodes.Status201Created, result);
-    }
-
-    [HttpPost(ApiRoutes.Reservation.SubmitPaymentProof)]
-    [Consumes("multipart/form-data")]
-    public async Task<IActionResult> SubmitPaymentProof(
-        [FromRoute] int restaurantId,
-        [FromRoute] int reservationId,
-        [FromForm] SubmitPaymentProofCommand request,
-        CancellationToken cancellationToken)
-    {
-        request.RestaurantId = restaurantId;
-        request.ReservationId = reservationId;
-
-        var result = await Mediator.Send(request, cancellationToken);
-        return StatusCode(StatusCodes.Status201Created, result);
-    }
-
-    [HttpPost(ApiRoutes.Reservation.Cancel)]
-    public async Task<IActionResult> Cancel(
-        [FromRoute] int reservationId,
-        [FromBody] ReservationCancellationRequest? request,
-        CancellationToken cancellationToken)
-    {
-        var result = await Mediator.Send(new CancelReservationCommand
-        {
-            ReservationId = reservationId,
-            Reason = request?.Reason
-        }, cancellationToken);
-
-        return Ok(result);
-    }
-
-    [HttpGet(ApiRoutes.Reservation.GetRefund)]
-    public async Task<IActionResult> GetRefund(
-        [FromRoute] int reservationId,
-        CancellationToken cancellationToken)
-    {
-        var result = await Mediator.Send(
-            new GetMyReservationRefundQuery(reservationId),
-            cancellationToken);
-
-        return result is null ? NoContent() : Ok(result);
-    }
-
-    [HttpPost(ApiRoutes.Reservation.RequestRefund)]
-    public async Task<IActionResult> RequestRefund(
-        [FromRoute] int reservationId,
-        CancellationToken cancellationToken)
-    {
-        var result = await Mediator.Send(
-            new RequestReservationRefundCommand { ReservationId = reservationId },
-            cancellationToken);
-
-        return StatusCode(StatusCodes.Status201Created, result);
-    }
-
-    [HttpPost(ApiRoutes.Reservation.SubmitRefundPayoutDetails)]
-    public async Task<IActionResult> SubmitRefundPayoutDetails(
-        [FromRoute] int refundId,
-        [FromBody] SubmitReservationRefundPayoutDetailsRequest request,
-        CancellationToken cancellationToken)
-    {
-        var result = await Mediator.Send(new SubmitReservationRefundPayoutDetailsCommand
-        {
-            RefundId = refundId,
-            Details = request.Details
-        }, cancellationToken);
-
-        return Ok(result);
-    }
-
-    [HttpPost(ApiRoutes.Reservation.ConfirmRefundTransfer)]
-    public async Task<IActionResult> ConfirmRefundTransfer(
-        [FromRoute] int refundId,
-        [FromBody] ConfirmReservationRefundTransferRequest request,
-        CancellationToken cancellationToken)
-    {
-        var result = await Mediator.Send(
-            new ConfirmReservationRefundTransferCommand(refundId, request.TransferId),
-            cancellationToken);
-
-        return Ok(result);
-    }
-
-    [HttpPost(ApiRoutes.Reservation.DisputeRefundTransfer)]
-    public async Task<IActionResult> DisputeRefundTransfer(
-        [FromRoute] int refundId,
-        [FromBody] DisputeReservationRefundTransferRequest request,
-        CancellationToken cancellationToken)
-    {
-        var result = await Mediator.Send(
-            new DisputeReservationRefundTransferCommand(refundId, request.TransferId, request.Reason),
-            cancellationToken);
-
-        return Ok(result);
     }
 }

@@ -11,7 +11,16 @@ public static class EcafeSwaggerMetadata
             ["Item"] = new("04. Menu Items", "Menyu məhsulları, qiymət, status və şəkil məlumatları."),
             ["Table"] = new("05. Tables", "Restoran stollarının yaradılması və gələcək availability axınının bazası."),
             ["User"] = new("06. Users & Staff", "İstifadəçi, staff, ofisiant və profil əməliyyatları."),
-            ["File"] = new("07. Files", "Şəkil və fayl yükləmə/göstərmə endpoint-ləri.")
+            ["File"] = new("07. Files", "Şəkil və fayl yükləmə/göstərmə endpoint-ləri."),
+            ["Reservation"] = new("08. Reservations", "Müştərinin rezervasiya yaratması, siyahısı, detalı və tarixçəsi."),
+            ["RestaurantReservation"] = new("09. Restaurant Reservations", "Restoran üzrə rezervasiya siyahısı, detalı və tarixçəsi."),
+            ["ReservationFlow"] = new("10. Reservation Flow", "Rezervasiyanın ödəniş, ləğv, gəliş və tamamlanma əməliyyatları."),
+            ["ReservationArrival"] = new("11. Reservation Arrival", "Gecikmə seçimləri və mövcud təklifin məlumatları."),
+            ["ReservationArrivalFlow"] = new("11.1. Reservation Arrival Flow", "Gecikmə təklifinin yaradılması və müştərinin razılığı."),
+            ["ReservationRefund"] = new("12. Reservation Refunds", "Geri ödənişin detalı, tarixçəsi və icazəli rekvizit baxışı."),
+            ["ReservationRefundFlow"] = new("13. Reservation Refund Flow", "Geri ödəniş sorğusu, rekvizit, köçürmə, təsdiq və etiraz əməliyyatları."),
+            ["RestaurantContract"] = new("14. Restaurant Contracts", "Restoran müqavilələrinin yaradılması, yenilənməsi və məlumatları."),
+            ["RestaurantContractFlow"] = new("15. Restaurant Contract Flow", "Müqavilənin təsdiqə göndərilməsi, sahibkar təsdiqi, aktivləşdirilməsi və ləğvi.")
         };
 
     public static readonly IReadOnlyDictionary<string, SwaggerEndpointInfo> Endpoints =
