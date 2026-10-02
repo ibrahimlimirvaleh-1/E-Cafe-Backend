@@ -127,9 +127,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
         ValidateRestaurantId(restaurantId);
 
         var userId = GetCurrentUserId();
-        var restaurant = await GetReservableRestaurantAsync(restaurantId);
         ValidateReservationTime(request.ReservedAt);
-        await EnsureRestaurantIsOpenAsync(restaurantId, request.ReservedAt);
 
         var table = await GetReservableTableAsync(
             restaurantId,
@@ -140,6 +138,9 @@ public sealed class ReservationManager : BaseManager, IReservationService
             IsolationLevel.ReadCommitted,
             cancellationToken);
 
+        await _restaurantRepository.AcquireScheduleLockAsync(restaurantId, cancellationToken);
+        var restaurant = await GetReservableRestaurantAsync(restaurantId);
+        await EnsureRestaurantIsOpenAsync(restaurantId, request.ReservedAt);
         var (dayStartUtc, dayEndUtc) = RestaurantTimeZoneConverter.GetUtcDayRange(
             request.ReservedAt,
             restaurant.TimeZone);

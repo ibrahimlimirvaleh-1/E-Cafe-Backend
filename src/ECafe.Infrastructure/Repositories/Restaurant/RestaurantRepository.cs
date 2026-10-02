@@ -1,6 +1,9 @@
 using ECafe.Application.Repositories.Restaurant;
 using ECafe.Domain.Enums;
 using ECafe.Domain.Services;
+using ECafe.Application.Services.Restaurant.Schedule;
+using ECafe.Domain.Entities;
+using ECafe.Domain.Exceptions;
 using ECafe.Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,6 +14,16 @@ namespace ECafe.Infrastructure.Repositories.Restaurant
         public RestaurantRepository(ECafeDbContext context) : base(context)
         {
         }
+
+        public Task AcquireScheduleLockAsync(int restaurantId, CancellationToken cancellationToken = default)
+            => Context.Database.IsRelational()
+                ? Context.Database.ExecuteSqlInterpolatedAsync(
+                    $"SELECT pg_advisory_xact_lock({restaurantId}, {0})", cancellationToken)
+                : Task.CompletedTask;
+
+        public Task<bool> HasPendingScheduleChangeAsync(int restaurantId, CancellationToken cancellationToken = default)
+            => Context.RestaurantScheduleChanges.AnyAsync(c => c.RestaurantId == restaurantId &&
+                c.State == ScheduleChangeState.Pending, cancellationToken);
 
         public IQueryable<Domain.Entities.Restaurant> GetActiveRestaurants()
         {
@@ -104,6 +117,12 @@ namespace ECafe.Infrastructure.Repositories.Restaurant
             if (restaurant is null)
                 return false;
 
+            var pending = await Context.RestaurantScheduleChanges.AsNoTracking()
+                .Where(c => c.RestaurantId == restaurantId && c.State == ScheduleChangeState.Pending)
+                .Select(c => c.ProposedHoursJson).SingleOrDefaultAsync();
+            if (pending != null && ScheduleTerms.IsAffected(restaurant.WorkingHours,
+                    ScheduleTerms.Deserialize(pending), restaurant.TimeZone, reservedAt.UtcDateTime, null, out _))
+                throw new BusinessRuleException(ErrorCode.ScheduleBookingPaused);
             var restaurantLocalTime = RestaurantTimeZoneConverter.ToRestaurantLocalTime(
                 reservedAt.ToUniversalTime(),
                 restaurant.TimeZone);

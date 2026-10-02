@@ -2,6 +2,20 @@ namespace ECafe.Application.Routes;
 
 public static class Routes
 {
+    public static class RestaurantSchedule
+    {
+        private const string Collection = Base + "/restaurants/{restaurantId:int}/schedule-change";
+        public const string Get = Collection;
+        public const string CustomerOffer = Base + "/public/reservations/{reservationId:int}/schedule-offer";
+    }
+    public static class RestaurantScheduleFlow
+    {
+        public const string Propose = RestaurantSchedule.Get;
+        public const string Apply = RestaurantSchedule.Get + "/apply";
+        public const string Withdraw = RestaurantSchedule.Get + "/withdraw";
+        public const string AcknowledgeSession = RestaurantSchedule.Get + "/sessions/{consentId:int}/response";
+        public const string Respond = RestaurantSchedule.CustomerOffer + "/response";
+    }
     private const string Root = "api";
     private const string Version = "v1";
     private const string Base = Root + "/" + Version;

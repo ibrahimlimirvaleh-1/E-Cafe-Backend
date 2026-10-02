@@ -27,6 +27,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Security.Cryptography;
+using System.Data;
+using ECafe.Application.Services.Restaurant.Schedule;
 using File = ECafe.Domain.Entities.File;
 
 namespace ECafe.Application.Services.Restaurant.Concrete
@@ -47,6 +49,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
         private readonly IPasswordSetupService _passwordSetupService;
         private readonly IApplicationDbTransactionFactory _transactionFactory;
         private readonly ILogger<RestaurantManager> _logger;
+        private readonly IRestaurantScheduleService _scheduleService;
 
         public RestaurantManager(
             IHttpContextAccessor httpContextAccessor,
@@ -64,7 +67,8 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             ILogger<RestaurantManager> logger,
             IUserRepository userRepository,
             IPasswordSetupService passwordSetupService,
-            IApplicationDbTransactionFactory transactionFactory)
+            IApplicationDbTransactionFactory transactionFactory,
+            IRestaurantScheduleService scheduleService)
             : base(httpContextAccessor, mapper, configuration)
         {
             _restaurantRepository = restaurantRepository;
@@ -80,6 +84,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             _userRepository = userRepository;
             _passwordSetupService = passwordSetupService;
             _transactionFactory = transactionFactory;
+            _scheduleService = scheduleService;
         }
 
         public async Task<PaginatedList<GetAllRestaurantsResponse>> GetAllRestaurantsAsync(
@@ -383,6 +388,8 @@ namespace ECafe.Application.Services.Restaurant.Concrete
 
             EnsureCurrentUserCanAccessRestaurant(restaurantId);
 
+            await using var transaction = await _transactionFactory.BeginTransactionAsync(IsolationLevel.ReadCommitted);
+            await _restaurantRepository.AcquireScheduleLockAsync(restaurantId);
             var restaurant = await GetTrackedRestaurantAsync(restaurantId);
 
             if (!IsCurrentUserSuperAdmin() &&
@@ -417,6 +424,8 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             await EnsureBranchDoesNotExistAsync(groupIdForDuplicateCheck, branchName, restaurantId);
             await EnsureRestaurantDoesNotExistAsync(restaurantName, request.Phone, restaurantId);
 
+            await _scheduleService.EnsureDirectChangeAllowedAsync(restaurant,
+                NormalizeWorkingHours(request.WorkingHours), NormalizeTimeZone(request.TimeZone), CancellationToken.None);
             restaurant.Name = restaurantName;
             restaurant.Location = request.Location.Trim();
             restaurant.Latitude = request.Latitude;
@@ -435,7 +444,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             if (request.StaffSettlementPeriod.HasValue)
                 restaurant.StaffSettlementPeriod = request.StaffSettlementPeriod.Value;
             restaurant.TimeZone = NormalizeTimeZone(request.TimeZone);
-            SyncWorkingHours(restaurant, request.WorkingHours);
+            ScheduleTerms.Apply(restaurant, NormalizeWorkingHours(request.WorkingHours));
 
             if (request.FileIds is not null)
                 await ReplaceRestaurantFilesAsync(restaurant, request.FileIds);
@@ -472,6 +481,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
                 AuditEntityTypes.Restaurant,
                 restaurant.Id,
                 restaurant.Name);
+            await transaction.CommitAsync();
         }
 
         public async Task DeactivateRestaurantAsync(int restaurantId)
@@ -958,78 +968,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
 
         private static List<Domain.Entities.RestaurantWorkingHour> NormalizeWorkingHours(
             IEnumerable<RestaurantWorkingHourDto>? workingHours)
-        {
-            var byDay = (workingHours ?? [])
-                .GroupBy(hour => hour.DayOfWeek)
-                .ToDictionary(group => group.Key, group => group.First());
-
-            return Enum.GetValues<DayOfWeek>()
-                .Select(day =>
-                {
-                    var source = byDay.GetValueOrDefault(day);
-                    var opensAt = source?.OpensAt ?? new TimeOnly(9, 0);
-                    var closesAt = source?.ClosesAt ?? new TimeOnly(0, 0);
-                    var closeDayOffset = source?.CloseDayOffset ?? (opensAt > closesAt ? 1 : 0);
-
-                    // Midnight after a daytime opening belongs to the next calendar day.
-                    if (source?.IsClosed != true && closesAt == TimeOnly.MinValue && opensAt > closesAt)
-                        closeDayOffset = 1;
-
-                    return new Domain.Entities.RestaurantWorkingHour
-                    {
-                        DayOfWeek = day,
-                        OpensAt = opensAt,
-                        ClosesAt = closesAt,
-                        CloseDayOffset = closeDayOffset,
-                        IsClosed = source?.IsClosed ?? false
-                    };
-                })
-                .ToList();
-        }
-
-        private static void SyncWorkingHours(
-            Domain.Entities.Restaurant restaurant,
-            IEnumerable<RestaurantWorkingHourDto>? workingHours)
-        {
-            var normalizedWorkingHours = NormalizeWorkingHours(workingHours);
-            var existingWorkingHours = restaurant.WorkingHours
-                .Where(hour => !hour.IsDeleted)
-                .ToDictionary(hour => hour.DayOfWeek);
-
-            foreach (var workingHour in normalizedWorkingHours)
-            {
-                if (existingWorkingHours.TryGetValue(workingHour.DayOfWeek, out var existingWorkingHour))
-                {
-                    ApplyWorkingHourChanges(existingWorkingHour, workingHour);
-                    continue;
-                }
-
-                restaurant.WorkingHours.Add(CreateWorkingHour(restaurant.Id, workingHour));
-            }
-        }
-
-        private static void ApplyWorkingHourChanges(
-            Domain.Entities.RestaurantWorkingHour target,
-            Domain.Entities.RestaurantWorkingHour source)
-        {
-            target.OpensAt = source.OpensAt;
-            target.ClosesAt = source.ClosesAt;
-            target.CloseDayOffset = source.CloseDayOffset;
-            target.IsClosed = source.IsClosed;
-        }
-
-        private static Domain.Entities.RestaurantWorkingHour CreateWorkingHour(
-            int restaurantId,
-            Domain.Entities.RestaurantWorkingHour source)
-            => new()
-            {
-                RestaurantId = restaurantId,
-                DayOfWeek = source.DayOfWeek,
-                OpensAt = source.OpensAt,
-                ClosesAt = source.ClosesAt,
-                CloseDayOffset = source.CloseDayOffset,
-                IsClosed = source.IsClosed
-            };
+            => ScheduleTerms.NormalizeComplete(workingHours);
 
         private static object BuildWorkingHoursAuditPayload(IEnumerable<Domain.Entities.RestaurantWorkingHour> workingHours)
             => workingHours

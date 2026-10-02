@@ -43,6 +43,7 @@ public sealed class ReservationArrivalManager(
             reservation.Id, reservation.ReservedAt, cancellationToken);
         var window = ReservationArrivalPolicy.GetWindow(reservation, next, _options);
         var canRequest = window != null && ReservationArrivalPolicy.CanRequest(reservation, now) &&
+                         !await restaurants.HasPendingScheduleChangeAsync(reservation.RestaurantId, cancellationToken) &&
                          !await tables.HasOpenTableSessionAsync(reservation.RestaurantId, reservation.TableId) &&
                          await restaurants.HasRestaurantActiveContractAsync(reservation.RestaurantId);
         var choices = canRequest
@@ -63,11 +64,14 @@ public sealed class ReservationArrivalManager(
         var snapshot = await reservations.GetForArrivalAdjustmentAsync(reservationId, userId, false, cancellationToken)
             ?? throw new NotFoundException(ErrorCode.ReservationNotFound);
         await using var transaction = await transactions.BeginTransactionAsync(IsolationLevel.ReadCommitted, cancellationToken);
+        await restaurants.AcquireScheduleLockAsync(snapshot.RestaurantId, cancellationToken);
         await tables.AcquireReservationLockAsync(snapshot.RestaurantId, snapshot.TableId, cancellationToken);
         var reservation = await reservations.GetForArrivalAdjustmentAsync(reservationId, userId, true, cancellationToken)
             ?? throw new NotFoundException(ErrorCode.ReservationNotFound);
         var now = clock.GetUtcNow().UtcDateTime;
         EnsureCanRequest(reservation, now);
+        if (await restaurants.HasPendingScheduleChangeAsync(reservation.RestaurantId, cancellationToken))
+            throw new BusinessRuleException(ErrorCode.ReservationArrivalNotAvailable);
         if (await tables.HasOpenTableSessionAsync(reservation.RestaurantId, reservation.TableId) ||
             !await restaurants.HasRestaurantActiveContractAsync(reservation.RestaurantId))
             throw new BusinessRuleException(ErrorCode.ReservationArrivalNotAvailable);
@@ -108,6 +112,7 @@ public sealed class ReservationArrivalManager(
         var snapshot = await reservations.GetForArrivalAdjustmentAsync(reservationId, userId, false, cancellationToken)
             ?? throw new NotFoundException(ErrorCode.ReservationNotFound);
         await using var transaction = await transactions.BeginTransactionAsync(IsolationLevel.ReadCommitted, cancellationToken);
+        await restaurants.AcquireScheduleLockAsync(snapshot.RestaurantId, cancellationToken);
         await tables.AcquireReservationLockAsync(snapshot.RestaurantId, snapshot.TableId, cancellationToken);
         var reservation = await reservations.GetForArrivalAdjustmentAsync(reservationId, userId, true, cancellationToken)
             ?? throw new NotFoundException(ErrorCode.ReservationNotFound);
@@ -121,6 +126,8 @@ public sealed class ReservationArrivalManager(
             return MapOffer(reservation, adjustment, now);
         }
         EnsureCanRequest(reservation, now);
+        if (await restaurants.HasPendingScheduleChangeAsync(reservation.RestaurantId, cancellationToken))
+            throw new BusinessRuleException(ErrorCode.ReservationArrivalNotAvailable);
         if (adjustment.DecisionExpiresAt <= now)
             throw new BusinessRuleException(ErrorCode.ReservationArrivalOfferExpired);
         if (await tables.HasOpenTableSessionAsync(reservation.RestaurantId, reservation.TableId) ||

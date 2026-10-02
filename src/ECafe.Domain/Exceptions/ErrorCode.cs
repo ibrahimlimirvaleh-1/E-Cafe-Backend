@@ -149,5 +149,15 @@ public enum ErrorCode
     ReservationArrivalAlreadyAdjusted = 5045,
     ReservationArrivalTimeInvalid = 5046,
     ReservationArrivalOfferExpired = 5047,
-    ReservationArrivalTermsChanged = 5048
+    ReservationArrivalTermsChanged = 5048,
+    ScheduleChangeAlreadyPending = 5049,
+    ScheduleUnchanged = 5050,
+    ScheduleOfferNotFound = 5051,
+    ScheduleOfferNotAvailable = 5052,
+    ScheduleSessionNoteRequired = 5053,
+    ScheduleChangeRequiresConsent = 5054,
+    ScheduleOfferAlreadyAnswered = 5055,
+    ScheduleOfferCannotAccept = 5056,
+    ScheduleInvalidRequest = 5057,
+    ScheduleBookingPaused = 5058
 }

@@ -8,6 +8,16 @@ public sealed class ErrorMessageProvider : IErrorMessageProvider
     private static readonly IReadOnlyDictionary<ErrorCode, string> Messages = new Dictionary<ErrorCode, string>
     {
         [ErrorCode.BusinessRuleViolation] = "Business rule violation.",
+        [ErrorCode.ScheduleChangeAlreadyPending] = "İş saatı dəyişikliyi artıq gözlənilir. Əvvəl onu tətbiq edin və ya geri götürün.",
+        [ErrorCode.ScheduleUnchanged] = "İş saatlarında dəyişiklik yoxdur.",
+        [ErrorCode.ScheduleOfferNotFound] = "İş saatı təklifi tapılmadı.",
+        [ErrorCode.ScheduleOfferNotAvailable] = "Bu iş saatı təklifi artıq əlçatan deyil. Məlumatları yeniləyin.",
+        [ErrorCode.ScheduleSessionNoteRequired] = "Müştəri ilə razılaşmanı qeyd edin (maksimum 1000 simvol).",
+        [ErrorCode.ScheduleChangeRequiresConsent] = "Yeni saatlar {count} aktiv rezervasiya və ya masa sessiyasına təsir edir. İş saatı dəyişikliyi bölməsindən razılıq təklifi göndərin.",
+        [ErrorCode.ScheduleOfferAlreadyAnswered] = "Bu təklifə artıq cavab vermisiniz.",
+        [ErrorCode.ScheduleOfferCannotAccept] = "Yeni iş saatı gəlişinizə uyğun deyil. Restoranla əlaqə saxlayın; rezervasiyanız avtomatik ləğv edilmir.",
+        [ErrorCode.ScheduleInvalidRequest] = "7 gün üçün düzgün iş saatlarını və dəyişiklik səbəbini daxil edin.",
+        [ErrorCode.ScheduleBookingPaused] = "Restoran bu vaxt üçün iş saatını dəyişməyi planlaşdırır. Razılaşma tamamlananadək bu vaxtda yeni rezervasiya qəbul edilmir.",
         [ErrorCode.ValidationFailed] = "Validation failed.",
         [ErrorCode.BadRequest] = "Bad request.",
         [ErrorCode.Forbidden] = "Access denied.",

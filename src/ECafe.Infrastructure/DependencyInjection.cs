@@ -94,6 +94,7 @@ namespace ECafe.Infrastructure
             services.AddScoped<ILoginAttemptRepository, LoginAttemptRepository>();
             services.AddScoped<IRoleRepository, RoleRepository>();
             services.AddScoped<IRestaurantRepository, RestaurantRepository>();
+            services.AddScoped<IRestaurantScheduleRepository, RestaurantScheduleRepository>();
             services.AddScoped<IRestaurantGroupRepository, RestaurantGroupRepository>();
             services.AddScoped<IRestaurantContractRepository, RestaurantContractRepository>();
             services.AddScoped<IUserRestaurantRepository, UserRestaurantRepository>();
