@@ -266,7 +266,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
 
     public async Task<PaginatedList<ReservationResponse>> GetRestaurantReservationsAsync(
         int restaurantId,
-        ReservationQueryRequest request,
+        RestaurantReservationsQueryRequest request,
         CancellationToken cancellationToken = default)
     {
         await EnsureRestaurantReservationAccessAsync(restaurantId);

@@ -109,6 +109,6 @@ public interface IReservationRepository : IBaseRepository<Domain.Entities.Reserv
 
     Task<PaginatedList<Domain.Entities.Reservation>> GetForRestaurantAsync(
         int restaurantId,
-        ReservationQueryRequest request,
+        RestaurantReservationsQueryRequest request,
         CancellationToken cancellationToken = default);
 }
