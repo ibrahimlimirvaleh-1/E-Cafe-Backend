@@ -349,10 +349,12 @@ public class ReservationRepository : BaseRepository<Domain.Entities.Reservation>
 
     public Task<PaginatedList<Domain.Entities.Reservation>> GetForRestaurantAsync(
         int restaurantId,
-        ReservationQueryRequest request,
+        RestaurantReservationsQueryRequest request,
         CancellationToken cancellationToken = default)
     {
         var query = WithDetails(Query().Where(r => r.RestaurantId == restaurantId));
+        if (request.TableId.HasValue)
+            query = query.Where(r => r.TableId == request.TableId.Value);
         return CreatePageAsync(query, request, cancellationToken);
     }
 

@@ -19,7 +19,7 @@ public interface IReservationService
 
     Task<PaginatedList<ReservationResponse>> GetRestaurantReservationsAsync(
         int restaurantId,
-        ReservationQueryRequest request,
+        RestaurantReservationsQueryRequest request,
         CancellationToken cancellationToken = default);
 
     Task<ReservationResponse> GetRestaurantReservationByIdAsync(

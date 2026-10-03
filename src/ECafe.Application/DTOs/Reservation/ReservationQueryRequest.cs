@@ -12,3 +12,8 @@ public class MyReservationsQueryRequest : ReservationQueryRequest
 {
     public string? RestaurantName { get; set; }
 }
+
+public class RestaurantReservationsQueryRequest : ReservationQueryRequest
+{
+    public int? TableId { get; set; }
+}
