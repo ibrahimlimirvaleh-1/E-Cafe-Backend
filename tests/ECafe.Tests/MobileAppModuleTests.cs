@@ -85,6 +85,31 @@ public sealed class MobileAppModuleTests
     }
 
     [Fact]
+    public async Task ReleaseReadinessDoesNotRequirePushDelivery()
+    {
+        await using var context = CreateContext();
+        context.Restaurants.Add(new Restaurant
+        {
+            Id = 1, Name = "Test", Location = "Baku", Phone = "1", IsActive = true,
+            MobilePushEnabled = false, ShowMobileDownloadLink = true
+        });
+        context.RestaurantContracts.Add(new RestaurantContract
+        {
+            Id = 1, RestaurantId = 1, ContractNumber = "C1", PaymentPolicyId = 1,
+            StatusId = StatusIds.Contract(ContractStatus.Active)
+        });
+        await context.SaveChangesAsync();
+
+        var settings = ReadySettings();
+        settings["MobileApp:PushDeliveryReady"] = "false";
+        var handler = CreateHandler(context, RoleCode.SuperAdmin, settings);
+
+        Assert.True((await handler.Handle(new GetMobilePublicationQuery(), CancellationToken.None)).ReleaseReady);
+        Assert.True((await handler.Handle(new GetPublicMobileReleaseQuery(1), CancellationToken.None)).IsVisible);
+        Assert.False(context.Restaurants.Single().MobilePushEnabled);
+    }
+
+    [Fact]
     public async Task InvalidReleaseMetadataCannotBePublished()
     {
         await using var context = CreateContext();
