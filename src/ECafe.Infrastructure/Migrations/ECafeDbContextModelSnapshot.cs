@@ -950,6 +950,155 @@ namespace ECafe.Infrastructure.Migrations
                     b.ToTable("login_attempts", "auth");
                 });
 
+            modelBuilder.Entity("ECafe.Domain.Entities.MobileAppPublication", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    b.Property<bool>("PublicDownloadEnabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("public_download_enabled");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("mobile_app_publication", "core");
+                });
+
+            modelBuilder.Entity("ECafe.Domain.Entities.MobilePushDelivery", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<int>("AttemptCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("attempt_count");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("completed_at");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("FirstSentAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("first_sent_at");
+
+                    b.Property<Guid>("InstallationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("installation_id");
+
+                    b.Property<string>("LastErrorCode")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("last_error_code");
+
+                    b.Property<DateTime?>("LockedUntil")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("locked_until");
+
+                    b.Property<DateTime>("NextAttemptAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("next_attempt_at");
+
+                    b.Property<Guid>("OutboxEventId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("outbox_event_id");
+
+                    b.Property<int>("RestaurantId")
+                        .HasColumnType("integer")
+                        .HasColumnName("restaurant_id");
+
+                    b.Property<string>("SentTokenHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("sent_token_hash");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer")
+                        .HasColumnName("status");
+
+                    b.Property<string>("TicketId")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("ticket_id");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InstallationId");
+
+                    b.HasIndex("OutboxEventId", "InstallationId")
+                        .IsUnique();
+
+                    b.HasIndex("Status", "NextAttemptAt", "LockedUntil");
+
+                    b.ToTable("mobile_push_deliveries", "core");
+                });
+
+            modelBuilder.Entity("ECafe.Domain.Entities.MobilePushInstallation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime?>("DeactivatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deactivated_at");
+
+                    b.Property<Guid>("ExpoProjectId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("expo_project_id");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("ProtectedToken")
+                        .IsRequired()
+                        .HasMaxLength(1024)
+                        .HasColumnType("character varying(1024)")
+                        .HasColumnName("protected_token");
+
+                    b.Property<DateTime>("RegisteredAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("registered_at");
+
+                    b.Property<string>("SessionId")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("session_id");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("token_hash");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique()
+                        .HasFilter("is_active = true");
+
+                    b.HasIndex("UserId", "SessionId", "IsActive");
+
+                    b.ToTable("mobile_push_installations", "core");
+                });
+
             modelBuilder.Entity("ECafe.Domain.Entities.Notification", b =>
                 {
                     b.Property<int>("Id")
@@ -2642,6 +2791,12 @@ namespace ECafe.Infrastructure.Migrations
                         .HasColumnType("double precision")
                         .HasColumnName("longitude");
 
+                    b.Property<bool>("MobilePushEnabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("mobile_push_enabled");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -2704,6 +2859,12 @@ namespace ECafe.Infrastructure.Migrations
                         .HasColumnType("numeric(5,2)")
                         .HasDefaultValue(0m)
                         .HasColumnName("service_fee_percent");
+
+                    b.Property<bool>("ShowMobileDownloadLink")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("show_mobile_download_link");
 
                     b.Property<int>("StaffSettlementPeriod")
                         .ValueGeneratedOnAdd()
@@ -6243,6 +6404,30 @@ namespace ECafe.Infrastructure.Migrations
                         .HasConstraintName("login_attempts_user_id_fkey");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("ECafe.Domain.Entities.MobilePushDelivery", b =>
+                {
+                    b.HasOne("ECafe.Domain.Entities.MobilePushInstallation", null)
+                        .WithMany()
+                        .HasForeignKey("InstallationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ECafe.Domain.Entities.OutboxEvent", null)
+                        .WithMany()
+                        .HasForeignKey("OutboxEventId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("ECafe.Domain.Entities.MobilePushInstallation", b =>
+                {
+                    b.HasOne("ECafe.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("ECafe.Domain.Entities.Notification", b =>

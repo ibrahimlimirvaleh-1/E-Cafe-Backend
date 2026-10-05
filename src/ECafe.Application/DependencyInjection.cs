@@ -43,8 +43,6 @@ using ECafe.Application.Common.Errors;
 using ECafe.Domain.Exceptions;
 using ECafe.Application.Services.Recipe.Abstract;
 using ECafe.Application.Services.Recipe.Concrete;
-using ECafe.Application.Services.Sms.Abstract;
-using ECafe.Application.Services.Sms.Concrete;
 using ECafe.Application.Services.Monitoring.Abstract;
 using ECafe.Application.Services.Monitoring.Concrete;
 using Microsoft.Extensions.Configuration;
@@ -82,25 +80,6 @@ namespace ECafe.Application
             services.AddScoped<IPasswordSetupService, PasswordSetupManager>();
             services.AddScoped<IPasswordResetService, PasswordResetManager>();
             services.AddScoped<IEmailService, EmailManager>();
-            services.AddScoped<ISmsService>(provider =>
-            {
-                var configuration = provider.GetRequiredService<IConfiguration>();
-                var enabled = bool.TryParse(configuration["Sms:Enabled"], out var isEnabled) && isEnabled;
-                var providerName = configuration["Sms:Provider"];
-
-                if (!enabled)
-                    return provider.GetRequiredService<FakeSmsManager>();
-
-                return providerName?.Trim().ToLowerInvariant() switch
-                {
-                    "brevo" => provider.GetRequiredService<BrevoSmsManager>(),
-                    "1sms" or "onesms" => provider.GetRequiredService<OneSmsManager>(),
-                    _ => provider.GetRequiredService<FakeSmsManager>()
-                };
-            });
-            services.AddScoped<FakeSmsManager>();
-            services.AddScoped<BrevoSmsManager>();
-            services.AddScoped<OneSmsManager>();
             services.AddScoped<EmailOutboxManager>();
             services.AddScoped<IEmailOutboxService>(provider => provider.GetRequiredService<EmailOutboxManager>());
             services.AddScoped<IEmailOutboxProcessor>(provider => provider.GetRequiredService<EmailOutboxManager>());

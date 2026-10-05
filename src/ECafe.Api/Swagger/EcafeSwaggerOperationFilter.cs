@@ -12,6 +12,7 @@ public sealed class EcafeSwaggerOperationFilter : IOperationFilter
         {
             ["id"] = "Resurs identifikatoru.",
             ["restaurantId"] = "Restoran identifikatoru.",
+            ["installationId"] = "Mobil tətbiq quraşdırmasının unikal identifikatoru (UUID).",
             ["staffId"] = "Staff/ofisiant istifadəçi identifikatoru.",
             ["categoryId"] = "Menyu kateqoriyası identifikatoru.",
             ["statusId"] = "Status identifikatoru.",

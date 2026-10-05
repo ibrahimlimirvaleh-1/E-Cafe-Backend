@@ -1,5 +1,6 @@
 using AutoMapper;
 using ECafe.Application.DTOs.Notification;
+using ECafe.Application.Features.MobileApp;
 using ECafe.Application.Repositories.Notification;
 using ECafe.Application.Services.Notification.Abstract;
 using ECafe.Application.Services.Realtime.Abstract;
@@ -16,6 +17,8 @@ namespace ECafe.Application.Services.Notification.Concrete
         private readonly INotificationRepository _notificationRepository;
         private readonly IValidator<CreateNotificationRequest> _validator;
         private readonly INotificationChangeDispatcher _notificationDispatcher;
+        private readonly IMobilePushOutboxWriter _mobilePushOutboxWriter;
+        private readonly INotificationEmailOutboxWriter _notificationEmailOutboxWriter;
 
         public NotificationManager(
             IHttpContextAccessor httpContextAccessor,
@@ -23,12 +26,16 @@ namespace ECafe.Application.Services.Notification.Concrete
             IConfiguration configuration,
             INotificationRepository notificationRepository,
             IValidator<CreateNotificationRequest> validator,
-            INotificationChangeDispatcher notificationDispatcher)
+            INotificationChangeDispatcher notificationDispatcher,
+            IMobilePushOutboxWriter mobilePushOutboxWriter,
+            INotificationEmailOutboxWriter notificationEmailOutboxWriter)
             : base(httpContextAccessor, mapper, configuration)
         {
             _notificationRepository = notificationRepository;
             _validator = validator;
             _notificationDispatcher = notificationDispatcher;
+            _mobilePushOutboxWriter = mobilePushOutboxWriter;
+            _notificationEmailOutboxWriter = notificationEmailOutboxWriter;
         }
 
         public async Task CreateAsync(CreateNotificationRequest request)
@@ -41,6 +48,8 @@ namespace ECafe.Application.Services.Notification.Concrete
             var notification = Mapper.Map<Domain.Entities.Notification>(request);
 
             await _notificationRepository.Add(notification);
+            _mobilePushOutboxWriter.Enqueue(notification);
+            await _notificationEmailOutboxWriter.EnqueueAsync(notification);
             await _notificationRepository.SaveChangesAsync();
             await _notificationDispatcher.NotifyChangedAsync(request.UserId);
         }

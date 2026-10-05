@@ -13,6 +13,10 @@ spec:
       labels:
         app: ecafe-api
     spec:
+      securityContext:
+        runAsUser: 1654
+        runAsGroup: 1654
+        fsGroup: 1654
       containers:
         - name: api
           image: ghcr.io/your-org/ecafe-api:CHANGE_ME
@@ -24,6 +28,9 @@ spec:
                 name: ecafe-api-config
             - secretRef:
                 name: ecafe-api-secrets
+          volumeMounts:
+            - name: data-protection-keys
+              mountPath: /var/lib/ecafe/data-protection-keys
           readinessProbe:
             httpGet:
               path: /health/ready
@@ -47,3 +54,7 @@ spec:
             limits:
               cpu: 500m
               memory: 512Mi
+      volumes:
+        - name: data-protection-keys
+          persistentVolumeClaim:
+            claimName: ecafe-data-protection-keys

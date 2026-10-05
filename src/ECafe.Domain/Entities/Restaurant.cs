@@ -45,6 +45,10 @@ public partial class Restaurant : AuditableSoftDeletableEntity<int>
 
     public bool IsActive { get; set; }
 
+    public bool MobilePushEnabled { get; set; }
+
+    public bool ShowMobileDownloadLink { get; set; }
+
     public virtual List<File>? Files { get; set; }
 
     public virtual RestaurantGroup? RestaurantGroup { get; set; }

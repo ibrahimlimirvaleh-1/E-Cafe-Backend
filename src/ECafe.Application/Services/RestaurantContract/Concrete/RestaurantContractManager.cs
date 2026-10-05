@@ -1,7 +1,6 @@
 using AutoMapper;
 using ECafe.Application.Common.Audit;
 using ECafe.Application.Common.Dates;
-using ECafe.Application.Common.Outbox;
 using ECafe.Application.Common.Pagination;
 using ECafe.Application.DTOs.Auth;
 using ECafe.Application.DTOs.Notification;
@@ -46,7 +45,6 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
         private readonly IUserRepository _userRepository;
         private readonly INotificationService _notificationService;
         private readonly IWorkflowActionService _workflowActionService;
-        private readonly IEmailOutboxService _emailOutboxService;
         private readonly IFileAccessUrlService _fileAccessUrlService;
         private readonly IUserRealtimeNotifier _userRealtimeNotifier;
 
@@ -62,7 +60,6 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             IUserRepository userRepository,
             INotificationService notificationService,
             IWorkflowActionService workflowActionService,
-            IEmailOutboxService emailOutboxService,
             IFileAccessUrlService fileAccessUrlService,
             IUserRealtimeNotifier userRealtimeNotifier)
             : base(httpContextAccessor, mapper, configuration)
@@ -75,7 +72,6 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             _userRepository = userRepository;
             _notificationService = notificationService;
             _workflowActionService = workflowActionService;
-            _emailOutboxService = emailOutboxService;
             _fileAccessUrlService = fileAccessUrlService;
             _userRealtimeNotifier = userRealtimeNotifier;
         }
@@ -405,7 +401,6 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             await _contractRepository.SaveChangesAsync();
 
             var owner = await GetRestaurantOwnerAsync(restaurantId);
-            await EnqueueContractActivatedEmailAsync(owner.User, contract);
             await NotifyOwnerContractActivatedAsync(contract, owner.UserId);
 
             await _auditLogService.RecordRestaurantActionAsync(
@@ -438,7 +433,6 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             await _contractRepository.Update(contract);
             await _contractRepository.SaveChangesAsync();
 
-            await EnqueueContractSignatureEmailAsync(owner.User, contract);
             await NotifyOwnerContractPendingApprovalAsync(contract, owner.UserId);
 
             await _auditLogService.RecordRestaurantActionAsync(
@@ -610,7 +604,6 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             foreach (var contract in activatedContracts)
             {
                 var owner = await GetRestaurantOwnerAsync(contract.RestaurantId);
-                await EnqueueContractActivatedEmailAsync(owner.User, contract);
                 await NotifyOwnerContractActivatedAsync(contract, owner.UserId);
                 await NotifyRestaurantUsersContractAccessChangedAsync(
                     contract.RestaurantId,
@@ -651,8 +644,6 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
                     continue;
 
                 var remainingDays = CalculateRemainingDays(nowUtc, contract.EndDate);
-                await EnqueueContractExpiryReminderEmailAsync(owner.User, contract, remainingDays);
-                await EnqueueContractExpiryReminderSmsAsync(owner.User, contract, remainingDays);
                 await NotifyOwnerContractExpiryReminderAsync(contract, owner.UserId, remainingDays);
 
                 contract.ExpiryReminderSentAt = nowUtc;
@@ -815,88 +806,6 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             return owner;
         }
 
-        private Task EnqueueContractSignatureEmailAsync(
-            Domain.Entities.User owner,
-            Domain.Entities.RestaurantContract contract)
-            => _emailOutboxService.EnqueueContractNotificationAsync(
-                owner.Email,
-                owner.Name,
-                "Müqavilə təsdiqi gözləyir",
-                $"Restoranınız üçün {contract.ContractNumber} nömrəli müqavilə hazırlanıb. Zəhmət olmasa sistemə daxil olub müqaviləni oxuyun və təsdiqləyin.",
-                contract.Id);
-
-        private Task EnqueueContractActivatedEmailAsync(
-            Domain.Entities.User owner,
-            Domain.Entities.RestaurantContract contract)
-            => _emailOutboxService.EnqueueContractNotificationAsync(
-                owner.Email,
-                owner.Name,
-                "Müqavilə aktivləşdirildi",
-                $"{contract.ContractNumber} nömrəli müqaviləniz aktivləşdirildi.",
-                contract.Id);
-
-        private Task EnqueueContractExpiryReminderEmailAsync(
-            Domain.Entities.User owner,
-            Domain.Entities.RestaurantContract contract,
-            int remainingDays)
-            => _emailOutboxService.EnqueueContractNotificationAsync(
-                owner.Email,
-                owner.Name,
-                "Müqavilənin müddəti bitmək üzrədir",
-                BuildExpiryReminderMessage(contract, remainingDays),
-                contract.Id);
-
-        private Task EnqueueContractExpiryReminderSmsAsync(
-            Domain.Entities.User owner,
-            Domain.Entities.RestaurantContract contract,
-            int remainingDays)
-        {
-            if (string.IsNullOrWhiteSpace(owner.Phone))
-                return Task.CompletedTask;
-
-            return _emailOutboxService.EnqueueSmsAsync(
-                owner.Phone,
-                owner.Name,
-                "Müqavilə xatırlatması",
-                BuildExpiryReminderMessage(contract, remainingDays),
-                OutboxAggregateTypes.Contract,
-                contract.Id,
-                AuditEntityTypes.Contract,
-                contract.Id);
-        }
-
-        private Task EnqueueContractOwnerApprovedEmailAsync(
-            Domain.Entities.User admin,
-            Domain.Entities.RestaurantContract contract,
-            string subject,
-            string body)
-            => _emailOutboxService.EnqueueContractNotificationAsync(
-                admin.Email,
-                admin.Name,
-                subject,
-                body,
-                contract.Id);
-
-        private Task SendContractSignatureEmailAsync(
-            Domain.Entities.User owner,
-            Domain.Entities.RestaurantContract contract)
-            => _emailOutboxService.EnqueueContractNotificationAsync(
-                owner.Email,
-                owner.Name,
-                "Müqavilə təsdiqi gözləyir",
-                $"Restoranınız üçün {contract.ContractNumber} nömrəli müqavilə hazırlanıb. Zəhmət olmasa sistemə daxil olub müqaviləni oxuyun və təsdiqləyin.",
-                contract.Id);
-
-        private Task SendContractActivatedEmailAsync(
-            Domain.Entities.User owner,
-            Domain.Entities.RestaurantContract contract)
-            => _emailOutboxService.EnqueueContractNotificationAsync(
-                owner.Email,
-                owner.Name,
-                "Müqavilə aktivləşdirildi",
-                $"{contract.ContractNumber} nömrəli müqaviləniz aktivləşdirildi.",
-                contract.Id);
-
         private Task NotifyOwnerContractPendingApprovalAsync(
             Domain.Entities.RestaurantContract contract,
             int ownerUserId)
@@ -999,11 +908,6 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
                     title,
                     message);
 
-                await EnqueueContractOwnerApprovedEmailAsync(
-                    admin,
-                    contract,
-                    title,
-                    message);
             }
         }
 

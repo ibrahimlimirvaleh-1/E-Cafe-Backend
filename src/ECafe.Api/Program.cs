@@ -279,6 +279,7 @@ builder.Services.AddMemoryCache();
 builder.Services.AddHostedService<UnattachedFileCleanupService>();
 builder.Services.AddHostedService<AuditOutboxWorker>();
 builder.Services.AddHostedService<EmailOutboxWorker>();
+builder.Services.AddHostedService<MobilePushWorker>();
 builder.Services.AddHostedService<ContractExpiryWorker>();
 builder.Services.AddHostedService<ReservationExpiryWorker>();
 builder.Services.AddHostedService<PaymentInstructionEncryptionBackfillWorker>();
