@@ -97,6 +97,7 @@ namespace ECafe.Infrastructure
             services.AddScoped<IRoleRepository, RoleRepository>();
             services.AddScoped<IRestaurantRepository, RestaurantRepository>();
             services.AddScoped<IMobileAppPublicationStore, MobileAppPublicationStore>();
+            services.AddScoped<IMobileReleaseArtifactService, LocalMobileReleaseArtifactService>();
             services.AddScoped<IMobilePushInstallationService, MobilePushInstallationService>();
             services.AddScoped<IMobilePushOutboxWriter, MobilePushOutboxWriter>();
             services.AddScoped<INotificationEmailOutboxWriter, NotificationEmailOutboxWriter>();

@@ -81,6 +81,15 @@ public static class RateLimitingServiceCollectionExtensions
             AddFixedWindowPolicy(
                 options,
                 configuration,
+                RateLimitPolicyNames.MobileRelease,
+                "RateLimiting:MobileRelease",
+                permitLimit: 20,
+                windowSeconds: 60,
+                partitionByUserWhenAuthenticated: true);
+
+            AddFixedWindowPolicy(
+                options,
+                configuration,
                 RateLimitPolicyNames.PublicRead,
                 "RateLimiting:PublicRead",
                 permitLimit: 60,
