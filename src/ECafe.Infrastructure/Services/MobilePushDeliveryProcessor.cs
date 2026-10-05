@@ -292,7 +292,8 @@ public sealed class MobilePushDeliveryProcessor(
     {
         var activeContractStatusId = StatusIds.Contract(ContractStatus.Active);
         return context.Restaurants.AnyAsync(x => x.Id == restaurantId && x.IsActive &&
-            x.MobilePushEnabled && x.Contracts.Any(c => c.StatusId == activeContractStatusId),
+            x.MobilePushEnabled && x.ShowMobileDownloadLink &&
+            x.Contracts.Any(c => c.StatusId == activeContractStatusId),
             cancellationToken);
     }
 

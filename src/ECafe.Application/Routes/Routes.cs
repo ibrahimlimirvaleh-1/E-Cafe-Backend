@@ -144,6 +144,9 @@ public static class Routes
     {
         public const string PublicRelease = Base + "/public/mobile-app/release";
         public const string PublicRestaurantRelease = Base + "/public/restaurants/{restaurantId:int}/mobile-app/release";
+        public const string StaffRestaurantAccess = Base + "/restaurants/{restaurantId:int}/mobile-app/access";
+        public const string StaffRestaurantRelease = Base + "/restaurants/{restaurantId:int}/mobile-app/release";
+        public const string StaffRestaurantDownload = Base + "/restaurants/{restaurantId:int}/mobile-app/download";
         public const string RestaurantModule = Base + "/admin/restaurants/{restaurantId:int}/mobile-module";
         public const string Publication = Base + "/admin/mobile-app/publication";
         public const string PushInstallation = Base + "/mobile/push/installations/{installationId:guid}";

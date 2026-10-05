@@ -255,7 +255,7 @@ public sealed class MobilePushDeliveryTests
         context.Restaurants.Add(new Restaurant
         {
             Id = 1, Name = "Test", Location = "Baku", Phone = "1", IsActive = true,
-            MobilePushEnabled = true
+            MobilePushEnabled = true, ShowMobileDownloadLink = true
         });
         context.RestaurantContracts.Add(new RestaurantContract
         {

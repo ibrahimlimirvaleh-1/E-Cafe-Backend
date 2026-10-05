@@ -7,7 +7,9 @@ using ApiRoutes = ECafe.Application.Routes.Routes;
 
 namespace ECafe.Api.Controllers;
 
-public sealed class MobileAppController(IMobilePushInstallationService installations) : BaseController
+public sealed class MobileAppController(
+    IMobilePushInstallationService installations,
+    IMobileReleaseArtifactService releaseArtifacts) : BaseController
 {
     [Authorize(Roles = "1")]
     [HttpGet(ApiRoutes.MobileApp.RestaurantModule)]
@@ -41,6 +43,37 @@ public sealed class MobileAppController(IMobilePushInstallationService installat
     [HttpGet(ApiRoutes.MobileApp.PublicRestaurantRelease)]
     public async Task<IActionResult> GetPublicRestaurantRelease(int restaurantId)
         => Ok(await Mediator.Send(new GetPublicMobileReleaseQuery(restaurantId)));
+
+    [Authorize]
+    [HttpGet(ApiRoutes.MobileApp.StaffRestaurantAccess)]
+    public async Task<IActionResult> GetStaffAccess(int restaurantId)
+        => Ok(await Mediator.Send(new GetStaffMobileAccessQuery(restaurantId)));
+
+    [Authorize]
+    [EnableRateLimiting(RateLimitPolicyNames.MobileRelease)]
+    [HttpGet(ApiRoutes.MobileApp.StaffRestaurantRelease)]
+    public async Task<IActionResult> GetStaffRelease(int restaurantId)
+        => Ok(await Mediator.Send(new GetStaffMobileReleaseQuery(restaurantId)));
+
+    [Authorize]
+    [EnableRateLimiting(RateLimitPolicyNames.MobileRelease)]
+    [HttpGet(ApiRoutes.MobileApp.StaffRestaurantDownload)]
+    public async Task<IActionResult> DownloadStaffRelease(int restaurantId, CancellationToken cancellationToken)
+    {
+        var access = await Mediator.Send(new GetStaffMobileAccessQuery(restaurantId), cancellationToken);
+        if (!access.Enabled)
+            return NotFound();
+
+        var release = await releaseArtifacts.OpenVerifiedAsync(cancellationToken);
+        if (release is null)
+            return NotFound();
+
+        Response.Headers.CacheControl = "private, no-store";
+        Response.Headers.Pragma = "no-cache";
+        Response.Headers.XContentTypeOptions = "nosniff";
+        return File(release.Content, "application/vnd.android.package-archive",
+            $"ECafe-{release.Version}.apk", enableRangeProcessing: true);
+    }
 
     [Authorize]
     [HttpPut(ApiRoutes.MobileApp.PushInstallation)]

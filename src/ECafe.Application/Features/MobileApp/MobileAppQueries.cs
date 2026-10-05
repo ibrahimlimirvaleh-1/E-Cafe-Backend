@@ -1,6 +1,8 @@
 using System.Security.Claims;
 using ECafe.Application.Common.Exceptions;
 using ECafe.Application.Repositories.Restaurant;
+using ECafe.Application.Repositories.UserRestaurant;
+using ApiRoutes = ECafe.Application.Routes.Routes;
 using ECafe.Domain.Enums;
 using ECafe.Domain.Exceptions;
 using MediatR;
@@ -27,6 +29,11 @@ public sealed record MobilePublicationResponse(bool PublicDownloadEnabled, bool 
 
 public sealed record UpdateMobilePublicationRequest(bool PublicDownloadEnabled);
 
+public sealed record StaffMobileAccessResponse(int RestaurantId, bool Enabled);
+
+public sealed record StaffMobileReleaseResponse(
+    bool Ready, string? DownloadPath, string? Version, int? VersionCode, long? SizeBytes, string? Sha256);
+
 public sealed record GetMobileModuleQuery(int RestaurantId) : IRequest<MobileModuleResponse>;
 
 public sealed record UpdateMobileModuleCommand(int RestaurantId, bool MobilePushEnabled, bool ShowDownloadLink)
@@ -34,18 +41,26 @@ public sealed record UpdateMobileModuleCommand(int RestaurantId, bool MobilePush
 
 public sealed record GetPublicMobileReleaseQuery(int? RestaurantId) : IRequest<MobileReleaseResponse>;
 
+public sealed record GetStaffMobileAccessQuery(int RestaurantId) : IRequest<StaffMobileAccessResponse>;
+
+public sealed record GetStaffMobileReleaseQuery(int RestaurantId) : IRequest<StaffMobileReleaseResponse>;
+
 public sealed record GetMobilePublicationQuery : IRequest<MobilePublicationResponse>;
 
 public sealed record UpdateMobilePublicationCommand(bool PublicDownloadEnabled) : IRequest<MobilePublicationResponse>;
 
 public sealed class MobileAppQueryHandler(
     IRestaurantRepository restaurants,
+    IUserRestaurantRepository userRestaurants,
     IMobileAppPublicationStore publicationStore,
+    IMobileReleaseArtifactService releaseArtifacts,
     IConfiguration configuration,
     IHttpContextAccessor httpContextAccessor)
     : IRequestHandler<GetMobileModuleQuery, MobileModuleResponse>,
       IRequestHandler<UpdateMobileModuleCommand, MobileModuleResponse>,
       IRequestHandler<GetPublicMobileReleaseQuery, MobileReleaseResponse>,
+      IRequestHandler<GetStaffMobileAccessQuery, StaffMobileAccessResponse>,
+      IRequestHandler<GetStaffMobileReleaseQuery, StaffMobileReleaseResponse>,
       IRequestHandler<GetMobilePublicationQuery, MobilePublicationResponse>,
       IRequestHandler<UpdateMobilePublicationCommand, MobilePublicationResponse>
 {
@@ -58,13 +73,14 @@ public sealed class MobileAppQueryHandler(
             .SingleOrDefaultAsync(cancellationToken)
             ?? throw new NotFoundException("Restaurant not found.");
 
-        return new(restaurant.Id, restaurant.MobilePushEnabled, restaurant.ShowMobileDownloadLink);
+        return new(restaurant.Id, restaurant.MobilePushEnabled && restaurant.ShowMobileDownloadLink,
+            restaurant.ShowMobileDownloadLink);
     }
 
     public async Task<MobileModuleResponse> Handle(UpdateMobileModuleCommand request, CancellationToken cancellationToken)
     {
         EnsureSuperAdmin();
-        if (request.MobilePushEnabled &&
+        if (request.MobilePushEnabled && request.ShowDownloadLink &&
             (!configuration.GetValue<bool>("MobileApp:PushDeliveryReady") ||
              !Guid.TryParse(configuration["MobileApp:ExpoProjectId"], out _)))
             throw new BusinessRuleException("Mobile push delivery is not ready.");
@@ -73,75 +89,67 @@ public sealed class MobileAppQueryHandler(
             .SingleOrDefaultAsync(cancellationToken)
             ?? throw new NotFoundException("Restaurant not found.");
 
-        restaurant.MobilePushEnabled = request.MobilePushEnabled;
+        restaurant.MobilePushEnabled = request.ShowDownloadLink && request.MobilePushEnabled;
         restaurant.ShowMobileDownloadLink = request.ShowDownloadLink;
         await restaurants.SaveChangesAsync();
 
         return new(restaurant.Id, restaurant.MobilePushEnabled, restaurant.ShowMobileDownloadLink);
     }
 
-    public async Task<MobileReleaseResponse> Handle(GetPublicMobileReleaseQuery request, CancellationToken cancellationToken)
+    public Task<MobileReleaseResponse> Handle(GetPublicMobileReleaseQuery request, CancellationToken cancellationToken)
+        => Task.FromResult(HiddenRelease);
+
+    public async Task<StaffMobileAccessResponse> Handle(GetStaffMobileAccessQuery request, CancellationToken cancellationToken)
     {
-        var release = ReadReadyRelease();
-        if (release is null)
-            return HiddenRelease;
+        var user = httpContextAccessor.HttpContext?.User;
+        var idClaim = user?.FindFirst("userId")?.Value ?? user?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (!int.TryParse(idClaim, out var userId))
+            throw new ForbiddenException("An active restaurant staff account is required.");
+
+        var roleId = await userRestaurants.GetActiveRoleIdAsync(userId, request.RestaurantId);
+        if (roleId != (int)RoleCode.Owner && roleId != (int)RoleCode.Manager &&
+            roleId != (int)RoleCode.Waiter && roleId != (int)RoleCode.Kitchen)
+            throw new ForbiddenException("An active restaurant staff assignment is required.");
 
         var activeContractStatusId = StatusIds.Contract(ContractStatus.Active);
-        var eligibleRestaurants = restaurants.Query(r =>
-                r.IsActive &&
+        var enabled = await restaurants.Query(r => r.Id == request.RestaurantId && r.IsActive &&
                 r.ShowMobileDownloadLink &&
-                r.Contracts.Any(c => c.StatusId == activeContractStatusId));
-
-        if (request.RestaurantId is null)
-        {
-            if (!await publicationStore.IsPublicDownloadEnabledAsync(cancellationToken))
-                return HiddenRelease;
-
-            return await eligibleRestaurants.AnyAsync(cancellationToken) ? release : HiddenRelease;
-        }
-
-        var isVisible = await eligibleRestaurants.Where(r => r.Id == request.RestaurantId.Value)
+                r.Contracts.Any(c => c.StatusId == activeContractStatusId))
             .AnyAsync(cancellationToken);
+        return new(request.RestaurantId, enabled);
+    }
 
-        return isVisible ? release : HiddenRelease;
+    public async Task<StaffMobileReleaseResponse> Handle(GetStaffMobileReleaseQuery request, CancellationToken cancellationToken)
+    {
+        var access = await Handle(new GetStaffMobileAccessQuery(request.RestaurantId), cancellationToken);
+        if (!access.Enabled)
+            return new(false, null, null, null, null, null);
+
+        await using var release = await releaseArtifacts.OpenVerifiedAsync(cancellationToken);
+        if (release is null)
+            return new(false, null, null, null, null, null);
+
+        var path = "/" + ApiRoutes.MobileApp.StaffRestaurantDownload.Replace(
+            "{restaurantId:int}", request.RestaurantId.ToString());
+        return new(true, path, release.Version, release.VersionCode, release.SizeBytes, release.Sha256);
     }
 
     public async Task<MobilePublicationResponse> Handle(GetMobilePublicationQuery request, CancellationToken cancellationToken)
     {
         EnsureSuperAdmin();
-        return new(await publicationStore.IsPublicDownloadEnabledAsync(cancellationToken), ReadReadyRelease() is not null);
+        await using var release = await releaseArtifacts.OpenVerifiedAsync(cancellationToken);
+        return new(false, release is not null);
     }
 
     public async Task<MobilePublicationResponse> Handle(UpdateMobilePublicationCommand request, CancellationToken cancellationToken)
     {
         EnsureSuperAdmin();
-        if (request.PublicDownloadEnabled && ReadReadyRelease() is null)
-            throw new BusinessRuleException("A verified mobile release is required before public download can be enabled.");
+        if (request.PublicDownloadEnabled)
+            throw new BusinessRuleException("Public mobile download is disabled. Enable access per restaurant.");
 
-        await publicationStore.SetPublicDownloadEnabledAsync(request.PublicDownloadEnabled, cancellationToken);
-        return new(request.PublicDownloadEnabled, ReadReadyRelease() is not null);
-    }
-
-    private MobileReleaseResponse? ReadReadyRelease()
-    {
-        var section = configuration.GetSection("MobileApp:Release");
-        var url = section["ApkUrl"];
-        var version = section["Version"];
-        var sha256 = section["Sha256"];
-        var versionCode = section.GetValue<int>("VersionCode");
-        var sizeBytes = section.GetValue<long>("SizeBytes");
-        if (!section.GetValue<bool>("Ready") ||
-            !Uri.TryCreate(url, UriKind.Absolute, out var uri) ||
-            uri.Scheme != Uri.UriSchemeHttps ||
-            !string.IsNullOrEmpty(uri.UserInfo) ||
-            !string.IsNullOrEmpty(uri.Fragment) ||
-            string.IsNullOrWhiteSpace(version) ||
-            versionCode <= 0 ||
-            sizeBytes <= 0 ||
-            sha256 is null || sha256.Length != 64 || !sha256.All(Uri.IsHexDigit))
-            return null;
-
-        return new(true, true, uri.AbsoluteUri, version, versionCode, sizeBytes, sha256.ToLowerInvariant());
+        await publicationStore.SetPublicDownloadEnabledAsync(false, cancellationToken);
+        await using var release = await releaseArtifacts.OpenVerifiedAsync(cancellationToken);
+        return new(false, release is not null);
     }
 
     private void EnsureSuperAdmin()

@@ -18,6 +18,7 @@ services:
     restart: unless-stopped
     volumes:
       - data_protection_keys:/var/lib/ecafe/data-protection-keys
+      - ${ECAFE_APK_RELEASE_DIR:-./private-releases}:/var/lib/ecafe/private-releases:ro
 
   migrator:
     image: ${ECAFE_MIGRATOR_IMAGE:-ecafe-api-migrator:local}

@@ -7,5 +7,6 @@ public static class RateLimitPolicyNames
     public const string AuthPasswordReset = "auth-password-reset";
     public const string FileUpload = "file-upload";
     public const string FileDownload = "file-download";
+    public const string MobileRelease = "mobile-release";
     public const string PublicRead = "public-read";
 }

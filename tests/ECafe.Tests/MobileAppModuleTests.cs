@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using System.Security.Cryptography;
 using ECafe.Application.Common.Exceptions;
 using ECafe.Application.Features.MobileApp;
 using ECafe.Domain.Entities;
@@ -7,6 +8,8 @@ using ECafe.Domain.Exceptions;
 using ECafe.Infrastructure.Context;
 using ECafe.Infrastructure.Repositories;
 using ECafe.Infrastructure.Repositories.Restaurant;
+using ECafe.Infrastructure.Repositories.UserRestaurant;
+using ECafe.Infrastructure.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -17,109 +20,141 @@ namespace ECafe.Tests;
 public sealed class MobileAppModuleTests
 {
     [Fact]
-    public async Task OwnerCannotEnableMobileModule()
+    public async Task OnlyPlatformAdminCanChangeAccessAndPublicPublishingCannotBeEnabled()
     {
         await using var context = CreateContext();
-        var handler = CreateHandler(context, RoleCode.Owner, ReadySettings());
+        AddRestaurant(context, 1);
+        await context.SaveChangesAsync();
 
-        await Assert.ThrowsAsync<ForbiddenException>(() => handler.Handle(
-            new UpdateMobileModuleCommand(1, true, true), CancellationToken.None));
-        await Assert.ThrowsAsync<ForbiddenException>(() => handler.Handle(
+        var owner = CreateHandler(context, RoleCode.Owner, 1, ReadySettings());
+        await Assert.ThrowsAsync<ForbiddenException>(() => owner.Handle(
+            new UpdateMobileModuleCommand(1, false, true), CancellationToken.None));
+
+        var admin = CreateHandler(context, RoleCode.SuperAdmin, 1, ReadySettings());
+        await Assert.ThrowsAsync<BusinessRuleException>(() => admin.Handle(
             new UpdateMobilePublicationCommand(true), CancellationToken.None));
+        var disabledWithStalePush = await admin.Handle(
+            new UpdateMobileModuleCommand(1, true, false), CancellationToken.None);
+        Assert.False(disabledWithStalePush.MobilePushEnabled);
+
+        context.Restaurants.Single().MobilePushEnabled = true;
+        await context.SaveChangesAsync();
+        var disabled = await admin.Handle(new UpdateMobileModuleCommand(1, false, false), CancellationToken.None);
+        Assert.False(disabled.MobilePushEnabled);
+        Assert.False(disabled.ShowDownloadLink);
+    }
+
+    [Fact]
+    public async Task StaffAccessRequiresOwnActiveAssignmentContractAndRestaurantSwitch()
+    {
+        await using var context = CreateContext();
+        AddRestaurant(context, 1);
+        AddRestaurant(context, 2);
+        AddStaff(context, 7, 1, RoleCode.Manager);
+        await context.SaveChangesAsync();
+        var handler = CreateHandler(context, RoleCode.Manager, 7, ReadySettings());
+
+        Assert.True((await handler.Handle(new GetStaffMobileAccessQuery(1), CancellationToken.None)).Enabled);
+        await Assert.ThrowsAsync<ForbiddenException>(() => handler.Handle(
+            new GetStaffMobileAccessQuery(2), CancellationToken.None));
+        Assert.False((await handler.Handle(new GetPublicMobileReleaseQuery(1), CancellationToken.None)).IsVisible);
+
+        context.UserRestaurants.Single().IsActive = false;
+        await context.SaveChangesAsync();
+        await Assert.ThrowsAsync<ForbiddenException>(() => handler.Handle(
+            new GetStaffMobileAccessQuery(1), CancellationToken.None));
+        context.UserRestaurants.Single().IsActive = true;
+        context.Restaurants.Single(x => x.Id == 1).ShowMobileDownloadLink = false;
+        await context.SaveChangesAsync();
+        Assert.False((await handler.Handle(new GetStaffMobileAccessQuery(1), CancellationToken.None)).Enabled);
+
+        context.Restaurants.Single(x => x.Id == 1).ShowMobileDownloadLink = true;
+        context.RestaurantContracts.Single(x => x.RestaurantId == 1).StatusId =
+            StatusIds.Contract(ContractStatus.Expired);
+        await context.SaveChangesAsync();
+        Assert.False((await handler.Handle(new GetStaffMobileAccessQuery(1), CancellationToken.None)).Enabled);
+
+        context.UserRestaurants.Single().RoleId = (int)RoleCode.Customer;
+        await context.SaveChangesAsync();
+        await Assert.ThrowsAsync<ForbiddenException>(() => handler.Handle(
+            new GetStaffMobileAccessQuery(1), CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task ReleaseNeedsVerifiedPrivateFileAndNeverExposesPublicUrl()
+    {
+        var path = Path.GetTempFileName();
+        try
+        {
+            var content = new byte[] { 1, 2, 3, 4, 5 };
+            await System.IO.File.WriteAllBytesAsync(path, content);
+            var settings = ReadySettings();
+            settings["MobileApp:Release:ApkPath"] = path;
+            settings["MobileApp:Release:SizeBytes"] = content.Length.ToString();
+            settings["MobileApp:Release:Sha256"] = Convert.ToHexString(SHA256.HashData(content));
+
+            await using var context = CreateContext();
+            AddRestaurant(context, 1);
+            AddStaff(context, 7, 1, RoleCode.Waiter);
+            await context.SaveChangesAsync();
+            var handler = CreateHandler(context, RoleCode.Waiter, 7, settings);
+
+            var release = await handler.Handle(new GetStaffMobileReleaseQuery(1), CancellationToken.None);
+            Assert.True(release.Ready);
+            Assert.Equal("/api/v1/restaurants/1/mobile-app/download", release.DownloadPath);
+            Assert.False((await handler.Handle(new GetPublicMobileReleaseQuery(null), CancellationToken.None)).IsVisible);
+
+            settings["MobileApp:Release:Sha256"] = new string('a', 64);
+            handler = CreateHandler(context, RoleCode.Waiter, 7, settings);
+            Assert.False((await handler.Handle(new GetStaffMobileReleaseQuery(1), CancellationToken.None)).Ready);
+        }
+        finally
+        {
+            System.IO.File.Delete(path);
+        }
     }
 
     [Fact]
     public async Task PushCannotBeEnabledBeforeDeliveryIsReady()
     {
         await using var context = CreateContext();
-        context.Restaurants.Add(new Restaurant { Id = 1, Name = "Test", Location = "Baku", Phone = "1", IsActive = true });
+        AddRestaurant(context, 1);
         await context.SaveChangesAsync();
         var settings = ReadySettings();
         settings["MobileApp:PushDeliveryReady"] = "false";
-        var handler = CreateHandler(context, RoleCode.SuperAdmin, settings);
+        var handler = CreateHandler(context, RoleCode.SuperAdmin, 1, settings);
 
         await Assert.ThrowsAsync<BusinessRuleException>(() => handler.Handle(
             new UpdateMobileModuleCommand(1, true, true), CancellationToken.None));
         Assert.False(context.Restaurants.Single().MobilePushEnabled);
     }
 
-    [Fact]
-    public async Task PublicReleaseRequiresVerifiedReleasePublicationAndLinkPreference()
+    private static void AddRestaurant(ECafeDbContext context, int id)
     {
-        await using var context = CreateContext();
         context.Restaurants.Add(new Restaurant
         {
-            Id = 1, Name = "Test", Location = "Baku", Phone = "1", IsActive = true,
-            MobilePushEnabled = false, ShowMobileDownloadLink = false
+            Id = id, Name = $"Restaurant {id}", Location = "Baku", Phone = "1",
+            IsActive = true, ShowMobileDownloadLink = true
         });
         context.RestaurantContracts.Add(new RestaurantContract
         {
-            Id = 1, RestaurantId = 1, ContractNumber = "C1", PaymentPolicyId = 1,
+            Id = id, RestaurantId = id, ContractNumber = $"C{id}", PaymentPolicyId = 1,
             StatusId = StatusIds.Contract(ContractStatus.Active)
         });
-        await context.SaveChangesAsync();
-        var handler = CreateHandler(context, RoleCode.SuperAdmin, ReadySettings());
-
-        Assert.False((await handler.Handle(new GetPublicMobileReleaseQuery(null), CancellationToken.None)).IsVisible);
-        Assert.False((await handler.Handle(new GetPublicMobileReleaseQuery(1), CancellationToken.None)).IsVisible);
-
-        await handler.Handle(new UpdateMobilePublicationCommand(true), CancellationToken.None);
-        Assert.False((await handler.Handle(new GetPublicMobileReleaseQuery(null), CancellationToken.None)).IsVisible);
-        Assert.False((await handler.Handle(new GetPublicMobileReleaseQuery(1), CancellationToken.None)).IsVisible);
-
-        await handler.Handle(new UpdateMobileModuleCommand(1, false, true), CancellationToken.None);
-        Assert.True((await handler.Handle(new GetPublicMobileReleaseQuery(null), CancellationToken.None)).IsVisible);
-        var restaurantRelease = await handler.Handle(new GetPublicMobileReleaseQuery(1), CancellationToken.None);
-        Assert.True(restaurantRelease.IsVisible);
-        Assert.True(restaurantRelease.Ready);
-        Assert.Equal(123456L, restaurantRelease.SizeBytes);
-        Assert.Equal("https://example.com/ecafe.apk", restaurantRelease.ApkUrl);
-
-        await handler.Handle(new UpdateMobileModuleCommand(1, true, false), CancellationToken.None);
-        Assert.False((await handler.Handle(new GetPublicMobileReleaseQuery(1), CancellationToken.None)).IsVisible);
-
-        await handler.Handle(new UpdateMobileModuleCommand(1, true, true), CancellationToken.None);
-        await handler.Handle(new UpdateMobilePublicationCommand(false), CancellationToken.None);
-        Assert.False((await handler.Handle(new GetPublicMobileReleaseQuery(null), CancellationToken.None)).IsVisible);
-        Assert.True((await handler.Handle(new GetPublicMobileReleaseQuery(1), CancellationToken.None)).IsVisible);
     }
 
-    [Fact]
-    public async Task ReleaseReadinessDoesNotRequirePushDelivery()
+    private static void AddStaff(ECafeDbContext context, int userId, int restaurantId, RoleCode role)
     {
-        await using var context = CreateContext();
-        context.Restaurants.Add(new Restaurant
+        context.Users.Add(new User
         {
-            Id = 1, Name = "Test", Location = "Baku", Phone = "1", IsActive = true,
-            MobilePushEnabled = false, ShowMobileDownloadLink = true
+            Id = userId, Name = "Staff", Surname = "User", Email = "staff@example.com",
+            Phone = "123", Password = "x", IsActive = true, RoleId = (int)role
         });
-        context.RestaurantContracts.Add(new RestaurantContract
+        context.UserRestaurants.Add(new UserRestaurant
         {
-            Id = 1, RestaurantId = 1, ContractNumber = "C1", PaymentPolicyId = 1,
-            StatusId = StatusIds.Contract(ContractStatus.Active)
+            Id = userId, UserId = userId, RestaurantId = restaurantId,
+            RoleId = (int)role, IsActive = true
         });
-        await context.SaveChangesAsync();
-
-        var settings = ReadySettings();
-        settings["MobileApp:PushDeliveryReady"] = "false";
-        var handler = CreateHandler(context, RoleCode.SuperAdmin, settings);
-
-        Assert.True((await handler.Handle(new GetMobilePublicationQuery(), CancellationToken.None)).ReleaseReady);
-        Assert.True((await handler.Handle(new GetPublicMobileReleaseQuery(1), CancellationToken.None)).IsVisible);
-        Assert.False(context.Restaurants.Single().MobilePushEnabled);
-    }
-
-    [Fact]
-    public async Task InvalidReleaseMetadataCannotBePublished()
-    {
-        await using var context = CreateContext();
-        var settings = ReadySettings();
-        settings["MobileApp:Release:ApkUrl"] = "http://example.com/ecafe.apk";
-        var handler = CreateHandler(context, RoleCode.SuperAdmin, settings);
-
-        await Assert.ThrowsAsync<BusinessRuleException>(() => handler.Handle(
-            new UpdateMobilePublicationCommand(true), CancellationToken.None));
-        Assert.False((await handler.Handle(new GetPublicMobileReleaseQuery(null), CancellationToken.None)).IsVisible);
     }
 
     private static ECafeDbContext CreateContext()
@@ -130,15 +165,20 @@ public sealed class MobileAppModuleTests
     }
 
     private static MobileAppQueryHandler CreateHandler(
-        ECafeDbContext context, RoleCode role, Dictionary<string, string?> settings)
+        ECafeDbContext context, RoleCode role, int userId, Dictionary<string, string?> settings)
     {
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(settings).Build();
         var principal = new ClaimsPrincipal(new ClaimsIdentity(
-            [new Claim(ClaimTypes.Role, ((int)role).ToString())], "Test"));
+        [
+            new Claim(ClaimTypes.Role, ((int)role).ToString()),
+            new Claim("userId", userId.ToString())
+        ], "Test"));
         var accessor = new HttpContextAccessor { HttpContext = new DefaultHttpContext { User = principal } };
         return new MobileAppQueryHandler(
             new RestaurantRepository(context),
+            new UserRestaurantRepository(context),
             new MobileAppPublicationStore(context),
+            new LocalMobileReleaseArtifactService(configuration),
             configuration,
             accessor);
     }
@@ -148,10 +188,7 @@ public sealed class MobileAppModuleTests
         ["MobileApp:PushDeliveryReady"] = "true",
         ["MobileApp:ExpoProjectId"] = "95755058-a833-443c-92c6-1b5dedf866ab",
         ["MobileApp:Release:Ready"] = "true",
-        ["MobileApp:Release:ApkUrl"] = "https://example.com/ecafe.apk",
         ["MobileApp:Release:Version"] = "1.0.0",
-        ["MobileApp:Release:VersionCode"] = "1",
-        ["MobileApp:Release:SizeBytes"] = "123456",
-        ["MobileApp:Release:Sha256"] = new string('a', 64)
+        ["MobileApp:Release:VersionCode"] = "1"
     };
 }
