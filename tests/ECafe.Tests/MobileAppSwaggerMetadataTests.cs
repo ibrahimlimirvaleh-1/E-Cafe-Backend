@@ -18,7 +18,7 @@ public sealed class MobileAppSwaggerMetadataTests
             .Where(method => method.GetCustomAttributes(typeof(HttpMethodAttribute), true).Length > 0)
             .ToArray();
 
-        Assert.Equal(11, actions.Length);
+        Assert.Equal(12, actions.Length);
         foreach (var action in actions)
         {
             Assert.True(EcafeSwaggerMetadata.Endpoints.TryGetValue($"MobileApp.{action.Name}", out var metadata),
@@ -31,7 +31,7 @@ public sealed class MobileAppSwaggerMetadataTests
     [Fact]
     public void StaffReleaseAndDownloadRequireAuthorization()
     {
-        foreach (var name in new[] { "GetStaffAccess", "GetStaffRelease", "DownloadStaffRelease" })
+        foreach (var name in new[] { "GetCustomerAccess", "GetStaffAccess", "GetStaffRelease", "DownloadStaffRelease" })
         {
             var method = typeof(MobileAppController).GetMethod(name)!;
             Assert.NotNull(method.GetCustomAttributes(typeof(AuthorizeAttribute), true).SingleOrDefault());

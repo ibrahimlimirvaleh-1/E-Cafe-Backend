@@ -8,6 +8,7 @@ using ECafe.Domain.Exceptions;
 using ECafe.Infrastructure.Context;
 using ECafe.Infrastructure.Repositories;
 using ECafe.Infrastructure.Repositories.Restaurant;
+using ECafe.Infrastructure.Repositories.User;
 using ECafe.Infrastructure.Repositories.UserRestaurant;
 using ECafe.Infrastructure.Services;
 using Microsoft.AspNetCore.Http;
@@ -78,6 +79,31 @@ public sealed class MobileAppModuleTests
         await context.SaveChangesAsync();
         await Assert.ThrowsAsync<ForbiddenException>(() => handler.Handle(
             new GetStaffMobileAccessQuery(1), CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task CustomerAccessUsesCurrentAccountNotStaleRoleClaim()
+    {
+        await using var context = CreateContext();
+        context.Users.Add(new User
+        {
+            Id = 8, Name = "Customer", Surname = "User", Email = "customer@example.com",
+            Phone = "123", Password = "x", IsActive = true, RoleId = (int)RoleCode.Customer
+        });
+        await context.SaveChangesAsync();
+        var handler = CreateHandler(context, RoleCode.Manager, 8, ReadySettings());
+
+        Assert.True((await handler.Handle(new GetCustomerMobileAccessQuery(), CancellationToken.None)).Enabled);
+        context.Users.Single().IsActive = false;
+        await context.SaveChangesAsync();
+        await Assert.ThrowsAsync<ForbiddenException>(() => handler.Handle(
+            new GetCustomerMobileAccessQuery(), CancellationToken.None));
+
+        context.Users.Single().IsActive = true;
+        context.Users.Single().RoleId = (int)RoleCode.Manager;
+        await context.SaveChangesAsync();
+        await Assert.ThrowsAsync<ForbiddenException>(() => handler.Handle(
+            new GetCustomerMobileAccessQuery(), CancellationToken.None));
     }
 
     [Fact]
@@ -176,6 +202,7 @@ public sealed class MobileAppModuleTests
         var accessor = new HttpContextAccessor { HttpContext = new DefaultHttpContext { User = principal } };
         return new MobileAppQueryHandler(
             new RestaurantRepository(context),
+            new UserRepository(context),
             new UserRestaurantRepository(context),
             new MobileAppPublicationStore(context),
             new LocalMobileReleaseArtifactService(configuration),

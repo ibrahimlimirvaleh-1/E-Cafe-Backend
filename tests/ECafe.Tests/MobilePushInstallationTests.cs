@@ -1,6 +1,8 @@
 using System.Security.Claims;
+using ECafe.Application.Common.Exceptions;
 using ECafe.Application.Features.MobileApp;
 using ECafe.Domain.Entities;
+using ECafe.Domain.Enums;
 using ECafe.Domain.Exceptions;
 using ECafe.Infrastructure.Context;
 using ECafe.Infrastructure.Services;
@@ -67,6 +69,21 @@ public sealed class MobilePushInstallationTests
     }
 
     [Fact]
+    public async Task RegistrationRejectsUnassignedStaffButAcceptsActiveCustomer()
+    {
+        await using var context = CreateContext();
+        await AddSessionAsync(context, 1, "a");
+        var installationId = Guid.NewGuid();
+        await CreateService(context, 1, "a").RegisterAsync(
+            installationId, new(TokenA, ProjectId), CancellationToken.None);
+
+        context.Users.Single().RoleId = (int)RoleCode.Manager;
+        await context.SaveChangesAsync();
+        await Assert.ThrowsAsync<ForbiddenException>(() => CreateService(context, 1, "a")
+            .RegisterAsync(Guid.NewGuid(), new(TokenB, ProjectId), CancellationToken.None));
+    }
+
+    [Fact]
     public async Task RegistrationRequiresConfiguredProjectAndActiveSession()
     {
         await using var context = CreateContext();
@@ -93,7 +110,8 @@ public sealed class MobilePushInstallationTests
         context.Users.Add(new User
         {
             Id = userId, Name = "Test", Surname = "User", Email = $"user{userId}@example.com",
-            Phone = userId.ToString(), Password = "test", IsActive = true
+            Phone = userId.ToString(), Password = "test", IsActive = true,
+            RoleId = (int)RoleCode.Customer
         });
         context.UserRefreshTokens.Add(new UserRefreshToken
         {

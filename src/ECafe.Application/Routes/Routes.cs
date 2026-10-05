@@ -142,6 +142,7 @@ public static class Routes
 
     public static class MobileApp
     {
+        public const string CustomerAccess = Base + "/mobile/customer-access";
         public const string PublicRelease = Base + "/public/mobile-app/release";
         public const string PublicRestaurantRelease = Base + "/public/restaurants/{restaurantId:int}/mobile-app/release";
         public const string StaffRestaurantAccess = Base + "/restaurants/{restaurantId:int}/mobile-app/access";

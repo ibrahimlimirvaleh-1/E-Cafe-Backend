@@ -45,6 +45,11 @@ public sealed class MobileAppController(
         => Ok(await Mediator.Send(new GetPublicMobileReleaseQuery(restaurantId)));
 
     [Authorize]
+    [HttpGet(ApiRoutes.MobileApp.CustomerAccess)]
+    public async Task<IActionResult> GetCustomerAccess()
+        => Ok(await Mediator.Send(new GetCustomerMobileAccessQuery()));
+
+    [Authorize]
     [HttpGet(ApiRoutes.MobileApp.StaffRestaurantAccess)]
     public async Task<IActionResult> GetStaffAccess(int restaurantId)
         => Ok(await Mediator.Send(new GetStaffMobileAccessQuery(restaurantId)));

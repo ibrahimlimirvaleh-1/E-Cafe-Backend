@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using ECafe.Application.Common.Exceptions;
 using ECafe.Application.Repositories.Restaurant;
+using ECafe.Application.Repositories.User;
 using ECafe.Application.Repositories.UserRestaurant;
 using ApiRoutes = ECafe.Application.Routes.Routes;
 using ECafe.Domain.Enums;
@@ -31,6 +32,8 @@ public sealed record UpdateMobilePublicationRequest(bool PublicDownloadEnabled);
 
 public sealed record StaffMobileAccessResponse(int RestaurantId, bool Enabled);
 
+public sealed record CustomerMobileAccessResponse(bool Enabled);
+
 public sealed record StaffMobileReleaseResponse(
     bool Ready, string? DownloadPath, string? Version, int? VersionCode, long? SizeBytes, string? Sha256);
 
@@ -43,6 +46,8 @@ public sealed record GetPublicMobileReleaseQuery(int? RestaurantId) : IRequest<M
 
 public sealed record GetStaffMobileAccessQuery(int RestaurantId) : IRequest<StaffMobileAccessResponse>;
 
+public sealed record GetCustomerMobileAccessQuery : IRequest<CustomerMobileAccessResponse>;
+
 public sealed record GetStaffMobileReleaseQuery(int RestaurantId) : IRequest<StaffMobileReleaseResponse>;
 
 public sealed record GetMobilePublicationQuery : IRequest<MobilePublicationResponse>;
@@ -51,6 +56,7 @@ public sealed record UpdateMobilePublicationCommand(bool PublicDownloadEnabled) 
 
 public sealed class MobileAppQueryHandler(
     IRestaurantRepository restaurants,
+    IUserRepository users,
     IUserRestaurantRepository userRestaurants,
     IMobileAppPublicationStore publicationStore,
     IMobileReleaseArtifactService releaseArtifacts,
@@ -60,6 +66,7 @@ public sealed class MobileAppQueryHandler(
       IRequestHandler<UpdateMobileModuleCommand, MobileModuleResponse>,
       IRequestHandler<GetPublicMobileReleaseQuery, MobileReleaseResponse>,
       IRequestHandler<GetStaffMobileAccessQuery, StaffMobileAccessResponse>,
+      IRequestHandler<GetCustomerMobileAccessQuery, CustomerMobileAccessResponse>,
       IRequestHandler<GetStaffMobileReleaseQuery, StaffMobileReleaseResponse>,
       IRequestHandler<GetMobilePublicationQuery, MobilePublicationResponse>,
       IRequestHandler<UpdateMobilePublicationCommand, MobilePublicationResponse>
@@ -98,6 +105,22 @@ public sealed class MobileAppQueryHandler(
 
     public Task<MobileReleaseResponse> Handle(GetPublicMobileReleaseQuery request, CancellationToken cancellationToken)
         => Task.FromResult(HiddenRelease);
+
+    public async Task<CustomerMobileAccessResponse> Handle(GetCustomerMobileAccessQuery request, CancellationToken cancellationToken)
+    {
+        var user = httpContextAccessor.HttpContext?.User;
+        var idClaim = user?.FindFirst("userId")?.Value ?? user?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (!int.TryParse(idClaim, out var userId) || userId <= 0)
+            throw new ForbiddenException("An active customer account is required.");
+
+        var isCustomer = await users.Query(x => x.Id == userId && x.IsActive &&
+                x.RoleId == (int)RoleCode.Customer)
+            .AnyAsync(cancellationToken);
+        if (!isCustomer)
+            throw new ForbiddenException("An active customer account is required.");
+
+        return new(true);
+    }
 
     public async Task<StaffMobileAccessResponse> Handle(GetStaffMobileAccessQuery request, CancellationToken cancellationToken)
     {
