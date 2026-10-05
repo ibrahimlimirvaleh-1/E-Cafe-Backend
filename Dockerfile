@@ -22,7 +22,9 @@ ENV ASPNETCORE_URLS=http://+:8080
 EXPOSE 8080
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && mkdir -p /var/lib/ecafe/data-protection-keys \
+    && chown -R "$APP_UID:$APP_UID" /var/lib/ecafe
 COPY --from=build /app/api .
 USER $APP_UID
 ENTRYPOINT ["dotnet", "ECafe.Api.dll"]

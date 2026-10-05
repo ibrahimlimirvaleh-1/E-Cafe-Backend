@@ -50,9 +50,6 @@ public static class Routes
     public static class DeveloperNotificationTest
     {
         public const string SendEmail = Base + "/developer/test/email";
-        public const string SendSms = Base + "/developer/test/sms";
-        public const string GetSmsBalance = Base + "/developer/test/sms/balance";
-        public const string GetSmsStatus = Base + "/developer/test/sms/status/{messageId}";
     }
 
     public static class File
@@ -141,6 +138,15 @@ public static class Routes
     public static class ReservationArrival
     {
         public const string Get = Base + "/public/reservations/{reservationId:int}/late-arrival";
+    }
+
+    public static class MobileApp
+    {
+        public const string PublicRelease = Base + "/public/mobile-app/release";
+        public const string PublicRestaurantRelease = Base + "/public/restaurants/{restaurantId:int}/mobile-app/release";
+        public const string RestaurantModule = Base + "/admin/restaurants/{restaurantId:int}/mobile-module";
+        public const string Publication = Base + "/admin/mobile-app/publication";
+        public const string PushInstallation = Base + "/mobile/push/installations/{installationId:guid}";
     }
 
     public static class ReservationArrivalFlow

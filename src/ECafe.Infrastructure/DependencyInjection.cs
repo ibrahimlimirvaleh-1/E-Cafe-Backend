@@ -65,6 +65,8 @@ using ECafe.Infrastructure.Services.PaymentInstructionDetails;
 using ECafe.Application.Services.PaymentInstructionDetails.Abstract;
 using ECafe.Application.Services.Realtime.Abstract;
 using ECafe.Infrastructure.Services;
+using ECafe.Application.Features.MobileApp;
+using ECafe.Application.Services.Notification.Abstract;
 namespace ECafe.Infrastructure
 {
     public static class DependencyInjection
@@ -94,6 +96,16 @@ namespace ECafe.Infrastructure
             services.AddScoped<ILoginAttemptRepository, LoginAttemptRepository>();
             services.AddScoped<IRoleRepository, RoleRepository>();
             services.AddScoped<IRestaurantRepository, RestaurantRepository>();
+            services.AddScoped<IMobileAppPublicationStore, MobileAppPublicationStore>();
+            services.AddScoped<IMobilePushInstallationService, MobilePushInstallationService>();
+            services.AddScoped<IMobilePushOutboxWriter, MobilePushOutboxWriter>();
+            services.AddScoped<INotificationEmailOutboxWriter, NotificationEmailOutboxWriter>();
+            services.AddScoped<MobilePushDeliveryProcessor>();
+            services.AddHttpClient<IExpoPushTransport, ExpoPushTransport>(client =>
+            {
+                client.BaseAddress = new Uri("https://exp.host/--/api/v2/push/");
+                client.Timeout = TimeSpan.FromSeconds(10);
+            });
             services.AddScoped<IRestaurantScheduleRepository, RestaurantScheduleRepository>();
             services.AddScoped<IRestaurantGroupRepository, RestaurantGroupRepository>();
             services.AddScoped<IRestaurantContractRepository, RestaurantContractRepository>();

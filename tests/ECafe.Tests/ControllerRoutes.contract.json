@@ -91,27 +91,9 @@
   },
   {
     "Controller": "DeveloperNotificationTestController",
-    "Action": "GetSmsBalance",
-    "HttpMethod": "GET",
-    "Template": "api/v1/developer/test/sms/balance"
-  },
-  {
-    "Controller": "DeveloperNotificationTestController",
-    "Action": "GetSmsStatus",
-    "HttpMethod": "GET",
-    "Template": "api/v1/developer/test/sms/status/{messageId}"
-  },
-  {
-    "Controller": "DeveloperNotificationTestController",
     "Action": "SendEmail",
     "HttpMethod": "POST",
     "Template": "api/v1/developer/test/email"
-  },
-  {
-    "Controller": "DeveloperNotificationTestController",
-    "Action": "SendSms",
-    "HttpMethod": "POST",
-    "Template": "api/v1/developer/test/sms"
   },
   {
     "Controller": "FileController",

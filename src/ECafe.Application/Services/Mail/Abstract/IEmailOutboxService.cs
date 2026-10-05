@@ -12,21 +12,5 @@ namespace ECafe.Application.Services
             string? relatedEntityType = null,
             long? relatedEntityId = null);
 
-        Task EnqueueContractNotificationAsync(
-            string toEmail,
-            string toName,
-            string subject,
-            string body,
-            long contractId = 0);
-
-        Task EnqueueSmsAsync(
-            string toPhone,
-            string toName,
-            string subject,
-            string body,
-            string aggregateType,
-            long aggregateId,
-            string? relatedEntityType = null,
-            long? relatedEntityId = null);
     }
 }

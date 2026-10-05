@@ -86,6 +86,9 @@ namespace ECafe.Application.Services.Outbox.Concrete
         public async Task<OutboxMessageResponse> RetryAsync(Guid id)
         {
             var outboxEvent = await GetNotificationOutboxEventAsync(id, tracked: true);
+            if (outboxEvent.EventType == OutboxEventTypes.SmsNotificationRequested)
+                throw new BusinessRuleException(ErrorCode.OutboxMessageRetryNotAllowed);
+
             var now = DateTime.UtcNow;
             var status = GetStatus(outboxEvent, now);
 
@@ -134,9 +137,12 @@ namespace ECafe.Application.Services.Outbox.Concrete
             => status switch
             {
                 OutboxMessageStatus.Sent => query.Where(x => x.ProcessedAt != null),
-                OutboxMessageStatus.Processing => query.Where(x => x.ProcessedAt == null && x.LockedUntil != null && x.LockedUntil > now),
-                OutboxMessageStatus.Failed => query.Where(x => x.ProcessedAt == null && x.RetryCount >= _maxRetryCount),
+                OutboxMessageStatus.Processing => query.Where(x => x.EventType != OutboxEventTypes.SmsNotificationRequested &&
+                    x.ProcessedAt == null && x.LockedUntil != null && x.LockedUntil > now),
+                OutboxMessageStatus.Failed => query.Where(x => x.ProcessedAt == null &&
+                    (x.EventType == OutboxEventTypes.SmsNotificationRequested || x.RetryCount >= _maxRetryCount)),
                 OutboxMessageStatus.Pending => query.Where(x =>
+                    x.EventType != OutboxEventTypes.SmsNotificationRequested &&
                     x.ProcessedAt == null &&
                     x.RetryCount < _maxRetryCount &&
                     (x.LockedUntil == null || x.LockedUntil <= now)),
@@ -168,7 +174,10 @@ namespace ECafe.Application.Services.Outbox.Concrete
                 ProcessedAt = outboxEvent.ProcessedAt,
                 LockedUntil = outboxEvent.LockedUntil,
                 NextRetryAt = GetNextRetryAt(outboxEvent, status),
-                LastError = outboxEvent.LastError,
+                LastError = outboxEvent.EventType == OutboxEventTypes.SmsNotificationRequested &&
+                    !outboxEvent.ProcessedAt.HasValue
+                    ? "SMS kanalı dayandırılıb. Bu qeyd yenidən göndərilmir."
+                    : outboxEvent.LastError,
                 RelatedEntityType = payload?.RelatedEntityType,
                 RelatedEntityId = payload?.RelatedEntityId
             };
@@ -222,6 +231,9 @@ namespace ECafe.Application.Services.Outbox.Concrete
         {
             if (outboxEvent.ProcessedAt.HasValue)
                 return OutboxMessageStatus.Sent;
+
+            if (outboxEvent.EventType == OutboxEventTypes.SmsNotificationRequested)
+                return OutboxMessageStatus.Failed;
 
             if (outboxEvent.RetryCount >= _maxRetryCount)
                 return OutboxMessageStatus.Failed;

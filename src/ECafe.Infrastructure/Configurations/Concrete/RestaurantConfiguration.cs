@@ -25,6 +25,12 @@ namespace ECafe.Infrastructure.Configurations.Concrete
             builder.Property(e => e.IsActive)
                 .HasDefaultValue(true)
                 .HasColumnName("is_active");
+            builder.Property(e => e.MobilePushEnabled)
+                .HasDefaultValue(false)
+                .HasColumnName("mobile_push_enabled");
+            builder.Property(e => e.ShowMobileDownloadLink)
+                .HasDefaultValue(false)
+                .HasColumnName("show_mobile_download_link");
             builder.Property(e => e.Location)
                 .HasMaxLength(200)
                 .HasColumnName("location");

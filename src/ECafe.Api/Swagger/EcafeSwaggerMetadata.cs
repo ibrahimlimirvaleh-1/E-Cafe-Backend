@@ -22,7 +22,8 @@ public static class EcafeSwaggerMetadata
             ["ReservationRefund"] = new("12. Reservation Refunds", "Geri ödənişin detalı, tarixçəsi və icazəli rekvizit baxışı."),
             ["ReservationRefundFlow"] = new("13. Reservation Refund Flow", "Geri ödəniş sorğusu, rekvizit, köçürmə, təsdiq və etiraz əməliyyatları."),
             ["RestaurantContract"] = new("14. Restaurant Contracts", "Restoran müqavilələrinin yaradılması, yenilənməsi və məlumatları."),
-            ["RestaurantContractFlow"] = new("15. Restaurant Contract Flow", "Müqavilənin təsdiqə göndərilməsi, sahibkar təsdiqi, aktivləşdirilməsi və ləğvi.")
+            ["RestaurantContractFlow"] = new("15. Restaurant Contract Flow", "Müqavilənin təsdiqə göndərilməsi, sahibkar təsdiqi, aktivləşdirilməsi və ləğvi."),
+            ["MobileApp"] = new("16. Mobile App", "Mobil tətbiqin restoran üzrə ayarları, yükləmə linkinin yayımlanması və push cihaz qeydiyyatı.")
         };
 
     public static readonly IReadOnlyDictionary<string, SwaggerEndpointInfo> Endpoints =
@@ -51,7 +52,15 @@ public static class EcafeSwaggerMetadata
             ["User.UpdateProfile"] = new("Profilimi yenilə", "Token sahibi istifadəçinin profil məlumatlarını və şəklini yeniləyir."),
             ["User.GetStaffDetail"] = new("Staff detalı", "Restorana aid konkret staff istifadəçisinin detallı məlumatını qaytarır."),
             ["File.Upload"] = new("Fayl yüklə", "Menyu item-i, restoran, profil və müqavilə üçün icazəli faylı yükləyir və fileId qaytarır."),
-            ["File.GetFile"] = new("Faylı göstər", "Token və ya query məlumatına görə faylı binary response kimi qaytarır.")
+            ["File.GetFile"] = new("Faylı göstər", "Token və ya query məlumatına görə faylı binary response kimi qaytarır."),
+            ["MobileApp.GetRestaurantModule"] = new("Restoranın mobil ayarlarını gətir", "Yalnız platforma admini üçün: restoran üzrə push bildirişlərinin aktivliyini və mobil tətbiqin yükləmə linkinin göstərilib-göstərilmədiyini qaytarır."),
+            ["MobileApp.UpdateRestaurantModule"] = new("Restoranın mobil ayarlarını yenilə", "Yalnız platforma admini üçün: MobilePushEnabled və ShowDownloadLink ayarlarını yeniləyir. Push yalnız serverdə çatdırılma hazır olduqda və Expo layihəsi konfiqurasiya edildikdə aktivləşdirilə bilər."),
+            ["MobileApp.GetPublication"] = new("Mobil tətbiqin yayımlanma vəziyyətini gətir", "Yalnız platforma admini üçün: ümumi yükləmə linkinin açıq olub-olmadığını və APK buraxılış konfiqurasiyasının hazır olub-olmadığını qaytarır."),
+            ["MobileApp.UpdatePublication"] = new("Ümumi yükləmə linkini idarə et", "Yalnız platforma admini üçün: PublicDownloadEnabled ayarını dəyişir. APK buraxılış konfiqurasiyası hazır deyilsə ümumi yükləmə linkini aktivləşdirmək olmaz."),
+            ["MobileApp.GetPublicRelease"] = new("Ümumi mobil buraxılışı gətir", "Giriş tələb etmir. Ümumi yayımlanma aktivdirsə, APK buraxılış konfiqurasiyası hazırdırsa və ən azı bir uyğun restoran linki göstərirsə yükləmə URL-i, versiya, ölçü və SHA-256 məlumatını qaytarır; əks halda IsVisible=false qaytarır."),
+            ["MobileApp.GetPublicRestaurantRelease"] = new("Restoranın mobil buraxılışını gətir", "Giriş tələb etmir. Restoran aktivdirsə, aktiv müqaviləsi və yükləmə linki ayarı varsa, hazır APK buraxılışının URL, versiya, ölçü və SHA-256 məlumatını qaytarır; əks halda IsVisible=false qaytarır. Ümumi yayımlanma ayarından asılı deyil."),
+            ["MobileApp.RegisterInstallation"] = new("Push cihazını qeydiyyata al", "Giriş etmiş istifadəçinin aktiv sessiyası üçün installationId ilə Expo push tokenini qeydiyyata alır və ya yeniləyir. Body-də ExpoPushToken və ExpoProjectId tələb olunur; serverdə push hazır deyilsə və ya layihə ID-si uyğun gəlmirsə sorğu rədd edilir. Token cavabda qaytarılmır."),
+            ["MobileApp.DeactivateInstallation"] = new("Push cihazının qeydiyyatını bağla", "Giriş etmiş istifadəçinin cari sessiyasına aid installationId-ni deaktiv edir və 204 qaytarır. Qeydiyyat tapılmasa da 204 qaytarılır; başqa istifadəçinin və ya sessiyanın cihazı dəyişdirilmir.")
         };
 
     public static string GetTagName(string controllerName)

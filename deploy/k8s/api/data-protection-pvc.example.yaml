@@ -1,0 +1,13 @@
+# Apply only after choosing a storage class that supports ReadWriteMany.
+# All API replicas must share this key ring across restarts and deployments.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ecafe-data-protection-keys
+  namespace: ecafe
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Gi
