@@ -1,192 +1,265 @@
+using System.Globalization;
 using ECafe.Application.DTOs.RestaurantContract;
 using ECafe.Application.Services.RestaurantContract.Abstract;
-using System.Globalization;
-using System.Text;
+using ECafe.Domain.Enums;
+using MigraDoc.DocumentObjectModel;
+using MigraDoc.DocumentObjectModel.Tables;
+using MigraDoc.Rendering;
+using PdfSharp.Fonts;
+using PdfTable = MigraDoc.DocumentObjectModel.Tables.Table;
 
-namespace ECafe.Application.Services.RestaurantContract.Concrete
+namespace ECafe.Application.Services.RestaurantContract.Concrete;
+
+public sealed class ContractDocumentGenerator : IContractDocumentGenerator
 {
-    public class ContractDocumentGenerator : IContractDocumentGenerator
+    public const string ContentType = "application/pdf";
+
+    private static readonly CultureInfo Azerbaijani = CultureInfo.GetCultureInfo("az-AZ");
+    private static readonly object FontRegistrationLock = new();
+    private static readonly byte[] Logo = LoadResource("ecafe-icon.png");
+    private static readonly Color Ink = Color.FromRgb(24, 31, 34);
+    private static readonly Color Muted = Color.FromRgb(99, 111, 118);
+    private static readonly Color Accent = Color.FromRgb(0, 113, 91);
+    private static readonly Color Border = Color.FromRgb(219, 226, 228);
+    private static readonly Color Surface = Color.FromRgb(246, 249, 248);
+
+    public GeneratedContractDocument Generate(RestaurantContractDocumentData data)
     {
-        public const string ContentType = "application/pdf";
+        EnsureFontsRegistered();
+        var document = BuildDocument(data);
+        var renderer = new PdfDocumentRenderer { Document = document };
+        renderer.RenderDocument();
 
-        public GeneratedContractDocument Generate(RestaurantContractDocumentData data)
+        using var stream = new MemoryStream();
+        renderer.PdfDocument.Save(stream, false);
+        return new GeneratedContractDocument
         {
-            return new GeneratedContractDocument
-            {
-                FileName = $"{data.ContractNumber}.pdf",
-                ContentType = ContentType,
-                Bytes = BuildPdf(data)
-            };
-        }
+            FileName = $"{data.ContractNumber}.pdf",
+            ContentType = ContentType,
+            Bytes = stream.ToArray()
+        };
+    }
 
-        private static byte[] BuildPdf(RestaurantContractDocumentData data)
+    private static Document BuildDocument(RestaurantContractDocumentData data)
+    {
+        var document = new Document();
+        document.Info.Title = $"E-Cafe restoran müqaviləsi - {data.ContractNumber}";
+        document.Info.Author = "E-Cafe";
+
+        var normal = document.Styles[StyleNames.Normal]!;
+        normal.Font.Name = EmbeddedNotoFontResolver.FamilyName;
+        normal.Font.Size = 9;
+        normal.Font.Color = Ink;
+        normal.ParagraphFormat.SpaceAfter = Unit.FromPoint(0);
+
+        var section = document.AddSection();
+        section.PageSetup.PageFormat = PageFormat.A4;
+        section.PageSetup.LeftMargin = Unit.FromCentimeter(1.8);
+        section.PageSetup.RightMargin = Unit.FromCentimeter(1.8);
+        section.PageSetup.TopMargin = Unit.FromCentimeter(2.7);
+        section.PageSetup.BottomMargin = Unit.FromCentimeter(2.1);
+        section.PageSetup.HeaderDistance = Unit.FromCentimeter(0.9);
+        section.PageSetup.FooterDistance = Unit.FromCentimeter(0.9);
+
+        AddHeader(section);
+        AddFooter(section, data.ContractNumber);
+        AddTitle(section, data);
+
+        AddSectionHeading(section, "01", "Tərəflər və restoran məlumatları");
+        var parties = CreateDetailsTable(section);
+        AddDetail(parties, "Platforma", "E-Cafe");
+        AddDetail(parties, "Restoran", data.RestaurantName);
+        AddDetail(parties, "Hüquqi ad", data.LegalName);
+        AddDetail(parties, "Filial", data.BranchName);
+        AddDetail(parties, "Ünvan", data.Location);
+        AddDetail(parties, "Telefon", data.Phone);
+        AddDetail(parties, "E-poçt", Display(data.Email));
+
+        AddSectionHeading(section, "02", "Müqavilə şərtləri");
+        var terms = CreateDetailsTable(section);
+        AddDetail(terms, "Başlama tarixi", FormatDate(data.StartDate));
+        AddDetail(terms, "Bitmə tarixi", FormatDate(data.EndDate));
+        AddDetail(terms, "Müqavilə məbləği", FormatAmount(data.Amount));
+        AddDetail(terms, "Komissiya", data.CommissionPercent.HasValue
+            ? $"{data.CommissionPercent.Value.ToString("0.##", Azerbaijani)}%" : "—");
+        AddDetail(terms, "Personal hesablaşması", data.StaffSettlementPeriod.HasValue
+            ? $"Hər {data.StaffSettlementPeriod.Value} gündən bir" : "—");
+        AddDetail(terms, "Ödəniş siyasəti", data.PaymentPolicyId == (int)ContractPaymentPolicy.OnlineOnly
+            ? "Yalnız onlayn ödəniş" : $"Kod: {data.PaymentPolicyId}");
+
+        AddSectionHeading(section, "03", "Təsdiq");
+        var note = section.AddParagraph();
+        note.Format.SpaceAfter = Unit.FromPoint(15);
+        note.Format.Font.Color = Muted;
+        note.AddText("Bu sənəd sistem tərəfindən avtomatik yaradılıb. Restoran sahibi sənədi oxuyub " +
+            "təsdiq etdikdən sonra platforma admini müqaviləni aktivləşdirir.");
+
+        AddSignatures(section);
+        return document;
+    }
+
+    private static void AddHeader(Section section)
+    {
+        var header = section.Headers.Primary;
+        var table = header.AddTable();
+        table.AddColumn(Unit.FromCentimeter(1.25));
+        table.AddColumn(Unit.FromCentimeter(15.55));
+        var row = table.AddRow();
+        row.VerticalAlignment = VerticalAlignment.Center;
+        var image = row.Cells[0].AddImage("base64:" + Convert.ToBase64String(Logo));
+        image.Width = Unit.FromCentimeter(1.15);
+        image.LockAspectRatio = true;
+
+        var brand = row.Cells[1].AddParagraph("E-Cafe");
+        brand.Format.Font.Size = 15;
+        brand.Format.Font.Bold = true;
+        brand.Format.Font.Color = Ink;
+
+        var rule = header.AddParagraph();
+        rule.Format.SpaceBefore = Unit.FromPoint(5);
+        rule.Format.Borders.Bottom.Width = Unit.FromPoint(1);
+        rule.Format.Borders.Bottom.Color = Accent;
+    }
+
+    private static void AddFooter(Section section, string contractNumber)
+    {
+        var footer = section.Footers.Primary.AddParagraph();
+        footer.Format.Borders.Top.Width = Unit.FromPoint(0.5);
+        footer.Format.Borders.Top.Color = Border;
+        footer.Format.SpaceBefore = Unit.FromPoint(6);
+        footer.Format.Font.Size = 8;
+        footer.Format.Font.Color = Muted;
+        footer.Format.AddTabStop(Unit.FromCentimeter(16.8), TabAlignment.Right);
+        footer.AddText($"E-Cafe  ·  {contractNumber}");
+        footer.AddTab();
+        footer.AddText("Səhifə ");
+        footer.AddPageField();
+    }
+
+    private static void AddTitle(Section section, RestaurantContractDocumentData data)
+    {
+        var eyebrow = section.AddParagraph("RESTORAN XİDMƏTLƏRİ");
+        eyebrow.Format.Font.Size = 8;
+        eyebrow.Format.Font.Bold = true;
+        eyebrow.Format.Font.Color = Accent;
+        eyebrow.Format.SpaceAfter = Unit.FromPoint(7);
+
+        var title = section.AddParagraph("Müqavilə");
+        title.Format.Font.Size = 23;
+        title.Format.Font.Bold = true;
+        title.Format.Font.Color = Ink;
+        title.Format.SpaceAfter = Unit.FromPoint(8);
+
+        var number = section.AddParagraph();
+        number.Format.SpaceAfter = Unit.FromPoint(21);
+        number.AddFormattedText("Müqavilə №  ").Font.Color = Muted;
+        number.AddFormattedText(data.ContractNumber).Bold = true;
+    }
+
+    private static void AddSectionHeading(Section section, string number, string title)
+    {
+        var heading = section.AddParagraph();
+        heading.Format.SpaceBefore = Unit.FromPoint(17);
+        heading.Format.SpaceAfter = Unit.FromPoint(9);
+        heading.Format.KeepWithNext = true;
+        heading.AddFormattedText(number + "   ").Font.Color = Accent;
+        var text = heading.AddFormattedText(title);
+        text.Bold = true;
+        text.Font.Size = 11;
+    }
+
+    private static PdfTable CreateDetailsTable(Section section)
+    {
+        var table = section.AddTable();
+        table.AddColumn(Unit.FromCentimeter(5.1));
+        table.AddColumn(Unit.FromCentimeter(11.7));
+        table.Borders.Bottom.Width = Unit.FromPoint(0.4);
+        table.Borders.Bottom.Color = Border;
+        return table;
+    }
+
+    private static void AddDetail(PdfTable table, string label, string value)
+    {
+        var row = table.AddRow();
+        row.TopPadding = Unit.FromPoint(6);
+        row.BottomPadding = Unit.FromPoint(6);
+        row.Borders.Bottom.Width = Unit.FromPoint(0.4);
+        row.Borders.Bottom.Color = Border;
+        row.Cells[0].Shading.Color = Surface;
+        var labelParagraph = row.Cells[0].AddParagraph(label);
+        labelParagraph.Format.LeftIndent = Unit.FromPoint(8);
+        labelParagraph.Format.Font.Size = 8.5;
+        labelParagraph.Format.Font.Color = Muted;
+        var valueParagraph = row.Cells[1].AddParagraph(Display(value));
+        valueParagraph.Format.LeftIndent = Unit.FromPoint(10);
+        valueParagraph.Format.Font.Size = 9;
+        valueParagraph.Format.Font.Bold = true;
+    }
+
+    private static void AddSignatures(Section section)
+    {
+        var table = section.AddTable();
+        table.AddColumn(Unit.FromCentimeter(8.1));
+        table.AddColumn(Unit.FromCentimeter(0.6));
+        table.AddColumn(Unit.FromCentimeter(8.1));
+        var row = table.AddRow();
+        foreach (var (index, title) in new[] { (0, "Platforma nümayəndəsi"), (2, "Restoran nümayəndəsi") })
         {
-            var lines = BuildContractLines(data);
-            var content = BuildPageContent(lines);
-            var objects = new List<string>
-            {
-                "<< /Type /Catalog /Pages 2 0 R >>",
-                "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
-                "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /Contents 6 0 R >>",
-                "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
-                "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>",
-                $"<< /Length {Encoding.ASCII.GetByteCount(content)} >>\nstream\n{content}\nendstream"
-            };
-
-            return WritePdf(objects);
+            var cell = row.Cells[index];
+            var label = cell.AddParagraph(title);
+            label.Format.Font.Size = 8;
+            label.Format.Font.Color = Muted;
+            label.Format.SpaceAfter = Unit.FromPoint(25);
+            var line = cell.AddParagraph("Ad, soyad / imza");
+            line.Format.Borders.Top.Width = Unit.FromPoint(0.5);
+            line.Format.Borders.Top.Color = Border;
+            line.Format.SpaceBefore = Unit.FromPoint(3);
+            line.Format.Font.Size = 7.5;
+            line.Format.Font.Color = Muted;
         }
+    }
 
-        private static IReadOnlyList<PdfLine> BuildContractLines(RestaurantContractDocumentData data)
-            => new List<PdfLine>
-            {
-                PdfLine.Title("E-Cafe Restoran Muqavilesi"),
-                PdfLine.Subtitle(data.ContractNumber),
-                PdfLine.Empty(),
-                PdfLine.Section("Terefler"),
-                PdfLine.Body($"Restoran: {data.RestaurantName}"),
-                PdfLine.Body($"Huquqi ad: {data.LegalName}"),
-                PdfLine.Body($"Filial: {data.BranchName}"),
-                PdfLine.Body($"Unvan: {data.Location}"),
-                PdfLine.Body($"Telefon: {data.Phone}"),
-                PdfLine.Body($"Email: {data.Email}"),
-                PdfLine.Empty(),
-                PdfLine.Section("Muqavile sertleri"),
-                PdfLine.Body($"Baslama tarixi: {FormatDate(data.StartDate)}"),
-                PdfLine.Body($"Bitme tarixi: {FormatDate(data.EndDate)}"),
-                PdfLine.Body($"Muqavile meblegi: {FormatAmount(data.Amount)}"),
-                PdfLine.Body($"Komissiya: {FormatPercent(data.CommissionPercent)}"),
-                PdfLine.Body($"Personal hesablasma dovru: {FormatSettlementPeriod(data.StaffSettlementPeriod)}"),
-                PdfLine.Body($"Odenis siyaseti ID: {data.PaymentPolicyId}"),
-                PdfLine.Empty(),
-                PdfLine.Section("Qeyd"),
-                PdfLine.Body("Bu sened sistem terefinden avtomatik yaradilib."),
-                PdfLine.Body("Restoran sahibi senedi oxuyub tesdiq etdikden sonra platforma admini muqavileni aktivlesdirir.")
-            };
+    private static string Display(string? value)
+        => string.IsNullOrWhiteSpace(value) ? "—" : value.Trim();
 
-        private static string BuildPageContent(IReadOnlyList<PdfLine> lines)
+    private static string FormatDate(DateTime? value)
+        => value.HasValue ? value.Value.ToString("dd.MM.yyyy", Azerbaijani) : "—";
+
+    private static string FormatAmount(decimal value)
+        => value.ToString("N2", Azerbaijani) + " AZN";
+
+    private static void EnsureFontsRegistered()
+    {
+        if (GlobalFontSettings.FontResolver is not null)
+            return;
+
+        lock (FontRegistrationLock)
         {
-            var builder = new StringBuilder();
-            var y = 790;
-
-            foreach (var line in lines)
-            {
-                if (line.IsEmpty)
-                {
-                    y -= 16;
-                    continue;
-                }
-
-                var font = line.Kind == PdfLineKind.Text ? "F1" : "F2";
-                var fontSize = line.Kind switch
-                {
-                    PdfLineKind.Title => 20,
-                    PdfLineKind.Subtitle => 14,
-                    PdfLineKind.Section => 12,
-                    _ => 10
-                };
-
-                builder.Append("BT ")
-                    .Append('/').Append(font).Append(' ').Append(fontSize).Append(" Tf ")
-                    .Append("50 ").Append(y.ToString(CultureInfo.InvariantCulture)).Append(" Td ")
-                    .Append('(').Append(EscapePdfText(NormalizePdfText(line.Value))).Append(") Tj ET\n");
-
-                y -= line.Kind == PdfLineKind.Title ? 28 : 20;
-            }
-
-            return builder.ToString();
+            GlobalFontSettings.FontResolver ??= new EmbeddedNotoFontResolver();
         }
+    }
 
-        private static byte[] WritePdf(IReadOnlyList<string> objects)
-        {
-            using var stream = new MemoryStream();
-            using var writer = new StreamWriter(stream, Encoding.ASCII, leaveOpen: true);
-            var offsets = new List<long> { 0 };
+    private static byte[] LoadResource(string fileName)
+    {
+        var name = typeof(ContractDocumentGenerator).Namespace!
+            .Replace("Services.RestaurantContract.Concrete", "Templates.Contracts") + "." + fileName;
+        using var stream = typeof(ContractDocumentGenerator).Assembly.GetManifestResourceStream(name)
+            ?? throw new InvalidOperationException($"Missing contract document asset: {name}");
+        using var memory = new MemoryStream();
+        stream.CopyTo(memory);
+        return memory.ToArray();
+    }
 
-            writer.Write("%PDF-1.4\n");
-            writer.Write("%\u00E2\u00E3\u00CF\u00D3\n");
-            writer.Flush();
+    private sealed class EmbeddedNotoFontResolver : IFontResolver
+    {
+        public const string FamilyName = "Noto Sans ECafe";
+        private static readonly byte[] Regular = LoadResource("NotoSans-Regular.ttf");
+        private static readonly byte[] Bold = LoadResource("NotoSans-Bold.ttf");
 
-            for (var index = 0; index < objects.Count; index++)
-            {
-                offsets.Add(stream.Position);
-                writer.Write(index + 1);
-                writer.Write(" 0 obj\n");
-                writer.Write(objects[index]);
-                writer.Write("\nendobj\n");
-                writer.Flush();
-            }
+        public FontResolverInfo? ResolveTypeface(string familyName, bool isBold, bool isItalic)
+            => new(isBold ? "NotoSans-Bold" : "NotoSans-Regular");
 
-            var xrefOffset = stream.Position;
-            writer.Write("xref\n");
-            writer.Write("0 ");
-            writer.Write(objects.Count + 1);
-            writer.Write("\n");
-            writer.Write("0000000000 65535 f \n");
-
-            for (var index = 1; index < offsets.Count; index++)
-            {
-                writer.Write(offsets[index].ToString("0000000000", CultureInfo.InvariantCulture));
-                writer.Write(" 00000 n \n");
-            }
-
-            writer.Write("trailer\n");
-            writer.Write($"<< /Size {objects.Count + 1} /Root 1 0 R >>\n");
-            writer.Write("startxref\n");
-            writer.Write(xrefOffset.ToString(CultureInfo.InvariantCulture));
-            writer.Write("\n%%EOF");
-            writer.Flush();
-
-            return stream.ToArray();
-        }
-
-        private static string NormalizePdfText(string value)
-            => value
-                .Replace('ə', 'e').Replace('Ə', 'E')
-                .Replace('ı', 'i').Replace('I', 'I')
-                .Replace('İ', 'I').Replace('ö', 'o')
-                .Replace('Ö', 'O').Replace('ü', 'u')
-                .Replace('Ü', 'U').Replace('ğ', 'g')
-                .Replace('Ğ', 'G').Replace('ş', 's')
-                .Replace('Ş', 'S').Replace('ç', 'c')
-                .Replace('Ç', 'C');
-
-        private static string EscapePdfText(string value)
-            => value.Replace("\\", "\\\\").Replace("(", "\\(").Replace(")", "\\)");
-
-        private static string FormatDate(DateTime? value)
-            => value.HasValue ? value.Value.ToString("yyyy-MM-dd") : "-";
-
-        private static string FormatPercent(decimal? value)
-            => value.HasValue ? $"{value:0.##}%" : "-";
-
-        private static string FormatAmount(decimal value)
-            => $"{value:0.##} AZN";
-
-        private static string FormatSettlementPeriod(int? value)
-            => value.HasValue ? $"{value} gun" : "-";
-
-        private sealed record PdfLine(PdfLineKind Kind, string Value)
-        {
-            public bool IsEmpty => Kind == PdfLineKind.Empty;
-
-            public static PdfLine Title(string text) => new(PdfLineKind.Title, text);
-
-            public static PdfLine Subtitle(string text) => new(PdfLineKind.Subtitle, text);
-
-            public static PdfLine Section(string text) => new(PdfLineKind.Section, text);
-
-            public static PdfLine Body(string text) => new(PdfLineKind.Text, text);
-
-            public static PdfLine Empty() => new(PdfLineKind.Empty, string.Empty);
-        }
-
-        private enum PdfLineKind
-        {
-            Empty,
-            Title,
-            Subtitle,
-            Section,
-            Text
-        }
+        public byte[]? GetFont(string faceName)
+            => faceName == "NotoSans-Bold" ? Bold : Regular;
     }
 }
