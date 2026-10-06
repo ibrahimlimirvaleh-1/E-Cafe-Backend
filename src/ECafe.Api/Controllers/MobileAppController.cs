@@ -45,6 +45,33 @@ public sealed class MobileAppController(
         => Ok(await Mediator.Send(new GetPublicMobileReleaseQuery(restaurantId)));
 
     [Authorize]
+    [HttpGet(ApiRoutes.MobileApp.CustomerAccess)]
+    public async Task<IActionResult> GetCustomerAccess()
+        => Ok(await Mediator.Send(new GetCustomerMobileAccessQuery()));
+
+    [Authorize]
+    [EnableRateLimiting(RateLimitPolicyNames.MobileRelease)]
+    [HttpGet(ApiRoutes.MobileApp.CustomerRelease)]
+    public async Task<IActionResult> GetCustomerRelease(CancellationToken cancellationToken)
+    {
+        Response.Headers.CacheControl = "private, no-store";
+        return Ok(await Mediator.Send(new GetCustomerMobileReleaseQuery(), cancellationToken));
+    }
+
+    [Authorize]
+    [EnableRateLimiting(RateLimitPolicyNames.MobileRelease)]
+    [HttpGet(ApiRoutes.MobileApp.CustomerDownload)]
+    public async Task<IActionResult> DownloadCustomerRelease(CancellationToken cancellationToken)
+    {
+        await Mediator.Send(new GetCustomerMobileAccessQuery(), cancellationToken);
+        var release = await releaseArtifacts.OpenVerifiedAsync(cancellationToken);
+        if (release is null)
+            return NotFound();
+
+        return StreamPrivateRelease(release);
+    }
+
+    [Authorize]
     [HttpGet(ApiRoutes.MobileApp.StaffRestaurantAccess)]
     public async Task<IActionResult> GetStaffAccess(int restaurantId)
         => Ok(await Mediator.Send(new GetStaffMobileAccessQuery(restaurantId)));
@@ -68,11 +95,7 @@ public sealed class MobileAppController(
         if (release is null)
             return NotFound();
 
-        Response.Headers.CacheControl = "private, no-store";
-        Response.Headers.Pragma = "no-cache";
-        Response.Headers.XContentTypeOptions = "nosniff";
-        return File(release.Content, "application/vnd.android.package-archive",
-            $"ECafe-{release.Version}.apk", enableRangeProcessing: true);
+        return StreamPrivateRelease(release);
     }
 
     [Authorize]
@@ -89,5 +112,14 @@ public sealed class MobileAppController(
     {
         await installations.DeactivateAsync(installationId, cancellationToken);
         return NoContent();
+    }
+
+    private IActionResult StreamPrivateRelease(VerifiedMobileRelease release)
+    {
+        Response.Headers.CacheControl = "private, no-store";
+        Response.Headers.Pragma = "no-cache";
+        Response.Headers.XContentTypeOptions = "nosniff";
+        return File(release.Content, "application/vnd.android.package-archive",
+            $"ECafe-{release.Version}.apk", enableRangeProcessing: true);
     }
 }

@@ -1,8 +1,10 @@
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using ECafe.Application.Common.Exceptions;
 using ECafe.Application.Features.MobileApp;
 using ECafe.Domain.Entities;
+using ECafe.Domain.Enums;
 using ECafe.Domain.Exceptions;
 using ECafe.Infrastructure.Context;
 using Microsoft.AspNetCore.DataProtection;
@@ -31,6 +33,8 @@ public sealed class MobilePushInstallationService(
         var now = DateTime.UtcNow;
         if (!await IsSessionActiveAsync(userId, sessionId, now, cancellationToken))
             throw new UnauthorizedException(ErrorCode.SessionInvalid);
+        if (!await IsEligibleAccountAsync(userId, cancellationToken))
+            throw new ForbiddenException("Mobile access is not available for this account.");
 
         var tokenHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(request.ExpoPushToken)));
         await using var transaction = context.Database.IsRelational()
@@ -141,4 +145,19 @@ public sealed class MobilePushInstallationService(
             x.UserId == userId && x.SessionId == sessionId &&
             x.RevokedAt == null && x.ExpiresAt > now && x.User.IsActive,
             cancellationToken);
+
+    private Task<bool> IsEligibleAccountAsync(int userId, CancellationToken cancellationToken)
+    {
+        var activeContractStatusId = StatusIds.Contract(ContractStatus.Active);
+        return context.Users.AnyAsync(user => user.Id == userId && user.IsActive &&
+            (user.RoleId == (int)RoleCode.Customer || user.UserRestaurants.Any(assignment =>
+                assignment.IsActive &&
+                (assignment.RoleId == (int)RoleCode.Owner ||
+                 assignment.RoleId == (int)RoleCode.Manager ||
+                 assignment.RoleId == (int)RoleCode.Waiter ||
+                 assignment.RoleId == (int)RoleCode.Kitchen) &&
+                assignment.Restaurant.IsActive && assignment.Restaurant.ShowMobileDownloadLink &&
+                assignment.Restaurant.Contracts.Any(contract => contract.StatusId == activeContractStatusId))),
+            cancellationToken);
+    }
 }
