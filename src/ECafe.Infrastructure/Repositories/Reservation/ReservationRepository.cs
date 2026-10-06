@@ -164,7 +164,7 @@ public class ReservationRepository : BaseRepository<Domain.Entities.Reservation>
                 reservation.Id == reservationId &&
                 reservation.RestaurantId == restaurantId &&
                 reservation.ReservedAt <= nowUtc &&
-                reservation.NoShowDeadlineAt >= nowUtc)
+                reservation.NoShowDeadlineAt > nowUtc)
             .AnyAsync(cancellationToken);
     }
 
