@@ -92,6 +92,44 @@ public sealed class MobilePushDeliveryTests
     }
 
     [Fact]
+    public async Task StaffPushRequiresMatchingActiveRestaurantAssignmentAtExpansionAndSend()
+    {
+        await using var context = CreateContext();
+        var protector = new EphemeralDataProtectionProvider();
+        await SeedEligibleRecipientAsync(context, protector);
+        context.Users.Single().RoleId = (int)RoleCode.Manager;
+        context.UserRestaurants.Add(new UserRestaurant
+        {
+            Id = 1, UserId = 1, RestaurantId = 1,
+            RoleId = (int)RoleCode.Manager, IsActive = true
+        });
+        await context.SaveChangesAsync();
+        var configuration = ReadyConfiguration();
+        var processor = new MobilePushDeliveryProcessor(context, configuration, protector, new FakeTransport());
+
+        new MobilePushOutboxWriter(context, configuration).Enqueue(new Notification
+        {
+            UserId = 1, RestaurantId = 1, ChannelId = (int)NotificationChannel.InApp
+        });
+        await context.SaveChangesAsync();
+        await processor.ExpandOutboxAsync(10, CancellationToken.None);
+        Assert.Single(context.MobilePushDeliveries);
+
+        context.UserRestaurants.Single().IsActive = false;
+        await context.SaveChangesAsync();
+        await processor.SendPendingAsync(10, CancellationToken.None);
+        Assert.Equal(MobilePushDeliveryStatus.Suppressed, context.MobilePushDeliveries.Single().Status);
+
+        new MobilePushOutboxWriter(context, configuration).Enqueue(new Notification
+        {
+            UserId = 1, RestaurantId = 1, ChannelId = (int)NotificationChannel.InApp
+        });
+        await context.SaveChangesAsync();
+        await processor.ExpandOutboxAsync(10, CancellationToken.None);
+        Assert.Single(context.MobilePushDeliveries);
+    }
+
+    [Fact]
     public async Task OldTokenReceiptCannotDeactivateRotatedToken()
     {
         await using var context = CreateContext();
@@ -245,7 +283,8 @@ public sealed class MobilePushDeliveryTests
         context.Users.Add(new User
         {
             Id = 1, Name = "Test", Surname = "User", Email = "test@example.com",
-            Phone = "1", Password = "test", IsActive = true
+            Phone = "1", Password = "test", IsActive = true,
+            RoleId = (int)RoleCode.Customer
         });
         context.UserRefreshTokens.Add(new UserRefreshToken
         {

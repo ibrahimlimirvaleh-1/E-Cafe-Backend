@@ -74,7 +74,8 @@ public sealed class MobilePushDeliveryProcessor(
                 continue;
             }
 
-            if (await IsRestaurantEntitledAsync(payload.RestaurantId, cancellationToken))
+            if (await IsRestaurantEntitledAsync(payload.RestaurantId, cancellationToken) &&
+                await IsRecipientEligibleAsync(payload.UserId, payload.RestaurantId, cancellationToken))
             {
                 var installationIds = await context.MobilePushInstallations
                     .Where(x => x.UserId == payload.UserId && x.IsActive)
@@ -271,7 +272,8 @@ public sealed class MobilePushDeliveryProcessor(
         if (!IsReady() ||
             delivery.CreatedAt.Add(ReceiptLifetime) <= DateTime.UtcNow ||
             !Guid.TryParse(configuration["MobileApp:ExpoProjectId"], out var projectId) ||
-            !await IsRestaurantEntitledAsync(delivery.RestaurantId, cancellationToken))
+            !await IsRestaurantEntitledAsync(delivery.RestaurantId, cancellationToken) ||
+            !await IsRecipientEligibleAsync(delivery.UserId, delivery.RestaurantId, cancellationToken))
             return null;
 
         var installation = await context.MobilePushInstallations
@@ -296,6 +298,15 @@ public sealed class MobilePushDeliveryProcessor(
             x.Contracts.Any(c => c.StatusId == activeContractStatusId),
             cancellationToken);
     }
+
+    private Task<bool> IsRecipientEligibleAsync(int userId, int restaurantId, CancellationToken cancellationToken)
+        => context.Users.AnyAsync(user => user.Id == userId && user.IsActive &&
+            (user.RoleId == (int)RoleCode.Customer || user.UserRestaurants.Any(assignment =>
+                assignment.RestaurantId == restaurantId && assignment.IsActive &&
+                (assignment.RoleId == (int)RoleCode.Owner ||
+                 assignment.RoleId == (int)RoleCode.Manager ||
+                 assignment.RoleId == (int)RoleCode.Waiter ||
+                 assignment.RoleId == (int)RoleCode.Kitchen))), cancellationToken);
 
     private async Task DeactivateIfStillSameTokenAsync(
         MobilePushInstallation installation,
