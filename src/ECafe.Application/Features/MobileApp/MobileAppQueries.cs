@@ -34,7 +34,7 @@ public sealed record StaffMobileAccessResponse(int RestaurantId, bool Enabled);
 
 public sealed record CustomerMobileAccessResponse(bool Enabled);
 
-public sealed record StaffMobileReleaseResponse(
+public sealed record PrivateMobileReleaseResponse(
     bool Ready, string? DownloadPath, string? Version, int? VersionCode, long? SizeBytes, string? Sha256);
 
 public sealed record GetMobileModuleQuery(int RestaurantId) : IRequest<MobileModuleResponse>;
@@ -48,7 +48,9 @@ public sealed record GetStaffMobileAccessQuery(int RestaurantId) : IRequest<Staf
 
 public sealed record GetCustomerMobileAccessQuery : IRequest<CustomerMobileAccessResponse>;
 
-public sealed record GetStaffMobileReleaseQuery(int RestaurantId) : IRequest<StaffMobileReleaseResponse>;
+public sealed record GetStaffMobileReleaseQuery(int RestaurantId) : IRequest<PrivateMobileReleaseResponse>;
+
+public sealed record GetCustomerMobileReleaseQuery : IRequest<PrivateMobileReleaseResponse>;
 
 public sealed record GetMobilePublicationQuery : IRequest<MobilePublicationResponse>;
 
@@ -67,7 +69,8 @@ public sealed class MobileAppQueryHandler(
       IRequestHandler<GetPublicMobileReleaseQuery, MobileReleaseResponse>,
       IRequestHandler<GetStaffMobileAccessQuery, StaffMobileAccessResponse>,
       IRequestHandler<GetCustomerMobileAccessQuery, CustomerMobileAccessResponse>,
-      IRequestHandler<GetStaffMobileReleaseQuery, StaffMobileReleaseResponse>,
+      IRequestHandler<GetStaffMobileReleaseQuery, PrivateMobileReleaseResponse>,
+      IRequestHandler<GetCustomerMobileReleaseQuery, PrivateMobileReleaseResponse>,
       IRequestHandler<GetMobilePublicationQuery, MobilePublicationResponse>,
       IRequestHandler<UpdateMobilePublicationCommand, MobilePublicationResponse>
 {
@@ -142,19 +145,31 @@ public sealed class MobileAppQueryHandler(
         return new(request.RestaurantId, enabled);
     }
 
-    public async Task<StaffMobileReleaseResponse> Handle(GetStaffMobileReleaseQuery request, CancellationToken cancellationToken)
+    public async Task<PrivateMobileReleaseResponse> Handle(GetStaffMobileReleaseQuery request, CancellationToken cancellationToken)
     {
         var access = await Handle(new GetStaffMobileAccessQuery(request.RestaurantId), cancellationToken);
         if (!access.Enabled)
             return new(false, null, null, null, null, null);
 
+        var path = "/" + ApiRoutes.MobileApp.StaffRestaurantDownload.Replace(
+            "{restaurantId:int}", request.RestaurantId.ToString());
+        return await GetVerifiedReleaseAsync(path, cancellationToken);
+    }
+
+    public async Task<PrivateMobileReleaseResponse> Handle(GetCustomerMobileReleaseQuery request, CancellationToken cancellationToken)
+    {
+        await Handle(new GetCustomerMobileAccessQuery(), cancellationToken);
+        return await GetVerifiedReleaseAsync("/" + ApiRoutes.MobileApp.CustomerDownload, cancellationToken);
+    }
+
+    private async Task<PrivateMobileReleaseResponse> GetVerifiedReleaseAsync(
+        string downloadPath, CancellationToken cancellationToken)
+    {
         await using var release = await releaseArtifacts.OpenVerifiedAsync(cancellationToken);
         if (release is null)
             return new(false, null, null, null, null, null);
 
-        var path = "/" + ApiRoutes.MobileApp.StaffRestaurantDownload.Replace(
-            "{restaurantId:int}", request.RestaurantId.ToString());
-        return new(true, path, release.Version, release.VersionCode, release.SizeBytes, release.Sha256);
+        return new(true, downloadPath, release.Version, release.VersionCode, release.SizeBytes, release.Sha256);
     }
 
     public async Task<MobilePublicationResponse> Handle(GetMobilePublicationQuery request, CancellationToken cancellationToken)

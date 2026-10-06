@@ -107,6 +107,58 @@ public sealed class MobileAppModuleTests
     }
 
     [Fact]
+    public async Task CustomerReleaseRequiresCurrentCustomerAndNoRestaurantGrant()
+    {
+        var path = Path.GetTempFileName();
+        try
+        {
+            var content = new byte[] { 1, 2, 3, 4, 5 };
+            await System.IO.File.WriteAllBytesAsync(path, content);
+            var settings = ReadySettings();
+            settings["MobileApp:Release:ApkPath"] = path;
+            settings["MobileApp:Release:SizeBytes"] = content.Length.ToString();
+            settings["MobileApp:Release:Sha256"] = Convert.ToHexString(SHA256.HashData(content));
+
+            await using var context = CreateContext();
+            context.Users.Add(new User
+            {
+                Id = 8, Name = "Customer", Surname = "User", Email = "customer@example.com",
+                Phone = "123", Password = "x", IsActive = true, RoleId = (int)RoleCode.Customer
+            });
+            await context.SaveChangesAsync();
+
+            var handler = CreateHandler(context, RoleCode.Manager, 8, settings);
+            var release = await handler.Handle(new GetCustomerMobileReleaseQuery(), CancellationToken.None);
+            Assert.True(release.Ready);
+            Assert.Equal("/api/v1/mobile/customer/download", release.DownloadPath);
+            Assert.Equal(Convert.ToHexString(SHA256.HashData(content)).ToLowerInvariant(), release.Sha256);
+            Assert.False((await handler.Handle(new GetPublicMobileReleaseQuery(null), CancellationToken.None)).IsVisible);
+
+            context.Users.Single().IsActive = false;
+            await context.SaveChangesAsync();
+            await Assert.ThrowsAsync<ForbiddenException>(() => handler.Handle(
+                new GetCustomerMobileReleaseQuery(), CancellationToken.None));
+
+            context.Users.Single().IsActive = true;
+            context.Users.Single().RoleId = (int)RoleCode.Manager;
+            await context.SaveChangesAsync();
+            handler = CreateHandler(context, RoleCode.Customer, 8, settings);
+            await Assert.ThrowsAsync<ForbiddenException>(() => handler.Handle(
+                new GetCustomerMobileReleaseQuery(), CancellationToken.None));
+
+            context.Users.Single().RoleId = (int)RoleCode.Customer;
+            await context.SaveChangesAsync();
+            settings["MobileApp:Release:Sha256"] = new string('a', 64);
+            handler = CreateHandler(context, RoleCode.Customer, 8, settings);
+            Assert.False((await handler.Handle(new GetCustomerMobileReleaseQuery(), CancellationToken.None)).Ready);
+        }
+        finally
+        {
+            System.IO.File.Delete(path);
+        }
+    }
+
+    [Fact]
     public async Task ReleaseNeedsVerifiedPrivateFileAndNeverExposesPublicUrl()
     {
         var path = Path.GetTempFileName();

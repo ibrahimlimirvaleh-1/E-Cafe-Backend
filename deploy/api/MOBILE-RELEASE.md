@@ -1,8 +1,12 @@
 # Private Android release
 
-The Android APK supports customer and restaurant-staff sign-in. APK download
-endpoints are for authenticated restaurant staff only; customers install the
-verified test APK directly. Global/public APK publication remains disabled.
+The Android APK supports customer and restaurant-staff sign-in. An active
+Customer account can request private release metadata and download the APK
+through `/api/v1/mobile/customer/release` and
+`/api/v1/mobile/customer/download`; no restaurant grant is required. Staff
+downloads remain gated by their restaurant assignment, active restaurant and
+contract, and the admin-controlled `ShowMobileDownloadLink` flag. Global/public
+APK publication remains disabled.
 Only the platform admin changes each restaurant's `MobilePushEnabled` and
 `ShowMobileDownloadLink` settings in the admin panel. Deployment must not
 change those tenant settings.
@@ -15,7 +19,9 @@ change those tenant settings.
 - Set `MobileApp__Release__Ready=true` only with an independently verified,
   signed APK, absolute container `ApkPath`, `Version`, positive `VersionCode`,
   exact `SizeBytes` and SHA-256. The API checks size and hash before returning
-  staff release metadata or bytes. A missing or mismatched APK stays unavailable.
+  customer or staff release metadata or bytes. A missing or mismatched APK stays
+  unavailable. Each download rechecks current account access; a stale JWT role
+  does not override the active role in the database.
 - `MobileApp__PushDeliveryReady` is a separate technical test switch. It must
   be true before phone token registration; it does not prove phone delivery.
   Set it only after the matching APK, Expo project and FCM V1 assignment are
@@ -93,3 +99,19 @@ the override restores the baked `Release:Ready=false` and
 Revoking server-side release access blocks future metadata/download requests,
 but cannot remove an APK already installed. The native app must also check
 access on login, restore, restaurant switch and resume, and fail closed.
+
+## Build5 replacement plan (not deployed by this code change)
+
+After separate deployment approval, verify the signed local build5 receipt and
+APK before uploading: package `com.ecafeadmins.ecafemobile`, version `0.1.0`,
+version code `5`, size `72196663`, SHA-256
+`4d79477bb71d96fcbbebeec65472c1e79506998ca28940dc4704a31d8490b683`,
+and signing certificate SHA-256
+`969b540437d08c7193ee7063e5a804d220c74f26b107aa060840dc0709d15f94`.
+Stage it as a separate private artifact, retaining build4 for rollback. Replace
+only the APK path, version code, size and hash in a restricted Compose override;
+preserve existing data-protection mounts, Expo/push settings and tenant flags.
+Validate the merged Compose configuration, API health, container-side hash and
+authenticated customer/staff metadata and download gates. A failed validation
+must restore the previous build4 override. A code push does not make build5
+available on the server or establish physical push delivery.
