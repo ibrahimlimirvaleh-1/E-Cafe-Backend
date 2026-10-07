@@ -24,6 +24,8 @@ namespace ECafe.Infrastructure.Configurations.Concrete
             builder.Property(e => e.CancellationGraceDeadlineAt).HasColumnName("cancellation_grace_deadline_at");
             builder.Property(e => e.CancellationWindowMinutes).HasColumnName("cancellation_window_minutes");
             builder.Property(e => e.CheckedInByUserId).HasColumnName("checked_in_by_user_id");
+            builder.Property(e => e.ArrivedAt).HasColumnName("arrived_at");
+            builder.Property(e => e.ArrivedByUserId).HasColumnName("arrived_by_user_id");
             builder.Property(e => e.ConfirmedAt).HasColumnName("confirmed_at");
             builder.Property(e => e.CustomerUserId).HasColumnName("customer_user_id");
             builder.Property(e => e.DepositAmount)
@@ -64,6 +66,11 @@ namespace ECafe.Infrastructure.Configurations.Concrete
                 .HasForeignKey(d => d.CheckedInByUserId)
                 .OnDelete(DeleteBehavior.SetNull)
                 .HasConstraintName("reservations_checked_in_by_user_id_fkey");
+
+            builder.HasOne(d => d.ArrivedByUser).WithMany()
+                .HasForeignKey(d => d.ArrivedByUserId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("reservations_arrived_by_user_id_fkey");
 
             builder.HasOne(d => d.CancelledByUser).WithMany()
                 .HasForeignKey(d => d.CancelledByUserId)

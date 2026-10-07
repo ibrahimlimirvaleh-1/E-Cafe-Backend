@@ -51,7 +51,8 @@ namespace ECafe.Infrastructure.Seeders
                 PermissionCode.ViewRestaurantInfo,
                 PermissionCode.ViewRestaurantContracts,
                 PermissionCode.ViewInventory,
-                PermissionCode.ViewRecipes
+                PermissionCode.ViewRecipes,
+                PermissionCode.RecordReservationArrival
 
             });
             // Manager
@@ -70,7 +71,8 @@ namespace ECafe.Infrastructure.Seeders
                 PermissionCode.ViewInventory,
                 PermissionCode.ManageInventory,
                 PermissionCode.ViewRecipes,
-                PermissionCode.ManageRecipes
+                PermissionCode.ManageRecipes,
+                PermissionCode.RecordReservationArrival
 
             });
 
@@ -81,7 +83,9 @@ namespace ECafe.Infrastructure.Seeders
                 PermissionCode.ViewAssignedReservations,
                 PermissionCode.ManageOrders,
                 PermissionCode.ManagePayments,
-                PermissionCode.ViewOwnWallet
+                PermissionCode.ViewOwnWallet,
+                PermissionCode.RecordReservationArrival,
+                PermissionCode.SeatReservationGuest
             });
 
             // Kitchen

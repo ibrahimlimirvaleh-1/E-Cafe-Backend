@@ -14,7 +14,15 @@ public static class RestaurantTimeZoneConverter
     {
         var timeZone = FindTimeZone(timeZoneId);
         var localDate = TimeZoneInfo.ConvertTime(utcDateTime.ToUniversalTime(), timeZone).Date;
-        var localStart = DateTime.SpecifyKind(localDate, DateTimeKind.Unspecified);
+        return GetUtcDayRange(DateOnly.FromDateTime(localDate), timeZoneId);
+    }
+
+    public static (DateTime StartUtc, DateTime EndUtc) GetUtcDayRange(
+        DateOnly localDate,
+        string? timeZoneId)
+    {
+        var timeZone = FindTimeZone(timeZoneId);
+        var localStart = DateTime.SpecifyKind(localDate.ToDateTime(TimeOnly.MinValue), DateTimeKind.Unspecified);
         var localEnd = localStart.AddDays(1);
 
         return (

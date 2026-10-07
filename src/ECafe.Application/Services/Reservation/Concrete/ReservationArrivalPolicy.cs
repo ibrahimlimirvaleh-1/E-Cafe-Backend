@@ -1,5 +1,6 @@
 using ECafe.Domain.Entities;
 using ECafe.Domain.Enums;
+using ECafe.Domain.Exceptions;
 using ECafe.Domain.Services;
 using ECafe.Shared.Extensions;
 using ReservationEntity = ECafe.Domain.Entities.Reservation;
@@ -10,8 +11,30 @@ public sealed record ReservationArrivalWindow(DateTime MaximumDeadlineAt, DateTi
 
 public static class ReservationArrivalPolicy
 {
+    public static bool CanRecordPhysicalArrival(ReservationEntity reservation, DateTime nowUtc)
+        => reservation.StatusId == StatusIds.Reservation(ReservationStatus.Confirmed) &&
+           reservation.ArrivedAt == null &&
+           reservation.ReservedAt <= nowUtc &&
+           reservation.NoShowDeadlineAt > nowUtc &&
+           (reservation.MustVacateAt == null || reservation.MustVacateAt > nowUtc);
+
+    public static ErrorCode? GetSeatingConflict(ReservationEntity reservation, DateTime nowUtc)
+        => reservation switch
+        {
+            { StatusId: var statusId } when statusId != StatusIds.Reservation(ReservationStatus.Confirmed)
+                => ErrorCode.ReservationSeatingRequiresConfirmation,
+            { ReservedAt: var reservedAt } when reservedAt > nowUtc
+                => ErrorCode.ReservationSeatingBeforeStart,
+            { ArrivedAt: null, NoShowDeadlineAt: var deadline } when deadline <= nowUtc
+                => ErrorCode.ReservationSeatingWindowExpired,
+            { MustVacateAt: { } mustVacateAt } when mustVacateAt <= nowUtc
+                => ErrorCode.ReservationVacateTimeExpired,
+            _ => null
+        };
+
     public static bool CanRequest(ReservationEntity reservation, DateTime nowUtc)
         => reservation.StatusId == StatusIds.Reservation(ReservationStatus.Confirmed) &&
+           reservation.ArrivedAt == null &&
            reservation.ArrivalAdjustment?.AcceptedAt == null &&
            reservation.Restaurant.IsActive && reservation.Table.IsActive && !reservation.Table.IsDeleted &&
            reservation.Table.Capacity >= reservation.PeopleCount &&

@@ -7,6 +7,7 @@ using ECafe.Application.Repositories.ReservationRefund;
 using ECafe.Application.Repository;
 using ECafe.Application.Services.Workflow.Abstract;
 using ECafe.Domain.Enums;
+using ECafe.Domain.Exceptions;
 using ECafe.Domain.Workflow;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
@@ -106,6 +107,22 @@ public class WorkflowActionManager : BaseManager, IWorkflowActionService
                 .ToList();
         }
 
+        if (restaurantId.HasValue &&
+            entityId.HasValue &&
+            normalizedFlowCode == WorkflowFlowCode.FromStatusType(StatusType.Reservation) &&
+            !await _reservationRepository.IsMarkArrivalWindowOpenAsync(
+                restaurantId.Value,
+                entityId.Value,
+                DateTime.UtcNow))
+        {
+            rules = rules
+                .Where(rule => !string.Equals(
+                    rule.ActionCode,
+                    WorkflowActionCode.Reservation.MarkArrived,
+                    StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
+
         if (roleId == (int)RoleCode.Customer &&
             restaurantId.HasValue &&
             entityId.HasValue &&
@@ -176,7 +193,19 @@ public class WorkflowActionManager : BaseManager, IWorkflowActionService
                 entityId.Value,
                 DateTime.UtcNow))
         {
-            throw new ForbiddenException("Müştərini masaya əyləşdirmək üçün uyğun vaxt deyil.");
+            throw new ForbiddenException(ErrorCode.ReservationSeatingWindowExpired);
+        }
+
+        if (restaurantId.HasValue &&
+            entityId.HasValue &&
+            string.Equals(normalizedFlowCode, WorkflowFlowCode.FromStatusType(StatusType.Reservation), StringComparison.Ordinal) &&
+            string.Equals(normalizedActionCode, WorkflowActionCode.Reservation.MarkArrived, StringComparison.OrdinalIgnoreCase) &&
+            !await _reservationRepository.IsMarkArrivalWindowOpenAsync(
+                restaurantId.Value,
+                entityId.Value,
+                DateTime.UtcNow))
+        {
+            throw new ForbiddenException(ErrorCode.ReservationArrivalCannotBeRecorded);
         }
 
         var exists = await _workflowActionRuleRepository.CheckExistAsync(rule =>

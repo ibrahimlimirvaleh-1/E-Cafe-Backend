@@ -278,6 +278,37 @@ public sealed class ReservationManager : BaseManager, IReservationService
         return MapPage(reservations, request);
     }
 
+    public async Task<PaginatedList<ReservationServiceItemResponse>> GetServiceReservationsAsync(
+        int restaurantId,
+        RestaurantReservationsQueryRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        await EnsureRestaurantServiceRoleAsync(restaurantId, RoleCode.Waiter, RoleCode.Manager, RoleCode.Owner);
+        var reservations = await _reservationRepository.GetForServiceAsync(
+            restaurantId, request, cancellationToken);
+
+        return new PaginatedList<ReservationServiceItemResponse>(
+            reservations.Items.Select(reservation => new ReservationServiceItemResponse
+            {
+                Id = reservation.Id,
+                RestaurantId = reservation.RestaurantId,
+                TableId = reservation.TableId,
+                TableName = reservation.Table.Name ?? $"Masa {reservation.Table.TableNo}",
+                CustomerName = $"{reservation.CustomerUser.Name} {reservation.CustomerUser.Surname}".Trim(),
+                PeopleCount = reservation.PeopleCount,
+                StatusId = reservation.StatusId,
+                TimeZone = reservation.Restaurant.TimeZone,
+                ReservedAt = ToUtcOffset(reservation.ReservedAt)!.Value,
+                NoShowDeadlineAt = ToUtcOffset(reservation.NoShowDeadlineAt)!.Value,
+                MustVacateAt = ToUtcOffset(reservation.MustVacateAt),
+                ArrivedAt = ToUtcOffset(reservation.ArrivedAt),
+                SeatedAt = ToUtcOffset(reservation.SeatedAt)
+            }).ToList(),
+            reservations.TotalCount,
+            reservations.PageIndex,
+            Math.Clamp(request.PageSize, 1, 100));
+    }
+
     public async Task<ReservationResponse> GetRestaurantReservationByIdAsync(
         int restaurantId,
         int reservationId,
@@ -387,7 +418,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
     {
         ValidateRestaurantId(restaurantId);
         ValidateReservationId(reservationId);
-        await EnsureRestaurantReservationAccessAsync(restaurantId);
+        await EnsureRestaurantServiceRoleAsync(restaurantId, RoleCode.Waiter);
 
         var userId = GetCurrentUserId();
         var confirmedStatusId = StatusIds.Reservation(ReservationStatus.Confirmed);
@@ -397,40 +428,22 @@ public sealed class ReservationManager : BaseManager, IReservationService
             IsolationLevel.ReadCommitted,
             cancellationToken);
 
-        var snapshot = await _reservationRepository.GetByIdForRestaurantSnapshotAsync(
-            reservationId,
-            restaurantId,
-            cancellationToken)
-            ?? throw new NotFoundException(ErrorCode.ReservationNotFound);
-
-        await _tableRepository.AcquireReservationLockAsync(
-            restaurantId,
-            snapshot.TableId,
-            cancellationToken);
-
-        var reservation = await _reservationRepository.GetByIdForRestaurantAsync(
-            reservationId,
-            restaurantId,
-            cancellationToken)
-            ?? throw new NotFoundException(ErrorCode.ReservationNotFound);
+        var reservation = await LoadLockedRestaurantReservationAsync(
+            restaurantId, reservationId, cancellationToken);
 
         var nowUtc = DateTime.UtcNow;
 
         await _workflowActionService.EnsureCanExecuteAsync(
             ReservationFlowCode,
             reservation.StatusId,
-            "checkIn",
+            WorkflowActionCode.Reservation.CheckIn,
             restaurantId,
             reservation.Id);
 
-        if (reservation.StatusId != confirmedStatusId)
-            throw new BusinessRuleException("Bu rezervasiya müştərini masaya əyləşdirmək üçün təsdiqlənməyib.");
+        if (ReservationArrivalPolicy.GetSeatingConflict(reservation, nowUtc) is { } conflict)
+            throw new BusinessRuleException(conflict);
 
-        if (reservation.ReservedAt > nowUtc)
-            throw new BusinessRuleException("Rezervasiya vaxtı hələ çatmayıb.");
-
-        if (reservation.NoShowDeadlineAt <= nowUtc)
-            throw new BusinessRuleException("Müştərini masaya əyləşdirmək üçün ayrılan vaxt bitib.");
+        await EnsureRestaurantOpenForArrivalAsync(restaurantId, nowUtc, cancellationToken);
 
         if (await _tableRepository.HasOpenTableSessionAsync(restaurantId, reservation.TableId))
             throw new BusinessRuleException(ErrorCode.TableAlreadyReserved);
@@ -447,8 +460,11 @@ public sealed class ReservationManager : BaseManager, IReservationService
         });
 
         reservation.StatusId = seatedStatusId;
+        reservation.ArrivedAt ??= nowUtc;
+        reservation.ArrivedByUserId ??= userId;
         reservation.SeatedAt = nowUtc;
         reservation.CheckedInByUserId = userId;
+        reservation.WaiterUserId = userId;
         reservation.StatusHistory.Add(new ReservationStatusHistory
         {
             FromStatusId = confirmedStatusId,
@@ -479,6 +495,60 @@ public sealed class ReservationManager : BaseManager, IReservationService
             seatedStatusId,
             ReservationStatus.Seated,
             "Müştərinin gəlişi təsdiqləndi və masa açıldı.");
+    }
+
+    public async Task<ReservationActionResponse> MarkArrivalAsync(
+        int restaurantId,
+        int reservationId,
+        CancellationToken cancellationToken = default)
+    {
+        ValidateRestaurantId(restaurantId);
+        ValidateReservationId(reservationId);
+        await EnsureRestaurantServiceRoleAsync(restaurantId, RoleCode.Waiter, RoleCode.Manager, RoleCode.Owner);
+
+        await using var transaction = await _transactionFactory.BeginTransactionAsync(
+            IsolationLevel.ReadCommitted, cancellationToken);
+
+        var reservation = await LoadLockedRestaurantReservationAsync(
+            restaurantId, reservationId, cancellationToken);
+
+        if (reservation.StatusId == StatusIds.Reservation(ReservationStatus.Confirmed) &&
+            reservation.ArrivedAt != null)
+        {
+            await transaction.CommitAsync(cancellationToken);
+            return BuildActionResponse(
+                reservation.Id, reservation.StatusId, ReservationStatus.Confirmed,
+                "Müştərinin gəlişi artıq qeydə alınıb; masa hələ açılmayıb.");
+        }
+
+        await _workflowActionService.EnsureCanExecuteAsync(
+            ReservationFlowCode, reservation.StatusId,
+            WorkflowActionCode.Reservation.MarkArrived, restaurantId, reservation.Id);
+
+        var nowUtc = DateTime.UtcNow;
+        if (!ReservationArrivalPolicy.CanRecordPhysicalArrival(reservation, nowUtc))
+            throw new BusinessRuleException(ErrorCode.ReservationArrivalCannotBeRecorded);
+
+        await EnsureRestaurantOpenForArrivalAsync(restaurantId, nowUtc, cancellationToken);
+
+        reservation.ArrivedAt = nowUtc;
+        reservation.ArrivedByUserId = GetCurrentUserId();
+        await _reservationRepository.SaveChangesAsync();
+
+        await NotifyReservationCustomerAsync(
+            restaurantId, reservation, NotificationType.ReservationArrived,
+            "Gəlişiniz qeydə alındı",
+            $"Rezervasiya #{reservation.Id} üzrə restorana gəlişiniz qeydə alındı. Masa hələ açılmayıb.");
+        await _auditLogService.RecordRestaurantActionAsync(
+            restaurantId, AuditActions.ReservationArrived,
+            new { reservationId = reservation.Id, tableId = reservation.TableId },
+            AuditEntityTypes.Reservation, reservation.Id);
+
+        await transaction.CommitAsync(cancellationToken);
+
+        return BuildActionResponse(
+            reservation.Id, reservation.StatusId, ReservationStatus.Confirmed,
+            "Müştərinin gəlişi qeydə alındı; masa hələ açılmayıb.");
     }
 
     public async Task<ReservationActionResponse> CompleteReservationAsync(
@@ -1280,6 +1350,8 @@ public sealed class ReservationManager : BaseManager, IReservationService
             TableId = reservation.TableId,
             ReservedAt = ToUtcOffset(reservation.ReservedAt)!.Value,
             NoShowDeadlineAt = ToUtcOffset(reservation.NoShowDeadlineAt)!.Value,
+            ArrivedAt = ToUtcOffset(reservation.ArrivedAt),
+            SeatedAt = ToUtcOffset(reservation.SeatedAt),
             MustVacateAt = ToUtcOffset(reservation.MustVacateAt),
             PeopleCount = reservation.PeopleCount,
             TimeZone = reservation.Restaurant?.TimeZone,
@@ -1373,6 +1445,8 @@ public sealed class ReservationManager : BaseManager, IReservationService
         return new ReservationHistoryResponse
         {
             ReservationId = reservation.Id,
+            ArrivedAt = ToUtcOffset(reservation.ArrivedAt),
+            SeatedAt = ToUtcOffset(reservation.SeatedAt),
             Items = items
         };
     }
@@ -1898,6 +1972,41 @@ public sealed class ReservationManager : BaseManager, IReservationService
         var roleId = GetCurrentRoleId(restaurantId);
         if (!ReservationManagerRoleIds.Contains(roleId))
             throw new ForbiddenException(ErrorCode.OnlyRestaurantManagersCanSendPaymentInstruction);
+    }
+
+    private async Task<Domain.Entities.Reservation> LoadLockedRestaurantReservationAsync(
+        int restaurantId, int reservationId, CancellationToken cancellationToken)
+    {
+        var snapshot = await _reservationRepository.GetByIdForRestaurantSnapshotAsync(
+            reservationId, restaurantId, cancellationToken)
+            ?? throw new NotFoundException(ErrorCode.ReservationNotFound);
+
+        await _tableRepository.AcquireReservationLockAsync(
+            restaurantId, snapshot.TableId, cancellationToken);
+
+        return await _reservationRepository.GetByIdForRestaurantAsync(
+            reservationId, restaurantId, cancellationToken)
+            ?? throw new NotFoundException(ErrorCode.ReservationNotFound);
+    }
+
+    private async Task EnsureRestaurantServiceRoleAsync(int restaurantId, params RoleCode[] allowedRoles)
+    {
+        EnsureCurrentUserCanAccessRestaurant(restaurantId);
+        if (!allowedRoles.Contains((RoleCode)GetCurrentRoleId(restaurantId)) ||
+            !await _userRestaurantRepository.UserBelogsToRestaurantAsync(GetCurrentUserId(), restaurantId))
+        {
+            throw new ForbiddenException(ErrorCode.RestaurantServiceActionForbidden);
+        }
+    }
+
+    private async Task EnsureRestaurantOpenForArrivalAsync(
+        int restaurantId, DateTime nowUtc, CancellationToken cancellationToken)
+    {
+        if (!await _reservationRepository.IsRestaurantOpenAsync(
+                restaurantId, nowUtc, cancellationToken))
+        {
+            throw new BusinessRuleException(ErrorCode.RestaurantClosedForArrival);
+        }
     }
 
     private static DateTimeOffset? ToUtcOffset(DateTime? value)

@@ -1,5 +1,6 @@
 using ECafe.Application.Features.Queries.Reservation.GetRestaurant;
 using ECafe.Application.Features.Queries.Reservation.GetRestaurantHistory;
+using ECafe.Application.Features.Queries.Reservation.GetService;
 using ECafe.Domain.Enums;
 using ECafe.Infrastructure.Authorization;
 using Microsoft.AspNetCore.Authorization;
@@ -11,6 +12,18 @@ namespace ECafe.Api.Controllers;
 [Authorize]
 public sealed class RestaurantReservationController : BaseController
 {
+    [HasPermission(PermissionCode.RecordReservationArrival)]
+    [HttpGet(ApiRoutes.RestaurantReservation.GetService)]
+    public async Task<IActionResult> GetService(
+        [FromRoute] int restaurantId,
+        [FromQuery] GetServiceReservationsQuery request,
+        CancellationToken cancellationToken)
+    {
+        request.RestaurantId = restaurantId;
+        var result = await Mediator.Send(request, cancellationToken);
+        return Ok(result);
+    }
+
     [HasPermission(PermissionCode.ManageReservations)]
     [HttpGet(ApiRoutes.RestaurantReservation.GetList)]
     public async Task<IActionResult> GetList(

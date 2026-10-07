@@ -54,6 +54,10 @@ public partial class Reservation : AuditableSoftDeletableEntity<int>
 
     public DateTime? SeatedAt { get; set; }
 
+    public DateTime? ArrivedAt { get; set; }
+
+    public int? ArrivedByUserId { get; set; }
+
     public DateTime? CompletedAt { get; set; }
 
     public int? CheckedInByUserId { get; set; }
@@ -73,6 +77,8 @@ public partial class Reservation : AuditableSoftDeletableEntity<int>
     public virtual User? CancelledByUser { get; set; }
 
     public virtual User? CheckedInByUser { get; set; }
+
+    public virtual User? ArrivedByUser { get; set; }
 
     public virtual User? CompletedByUser { get; set; }
 

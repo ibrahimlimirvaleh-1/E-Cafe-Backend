@@ -81,6 +81,12 @@ namespace ECafe.Domain.Enums
         ManageRecipes,
 
         [Description("Restoran məlumatlarını redaktə etmək")]
-        EditRestaurantInfo
+        EditRestaurantInfo,
+
+        [Description("Rezervasiya müştərisinin gəlişini qeyd etmək")]
+        RecordReservationArrival,
+
+        [Description("Rezervasiya müştərisini masaya əyləşdirmək")]
+        SeatReservationGuest
     }
 }

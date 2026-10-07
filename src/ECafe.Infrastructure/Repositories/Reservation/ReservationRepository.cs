@@ -2,6 +2,7 @@ using ECafe.Application.DTOs.Reservation;
 using ECafe.Application.Repositories.Reservation;
 using ECafe.Domain.Entities;
 using ECafe.Domain.Enums;
+using ECafe.Domain.Services;
 using ECafe.Infrastructure.Context;
 using ECafe.Shared.DTOs;
 using Microsoft.EntityFrameworkCore;
@@ -164,8 +165,43 @@ public class ReservationRepository : BaseRepository<Domain.Entities.Reservation>
                 reservation.Id == reservationId &&
                 reservation.RestaurantId == restaurantId &&
                 reservation.ReservedAt <= nowUtc &&
-                reservation.NoShowDeadlineAt > nowUtc)
+                (reservation.MustVacateAt == null || reservation.MustVacateAt > nowUtc) &&
+                (reservation.NoShowDeadlineAt > nowUtc || reservation.ArrivedAt != null))
             .AnyAsync(cancellationToken);
+    }
+
+    public Task<bool> IsMarkArrivalWindowOpenAsync(
+        int restaurantId,
+        int reservationId,
+        DateTime nowUtc,
+        CancellationToken cancellationToken = default)
+    {
+        return Query(reservation =>
+                reservation.Id == reservationId &&
+                reservation.RestaurantId == restaurantId &&
+                reservation.ReservedAt <= nowUtc &&
+                reservation.NoShowDeadlineAt > nowUtc &&
+                (reservation.MustVacateAt == null || reservation.MustVacateAt > nowUtc) &&
+                reservation.ArrivedAt == null)
+            .AnyAsync(cancellationToken);
+    }
+
+    public async Task<bool> IsRestaurantOpenAsync(
+        int restaurantId,
+        DateTime nowUtc,
+        CancellationToken cancellationToken = default)
+    {
+        var restaurant = await Context.Restaurants.AsNoTracking()
+            .Include(item => item.WorkingHours)
+            .SingleOrDefaultAsync(item => item.Id == restaurantId && item.IsActive, cancellationToken);
+        if (restaurant is null)
+            return false;
+
+        var localTime = RestaurantTimeZoneConverter.ToRestaurantLocalTime(
+            new DateTimeOffset(DateTime.SpecifyKind(nowUtc, DateTimeKind.Utc)),
+            restaurant.TimeZone);
+        return RestaurantWorkingHoursCalculator.TryGetActiveInterval(
+            restaurant.WorkingHours, localTime, out _);
     }
 
     public Task<PaginatedList<Domain.Entities.Reservation>> GetForCustomerAsync(
@@ -292,7 +328,7 @@ public class ReservationRepository : BaseRepository<Domain.Entities.Reservation>
             FromStatusId = confirmedStatusId,
             ToStatusId = noShowStatusId,
             ChangedAt = nowUtc,
-            Reason = "Müştəri gəliş üçün ayrılan vaxtda masaya əyləşmədi."
+            Reason = "Müştəri gəliş üçün ayrılan vaxtda restorana gəlmədi."
         });
 
         await Context.SaveChangesAsync(cancellationToken);
@@ -306,6 +342,7 @@ public class ReservationRepository : BaseRepository<Domain.Entities.Reservation>
 
         return QueryTracked().Where(reservation =>
             reservation.StatusId == confirmedStatusId &&
+            reservation.ArrivedAt == null &&
             reservation.NoShowDeadlineAt <= nowUtc &&
             !(reservation.ArrivalAdjustment != null &&
               reservation.ArrivalAdjustment.AcceptedAt == null &&
@@ -358,6 +395,38 @@ public class ReservationRepository : BaseRepository<Domain.Entities.Reservation>
         return CreatePageAsync(query, request, cancellationToken);
     }
 
+    public async Task<PaginatedList<Domain.Entities.Reservation>> GetForServiceAsync(
+        int restaurantId,
+        RestaurantReservationsQueryRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var confirmedStatusId = StatusIds.Reservation(ReservationStatus.Confirmed);
+        var seatedStatusId = StatusIds.Reservation(ReservationStatus.Seated);
+        IQueryable<Domain.Entities.Reservation> query = Query().Where(reservation =>
+                reservation.RestaurantId == restaurantId &&
+                (reservation.StatusId == confirmedStatusId || reservation.StatusId == seatedStatusId))
+            .Include(reservation => reservation.Table)
+            .Include(reservation => reservation.Restaurant)
+            .Include(reservation => reservation.CustomerUser);
+
+        if (request.TableId.HasValue)
+            query = query.Where(reservation => reservation.TableId == request.TableId.Value);
+
+        if (request.ReservedDate.HasValue)
+        {
+            var timeZone = await Context.Restaurants.AsNoTracking()
+                .Where(restaurant => restaurant.Id == restaurantId)
+                .Select(restaurant => restaurant.TimeZone)
+                .SingleOrDefaultAsync(cancellationToken);
+            var localDate = DateOnly.FromDateTime(request.ReservedDate.Value.Date);
+            var (startUtc, endUtc) = RestaurantTimeZoneConverter.GetUtcDayRange(localDate, timeZone);
+            query = query.Where(reservation =>
+                reservation.ReservedAt >= startUtc && reservation.ReservedAt < endUtc);
+        }
+
+        return await CreatePageAsync(query, request, cancellationToken, filterReservedDate: false);
+    }
+
     private static IQueryable<Domain.Entities.Reservation> WithDetails(
         IQueryable<Domain.Entities.Reservation> query)
     {
@@ -394,7 +463,8 @@ public class ReservationRepository : BaseRepository<Domain.Entities.Reservation>
     private static async Task<PaginatedList<Domain.Entities.Reservation>> CreatePageAsync(
         IQueryable<Domain.Entities.Reservation> query,
         ReservationQueryRequest request,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool filterReservedDate = true)
     {
         var pageNumber = Math.Max(request.PageNumber, 1);
         var pageSize = Math.Clamp(request.PageSize, 1, 100);
@@ -402,7 +472,7 @@ public class ReservationRepository : BaseRepository<Domain.Entities.Reservation>
         if (request.StatusId.HasValue)
             query = query.Where(r => r.StatusId == request.StatusId.Value);
 
-        if (request.ReservedDate.HasValue)
+        if (filterReservedDate && request.ReservedDate.HasValue)
         {
             var dayStartUtc = request.ReservedDate.Value.UtcDateTime;
             var nextDayStartUtc = dayStartUtc.AddDays(1);

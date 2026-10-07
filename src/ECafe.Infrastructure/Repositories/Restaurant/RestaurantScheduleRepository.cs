@@ -47,7 +47,7 @@ public sealed class RestaurantScheduleRepository(ECafeDbContext context) : IRest
         return context.Reservations.Include(r => r.Table).Include(r => r.CustomerUser).Include(r => r.ArrivalAdjustment)
             .Where(r => r.RestaurantId == id &&
                 (r.StatusId == seated ||
-                 r.StatusId == confirmed && (r.NoShowDeadlineAt > now || r.ArrivalAdjustment!.DecisionExpiresAt > now) ||
+                 r.StatusId == confirmed && (r.ArrivedAt != null || r.NoShowDeadlineAt > now || r.ArrivalAdjustment!.DecisionExpiresAt > now) ||
                  r.ReservedAt > now && (r.StatusId == submitted ||
                     r.StatusId == awaiting && r.RestaurantResponseExpiresAt > now ||
                     r.StatusId == pending && (r.HoldExpiresAt == null || r.HoldExpiresAt > now))))
