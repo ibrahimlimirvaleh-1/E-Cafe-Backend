@@ -4,6 +4,10 @@ public sealed class ReservationHistoryResponse
 {
     public int ReservationId { get; init; }
 
+    public DateTimeOffset? ArrivedAt { get; init; }
+
+    public DateTimeOffset? SeatedAt { get; init; }
+
     public IReadOnlyList<ReservationHistoryItemResponse> Items { get; init; }
         = Array.Empty<ReservationHistoryItemResponse>();
 }

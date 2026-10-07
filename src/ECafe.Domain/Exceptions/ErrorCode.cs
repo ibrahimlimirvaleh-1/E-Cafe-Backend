@@ -159,5 +159,12 @@ public enum ErrorCode
     ScheduleOfferAlreadyAnswered = 5055,
     ScheduleOfferCannotAccept = 5056,
     ScheduleInvalidRequest = 5057,
-    ScheduleBookingPaused = 5058
+    ScheduleBookingPaused = 5058,
+    ReservationSeatingRequiresConfirmation = 5059,
+    ReservationSeatingWindowExpired = 5060,
+    ReservationVacateTimeExpired = 5061,
+    ReservationArrivalCannotBeRecorded = 5062,
+    RestaurantServiceActionForbidden = 5063,
+    RestaurantClosedForArrival = 5064,
+    ReservationSeatingBeforeStart = 5065
 }

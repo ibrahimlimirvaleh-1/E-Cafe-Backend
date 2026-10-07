@@ -107,6 +107,29 @@ public sealed class ReservationNoShowRepositoryTests
     }
 
     [Fact]
+    public async Task ArrivalRecordedAfterCandidateSelection_PreventsNoShowWithoutOpeningSession()
+    {
+        var nowUtc = DateTime.UtcNow;
+        var options = CreateOptions();
+        await SeedAsync(options, nowUtc);
+        await using var workerContext = new ECafeDbContext(options);
+        var repository = new ReservationRepository(workerContext);
+        var candidate = Assert.Single(await repository.GetNoShowCandidatesAsync(nowUtc, 100));
+
+        await using (var arrivalContext = new ECafeDbContext(options))
+        {
+            var reservation = await arrivalContext.Reservations.SingleAsync();
+            reservation.ArrivedAt = nowUtc.AddMinutes(-2);
+            reservation.ArrivedByUserId = 5;
+            await arrivalContext.SaveChangesAsync();
+        }
+
+        Assert.Empty(await repository.GetNoShowCandidatesAsync(nowUtc, 100));
+        Assert.False(await repository.TryExpireNoShowReservationAsync(candidate, nowUtc));
+        Assert.Empty(await workerContext.TableSessions.ToListAsync());
+    }
+
+    [Fact]
     public async Task EligibleReservation_IsExpiredOnceWithOneHistoryEntry()
     {
         var nowUtc = DateTime.UtcNow;

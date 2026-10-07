@@ -3,6 +3,7 @@ using ECafe.Application.Features.Commands.Reservation.ApprovePaymentProof;
 using ECafe.Application.Features.Commands.Reservation.Cancel;
 using ECafe.Application.Features.Commands.Reservation.CancelRestaurantReservation;
 using ECafe.Application.Features.Commands.Reservation.CheckIn;
+using ECafe.Application.Features.Commands.Reservation.MarkArrival;
 using ECafe.Application.Features.Commands.Reservation.Complete;
 using ECafe.Application.Features.Commands.Reservation.RejectPaymentProof;
 using ECafe.Application.Features.Commands.Reservation.SendPaymentInstruction;
@@ -118,7 +119,23 @@ public sealed class ReservationFlowController : BaseController
         return Ok(result);
     }
 
-    [HasPermission(PermissionCode.ManageReservations)]
+    [HasPermission(PermissionCode.RecordReservationArrival)]
+    [HttpPost(ApiRoutes.ReservationFlow.MarkArrived)]
+    public async Task<IActionResult> MarkArrived(
+        [FromRoute] int restaurantId,
+        [FromRoute] int reservationId,
+        CancellationToken cancellationToken)
+    {
+        var result = await Mediator.Send(new MarkReservationArrivalCommand
+        {
+            RestaurantId = restaurantId,
+            ReservationId = reservationId
+        }, cancellationToken);
+
+        return Ok(result);
+    }
+
+    [HasPermission(PermissionCode.SeatReservationGuest)]
     [HttpPost(ApiRoutes.ReservationFlow.CheckIn)]
     public async Task<IActionResult> CheckIn(
         [FromRoute] int restaurantId,

@@ -2,12 +2,16 @@ using ECafe.Domain.Entities;
 using ECafe.Domain.Enums;
 using ECafe.Domain.Workflow;
 using Microsoft.EntityFrameworkCore;
+using ApiRoutes = ECafe.Application.Routes.Routes;
 using StatusTypeEnum = ECafe.Domain.Enums.StatusType;
 
 namespace ECafe.Infrastructure.Seeders;
 
 public static class WorkflowActionRuleSeeder
 {
+    private const string MarkArrivalLabel = "Müştəri gəlib";
+    private const string SeatGuestLabel = "Masaya əyləşdir";
+
     private static string ReservationFlow
         => WorkflowFlowCode.FromStatusType(StatusTypeEnum.Reservation);
 
@@ -42,6 +46,7 @@ public static class WorkflowActionRuleSeeder
         AddRefundCustomerReviewRules(rules, ref id);
         AddRefundPayoutViewRules(rules, ref id);
         AddReservationDepositWaiverRules(rules, ref id);
+        AddReservationArrivalAndSeatingRules(rules, ref id);
 
         modelBuilder.Entity<WorkflowActionRule>().HasData(rules);
     }
@@ -75,8 +80,8 @@ public static class WorkflowActionRuleSeeder
 
     private static void AddReservationSessionRules(List<WorkflowActionRule> rules, ref int id)
     {
-        rules.Add(Rule(id++, ReservationFlow, StatusTypeEnum.Reservation, ReservationStatus.Confirmed, RoleCode.Manager, "checkIn", "Müştərini masaya əyləşdir", "POST", "/api/v1/restaurants/{restaurantId}/reservations/{reservationId}/check-in", 10, true));
-        rules.Add(Rule(id++, ReservationFlow, StatusTypeEnum.Reservation, ReservationStatus.Confirmed, RoleCode.Owner, "checkIn", "Müştərini masaya əyləşdir", "POST", "/api/v1/restaurants/{restaurantId}/reservations/{reservationId}/check-in", 10, true));
+        rules.Add(Rule(id++, ReservationFlow, StatusTypeEnum.Reservation, ReservationStatus.Confirmed, RoleCode.Manager, WorkflowActionCode.Reservation.MarkArrived, MarkArrivalLabel, "POST", WorkflowEndpoint(ApiRoutes.ReservationFlow.MarkArrived), 10));
+        rules.Add(Rule(id++, ReservationFlow, StatusTypeEnum.Reservation, ReservationStatus.Confirmed, RoleCode.Waiter, WorkflowActionCode.Reservation.CheckIn, SeatGuestLabel, "POST", WorkflowEndpoint(ApiRoutes.ReservationFlow.CheckIn), 20));
         rules.Add(Rule(id++, ReservationFlow, StatusTypeEnum.Reservation, ReservationStatus.Seated, RoleCode.Manager, "complete", "Masa sessiyasını bağla", "POST", "/api/v1/restaurants/{restaurantId}/reservations/{reservationId}/complete", 10, true));
         rules.Add(Rule(id++, ReservationFlow, StatusTypeEnum.Reservation, ReservationStatus.Seated, RoleCode.Owner, "complete", "Masa sessiyasını bağla", "POST", "/api/v1/restaurants/{restaurantId}/reservations/{reservationId}/complete", 10, true));
     }
@@ -198,6 +203,20 @@ public static class WorkflowActionRuleSeeder
                 requiresConfirmation: true, requiresReason: true));
         }
     }
+
+    private static void AddReservationArrivalAndSeatingRules(List<WorkflowActionRule> rules, ref int id)
+    {
+        var endpoint = WorkflowEndpoint(ApiRoutes.ReservationFlow.MarkArrived);
+        foreach (var role in new[] { RoleCode.Owner, RoleCode.Waiter })
+        {
+            rules.Add(Rule(id++, ReservationFlow, StatusTypeEnum.Reservation,
+                ReservationStatus.Confirmed, role, WorkflowActionCode.Reservation.MarkArrived,
+                MarkArrivalLabel, "POST", endpoint, 10));
+        }
+    }
+
+    private static string WorkflowEndpoint(string apiRoute)
+        => "/" + apiRoute.Replace(":int", string.Empty, StringComparison.Ordinal);
 
     private static void AddOwnerReservationRules(List<WorkflowActionRule> rules, ref int id)
     {

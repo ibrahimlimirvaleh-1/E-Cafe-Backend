@@ -20,8 +20,8 @@ public sealed class ReservationControllerOrganizationTests
 {
     [Theory]
     [InlineData(typeof(ReservationController), "GetMy,GetById,GetHistory,Create")]
-    [InlineData(typeof(RestaurantReservationController), "GetList,GetById,GetHistory")]
-    [InlineData(typeof(ReservationFlowController), "SubmitPaymentProof,Cancel,WaiveDeposit,SendPaymentInstruction,ApprovePaymentProof,RejectPaymentProof,CheckIn,Complete,CancelForRestaurant")]
+    [InlineData(typeof(RestaurantReservationController), "GetList,GetService,GetById,GetHistory")]
+    [InlineData(typeof(ReservationFlowController), "SubmitPaymentProof,Cancel,WaiveDeposit,SendPaymentInstruction,ApprovePaymentProof,RejectPaymentProof,MarkArrived,CheckIn,Complete,CancelForRestaurant")]
     [InlineData(typeof(ReservationRefundController), "GetRefund,GetRestaurantRefund,GetRefundPayoutDetails")]
     [InlineData(typeof(ReservationRefundFlowController), "RequestRefund,SubmitRefundPayoutDetails,ConfirmRefundTransfer,DisputeRefundTransfer,SubmitRefundTransfer")]
     [InlineData(typeof(ReservationArrivalController), "Get")]
@@ -79,7 +79,6 @@ public sealed class ReservationControllerOrganizationTests
     [InlineData(typeof(ReservationFlowController), nameof(ReservationFlowController.SendPaymentInstruction))]
     [InlineData(typeof(ReservationFlowController), nameof(ReservationFlowController.ApprovePaymentProof))]
     [InlineData(typeof(ReservationFlowController), nameof(ReservationFlowController.RejectPaymentProof))]
-    [InlineData(typeof(ReservationFlowController), nameof(ReservationFlowController.CheckIn))]
     [InlineData(typeof(ReservationFlowController), nameof(ReservationFlowController.Complete))]
     [InlineData(typeof(ReservationFlowController), nameof(ReservationFlowController.CancelForRestaurant))]
     [InlineData(typeof(ReservationRefundController), nameof(ReservationRefundController.GetRestaurantRefund))]
@@ -93,6 +92,32 @@ public sealed class ReservationControllerOrganizationTests
         Assert.Contains(rules, rule => rule.Policy == $"Permission:{(int)PermissionCode.ManageReservations}");
         Assert.DoesNotContain(rules, rule => !string.IsNullOrEmpty(rule.Roles));
         Assert.Empty(method.GetCustomAttributes<AllowAnonymousAttribute>());
+    }
+
+    [Theory]
+    [InlineData(nameof(ReservationFlowController.MarkArrived), PermissionCode.RecordReservationArrival)]
+    [InlineData(nameof(ReservationFlowController.CheckIn), PermissionCode.SeatReservationGuest)]
+    public void ArrivalAndSeatingHaveSeparatePermissions(string action, PermissionCode permission)
+    {
+        var method = typeof(ReservationFlowController).GetMethod(action)!;
+        var rules = method.GetCustomAttributes<AuthorizeAttribute>().ToArray();
+        Assert.Contains(rules, rule => rule.Policy == $"Permission:{(int)permission}");
+        Assert.DoesNotContain(rules, rule => rule.Policy == $"Permission:{(int)PermissionCode.ManageReservations}");
+    }
+
+    [Fact]
+    public void ServiceListRequiresArrivalPermissionAndOmitsPaymentFields()
+    {
+        var method = typeof(RestaurantReservationController).GetMethod(
+            nameof(RestaurantReservationController.GetService))!;
+        Assert.Contains(method.GetCustomAttributes<AuthorizeAttribute>(), rule =>
+            rule.Policy == $"Permission:{(int)PermissionCode.RecordReservationArrival}");
+
+        var fields = typeof(ReservationServiceItemResponse).GetProperties()
+            .Select(property => property.Name).ToArray();
+        Assert.DoesNotContain(fields, name => name.Contains("Payment", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(fields, name => name.Contains("Deposit", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(fields, name => name.Contains("Refund", StringComparison.OrdinalIgnoreCase));
     }
 
     [Theory]

@@ -22,6 +22,11 @@ public interface IReservationService
         RestaurantReservationsQueryRequest request,
         CancellationToken cancellationToken = default);
 
+    Task<PaginatedList<ReservationServiceItemResponse>> GetServiceReservationsAsync(
+        int restaurantId,
+        RestaurantReservationsQueryRequest request,
+        CancellationToken cancellationToken = default);
+
     Task<ReservationResponse> GetRestaurantReservationByIdAsync(
         int restaurantId,
         int reservationId,
@@ -42,6 +47,11 @@ public interface IReservationService
         CancellationToken cancellationToken);
 
     Task<ReservationActionResponse> CheckInReservationAsync(
+        int restaurantId,
+        int reservationId,
+        CancellationToken cancellationToken = default);
+
+    Task<ReservationActionResponse> MarkArrivalAsync(
         int restaurantId,
         int reservationId,
         CancellationToken cancellationToken = default);

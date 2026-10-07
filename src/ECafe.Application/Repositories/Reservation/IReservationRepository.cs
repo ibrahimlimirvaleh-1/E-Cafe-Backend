@@ -67,6 +67,17 @@ public interface IReservationRepository : IBaseRepository<Domain.Entities.Reserv
         DateTime nowUtc,
         CancellationToken cancellationToken = default);
 
+    Task<bool> IsMarkArrivalWindowOpenAsync(
+        int restaurantId,
+        int reservationId,
+        DateTime nowUtc,
+        CancellationToken cancellationToken = default);
+
+    Task<bool> IsRestaurantOpenAsync(
+        int restaurantId,
+        DateTime nowUtc,
+        CancellationToken cancellationToken = default);
+
     Task<PaginatedList<Domain.Entities.Reservation>> GetForCustomerAsync(
         int customerUserId,
         MyReservationsQueryRequest request,
@@ -108,6 +119,11 @@ public interface IReservationRepository : IBaseRepository<Domain.Entities.Reserv
         CancellationToken cancellationToken = default);
 
     Task<PaginatedList<Domain.Entities.Reservation>> GetForRestaurantAsync(
+        int restaurantId,
+        RestaurantReservationsQueryRequest request,
+        CancellationToken cancellationToken = default);
+
+    Task<PaginatedList<Domain.Entities.Reservation>> GetForServiceAsync(
         int restaurantId,
         RestaurantReservationsQueryRequest request,
         CancellationToken cancellationToken = default);
