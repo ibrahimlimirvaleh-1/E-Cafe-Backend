@@ -5,11 +5,8 @@ using MediatR;
 
 namespace ECafe.Application.Features.Queries.Reservation.GetService;
 
-public sealed class GetServiceReservationsQuery : RestaurantReservationsQueryRequest,
-    IRequest<PaginatedList<ReservationServiceItemResponse>>
-{
-    public int RestaurantId { get; set; }
-}
+public sealed record GetServiceReservationsQuery(int RestaurantId, RestaurantReservationsQueryRequest Filters)
+    : IRequest<PaginatedList<ReservationServiceItemResponse>>;
 
 public sealed class GetServiceReservationsQueryHandler
     : IRequestHandler<GetServiceReservationsQuery, PaginatedList<ReservationServiceItemResponse>>
@@ -25,5 +22,5 @@ public sealed class GetServiceReservationsQueryHandler
         GetServiceReservationsQuery request,
         CancellationToken cancellationToken)
         => _reservationService.GetServiceReservationsAsync(
-            request.RestaurantId, request, cancellationToken);
+            request.RestaurantId, request.Filters, cancellationToken);
 }

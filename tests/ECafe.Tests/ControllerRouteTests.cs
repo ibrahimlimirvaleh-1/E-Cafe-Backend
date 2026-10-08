@@ -1,6 +1,8 @@
 using System.Reflection;
 using System.Text.Json;
 using ECafe.Api.Controllers;
+using ECafe.Application.DTOs.Reservation;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Routing;
 using Xunit;
 using ApiRoutes = ECafe.Application.Routes.Routes;
@@ -47,6 +49,20 @@ public class ControllerRouteTests
     {
         var endpoints = GetEndpoints().ToArray();
         Assert.Equal(endpoints.Length, endpoints.Select(e => (e.HttpMethod, e.Template)).Distinct().Count());
+    }
+
+    [Theory]
+    [InlineData(nameof(RestaurantReservationController.GetService))]
+    [InlineData(nameof(RestaurantReservationController.GetList))]
+    public void Restaurant_reservation_lists_bind_restaurant_id_only_from_route(string actionName)
+    {
+        var method = typeof(RestaurantReservationController).GetMethod(actionName)!;
+        var parameters = method.GetParameters();
+
+        Assert.Single(parameters, parameter => parameter.GetCustomAttribute<FromRouteAttribute>() is not null);
+        var query = Assert.Single(parameters, parameter => parameter.GetCustomAttribute<FromQueryAttribute>() is not null);
+        Assert.Equal(typeof(RestaurantReservationsQueryRequest), query.ParameterType);
+        Assert.Null(query.ParameterType.GetProperty("RestaurantId"));
     }
 
     private static HttpEndpointContract[] SortHttpContracts(IEnumerable<EndpointContract> endpoints)
