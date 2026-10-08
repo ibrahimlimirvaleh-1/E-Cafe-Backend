@@ -384,7 +384,7 @@ public class ReservationRepository : BaseRepository<Domain.Entities.Reservation>
                 cancellationToken);
     }
 
-    public Task<PaginatedList<Domain.Entities.Reservation>> GetForRestaurantAsync(
+    public async Task<PaginatedList<Domain.Entities.Reservation>> GetForRestaurantAsync(
         int restaurantId,
         RestaurantReservationsQueryRequest request,
         CancellationToken cancellationToken = default)
@@ -392,7 +392,8 @@ public class ReservationRepository : BaseRepository<Domain.Entities.Reservation>
         var query = WithDetails(Query().Where(r => r.RestaurantId == restaurantId));
         if (request.TableId.HasValue)
             query = query.Where(r => r.TableId == request.TableId.Value);
-        return CreatePageAsync(query, request, cancellationToken);
+        query = await ApplyRestaurantDateFilterAsync(query, restaurantId, request.ReservedDate, cancellationToken);
+        return await CreatePageAsync(query, request, cancellationToken, filterReservedDate: false);
     }
 
     public async Task<PaginatedList<Domain.Entities.Reservation>> GetForServiceAsync(
@@ -412,19 +413,27 @@ public class ReservationRepository : BaseRepository<Domain.Entities.Reservation>
         if (request.TableId.HasValue)
             query = query.Where(reservation => reservation.TableId == request.TableId.Value);
 
-        if (request.ReservedDate.HasValue)
-        {
-            var timeZone = await Context.Restaurants.AsNoTracking()
-                .Where(restaurant => restaurant.Id == restaurantId)
-                .Select(restaurant => restaurant.TimeZone)
-                .SingleOrDefaultAsync(cancellationToken);
-            var localDate = DateOnly.FromDateTime(request.ReservedDate.Value.Date);
-            var (startUtc, endUtc) = RestaurantTimeZoneConverter.GetUtcDayRange(localDate, timeZone);
-            query = query.Where(reservation =>
-                reservation.ReservedAt >= startUtc && reservation.ReservedAt < endUtc);
-        }
-
+        query = await ApplyRestaurantDateFilterAsync(query, restaurantId, request.ReservedDate, cancellationToken);
         return await CreatePageAsync(query, request, cancellationToken, filterReservedDate: false);
+    }
+
+    // Gonderilen ani restoranin yerli teqvim gunune cevirib her iki siyahi ucun eyni araligi tetbiq edir.
+    private async Task<IQueryable<Domain.Entities.Reservation>> ApplyRestaurantDateFilterAsync(
+        IQueryable<Domain.Entities.Reservation> query,
+        int restaurantId,
+        DateTimeOffset? reservedDate,
+        CancellationToken cancellationToken)
+    {
+        if (!reservedDate.HasValue)
+            return query;
+
+        var timeZone = await Context.Restaurants.AsNoTracking()
+            .Where(restaurant => restaurant.Id == restaurantId)
+            .Select(restaurant => restaurant.TimeZone)
+            .SingleOrDefaultAsync(cancellationToken);
+        var (startUtc, endUtc) = RestaurantTimeZoneConverter.GetUtcDayRange(reservedDate.Value, timeZone);
+        return query.Where(reservation =>
+            reservation.ReservedAt >= startUtc && reservation.ReservedAt < endUtc);
     }
 
     private static IQueryable<Domain.Entities.Reservation> WithDetails(
