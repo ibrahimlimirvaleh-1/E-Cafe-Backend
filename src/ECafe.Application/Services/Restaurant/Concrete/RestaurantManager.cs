@@ -102,7 +102,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             {
                 var currentRestaurantId = GetCurrentRestaurantId();
                 if (!currentRestaurantId.HasValue)
-                    throw new ForbiddenException("Restaurant context is required.");
+                    throw new ForbiddenException(ErrorCode.RestaurantContextRequired);
 
                 restaurantsQuery = restaurantsQuery.Where(r => r.Id == currentRestaurantId.Value);
             }
@@ -524,6 +524,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
                 restaurant.Name);
         }
 
+        // Restoran siyahısı üçün qısa məlumatı və əlaqəli göstəriciləri cavaba yığır.
         private async Task<GetAllRestaurantsResponse> MapToGetAllRestaurantResponseAsync(Domain.Entities.Restaurant restaurant)
         {
             var response = Mapper.Map<GetAllRestaurantsResponse>(restaurant);
@@ -539,12 +540,14 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             return response;
         }
 
+        // Axtarış mətnini boş dəyər və artıq boşluqlardan təmizləyir.
         private static string? NormalizeFilter(string? value)
         {
             var normalized = value?.Trim().ToLower();
             return string.IsNullOrWhiteSpace(normalized) ? null : normalized;
         }
 
+        // Yeni restorana əvvəlcədən yüklənmiş faylları bağlayır.
         private async Task AttachRestaurantFilesAsync(
             Domain.Entities.Restaurant restaurant,
             List<int>? fileIds)
@@ -557,6 +560,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             restaurant.Files.AddRange(files);
         }
 
+        // Restoranın mövcud fayl əlaqələrini yeni seçimlə əvəz edir.
         private async Task ReplaceRestaurantFilesAsync(
             Domain.Entities.Restaurant restaurant,
             List<int> fileIds)
@@ -582,6 +586,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             restaurant.Files.AddRange(currentFiles.Concat(attachableFiles));
         }
 
+        // Fayl ID-lərinin hamısının mövcud və qoşulmağa uyğun olduğunu yoxlayır.
         private async Task<List<File>> GetAttachableFilesAsync(IEnumerable<int> fileIds)
         {
             var uniqueFileIds = fileIds.Distinct().ToList();
@@ -592,7 +597,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             var foundIds = files.Select(file => file.Id).ToHashSet();
             var missingIds = uniqueFileIds.Where(fileId => !foundIds.Contains(fileId)).ToList();
             if (missingIds.Count > 0)
-                throw new BusinessRuleException($"File(s) not found or already attached: {string.Join(", ", missingIds)}");
+                throw new BusinessRuleException(ErrorCode.FilesNotFoundOrAlreadyAttached, new { ids = string.Join(", ", missingIds) });
 
             foreach (var file in files)
                 file.FileTypeId = (int)FileTypeCode.RestaurantImage;
@@ -600,6 +605,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             return files;
         }
 
+        // Restoran şəkillərinin təhlükəsiz baxış URL-lərini cavaba doldurur.
         private async Task PopulateRestaurantImageUrlsAsync(
             GetByIdRestaurantResponse response,
             Domain.Entities.Restaurant restaurant)
@@ -609,6 +615,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
                 : await GenerateFileUrlsAsync(restaurant.Files);
         }
 
+        // Menyu kateqoriyası və məhsul şəkilləri üçün URL-ləri doldurur.
         private async Task PopulateCategoryItemFileUrlsAsync(
             GetByIdRestaurantResponse response,
             Domain.Entities.Restaurant restaurant)
@@ -629,11 +636,13 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             }));
         }
 
+        // Fayl tokeni varsa ona giriş URL-si yaradıb cavab sahəsinə yazır.
         private async Task AssignFileUrlAsync(string? token, Action<string?> assign)
         {
             assign(await TryGenerateFileUrlAsync(token));
         }
 
+        // İctimai səhifədə görünə bilən restoranı əlaqələri ilə gətirir.
         private async Task<Domain.Entities.Restaurant> GetPublicRestaurantEntityAsync(int restaurantId)
         {
             if (restaurantId <= 0)
@@ -646,6 +655,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             return restaurant;
         }
 
+        // Restoranı ictimai siyahıda göstərilən məlumatlara çevirir.
         private async Task<PublicRestaurantListItemDto> MapToPublicListItemAsync(Domain.Entities.Restaurant restaurant)
         {
             var response = Mapper.Map<PublicRestaurantListItemDto>(restaurant);
@@ -658,6 +668,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             return response;
         }
 
+        // Restoranın ictimai detal cavabını formalaşdırır.
         private async Task<PublicRestaurantDetailDto> MapToPublicDetailAsync(Domain.Entities.Restaurant restaurant)
         {
             var response = Mapper.Map<PublicRestaurantDetailDto>(restaurant);
@@ -670,6 +681,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             return response;
         }
 
+        // Restoran şəkilləri üçün istifadəçiyə veriləcək URL-lər yaradır.
         private async Task<List<string>> GenerateRestaurantImageUrlsAsync(Domain.Entities.Restaurant restaurant)
         {
             if (restaurant.Files is null || restaurant.Files.Count == 0)
@@ -678,6 +690,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             return await GenerateFileUrlsAsync(restaurant.Files);
         }
 
+        // Aktiv menyunu ictimai kateqoriya və məhsul cavablarına çevirir.
         private async Task<List<PublicMenuCategoryDto>> MapToPublicMenuAsync(Domain.Entities.Restaurant restaurant)
         {
             var categories = restaurant.Categories
@@ -703,6 +716,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             return response;
         }
 
+        // İctimai görünən işçi məlumatlarını qaytarır.
         private async Task<List<PublicStaffDto>> MapToPublicStaffAsync(Domain.Entities.Restaurant restaurant)
         {
             var staffs = restaurant.UserRestaurants
@@ -725,6 +739,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             return (await Task.WhenAll(staffTasks)).ToList();
         }
 
+        // İctimai masa məlumatlarını restoran obyektindən çıxarır.
         private List<PublicTableDto> MapToPublicTables(Domain.Entities.Restaurant restaurant)
         {
             var tables = restaurant.Tables
@@ -735,6 +750,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             return Mapper.Map<List<PublicTableDto>>(tables);
         }
 
+        // Restorana təyin olunmuş aktiv işçiləri gətirir.
         private async Task<List<UserRestaurant>> GetRestaurantStaffEntitiesAsync(int restaurantId)
         {
             if (restaurantId <= 0)
@@ -746,6 +762,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
                 .GetRestaurantStaffAsync(restaurantId);
         }
 
+        // Redaktə ediləcək restoranı dəyişiklik izlənməsi ilə gətirir.
         private async Task<Domain.Entities.Restaurant> GetTrackedRestaurantAsync(int restaurantId)
         {
             var restaurant = await _restaurantRepository.QueryTracked(x => x.Id == restaurantId)
@@ -764,6 +781,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             return restaurant;
         }
 
+        // Eyni əlaqə məlumatları ilə təkrar restoran yaradılmasının qarşısını alır.
         private async Task EnsureRestaurantDoesNotExistAsync(
             string name,
             string phone,
@@ -784,6 +802,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
                 throw new BusinessRuleException(ErrorCode.RestaurantPhoneAlreadyExists);
         }
 
+        // Seçilən restoran qrupunu yoxlayır və ya tələb olunan qrupu həll edir.
         private async Task<Domain.Entities.RestaurantGroup?> ResolveRestaurantGroupAsync(
             int? restaurantGroupId,
             string? restaurantGroupName,
@@ -823,7 +842,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
 
             var groupEmail = NormalizeEmailOrNull(restaurantGroupEmail);
             if (string.IsNullOrWhiteSpace(groupEmail))
-                throw new BusinessRuleException("Restaurant group email is required.");
+                throw new BusinessRuleException(ErrorCode.RestaurantGroupEmailRequired);
 
             return new Domain.Entities.RestaurantGroup
             {
@@ -836,11 +855,13 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             };
         }
 
+        // Boş e-poçtu null-a, dolu e-poçtu vahid formaya gətirir.
         private static string? NormalizeEmailOrNull(string? email)
             => string.IsNullOrWhiteSpace(email)
                 ? null
                 : email.Trim().ToLowerInvariant();
 
+        // Hesablanmış açıq-bağlı vəziyyətini restoran cavabına əlavə edir.
         private static void ApplyOpenState(RestaurantDetailDto response, Domain.Entities.Restaurant restaurant)
         {
             var openState = BuildOpenState(restaurant);
@@ -849,6 +870,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             response.TodayWorkingHours = openState.TodayWorkingHours;
         }
 
+        // İş saatı və saat qurşağına görə cari açıq-bağlı vəziyyəti hesablayır.
         private static RestaurantOpenStateDto BuildOpenState(Domain.Entities.Restaurant restaurant)
         {
             var localNow = GetRestaurantLocalNow(restaurant.TimeZone);
@@ -884,6 +906,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             };
         }
 
+        // Cari UTC vaxtını restoranın yerli saatına çevirir.
         private static DateTimeOffset GetRestaurantLocalNow(string? timeZone)
         {
             var utcNow = DateTimeOffset.UtcNow;
@@ -906,6 +929,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             }
         }
 
+        // Saxlanan saat qurşağı adını sistem saat qurşağına uyğunlaşdırır.
         private static TimeZoneInfo? FindTimeZone(string timeZone)
         {
             var trimmedTimeZone = timeZone.Trim();
@@ -952,9 +976,11 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             return null;
         }
 
+        // Gecə yarısını keçən iş saatı üçün əvvəlki günü müəyyən edir.
         private static DayOfWeek PreviousDay(DayOfWeek dayOfWeek)
             => dayOfWeek == DayOfWeek.Sunday ? DayOfWeek.Saturday : dayOfWeek - 1;
 
+        // Restoranın saat qurşağını etibarlı standart ada çevirir.
         private string NormalizeTimeZone(string? timeZone)
         {
             var normalizedTimeZone = string.IsNullOrWhiteSpace(timeZone)
@@ -966,10 +992,12 @@ namespace ECafe.Application.Services.Restaurant.Concrete
                 : normalizedTimeZone.Trim();
         }
 
+        // Daxil edilən həftəlik iş saatlarını saxlanma formatına gətirir.
         private static List<Domain.Entities.RestaurantWorkingHour> NormalizeWorkingHours(
             IEnumerable<RestaurantWorkingHourDto>? workingHours)
             => ScheduleTerms.NormalizeComplete(workingHours);
 
+        // İş saatı dəyişikliklərini audit üçün müqayisə oluna bilən formaya yığır.
         private static object BuildWorkingHoursAuditPayload(IEnumerable<Domain.Entities.RestaurantWorkingHour> workingHours)
             => workingHours
                 .OrderBy(hour => hour.DayOfWeek)
@@ -983,6 +1011,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
                 })
                 .ToList();
 
+        // Qrup daxilində eyni filial adının təkrarlanmasını yoxlayır.
         private async Task EnsureBranchDoesNotExistAsync(
             int? restaurantGroupId,
             string? branchName,
@@ -1003,6 +1032,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
                 throw new BusinessRuleException(ErrorCode.BranchAlreadyExistsInRestaurantGroup);
         }
 
+        // Filial adının boş olmamasını təmin edib artıq boşluqları silir.
         private static string NormalizeRequiredBranchName(string? branchName)
         {
             if (string.IsNullOrWhiteSpace(branchName))
@@ -1011,6 +1041,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             return branchName.Trim();
         }
 
+        // Qrup və filial adından göstəriləcək restoran adını yaradır.
         private static string GenerateRestaurantName(Domain.Entities.RestaurantGroup? restaurantGroup, string branchName)
         {
             var groupName = restaurantGroup?.Name?.Trim();
@@ -1021,11 +1052,12 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             return $"{groupName} {branchName}".Trim();
         }
 
+        // Mövcud sahibkarı seçir və ya yeni hesab üçün ilkin məlumatları yaradır.
         private async Task<(Domain.Entities.User Owner, bool IsNewOwner)> ResolveRestaurantOwnerAsync(RegisterRestaurantRequest request)
         {
             var ownerRequest = request.Owner;
             if (ownerRequest is null)
-                throw new BusinessRuleException("Restoran üçün sahibkar seçin və ya yeni sahibkar məlumatlarını daxil edin.");
+                throw new BusinessRuleException(ErrorCode.RestaurantOwnerSelectionRequired);
 
             var ownerId = ownerRequest.Id.GetValueOrDefault();
 
@@ -1038,13 +1070,13 @@ namespace ECafe.Application.Services.Restaurant.Concrete
 
             var ownerEmail = ResolveOwnerEmail(ownerRequest);
             if (ownerEmail is null)
-                throw new BusinessRuleException("Restoran üçün sahibkar seçin və ya yeni sahibkar emaili daxil edin.");
+                throw new BusinessRuleException(ErrorCode.RestaurantOwnerEmailRequired);
 
             var existingOwner = await _userRepository.GetOwnerByEmailAsync(ownerEmail);
             if (existingOwner is not null)
             {
                 if (!existingOwner.IsActive)
-                    throw new BusinessRuleException("Seçilən sahibkar deaktivdir.");
+                    throw new BusinessRuleException(ErrorCode.SelectedRestaurantOwnerInactive);
 
                 return (existingOwner, false);
             }
@@ -1068,28 +1100,30 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             return (owner, true);
         }
 
+        // Seçilən hesabın aktiv və sahibkar rolunda olduğunu yoxlayır.
         private static void EnsureUserCanOwnRestaurant(Domain.Entities.User? owner)
         {
             if (owner is null)
-                throw new BusinessRuleException("Seçilən sahibkar tapılmadı.");
+                throw new BusinessRuleException(ErrorCode.SelectedRestaurantOwnerNotFound);
 
             if (!owner.IsActive)
-                throw new BusinessRuleException("Seçilən sahibkar deaktivdir.");
+                throw new BusinessRuleException(ErrorCode.SelectedRestaurantOwnerInactive);
 
             if (owner.RoleId != (int)RoleCode.Owner)
-                throw new BusinessRuleException("Seçilən istifadəçi sahibkar rolunda deyil.");
+                throw new BusinessRuleException(ErrorCode.SelectedUserNotRestaurantOwner);
         }
 
+        // Yeni sahibkarın əlaqə məlumatlarının tam və unikal olduğunu yoxlayır.
         private async Task EnsureNewOwnerCanBeCreatedAsync(RegisterRestaurantOwnerRequest ownerRequest, string ownerEmail)
         {
             if (string.IsNullOrWhiteSpace(ownerRequest.FirstName))
-                throw new BusinessRuleException("Yeni sahibkarın adı daxil edilməlidir.");
+                throw new BusinessRuleException(ErrorCode.NewRestaurantOwnerFirstNameRequired);
 
             if (string.IsNullOrWhiteSpace(ownerRequest.LastName))
-                throw new BusinessRuleException("Yeni sahibkarın soyadı daxil edilməlidir.");
+                throw new BusinessRuleException(ErrorCode.NewRestaurantOwnerLastNameRequired);
 
             if (string.IsNullOrWhiteSpace(ownerRequest.Phone))
-                throw new BusinessRuleException("Yeni sahibkarın telefonu daxil edilməlidir.");
+                throw new BusinessRuleException(ErrorCode.NewRestaurantOwnerPhoneRequired);
 
             var emailExists = await _userRepository.CheckExistAsync(user => user.Email == ownerEmail);
             if (emailExists)
@@ -1101,6 +1135,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
                 throw new BusinessRuleException(ErrorCode.UserPhoneAlreadyExists);
         }
 
+        // Yeni sahibkar üçün göndərilən e-poçtu uyğun sahələrdən götürür.
         private static string? ResolveOwnerEmail(RegisterRestaurantOwnerRequest ownerRequest)
         {
             var ownerEmail = ownerRequest.Email;
@@ -1117,12 +1152,14 @@ namespace ECafe.Application.Services.Restaurant.Concrete
                 : ownerEmail.Trim().ToLowerInvariant();
         }
 
+        // Şifrə təyin edilənədək sahibkar hesabının girişini bağlayan hash yaradır.
         private static string CreateUnusablePasswordHash()
         {
             var bytes = RandomNumberGenerator.GetBytes(32);
             return BCrypt.Net.BCrypt.HashPassword(Convert.ToHexString(bytes));
         }
 
+        // İşçinin ictimai görünən profil məlumatlarını formalaşdırır.
         private async Task<StaffPublicResponseDto> MapToPublicDtoAsync(UserRestaurant staff)
         {
             var response = Mapper.Map<StaffPublicResponseDto>(staff);
@@ -1130,6 +1167,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             return response;
         }
 
+        // İşçinin yalnız səlahiyyətli istifadəçiyə açılan detalını formalaşdırır.
         private async Task<StaffDetailResponseDto> MapToDetailDtoAsync(UserRestaurant staff)
         {
             var response = Mapper.Map<StaffDetailResponseDto>(staff);
@@ -1137,6 +1175,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             return response;
         }
 
+        // Bir fayl üçün icazəli baxış URL-si yaradır.
         private async Task<string?> GenerateFileUrlAsync(File? file)
         {
             if (file == null)
@@ -1145,6 +1184,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             return await TryGenerateFileUrlAsync(file.Token);
         }
 
+        // Birdən çox faylın baxış URL-lərini ardıcıl yaradır.
         private async Task<List<string>> GenerateFileUrlsAsync(IEnumerable<File> files)
         {
             var urls = await Task.WhenAll(files.Select(file => TryGenerateFileUrlAsync(file.Token)));
@@ -1155,6 +1195,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
                 .ToList();
         }
 
+        // Boş və ya yararsız token üçün URL vermədən təhlükəsiz nəticə qaytarır.
         private async Task<string?> TryGenerateFileUrlAsync(string? token)
         {
             if (string.IsNullOrWhiteSpace(token))

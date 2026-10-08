@@ -61,7 +61,7 @@ public sealed class UserSessionManager : BaseManager, IUserSessionService
     public async Task RevokeMySessionAsync(string sessionId)
     {
         if (string.IsNullOrWhiteSpace(sessionId))
-            throw new BusinessRuleException("Session ID is required.");
+            throw new BusinessRuleException(ErrorCode.SessionIdRequired);
 
         var userId = GetCurrentUserId();
         var normalizedSessionId = sessionId.Trim();
@@ -86,6 +86,7 @@ public sealed class UserSessionManager : BaseManager, IUserSessionService
         await _userSessionStateCache.InvalidateSessionAsync(userId, normalizedSessionId);
     }
 
+    // User-Agent məlumatından müştərinin anlayacağı cihaz adını qurur.
     private string BuildDeviceLabel(string? userAgent)
     {
         if (string.IsNullOrWhiteSpace(userAgent))
@@ -104,6 +105,7 @@ public sealed class UserSessionManager : BaseManager, IUserSessionService
         return string.Join(" / ", new[] { browser, platform }.Where(label => !string.IsNullOrWhiteSpace(label)));
     }
 
+    // Uyğun cihaz nümunəsini konfiqurasiya edilmiş qaydalardan seçir.
     private static string? ResolveLabel(
         string userAgent,
         IEnumerable<UserAgentLabelPattern> patterns,
@@ -117,6 +119,7 @@ public sealed class UserSessionManager : BaseManager, IUserSessionService
             ?? fallbackLabel;
     }
 
+    // Cihaz adlandırma qaydalarını tətbiq konfiqurasiyasından oxuyur.
     private static UserSessionDeviceLabelOptions LoadDeviceLabelOptions(IConfiguration configuration)
     {
         var section = configuration.GetSection("Auth:SessionDeviceLabel");
@@ -131,6 +134,7 @@ public sealed class UserSessionManager : BaseManager, IUserSessionService
         };
     }
 
+    // User-Agent nümunələrini ayarlardan təhlükəsiz formada yükləyir.
     private static List<UserAgentLabelPattern> LoadPatterns(IConfigurationSection section)
     {
         return section

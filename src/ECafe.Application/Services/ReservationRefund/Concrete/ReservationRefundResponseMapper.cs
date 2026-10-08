@@ -95,6 +95,7 @@ internal static class ReservationRefundResponseMapper
         };
     }
 
+    // Yüklənmiş status adı yoxdursa koddan göstəriləcək ad seçir.
     private static string ResolveStatusName(int statusId, string? loadedName)
     {
         var statusValue = statusId - (int)StatusType.Refund * 1000;
@@ -106,6 +107,7 @@ internal static class ReservationRefundResponseMapper
     public static DateTimeOffset ToUtcOffset(DateTime value)
         => new(DateTime.SpecifyKind(value, DateTimeKind.Utc), TimeSpan.Zero);
 
+    // Opsional UTC tarixini API vaxt formatına çevirir.
     private static DateTimeOffset? ToNullableUtcOffset(DateTime? value)
         => value.HasValue ? ToUtcOffset(value.Value) : null;
 }

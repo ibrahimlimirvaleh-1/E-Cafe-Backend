@@ -150,6 +150,7 @@ namespace ECafe.Application.Services.InventoryMovement.Concrete
 
 
         #region Create helper method
+        // Stok hərəkətinin məbləğ və məcburi sahələrini yoxlayır.
         private static void ValidateCreateRequest(
            int inventoryItemId,
            int restaurantId,
@@ -168,6 +169,7 @@ namespace ECafe.Application.Services.InventoryMovement.Concrete
                 throw new BusinessRuleException(ErrorCode.InventoryMovementQuantityMustBeGreaterThanZero);
         }
 
+        // Stok hərəkəti üçün restoranın mövcudluğunu təsdiqləyir.
         private async Task EnsureRestaurantExistsAsync(int restaurantId)
         {
             var restaurant = await _restaurantRepository.GetRestaurantInfoAsync(restaurantId);
@@ -175,6 +177,7 @@ namespace ECafe.Application.Services.InventoryMovement.Concrete
                 throw new NotFoundException(ErrorCode.RestaurantNotFound);
         }
 
+        // Stok məhsulunu seçilən restoran daxilində gətirir.
         private async Task<Domain.Entities.InventoryItem> GetInventoryItemAsync(
             int inventoryItemId,
             int restaurantId)
@@ -183,18 +186,21 @@ namespace ECafe.Application.Services.InventoryMovement.Concrete
             return inventoryItem ?? throw new NotFoundException(ErrorCode.InventoryItemNotFound);
         }
 
+        // Hərəkətdə istifadə olunan ölçü vahidini gətirir.
         private async Task<Unit> GetUnitAsync(int unitId)
         {
             var unit = await _unitRepository.GetByIdAsync(unitId);
             return unit ?? throw new NotFoundException(ErrorCode.UnitNotFound);
         }
 
+        // Stok hərəkətinin növünü etibarlı kataloqdan seçir.
         private async Task<InventoryMovementType> GetMovementTypeAsync(int movementTypeId)
         {
             var movementType = await _inventoryMovementTypeRepository.GetByIdAsync(movementTypeId);
             return movementType ?? throw new BusinessRuleException(ErrorCode.InventoryMovementTypeNotFound);
         }
 
+        // Yoxlanmış girişdən audit edilən stok hərəkəti yaradır.
         private Domain.Entities.InventoryMovement CreateMovement(
             CreateInventoryMovementRequest request,
             int restaurantId,
@@ -211,6 +217,7 @@ namespace ECafe.Application.Services.InventoryMovement.Concrete
             return movement;
         }
 
+        // Hərəkət və yenilənmiş stok məlumatını cavaba yığır.
         private InventoryMovementResponse BuildResponse(
             Domain.Entities.InventoryMovement movement,
             Unit stockUnit,
@@ -226,6 +233,7 @@ namespace ECafe.Application.Services.InventoryMovement.Concrete
             return response;
         }
 
+        // Hərəkətin işarəsinə görə yeni stok miqdarını hesablayır.
         private static decimal ApplyStockChange(
             Domain.Entities.InventoryItem inventoryItem,
             decimal quantityChange)
@@ -239,6 +247,7 @@ namespace ECafe.Application.Services.InventoryMovement.Concrete
             return quantityAfterMovement;
         }
 
+        // Stok həddi ilk dəfə keçiləndə bildirişin lazım olub-olmadığını yoxlayır.
         private static bool ShouldNotifyLowStock(
             Domain.Entities.InventoryItem inventoryItem,
             decimal quantityBeforeMovement,
@@ -259,6 +268,7 @@ namespace ECafe.Application.Services.InventoryMovement.Concrete
             return false;
         }
 
+        // Stok bərpa olunanda növbəti azalma üçün bildiriş imkanını açır.
         private static void ResetLowStockNotificationIfStockRecovered(
             Domain.Entities.InventoryItem inventoryItem,
             decimal quantityAfterMovement)
@@ -267,6 +277,7 @@ namespace ECafe.Application.Services.InventoryMovement.Concrete
                 inventoryItem.LastLowStockNotifiedAt = null;
         }
 
+        // Həddi keçən stok üçün məsul restoran istifadəçilərini xəbərdar edir.
         private async Task NotifyLowStockAsync(
             Domain.Entities.InventoryItem inventoryItem,
             Unit stockUnit)
@@ -308,6 +319,7 @@ namespace ECafe.Application.Services.InventoryMovement.Concrete
             }
         }
 
+        // Hərəkət ID-sini biznes hərəkəti növünə çevirir.
         private static InventoryMovementTypeCode ResolveMovementTypeCode(int movementTypeId)
         {
             if (!Enum.IsDefined(typeof(InventoryMovementTypeCode), movementTypeId))
@@ -316,6 +328,7 @@ namespace ECafe.Application.Services.InventoryMovement.Concrete
             return (InventoryMovementTypeCode)movementTypeId;
         }
 
+        // Hərəkətin daxilolma və çıxış istiqamətini miqdara tətbiq edir.
         private static decimal ResolveQuantityChange(
             decimal quantity,
             InventoryMovementTypeCode movementType)
@@ -329,6 +342,7 @@ namespace ECafe.Application.Services.InventoryMovement.Concrete
             throw new BusinessRuleException(ErrorCode.InvalidInventoryMovementType);
         }
 
+        // Daxil edilən miqdarı məhsulun baza stok vahidinə çevirir.
         private static decimal ConvertToStockUnit(
             decimal quantity,
             Unit requestUnit,
@@ -344,6 +358,7 @@ namespace ECafe.Application.Services.InventoryMovement.Concrete
             return quantityInBaseUnit / stockUnit.ConversionRateToBase;
         }
 
+        // Ölçü vahidinin çevirmə üçün əsas vahidini tapır.
         private static int GetBaseUnitId(Unit unit)
             => unit.BaseUnitId ?? unit.Id;
 

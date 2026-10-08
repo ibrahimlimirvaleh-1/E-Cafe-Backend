@@ -36,7 +36,7 @@ namespace ECafe.Infrastructure.Authorization
                 requirement.RestaurantIdKey);
 
             if (!restaurantId.HasValue)
-                throw new ForbiddenException("Restaurant context is required.");
+                throw new ForbiddenException(ErrorCode.RestaurantContextRequired);
 
             try
             {

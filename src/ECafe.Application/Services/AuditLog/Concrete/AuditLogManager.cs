@@ -47,13 +47,13 @@ namespace ECafe.Application.Services.AuditLog.Concrete
             string? entityDisplayName = null)
         {
             if (restaurantId <= 0)
-                throw new BusinessRuleException("Invalid restaurant ID!");
+                throw new BusinessRuleException(ErrorCode.InvalidRestaurantIdBang);
 
             if (string.IsNullOrWhiteSpace(action))
-                throw new BusinessRuleException("Audit action is required.");
+                throw new BusinessRuleException(ErrorCode.AuditActionRequired);
 
             if (string.IsNullOrWhiteSpace(entityType))
-                throw new BusinessRuleException("Audit entity type is required.");
+                throw new BusinessRuleException(ErrorCode.AuditEntityTypeRequired);
 
             var now = DateTime.UtcNow;
             var payload = new AuditOutboxPayload
@@ -147,7 +147,7 @@ namespace ECafe.Application.Services.AuditLog.Concrete
             AuditLogFilterRequest filter)
         {
             if (restaurantId <= 0)
-                throw new BusinessRuleException("Invalid restaurant ID!");
+                throw new BusinessRuleException(ErrorCode.InvalidRestaurantIdBang);
 
             EnsureCurrentUserCanAccessRestaurant(restaurantId);
 
@@ -217,10 +217,11 @@ namespace ECafe.Application.Services.AuditLog.Concrete
             return paginatedResponse;
         }
 
+        // Outbox hadisəsini audit yazısına çevirib etibarlı şəkildə saxlayır.
         private async Task ProcessOutboxEventAsync(Domain.Entities.OutboxEvent outboxEvent)
         {
             if (outboxEvent.EventType != OutboxEventTypes.AuditLogRequested)
-                throw new BusinessRuleException($"Unsupported outbox event type: {outboxEvent.EventType}");
+                throw new BusinessRuleException(ErrorCode.UnsupportedOutboxEventType, new { eventType = outboxEvent.EventType });
 
             var exists = await _auditLogRepository.CheckExistAsync(x => x.EventId == outboxEvent.Id);
             if (exists)
@@ -228,7 +229,7 @@ namespace ECafe.Application.Services.AuditLog.Concrete
 
             var payload = JsonSerializer.Deserialize<AuditOutboxPayload>(outboxEvent.Payload, JsonOptions);
             if (payload is null)
-                throw new BusinessRuleException("Audit outbox payload is invalid.");
+                throw new BusinessRuleException(ErrorCode.AuditOutboxPayloadInvalid);
 
             var auditLog = new Domain.Entities.AuditLog
             {
@@ -254,6 +255,7 @@ namespace ECafe.Application.Services.AuditLog.Concrete
             await _auditLogRepository.Add(auditLog);
         }
 
+        // Audit metadata-sından istifadəçiyə göstərilən sahə dəyişikliklərini çıxarır.
         private static List<AuditLogDetailResponse> BuildDetails(string? metadata)
         {
             if (string.IsNullOrWhiteSpace(metadata))
@@ -314,6 +316,7 @@ namespace ECafe.Application.Services.AuditLog.Concrete
             }
         }
 
+        // JSON metadata-sından sahəni yalnız mətn dəyəri kimi oxuyur.
         private static string? ReadString(JsonElement element, string propertyName)
         {
             if (!element.TryGetProperty(propertyName, out var property))
@@ -324,11 +327,13 @@ namespace ECafe.Application.Services.AuditLog.Concrete
                 : ElementToDisplayValue(property);
         }
 
+        // JSON sahəsini tipindən asılı olaraq mətnə çevirir.
         private static string? ReadElementAsString(JsonElement element, string propertyName)
             => element.TryGetProperty(propertyName, out var property)
                 ? ElementToDisplayValue(property)
                 : null;
 
+        // JSON dəyərini audit ekranında göstərilə bilən formaya gətirir.
         private static string? ElementToDisplayValue(JsonElement element)
             => element.ValueKind switch
             {
@@ -340,6 +345,7 @@ namespace ECafe.Application.Services.AuditLog.Concrete
                 _ => element.GetRawText()
             };
 
+        // İstifadəçiyə aid olmayan texniki metadata sahələrini gizlədir.
         private static bool ShouldSkipTechnicalField(
             string field,
             IReadOnlyDictionary<string, JsonElement> properties)
@@ -359,6 +365,7 @@ namespace ECafe.Application.Services.AuditLog.Concrete
             return false;
         }
 
+        // Audit sahə adını ekranda oxunaqlı etiketə çevirir.
         private static string ToFriendlyLabel(string field)
             => field.Trim() switch
             {
@@ -378,6 +385,7 @@ namespace ECafe.Application.Services.AuditLog.Concrete
                 _ => SplitCamelCase(field)
             };
 
+        // Status və digər kod dəyərlərini istifadəçi üçün anlaşılan ada çevirir.
         private static string? ToFriendlyValue(string field, string? value)
         {
             if (string.IsNullOrWhiteSpace(value))
@@ -393,6 +401,7 @@ namespace ECafe.Application.Services.AuditLog.Concrete
             return value;
         }
 
+        // Məlum status ID-sini status kataloqundakı ada uyğunlaşdırır.
         private static string? ResolveKnownStatusName(int statusId)
         {
             var statusTypeId = statusId / 1000;
@@ -405,10 +414,12 @@ namespace ECafe.Application.Services.AuditLog.Concrete
             return null;
         }
 
+        // Kod sahə adındakı sözləri oxunaqlı formada ayırır.
         private static string SplitCamelCase(string value)
             => string.Concat(value.Select((character, index) =>
                 index > 0 && char.IsUpper(character) ? $" {character}" : character.ToString()));
 
+        // Audit üçün tokenin istifadəçi ID-sini mümkün olduqda götürür.
         private int? TryGetCurrentUserId()
         {
             var userIdClaim = HttpContextAccessor.HttpContext?.User.FindFirst("userId")?.Value;
@@ -417,6 +428,7 @@ namespace ECafe.Application.Services.AuditLog.Concrete
                 : null;
         }
 
+        // Audit üçün tokenin rol ID-sini mümkün olduqda götürür.
         private int? TryGetCurrentRoleId()
         {
             var roleClaim = GetClaimValue(ClaimTypes.Role);
@@ -425,6 +437,7 @@ namespace ECafe.Application.Services.AuditLog.Concrete
                 : null;
         }
 
+        // Əməliyyatı edən şəxsin göstəriləcək adını claim-lərdən yığır.
         private string? GetActorFullName()
         {
             var name = GetClaimValue(ClaimTypes.Name) ?? GetClaimValue("name");
@@ -433,12 +446,14 @@ namespace ECafe.Application.Services.AuditLog.Concrete
             return string.IsNullOrWhiteSpace(fullName) ? null : fullName.Trim();
         }
 
+        // Sorğudakı istifadəçi claim-inin dəyərini təhlükəsiz oxuyur.
         private string? GetClaimValue(string claimType)
         {
             var value = HttpContextAccessor.HttpContext?.User.FindFirst(claimType)?.Value;
             return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
         }
 
+        // Audit hadisəsinə sorğunun mənbə IP ünvanını əlavə edir.
         private string? GetClientIpAddress()
         {
             var context = HttpContextAccessor.HttpContext;
@@ -452,9 +467,11 @@ namespace ECafe.Application.Services.AuditLog.Concrete
             return context.Connection.RemoteIpAddress?.ToString();
         }
 
+        // Audit hadisəsinə cihaz və brauzer məlumatını əlavə edir.
         private string? GetUserAgent()
             => HttpContextAccessor.HttpContext?.Request.Headers["User-Agent"].FirstOrDefault();
 
+        // Eyni sorğuya aid logları bağlamaq üçün correlation ID götürür.
         private string? GetCorrelationId()
         {
             var context = HttpContextAccessor.HttpContext;

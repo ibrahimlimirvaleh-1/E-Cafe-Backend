@@ -54,6 +54,7 @@ namespace ECafe.Application.Services.FileAccess.Concrete
             return (BuildViewUrl(file.Id), BuildDownloadUrl(file.Id));
         }
 
+        // Konfiqurasiya edilmiş URL şablonunu yoxlayıb ehtiyat şablonu seçir.
         private static string NormalizeTemplate(string? configuredTemplate, string defaultTemplate)
         {
             var template = string.IsNullOrWhiteSpace(configuredTemplate)
@@ -68,6 +69,7 @@ namespace ECafe.Application.Services.FileAccess.Concrete
                 : $"/{template}";
         }
 
+        // Fayl ID-sini icazəli baxış URL şablonuna yerləşdirir.
         private static string BuildUrl(string template, int fileId)
             => template.Replace(FileIdPlaceholder, fileId.ToString(), StringComparison.Ordinal);
     }

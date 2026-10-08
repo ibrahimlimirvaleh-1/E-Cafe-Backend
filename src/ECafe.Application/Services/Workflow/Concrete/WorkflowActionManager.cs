@@ -161,7 +161,7 @@ public class WorkflowActionManager : BaseManager, IWorkflowActionService
         int? entityId)
     {
         if (string.IsNullOrWhiteSpace(flowCode) || statusId <= 0 || string.IsNullOrWhiteSpace(actionCode))
-            throw new ForbiddenException("Workflow action is not allowed.");
+            throw new ForbiddenException(ErrorCode.WorkflowActionForbidden);
 
         var normalizedFlowCode = NormalizeFlowCode(flowCode);
         var roleId = restaurantId.HasValue
@@ -174,13 +174,13 @@ public class WorkflowActionManager : BaseManager, IWorkflowActionService
             entityId);
 
         if (roleId == (int)RoleCode.Customer && !isOwnedCustomerWorkflowContext)
-            throw new ForbiddenException("Workflow action is not allowed for this reservation.");
+            throw new ForbiddenException(ErrorCode.WorkflowReservationActionForbidden);
 
         if (restaurantId.HasValue && !isOwnedCustomerWorkflowContext)
             EnsureCurrentUserCanAccessRestaurant(restaurantId.Value);
 
         if (!await IsCurrentUserAllowedForWorkflowContextAsync(restaurantId, roleId))
-            throw new ForbiddenException("Workflow action is not allowed for this user.");
+            throw new ForbiddenException(ErrorCode.WorkflowUserActionForbidden);
 
         var normalizedActionCode = actionCode.Trim();
 
@@ -216,9 +216,10 @@ public class WorkflowActionManager : BaseManager, IWorkflowActionService
             rule.IsEnabled);
 
         if (!exists)
-            throw new ForbiddenException("Workflow action is not allowed in the current state.");
+            throw new ForbiddenException(ErrorCode.WorkflowStateActionForbidden);
     }
 
+    // Əməliyyatın tələb etdiyi restoran kontekstinə cari istifadəçinin çıxışını yoxlayır.
     private async Task<bool> IsCurrentUserAllowedForWorkflowContextAsync(int? restaurantId, int roleId)
     {
         if (!restaurantId.HasValue || roleId != (int)RoleCode.Owner)
@@ -228,6 +229,7 @@ public class WorkflowActionManager : BaseManager, IWorkflowActionService
         return owner?.UserId == GetCurrentUserId();
     }
 
+    // Müştəri əməliyyatını yalnız ona məxsus rezervasiya və ya geri ödənişə açır.
     private async Task<bool> IsOwnedCustomerWorkflowContextAsync(
         string normalizedFlowCode,
         int roleId,
@@ -262,9 +264,11 @@ public class WorkflowActionManager : BaseManager, IWorkflowActionService
         return false;
     }
 
+    // Axın kodunu müqayisə üçün vahid formaya gətirir.
     private static string NormalizeFlowCode(string flowCode)
         => flowCode.Trim().ToLowerInvariant();
 
+    // Workflow şablonundakı ID yerlərini cari obyektlərin identifikatorları ilə doldurur.
     private static string BuildActionEndpoint(string template, int? restaurantId, int? entityId)
     {
         var entityIdText = entityId?.ToString() ?? string.Empty;

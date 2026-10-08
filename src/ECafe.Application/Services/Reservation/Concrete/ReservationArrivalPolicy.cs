@@ -87,5 +87,6 @@ public static class ReservationArrivalPolicy
         return choices;
     }
 
+    // Masa təhvil və gözləmə həddindən daha erkən olan son vaxtı seçir.
     private static DateTime Min(DateTime first, DateTime second) => first < second ? first : second;
 }

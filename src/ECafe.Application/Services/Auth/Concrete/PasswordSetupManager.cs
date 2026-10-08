@@ -84,7 +84,7 @@ namespace ECafe.Application.Services.Auth.Concrete
             var setupToken = await _tokenRepository.GetActiveByTokenHashTrackedAsync(tokenHash, DateTime.UtcNow);
 
             if (setupToken is null)
-                throw new BusinessRuleException("Password setup link is invalid or expired.");
+                throw new BusinessRuleException(ErrorCode.PasswordSetupLinkInvalid);
 
             var nowUtc = DateTime.UtcNow;
             setupToken.User.Password = BCrypt.Net.BCrypt.HashPassword(request.Password);
@@ -94,6 +94,7 @@ namespace ECafe.Application.Services.Auth.Concrete
             await _userRepository.SaveChangesAsync();
         }
 
+        // Tək istifadəli tokeni parol qurma səhifəsinin URL-sinə əlavə edir.
         private string BuildSetupUrl(string token)
         {
             var frontendBaseUrl = _configuration["Frontend:BaseUrl"]?.TrimEnd('/');
@@ -103,6 +104,7 @@ namespace ECafe.Application.Services.Auth.Concrete
             return $"{frontendBaseUrl}/set-password?token={Uri.EscapeDataString(token)}";
         }
 
+        // Təxmin edilməsi çətin tək istifadəli parol qurma tokeni yaradır.
         private static string GenerateSecureToken()
         {
             var bytes = RandomNumberGenerator.GetBytes(64);
@@ -112,6 +114,7 @@ namespace ECafe.Application.Services.Auth.Concrete
                 .Replace("=", string.Empty);
         }
 
+        // Açıq tokenin bazada saxlanmaması üçün hash yaradır.
         private static string HashToken(string token)
         {
             var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(token));

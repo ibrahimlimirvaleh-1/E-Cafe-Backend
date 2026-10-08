@@ -43,19 +43,19 @@ namespace ECafe.Application.Services
             long? relatedEntityId = null)
         {
             if (string.IsNullOrWhiteSpace(toEmail))
-                throw new BusinessRuleException("Email recipient is required.");
+                throw new BusinessRuleException(ErrorCode.EmailRecipientRequired);
 
             if (string.IsNullOrWhiteSpace(subject))
-                throw new BusinessRuleException("Email subject is required.");
+                throw new BusinessRuleException(ErrorCode.EmailSubjectRequired);
 
             if (string.IsNullOrWhiteSpace(body))
-                throw new BusinessRuleException("Email body is required.");
+                throw new BusinessRuleException(ErrorCode.EmailBodyRequired);
 
             if (string.IsNullOrWhiteSpace(aggregateType))
-                throw new BusinessRuleException("Email aggregate type is required.");
+                throw new BusinessRuleException(ErrorCode.EmailAggregateTypeRequired);
 
             if (aggregateId <= 0)
-                throw new BusinessRuleException("Invalid email aggregate ID.");
+                throw new BusinessRuleException(ErrorCode.InvalidEmailAggregateId);
 
             var normalizedAggregateType = aggregateType.Trim();
             var normalizedToName = string.IsNullOrWhiteSpace(toName) ? "Istifadeci" : toName.Trim();
@@ -142,6 +142,7 @@ namespace ECafe.Application.Services
             return processedCount;
         }
 
+        // Növbədəki e-poçtu göndərib nəticəsinə görə hadisənin vəziyyətini yeniləyir.
         private async Task ProcessOutboxEventAsync(Domain.Entities.OutboxEvent outboxEvent)
         {
             if (outboxEvent.EventType == OutboxEventTypes.EmailNotificationRequested)
@@ -151,7 +152,7 @@ namespace ECafe.Application.Services
                     JsonOptions);
 
                 if (payload is null)
-                    throw new BusinessRuleException("Email outbox payload is invalid.");
+                    throw new BusinessRuleException(ErrorCode.EmailOutboxPayloadInvalid);
 
                 await _emailService.SendContractNotificationAsync(
                     payload.ToEmail,
@@ -162,15 +163,17 @@ namespace ECafe.Application.Services
                 return;
             }
 
-            throw new BusinessRuleException($"Unsupported outbox event type: {outboxEvent.EventType}");
+            throw new BusinessRuleException(ErrorCode.UnsupportedOutboxEventType, new { eventType = outboxEvent.EventType });
         }
 
+        // Uğursuz göndərişlər arasında artan gözləmə müddətini hesablayır.
         private static TimeSpan GetRetryDelay(int retryCount)
         {
             var delayIndex = Math.Clamp(retryCount - 1, 0, DefaultRetryDelaySeconds.Length - 1);
             return TimeSpan.FromSeconds(DefaultRetryDelaySeconds[delayIndex]);
         }
 
+        // Təkrar cəhd limiti bitəndə problemi qeyd edir.
         private Task ReportOutboxRetryLimitReachedAsync(Domain.Entities.OutboxEvent outboxEvent, Exception exception)
             => _criticalEventReporter.CaptureAsync(new CriticalEvent(
                 Category: "notification",
@@ -186,6 +189,7 @@ namespace ECafe.Application.Services
                     ["exceptionType"] = exception.GetType().Name
                 }));
 
+        // Növbə limitini konfiqurasiyadan müsbət ədəd kimi oxuyur.
         private static int GetPositiveIntSetting(IConfiguration configuration, string key, int fallback)
         {
             var value = configuration[key];

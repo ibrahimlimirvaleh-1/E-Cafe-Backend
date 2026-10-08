@@ -119,7 +119,7 @@ namespace ECafe.Application.Features.Commands.File
         {
             var userIdClaim = _httpContextAccessor.HttpContext?.User.FindFirst("userId")?.Value;
             if (!int.TryParse(userIdClaim, out var userId) || userId <= 0)
-                throw new ForbiddenException("User context is required.");
+                throw new ForbiddenException(ErrorCode.UserContextRequired);
 
             return userId;
         }

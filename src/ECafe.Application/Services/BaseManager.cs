@@ -43,13 +43,13 @@ public abstract class BaseManager
 
     protected int GetRequiredCurrentRestaurantId()
         => GetCurrentRestaurantId()
-           ?? throw new ForbiddenException("Restaurant context is required.");
+           ?? throw new ForbiddenException(ErrorCode.RestaurantContextRequired);
 
     protected int GetCurrentUserId()
     {
         var userIdClaim = CurrentUser.FindFirst("userId")?.Value;
         if (!int.TryParse(userIdClaim, out var userId) || userId <= 0)
-            throw new ForbiddenException("User context is required.");
+            throw new ForbiddenException(ErrorCode.UserContextRequired);
 
         return userId;
     }
@@ -63,14 +63,14 @@ public abstract class BaseManager
     protected void EnsureCurrentUserCanAccessRestaurant(int restaurantId)
     {
         if (restaurantId <= 0)
-            throw new BusinessRuleException("Invalid restaurant ID!");
+            throw new BusinessRuleException(ErrorCode.InvalidRestaurantId);
 
         if (IsCurrentUserSuperAdmin())
             return;
 
         var currentRestaurantId = GetCurrentRestaurantId();
         if (!currentRestaurantId.HasValue || currentRestaurantId.Value != restaurantId)
-            throw new ForbiddenException("You do not have access to this restaurant.");
+            throw new ForbiddenException(ErrorCode.RestaurantAccessDenied);
     }
 
     protected IReadOnlyCollection<int> GetCurrentRestaurantIds()
@@ -92,6 +92,7 @@ public abstract class BaseManager
             : [];
     }
 
+    // Başlıqdakı ID-ni yalnız düzgün müsbət ədəd olduqda oxuyur; restorana aidiyyət ayrıca yoxlanılır.
     private int? GetActiveRestaurantIdFromHeader()
     {
         var request = HttpContextAccessor.HttpContext?.Request;
@@ -108,13 +109,13 @@ public abstract class BaseManager
 
     private ClaimsPrincipal CurrentUser
         => HttpContextAccessor.HttpContext?.User
-           ?? throw new ForbiddenException("Authenticated user context is required.");
+           ?? throw new ForbiddenException(ErrorCode.AuthenticatedUserContextRequired);
 
     protected int GetCurrentRoleId()
     {
         var roleClaim = CurrentUser.FindFirst(ClaimTypes.Role)?.Value;
         if (!int.TryParse(roleClaim, out var roleId))
-            throw new ForbiddenException("Role context is required.");
+            throw new ForbiddenException(ErrorCode.RoleContextRequired);
 
         return roleId;
     }
@@ -122,7 +123,7 @@ public abstract class BaseManager
     protected int GetCurrentRoleId(int restaurantId)
     {
         if (restaurantId <= 0)
-            throw new BusinessRuleException("Invalid restaurant ID!");
+            throw new BusinessRuleException(ErrorCode.InvalidRestaurantId);
 
         var restaurantRolesClaim = CurrentUser.FindFirst("restaurantRoles")?.Value;
         if (!string.IsNullOrWhiteSpace(restaurantRolesClaim))

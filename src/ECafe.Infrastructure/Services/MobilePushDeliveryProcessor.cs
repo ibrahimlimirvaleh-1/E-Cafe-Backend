@@ -244,6 +244,7 @@ public sealed class MobilePushDeliveryProcessor(
         return handled;
     }
 
+    // Bir push işini paralel worker-lər arasında yalnız birinə vermək üçün atomik tələb edir.
     private async Task<bool> TryClaimAsync(
         Guid id, MobilePushDeliveryStatus status, CancellationToken cancellationToken)
     {
@@ -266,6 +267,7 @@ public sealed class MobilePushDeliveryProcessor(
         return true;
     }
 
+    // Aktiv cihaz və tokeni son çatdırılma üçün yenidən yoxlayır.
     private async Task<MobilePushInstallation?> GetEligibleInstallationAsync(
         MobilePushDelivery delivery, CancellationToken cancellationToken)
     {
@@ -290,6 +292,7 @@ public sealed class MobilePushDeliveryProcessor(
         return sessionActive ? installation : null;
     }
 
+    // Restoranın mobil push moduluna çıxışı hələ qüvvədədir deyə yoxlayır.
     private Task<bool> IsRestaurantEntitledAsync(int restaurantId, CancellationToken cancellationToken)
     {
         var activeContractStatusId = StatusIds.Contract(ContractStatus.Active);
@@ -299,6 +302,7 @@ public sealed class MobilePushDeliveryProcessor(
             cancellationToken);
     }
 
+    // Bildiriş alan istifadəçinin restoranda aktiv səlahiyyətini təsdiqləyir.
     private Task<bool> IsRecipientEligibleAsync(int userId, int restaurantId, CancellationToken cancellationToken)
         => context.Users.AnyAsync(user => user.Id == userId && user.IsActive &&
             (user.RoleId == (int)RoleCode.Customer || user.UserRestaurants.Any(assignment =>
@@ -308,6 +312,7 @@ public sealed class MobilePushDeliveryProcessor(
                  assignment.RoleId == (int)RoleCode.Waiter ||
                  assignment.RoleId == (int)RoleCode.Kitchen))), cancellationToken);
 
+    // Token etibarsızdırsa yalnız dəyişməyən cihaz qeydini deaktiv edir.
     private async Task DeactivateIfStillSameTokenAsync(
         MobilePushInstallation installation,
         MobilePushDelivery delivery,
@@ -336,6 +341,7 @@ public sealed class MobilePushDeliveryProcessor(
         }
     }
 
+    // Çatdırılmanı son status və xəta kodu ilə bağlayır.
     private static void Finish(MobilePushDelivery delivery, MobilePushDeliveryStatus status, string? errorCode)
     {
         delivery.Status = status;
@@ -344,6 +350,7 @@ public sealed class MobilePushDeliveryProcessor(
         delivery.LastErrorCode = errorCode;
     }
 
+    // Expo qəbzinin gecikmiş yoxlanışını növbəti vaxta keçirir.
     private static void RescheduleReceipt(MobilePushDelivery delivery, string errorCode)
     {
         delivery.NextAttemptAt = DateTime.UtcNow.Add(ReceiptRetryDelay);
@@ -351,6 +358,7 @@ public sealed class MobilePushDeliveryProcessor(
         delivery.LastErrorCode = errorCode;
     }
 
+    // Müvəqqəti xətada çatdırılmanı artan gecikmə ilə yenidən növbəyə qoyur.
     private static void ScheduleRetry(MobilePushDelivery delivery, string errorCode)
     {
         if (delivery.AttemptCount >= MaxSendAttempts)
@@ -365,6 +373,7 @@ public sealed class MobilePushDeliveryProcessor(
         delivery.LastErrorCode = errorCode;
     }
 
+    // Canlı push göndərişi üçün tələb olunan ayarların hamısının hazır olduğunu yoxlayır.
     private bool IsReady() => configuration.GetValue<bool>("MobileApp:PushDeliveryReady") &&
         Guid.TryParse(configuration["MobileApp:ExpoProjectId"], out _);
 }

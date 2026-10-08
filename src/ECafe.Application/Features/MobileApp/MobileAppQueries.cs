@@ -81,7 +81,7 @@ public sealed class MobileAppQueryHandler(
         EnsureSuperAdmin();
         var restaurant = await restaurants.Query(r => r.Id == request.RestaurantId)
             .SingleOrDefaultAsync(cancellationToken)
-            ?? throw new NotFoundException("Restaurant not found.");
+            ?? throw new NotFoundException(ErrorCode.RestaurantNotFound);
 
         return new(restaurant.Id, restaurant.MobilePushEnabled && restaurant.ShowMobileDownloadLink,
             restaurant.ShowMobileDownloadLink);
@@ -93,11 +93,11 @@ public sealed class MobileAppQueryHandler(
         if (request.MobilePushEnabled && request.ShowDownloadLink &&
             (!configuration.GetValue<bool>("MobileApp:PushDeliveryReady") ||
              !Guid.TryParse(configuration["MobileApp:ExpoProjectId"], out _)))
-            throw new BusinessRuleException("Mobile push delivery is not ready.");
+            throw new BusinessRuleException(ErrorCode.MobilePushDeliveryNotReady);
 
         var restaurant = await restaurants.QueryTracked(r => r.Id == request.RestaurantId)
             .SingleOrDefaultAsync(cancellationToken)
-            ?? throw new NotFoundException("Restaurant not found.");
+            ?? throw new NotFoundException(ErrorCode.RestaurantNotFound);
 
         restaurant.MobilePushEnabled = request.ShowDownloadLink && request.MobilePushEnabled;
         restaurant.ShowMobileDownloadLink = request.ShowDownloadLink;
@@ -114,13 +114,13 @@ public sealed class MobileAppQueryHandler(
         var user = httpContextAccessor.HttpContext?.User;
         var idClaim = user?.FindFirst("userId")?.Value ?? user?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (!int.TryParse(idClaim, out var userId) || userId <= 0)
-            throw new ForbiddenException("An active customer account is required.");
+            throw new ForbiddenException(ErrorCode.ActiveCustomerAccountRequired);
 
         var isCustomer = await users.Query(x => x.Id == userId && x.IsActive &&
                 x.RoleId == (int)RoleCode.Customer)
             .AnyAsync(cancellationToken);
         if (!isCustomer)
-            throw new ForbiddenException("An active customer account is required.");
+            throw new ForbiddenException(ErrorCode.ActiveCustomerAccountRequired);
 
         return new(true);
     }
@@ -130,12 +130,12 @@ public sealed class MobileAppQueryHandler(
         var user = httpContextAccessor.HttpContext?.User;
         var idClaim = user?.FindFirst("userId")?.Value ?? user?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (!int.TryParse(idClaim, out var userId))
-            throw new ForbiddenException("An active restaurant staff account is required.");
+            throw new ForbiddenException(ErrorCode.ActiveRestaurantStaffAccountRequired);
 
         var roleId = await userRestaurants.GetActiveRoleIdAsync(userId, request.RestaurantId);
         if (roleId != (int)RoleCode.Owner && roleId != (int)RoleCode.Manager &&
             roleId != (int)RoleCode.Waiter && roleId != (int)RoleCode.Kitchen)
-            throw new ForbiddenException("An active restaurant staff assignment is required.");
+            throw new ForbiddenException(ErrorCode.ActiveRestaurantStaffAssignmentRequired);
 
         var activeContractStatusId = StatusIds.Contract(ContractStatus.Active);
         var enabled = await restaurants.Query(r => r.Id == request.RestaurantId && r.IsActive &&
@@ -183,7 +183,7 @@ public sealed class MobileAppQueryHandler(
     {
         EnsureSuperAdmin();
         if (request.PublicDownloadEnabled)
-            throw new BusinessRuleException("Public mobile download is disabled. Enable access per restaurant.");
+            throw new BusinessRuleException(ErrorCode.PublicMobileDownloadDisabled);
 
         await publicationStore.SetPublicDownloadEnabledAsync(false, cancellationToken);
         await using var release = await releaseArtifacts.OpenVerifiedAsync(cancellationToken);
@@ -194,6 +194,6 @@ public sealed class MobileAppQueryHandler(
     {
         var role = httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.Role)?.Value;
         if (role != ((int)RoleCode.SuperAdmin).ToString())
-            throw new ForbiddenException("Only the platform administrator can manage mobile modules.");
+            throw new ForbiddenException(ErrorCode.OnlyPlatformAdministratorCanManageMobileModules);
     }
 }

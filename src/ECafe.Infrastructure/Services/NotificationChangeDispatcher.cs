@@ -43,6 +43,7 @@ internal sealed class NotificationChangeDispatcher : INotificationChangeDispatch
 
     public void Discard() => _pendingUserIds.Clear();
 
+    // Dəyişən bildiriş siyahısını istifadəçinin real vaxt kanalına çatdırır.
     private async Task PublishAsync(int userId, CancellationToken cancellationToken)
     {
         try

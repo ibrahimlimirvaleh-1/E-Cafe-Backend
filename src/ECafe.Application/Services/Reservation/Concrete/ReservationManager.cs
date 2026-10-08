@@ -43,7 +43,6 @@ namespace ECafe.Application.Services.Reservation.Concrete;
 
 public sealed class ReservationManager : BaseManager, IReservationService
 {
-    private const string SubmitPaymentProofActionCode = "submitPaymentProof";
     private static readonly Regex ProhibitedPaymentInstructionDetailsPattern = new(
         @"\b(cvv|cvc|pin)(?:\s*2)?\b",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
@@ -217,7 +216,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
         CancellationToken cancellationToken = default)
     {
         if (reservationId <= 0)
-            throw new BadRequestException("Rezervasiya seçimi düzgün deyil.");
+            throw new BadRequestException(ErrorCode.InvalidReservationId);
 
         var userId = GetCurrentUserId();
         var reservation = await _reservationRepository.GetByIdForCustomerAsync(
@@ -236,7 +235,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
         CancellationToken cancellationToken = default)
     {
         if (reservationId <= 0)
-            throw new BadRequestException("Rezervasiya seçimi düzgün deyil.");
+            throw new BadRequestException(ErrorCode.InvalidReservationId);
 
         var reservation = await _reservationRepository.GetByIdForCustomerWithHistoryAsync(
             reservationId,
@@ -254,7 +253,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
         CancellationToken cancellationToken = default)
     {
         if (request.RestaurantName is { Length: > 100 })
-            throw new BadRequestException("Restoran adı üzrə axtarış maksimum 100 simvol ola bilər.");
+            throw new BadRequestException(ErrorCode.RestaurantSearchTooLong);
 
         var reservations = await _reservationRepository.GetForCustomerAsync(
             GetCurrentUserId(),
@@ -316,7 +315,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
     {
         ValidateRestaurantId(restaurantId);
         if (reservationId <= 0)
-            throw new BadRequestException("Rezervasiya seçimi düzgün deyil.");
+            throw new BadRequestException(ErrorCode.InvalidReservationId);
 
         await EnsureRestaurantReservationAccessAsync(restaurantId);
         var reservation = await _reservationRepository.GetByIdForRestaurantAsync(
@@ -337,7 +336,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
     {
         ValidateRestaurantId(restaurantId);
         if (reservationId <= 0)
-            throw new BadRequestException("Rezervasiya seçimi düzgün deyil.");
+            throw new BadRequestException(ErrorCode.InvalidReservationId);
 
         await EnsureRestaurantReservationAccessAsync(restaurantId);
         var reservation = await _reservationRepository.GetByIdForRestaurantWithHistoryAsync(
@@ -589,12 +588,12 @@ public sealed class ReservationManager : BaseManager, IReservationService
         await _workflowActionService.EnsureCanExecuteAsync(
             ReservationFlowCode,
             reservation.StatusId,
-            "complete",
+            WorkflowActionCode.Reservation.Complete,
             restaurantId,
             reservation.Id);
 
         if (reservation.StatusId != seatedStatusId)
-            throw new BusinessRuleException("Bu rezervasiya tamamlanmaq üçün aktiv masa sessiyasında deyil.");
+            throw new BusinessRuleException(ErrorCode.ReservationNotInActiveTableSession);
 
         var session = await _tableSessionRepository.QueryTracked(session =>
                 session.RestaurantId == restaurantId &&
@@ -604,7 +603,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
             .SingleOrDefaultAsync(cancellationToken);
 
         if (session is null)
-            throw new BusinessRuleException("Bu rezervasiya üçün açıq masa sessiyası tapılmadı.");
+            throw new BusinessRuleException(ErrorCode.ReservationOpenTableSessionNotFound);
 
         session.StatusId = StatusIds.TableSession(TableSessionStatus.Closed);
         session.ClosedAt = nowUtc;
@@ -709,7 +708,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
         await _workflowActionService.EnsureCanExecuteAsync(
             ReservationFlowCode,
             reservation.StatusId,
-            "sendPaymentInstruction",
+            WorkflowActionCode.Reservation.SendPaymentInstruction,
             restaurantId,
             reservation.Id);
 
@@ -812,7 +811,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
         ValidateRestaurantId(restaurantId);
 
         if (reservationId <= 0 || fileId <= 0)
-            throw new BadRequestException("Rezervasiya və çek məlumatları düzgün deyil.");
+            throw new BadRequestException(ErrorCode.ReservationProofRequestInvalid);
 
         var userId = GetCurrentUserId();
         var now = DateTime.UtcNow;
@@ -917,7 +916,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
         ValidateRestaurantId(restaurantId);
 
         if (reservationId <= 0)
-            throw new BadRequestException("Rezervasiya seçimi düzgün deyil.");
+            throw new BadRequestException(ErrorCode.InvalidReservationId);
 
         var reservation = await _reservationRepository.GetByIdForCustomerAsync(
             reservationId,
@@ -932,6 +931,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
             cancellationToken);
     }
 
+    // Çek təqdim ediləndə məsul restoran istifadəçilərini növbəti yoxlama addımı barədə xəbərdar edir.
     private async Task NotifyPaymentProofSubmittedAsync(
         int restaurantId,
         Domain.Entities.Reservation reservation,
@@ -961,6 +961,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
         }
     }
 
+    // Çekin yalnız uyğun statusda və ödəniş təlimatı hazır olduqda göndərilməsinə icazə verir.
     private async Task EnsurePaymentProofSubmissionAllowedAsync(
         Domain.Entities.Reservation reservation,
         CancellationToken cancellationToken)
@@ -976,16 +977,17 @@ public sealed class ReservationManager : BaseManager, IReservationService
         }
 
         if (!reservation.PaymentInstructions.Any())
-            throw new BusinessRuleException("Restoran hələ ödəniş məlumatı göndərməyib.");
+            throw new BusinessRuleException(ErrorCode.ReservationPaymentInstructionMissing);
 
         await _workflowActionService.EnsureCanExecuteAsync(
             ReservationFlowCode,
             reservation.StatusId,
-            SubmitPaymentProofActionCode,
+            WorkflowActionCode.Reservation.SubmitPaymentProof,
             reservation.RestaurantId,
             reservation.Id);
     }
 
+    // Rezervasiya bildirişləri üçün aktiv menecer və sahibkar təyinatlarını seçir.
     private async Task<List<Domain.Entities.UserRestaurant>> GetRestaurantResponsibleAssignmentsAsync(
         int restaurantId)
     {
@@ -1005,6 +1007,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
         return assignments;
     }
 
+    // Yeni rezervasiya üçün restoranın mövcud və aktiv olduğunu təsdiqləyir.
     private async Task<Domain.Entities.Restaurant> GetReservableRestaurantAsync(int restaurantId)
     {
         var restaurant = await _restaurantRepository.GetByIdAsync(restaurantId);
@@ -1017,6 +1020,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
         return restaurant;
     }
 
+    // Masanın seçilən restorana aid və rezervasiya üçün yararlı olduğunu yoxlayır.
     private async Task<Domain.Entities.Table> GetReservableTableAsync(
         int restaurantId,
         int tableId,
@@ -1035,12 +1039,14 @@ public sealed class ReservationManager : BaseManager, IReservationService
         return table;
     }
 
+    // Seçilən gəliş vaxtının restoranın qüvvədə olan iş saatına düşməsini yoxlayır.
     private async Task EnsureRestaurantIsOpenAsync(int restaurantId, DateTimeOffset reservedAt)
     {
         if (!await _restaurantRepository.IsRestaurantOpenAsync(restaurantId, reservedAt))
             throw new BusinessRuleException(ErrorCode.RestaurantClosedForReservation);
     }
 
+    // Masa sessiyaları və qonşu rezervasiyalarla toqquşmanı hesablayır.
     private async Task<ReservationTableAvailability> EnsureTableIsAvailableAsync(
         int restaurantId,
             int tableId,
@@ -1076,6 +1082,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
         return availability;
     }
 
+    // Yoxlanmış seçimdən ilkin status və depozit şərtləri ilə rezervasiya yaradır.
     private Domain.Entities.Reservation BuildReservation(
         int restaurantId,
         int userId,
@@ -1112,6 +1119,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
         };
     }
 
+    // Restoran tərəfdə hərəkət tələb edən rezervasiya hadisəsini məsul şəxsə çatdırır.
     private async Task NotifyRestaurantResponsibleUserAsync(
         int restaurantId,
         Domain.Entities.Table table,
@@ -1143,24 +1151,28 @@ public sealed class ReservationManager : BaseManager, IReservationService
         }
     }
 
+    // Yanlış restoran ID-si ilə sorğunun davam etməsinin qarşısını alır.
     private static void ValidateRestaurantId(int restaurantId)
     {
         if (restaurantId <= 0)
             throw new BusinessRuleException(ErrorCode.InvalidRestaurantId);
     }
 
+    // Yanlış rezervasiya ID-sini biznes əməliyyatından əvvəl rədd edir.
     private static void ValidateReservationId(int reservationId)
     {
         if (reservationId <= 0)
-            throw new BadRequestException("Rezervasiya seçimi düzgün deyil.");
+            throw new BadRequestException(ErrorCode.InvalidReservationId);
     }
 
+    // Boş səbəbi ehtiyat mətnlə əvəz edir və daxil edilmiş səbəbi təmizləyir.
     private static string NormalizeReason(string? reason, string fallback)
     {
         var normalized = reason?.Trim();
         return string.IsNullOrWhiteSpace(normalized) ? fallback : normalized;
     }
 
+    // Məcburi səbəbin dolu və icazə verilən uzunluqda olmasını yoxlayır.
     private static string NormalizeRequiredReason(string? reason, string errorMessage)
     {
         var normalized = reason?.Trim();
@@ -1168,11 +1180,12 @@ public sealed class ReservationManager : BaseManager, IReservationService
             throw new BadRequestException(errorMessage);
 
         if (normalized.Length > 500)
-            throw new BadRequestException("Səbəb 500 simvoldan çox ola bilməz.");
+            throw new BadRequestException(ErrorCode.ReservationReasonTooLong);
 
         return normalized;
     }
 
+    // Təsdiq və ya rədd üçün yalnız son göndərilmiş çeki gətirir.
     private Task<Domain.Entities.ReservationPaymentProof?> GetLatestPaymentProofForReviewAsync(
         int reservationId,
         int submittedStatusId,
@@ -1186,6 +1199,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
             .FirstOrDefaultAsync(cancellationToken);
     }
 
+    // Status dəyişikliyinin müştəriyə qaytarılan nəticəsini formalaşdırır.
     private static ReservationActionResponse BuildActionResponse(
         int reservationId,
         int statusId,
@@ -1201,6 +1215,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
         };
     }
 
+    // Rezervasiya vəziyyəti dəyişəndə müştəriyə bildiriş göndərir.
     private async Task NotifyReservationCustomerAsync(
         int restaurantId,
         Domain.Entities.Reservation reservation,
@@ -1230,6 +1245,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
         });
     }
 
+    // Restoranın məsul şəxslərinə eyni hadisə barədə bildiriş yayır.
     private async Task NotifyReservationResponsibleUsersAsync(
         int restaurantId,
         Domain.Entities.Reservation reservation,
@@ -1260,12 +1276,14 @@ public sealed class ReservationManager : BaseManager, IReservationService
         }
     }
 
+    // Keçmiş tarixə yeni rezervasiya açılmasına mane olur.
     private static void ValidateReservationTime(DateTimeOffset reservedAt)
     {
         if (reservedAt <= DateTimeOffset.UtcNow)
-            throw new BadRequestException("Rezervasiya vaxtı gələcək tarix olmalıdır.");
+            throw new BadRequestException(ErrorCode.ReservationDateMustBeFuture);
     }
 
+    // Ödəniş rekvizitlərini saxlamazdan əvvəl format və həssas məlumat qaydalarını yoxlayır.
     private static string NormalizePaymentInstructionDetails(string? details)
     {
         var normalizedDetails = details?.Trim() ?? string.Empty;
@@ -1282,6 +1300,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
         return normalizedDetails;
     }
 
+    // Ödəniş təlimatının icazəli sahələrini API cavabına çevirir.
     private PaymentInstructionResponse MapPaymentInstructionResponse(
         ReservationPaymentInstruction instruction,
         string status)
@@ -1332,6 +1351,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
         };
     }
 
+    // Rezervasiya məlumatını rol üçün nəzərdə tutulan cavab modelinə çevirir.
     private ReservationResponse MapResponse(Domain.Entities.Reservation reservation)
     {
         var latestPaymentInstruction = reservation.PaymentInstructions
@@ -1421,6 +1441,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
         };
     }
 
+    // Rezervasiya status hadisələrini tarixçə cavabına çevirir.
     private static ReservationHistoryResponse MapHistoryResponse(
         Domain.Entities.Reservation reservation)
     {
@@ -1590,7 +1611,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
             throw new NotFoundException(ErrorCode.ReservationNotFound);
 
         if (reservation.StatusId != paymentSubmittedStatusId)
-            throw new BusinessRuleException("Bu rezervasiyanın ödəniş çeki təsdiq gözləmir.");
+            throw new BusinessRuleException(ErrorCode.ReservationProofNotPending);
 
         if (reservation.ReservedAt <= now)
             throw new BusinessRuleException(ErrorCode.ReservationTimeAlreadyPassed);
@@ -1598,7 +1619,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
         await _workflowActionService.EnsureCanExecuteAsync(
             ReservationFlowCode,
             reservation.StatusId,
-            "approvePaymentProof",
+            WorkflowActionCode.Reservation.ApprovePaymentProof,
             restaurantId,
             reservation.Id);
 
@@ -1608,7 +1629,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
             cancellationToken);
 
         if (paymentProof is null)
-            throw new BusinessRuleException("Təsdiqlənəcək ödəniş çeki tapılmadı.");
+            throw new BusinessRuleException(ErrorCode.ReservationProofToApproveNotFound);
 
         var previousStatusId = reservation.StatusId;
         paymentProof.StatusId = confirmedStatusId;
@@ -1701,7 +1722,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
             ?? throw new NotFoundException(ErrorCode.RestaurantNotFound);
 
         if (reservation.StatusId != paymentSubmittedStatusId)
-            throw new BusinessRuleException("Bu rezervasiyanın ödəniş çeki rədd edilə bilməz.");
+            throw new BusinessRuleException(ErrorCode.ReservationProofCannotBeRejected);
 
         await _workflowActionService.EnsureCanExecuteAsync(
             ReservationFlowCode,
@@ -1716,7 +1737,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
             cancellationToken);
 
         if (paymentProof is null)
-            throw new BusinessRuleException("Rədd ediləcək ödəniş çeki tapılmadı.");
+            throw new BusinessRuleException(ErrorCode.ReservationProofToRejectNotFound);
 
         var previousStatusId = reservation.StatusId;
         paymentProof.StatusId = rejectedStatusId;
@@ -1804,6 +1825,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
             cancellationToken);
     }
 
+    // Ləğv və geri ödəniş uyğunluğunu eyni tranzaksiya axınında hesablayır.
     private async Task<ReservationActionResponse> CancelReservationCoreAsync(
         int restaurantId,
         int reservationId,
@@ -1859,14 +1881,14 @@ public sealed class ReservationManager : BaseManager, IReservationService
         await _workflowActionService.EnsureCanExecuteAsync(
             ReservationFlowCode,
             reservation.StatusId,
-            "cancel",
+            WorkflowActionCode.Reservation.Cancel,
             restaurantId,
             reservation.Id);
 
         if (reservation.StatusId == cancelledStatusId ||
             reservation.StatusId == StatusIds.Reservation(ReservationStatus.Expired))
         {
-            throw new BusinessRuleException("Bu rezervasiya artıq aktiv deyil.");
+            throw new BusinessRuleException(ErrorCode.ReservationNotActive);
         }
 
         now = DateTime.UtcNow;
@@ -1946,6 +1968,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
             customerMessage);
     }
 
+    // Səhifələnmiş rezervasiyaları API cavablarına çevirir.
     private PaginatedList<ReservationResponse> MapPage(
         PaginatedList<Domain.Entities.Reservation> page,
         ReservationQueryRequest request)
@@ -1958,6 +1981,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
             Math.Clamp(request.PageSize, 1, 100));
     }
 
+    // İşçinin seçilən restoranın rezervasiyalarını idarə etmək səlahiyyətini yoxlayır.
     private async Task EnsureRestaurantReservationAccessAsync(int restaurantId)
     {
         ValidateRestaurantId(restaurantId);
@@ -1974,6 +1998,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
             throw new ForbiddenException(ErrorCode.OnlyRestaurantManagersCanSendPaymentInstruction);
     }
 
+    // Restoran əməliyyatında yarış vəziyyətini önləmək üçün rezervasiyanı kilidlə yenidən oxuyur.
     private async Task<Domain.Entities.Reservation> LoadLockedRestaurantReservationAsync(
         int restaurantId, int reservationId, CancellationToken cancellationToken)
     {
@@ -1989,6 +2014,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
             ?? throw new NotFoundException(ErrorCode.ReservationNotFound);
     }
 
+    // Gəliş və xidmət əməliyyatını icazəli restoran rolları ilə məhdudlaşdırır.
     private async Task EnsureRestaurantServiceRoleAsync(int restaurantId, params RoleCode[] allowedRoles)
     {
         EnsureCurrentUserCanAccessRestaurant(restaurantId);
@@ -1999,6 +2025,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
         }
     }
 
+    // Gəliş qeydinin restoranın qüvvədə olan iş saatında edilməsini yoxlayır.
     private async Task EnsureRestaurantOpenForArrivalAsync(
         int restaurantId, DateTime nowUtc, CancellationToken cancellationToken)
     {
@@ -2009,6 +2036,7 @@ public sealed class ReservationManager : BaseManager, IReservationService
         }
     }
 
+    // Bazadakı opsional UTC vaxtını API formatına çevirir.
     private static DateTimeOffset? ToUtcOffset(DateTime? value)
     {
         return value.HasValue

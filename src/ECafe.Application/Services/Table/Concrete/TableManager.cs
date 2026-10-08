@@ -46,7 +46,7 @@ namespace ECafe.Application.Services.Table.Concrete
         public async Task<int> CreateAsync(int restaurantId, CreateTableRequest request)
         {
             if (request is null)
-                throw new BusinessRuleException("Request is required.");
+                throw new BusinessRuleException(ErrorCode.RequestRequired);
 
             if (restaurantId <= 0)
                 throw new BusinessRuleException(ErrorCode.InvalidRestaurantId);
@@ -248,7 +248,7 @@ namespace ECafe.Application.Services.Table.Concrete
             await EnsureReservationAvailabilityCanBeCheckedAsync(restaurantId, reservedAt);
 
             var restaurant = await _restaurantRepository.GetByIdAsync(restaurantId)
-                ?? throw new BadRequestException("Restoran tapılmadı.");
+                ?? throw new BadRequestException(ErrorCode.RestaurantNotFoundAz);
             var reservationPreBlockMinutes = Math.Max(restaurant.ReservationPreBlockMinutes, 15);
             var tableTurnoverBufferMinutes = Math.Max(restaurant.TableTurnoverBufferMinutes, 0);
             var depositAmount = await _restaurantDepositService.ResolveAmountAsync(restaurant, reservedAt);
@@ -289,25 +289,27 @@ namespace ECafe.Application.Services.Table.Concrete
             return availability.Tables;
         }
 
+        // Boş masa sorğusundan əvvəl restoranın və seçilən vaxtın yararlı olduğunu yoxlayır.
         private async Task EnsureReservationAvailabilityCanBeCheckedAsync(int restaurantId, DateTimeOffset reservedAt)
         {
             if (restaurantId <= 0)
                 throw new BusinessRuleException(ErrorCode.InvalidRestaurantId);
 
             if (reservedAt <= DateTimeOffset.UtcNow)
-                throw new BadRequestException("Rezervasiya vaxtı gələcək tarix olmalıdır.");
+                throw new BadRequestException(ErrorCode.ReservationDateMustBeFuture);
 
             var restaurant = await _restaurantRepository.GetByIdAsync(restaurantId);
 
             if (restaurant is null || !restaurant.IsActive)
-                throw new BadRequestException("Restoran tapılmadı.");
+                throw new BadRequestException(ErrorCode.RestaurantNotFoundAz);
 
             var hasActiveContract = await _restaurantRepository.HasRestaurantActiveContractAsync(restaurantId);
 
             if (!hasActiveContract)
-                throw new BadRequestException("Restoranın aktiv müqaviləsi yoxdur.");
+                throw new BadRequestException(ErrorCode.RestaurantActiveContractMissingAz);
         }
 
+        // Masanın boşluq və təhvil vaxtını API cavabına yığır.
         private static TableAvailabilityResponse BuildTableAvailabilityResponse(
             DateTimeOffset reservedAt,
             int reservationPreBlockMinutes,
@@ -346,6 +348,7 @@ namespace ECafe.Application.Services.Table.Concrete
             };
         }
 
+        // Kopyalanacaq masaların ad və nömrələrini vahid formaya gətirir.
         private static List<CopyTableInput> NormalizeCopyInputs(CopyTableRequest request)
         {
             if (request.Copies?.Count > 0)
@@ -362,6 +365,7 @@ namespace ECafe.Application.Services.Table.Concrete
                 .ToList();
         }
 
+        // Kopyalar üçün tələb olunan və avtomatik ayrılan masa nömrələrini müəyyən edir.
         private async Task<List<int>> ResolveCopyTableNumbersAsync(int restaurantId, IReadOnlyList<CopyTableInput> copyInputs)
         {
             var requestedNumbers = copyInputs
@@ -380,6 +384,7 @@ namespace ECafe.Application.Services.Table.Concrete
                 .ToList();
         }
 
+        // Mövcud və sorğuda ayrılmış nömrələri keçərək boş nömrələr seçir.
         private async Task<List<int>> GetNextAvailableTableNumbersAsync(int restaurantId, int count, IReadOnlyCollection<int> reservedNumbers)
         {
             if (count == 0)
@@ -409,6 +414,7 @@ namespace ECafe.Application.Services.Table.Concrete
             return generatedNumbers;
         }
 
+        // Kopya masa adı verilməyibsə seçilən nömrədən ad yaradır.
         private static string BuildCopiedTableName(string? requestedName, int tableNo)
         {
             var name = string.IsNullOrWhiteSpace(requestedName)
@@ -418,6 +424,7 @@ namespace ECafe.Application.Services.Table.Concrete
             return name.Length <= 100 ? name : name[..100];
         }
 
+        // Yaradılacaq və ya yenilənəcək masa nömrəsinin restoranda təkrar olmadığını yoxlayır.
         private async Task EnsureTableNumberIsUniqueAsync(int restaurantId, int tableNo, int? excludeTableId = null)
         {
             var tableExists = await _tableRepository
@@ -432,6 +439,7 @@ namespace ECafe.Application.Services.Table.Concrete
                 throw new BusinessRuleException(ErrorCode.TableAlreadyExists, new { tableNo });
         }
 
+        // Toplu kopyalama zamanı nömrələrin bir-biri və baza ilə toqquşmasını yoxlayır.
         private async Task EnsureTableNumbersAreUniqueAsync(int restaurantId, IReadOnlyCollection<int> tableNumbers)
         {
             var distinctTableNumbers = tableNumbers.Distinct().ToList();
@@ -449,6 +457,7 @@ namespace ECafe.Application.Services.Table.Concrete
                 throw new BusinessRuleException(ErrorCode.TableAlreadyExists, new { tableNo = existingTableNo });
         }
 
+        // Toplu kopyalama zamanı adların təkrar edilməsini qadağan edir.
         private async Task EnsureTableNamesAreUniqueAsync(int restaurantId, IReadOnlyCollection<string?> tableNames)
         {
             var normalizedNames = tableNames
@@ -457,7 +466,7 @@ namespace ECafe.Application.Services.Table.Concrete
                 .ToList();
 
             if (normalizedNames.Count != normalizedNames.Distinct().Count())
-                throw new BusinessRuleException("Masa adları təkrar olmamalıdır.");
+                throw new BusinessRuleException(ErrorCode.DuplicateTableNames);
 
             var existingName = await _tableRepository
                 .Query()
@@ -467,11 +476,12 @@ namespace ECafe.Application.Services.Table.Concrete
                 .FirstOrDefaultAsync();
 
             if (!string.IsNullOrWhiteSpace(existingName))
-                throw new BusinessRuleException($"'{existingName}' adlı masa artıq mövcuddur.");
+                throw new BusinessRuleException(ErrorCode.TableNameAlreadyExists, new { name = existingName });
         }
 
         private sealed record CopyTableInput(int? TableNo, string? Name);
 
+        // Baza xətasının masa nömrəsi unikallıq məhdudiyyətindən gəldiyini ayırır.
         private static bool IsTableNumberUniqueViolation(DbUpdateException exception)
         {
             var innerException = exception.InnerException;
@@ -486,6 +496,7 @@ namespace ECafe.Application.Services.Table.Concrete
                    constraintName == "tables_restaurant_id_table_no_key";
         }
 
+        // Dəyişdiriləcək masanı aid olduğu restoran daxilində izlənən obyekt kimi gətirir.
         private async Task<Domain.Entities.Table> GetTrackedTableAsync(int restaurantId, int tableId)
         {
             var table = await _tableRepository
@@ -496,6 +507,7 @@ namespace ECafe.Application.Services.Table.Concrete
             return table ?? throw new NotFoundException(ErrorCode.TableNotFound);
         }
 
+        // Masanın saxlanan məlumatlarını API cavabına çevirir.
         private static TableResponse MapTableResponse(Domain.Entities.Table table)
         {
             return new TableResponse
@@ -510,6 +522,7 @@ namespace ECafe.Application.Services.Table.Concrete
             };
         }
 
+        // Masanın açıq və bağlanmamış sessiyası olmadığını müəyyən edir.
         private static bool IsTableEmpty(Domain.Entities.Table table)
         {
             return !table.TableSessions.Any(session =>

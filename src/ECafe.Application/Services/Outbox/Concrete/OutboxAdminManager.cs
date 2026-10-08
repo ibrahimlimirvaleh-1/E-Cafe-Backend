@@ -109,6 +109,7 @@ namespace ECafe.Application.Services.Outbox.Concrete
             return Map(outboxEvent, now);
         }
 
+        // Yalnız bildiriş kanalına aid outbox hadisəsini gətirir.
         private async Task<Domain.Entities.OutboxEvent> GetNotificationOutboxEventAsync(Guid id, bool tracked)
         {
             var query = tracked ? _outboxRepository.QueryTracked() : _outboxRepository.Query();
@@ -120,6 +121,7 @@ namespace ECafe.Application.Services.Outbox.Concrete
             return outboxEvent ?? throw new ECafe.Application.Common.Exceptions.NotFoundException(ErrorCode.OutboxMessageNotFound);
         }
 
+        // Outbox siyahısını seçilən çatdırılma kanalına görə süzür.
         private static IQueryable<Domain.Entities.OutboxEvent> ApplyChannelFilter(
             IQueryable<Domain.Entities.OutboxEvent> query,
             int channelId)
@@ -130,6 +132,7 @@ namespace ECafe.Application.Services.Outbox.Concrete
                 _ => query.Where(_ => false)
             };
 
+        // Göndəriş və retry vəziyyətinə görə outbox siyahısını süzür.
         private IQueryable<Domain.Entities.OutboxEvent> ApplyStatusFilter(
             IQueryable<Domain.Entities.OutboxEvent> query,
             OutboxMessageStatus status,
@@ -149,6 +152,7 @@ namespace ECafe.Application.Services.Outbox.Concrete
                 _ => query
             };
 
+        // Outbox hadisəsindən administrator üçün izləmə cavabı yaradır.
         private OutboxMessageResponse Map(Domain.Entities.OutboxEvent outboxEvent, DateTime now)
         {
             var payload = DeserializePayload(outboxEvent);
@@ -183,6 +187,7 @@ namespace ECafe.Application.Services.Outbox.Concrete
             };
         }
 
+        // Saxlanmış bildiriş payload-unu oxunaqlı modelə çevirir.
         private static NotificationPayloadView? DeserializePayload(Domain.Entities.OutboxEvent outboxEvent)
         {
             try
@@ -227,6 +232,7 @@ namespace ECafe.Application.Services.Outbox.Concrete
             }
         }
 
+        // Göndərilmə, uğursuzluq və retry vaxtından cari statusu hesablayır.
         private OutboxMessageStatus GetStatus(Domain.Entities.OutboxEvent outboxEvent, DateTime now)
         {
             if (outboxEvent.ProcessedAt.HasValue)
@@ -244,11 +250,13 @@ namespace ECafe.Application.Services.Outbox.Concrete
             return OutboxMessageStatus.Pending;
         }
 
+        // Yalnız təkrar göndərilə bilən hadisənin növbəti cəhd vaxtını qaytarır.
         private static DateTime? GetNextRetryAt(Domain.Entities.OutboxEvent outboxEvent, OutboxMessageStatus status)
             => status is OutboxMessageStatus.Pending or OutboxMessageStatus.Processing
                 ? outboxEvent.LockedUntil
                 : null;
 
+        // Outbox statusunu göstəriləcək ada çevirir.
         private static string GetStatusName(OutboxMessageStatus status)
             => status switch
             {
@@ -259,11 +267,13 @@ namespace ECafe.Application.Services.Outbox.Concrete
                 _ => status.ToString()
             };
 
+        // Hadisə növündən e-poçt və ya push kanalını seçir.
         private static OutboxMessageChannel GetChannel(string eventType)
             => eventType == OutboxEventTypes.SmsNotificationRequested
                 ? OutboxMessageChannel.Sms
                 : OutboxMessageChannel.Email;
 
+        // Kanal kodunu administratora göstərilən ada çevirir.
         private static string GetChannelName(OutboxMessageChannel channel)
             => channel switch
             {
@@ -273,6 +283,7 @@ namespace ECafe.Application.Services.Outbox.Concrete
                 _ => channel.ToString()
             };
 
+        // Outbox limiti üçün yalnız müsbət konfiqurasiya dəyərini qəbul edir.
         private static int GetPositiveIntSetting(IConfiguration configuration, string key, int fallback)
         {
             var value = configuration[key];

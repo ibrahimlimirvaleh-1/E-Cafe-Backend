@@ -176,6 +176,7 @@ namespace ECafe.Infrastructure.Services.MinIO
             }, token);
         }
 
+        // Fayl yazılmadan əvvəl saxlama bucket-inin mövcudluğunu təmin edir.
         private async Task EnsureBucketExistsAsync()
         {
             if (_bucketExists)
@@ -211,6 +212,7 @@ namespace ECafe.Infrastructure.Services.MinIO
             }
         }
 
+        // Seçilən bucket-in MinIO-da mövcudluğunu soruşur.
         private async Task<bool> IsBucketExists(string bucketName)
         {
             var bucketExistsArgs = new BucketExistsArgs().WithBucket(bucketName);
@@ -218,6 +220,7 @@ namespace ECafe.Infrastructure.Services.MinIO
             return doesBucketExist;
         }
 
+        // Saxlanmış obyektin faktiki MIME tipini MinIO metadata-sından oxuyur.
         private async Task<string> GetFileContentTypeAsync(string token)
         {
             var statObjectArgs = new StatObjectArgs()
@@ -231,6 +234,7 @@ namespace ECafe.Infrastructure.Services.MinIO
             return status.ContentType;
         }
 
+        // Saxlama xətalarını istifadəçiyə uyğun not-found və unavailable xətalarına çevirir.
         private async Task ExecuteMinioAsync(
             string operation,
             Func<Task> action,
@@ -243,6 +247,7 @@ namespace ECafe.Infrastructure.Services.MinIO
             }, token);
         }
 
+        // Saxlama xətalarını istifadəçiyə uyğun not-found və unavailable xətalarına çevirir.
         private async Task<T> ExecuteMinioAsync<T>(
             string operation,
             Func<Task<T>> action,
@@ -294,17 +299,20 @@ namespace ECafe.Infrastructure.Services.MinIO
             }
         }
 
+        // Bağlantı və timeout xətalarını müvəqqəti saxlama problemi kimi ayırır.
         private static bool IsTransientStorageException(Exception exception)
             => exception is HttpRequestException
                or IOException
                or TimeoutException;
 
+        // Fayl tokeninin boş olmayan GUID formatında olduğunu yoxlayır.
         private static void ValidateFileToken(string token)
         {
             if (string.IsNullOrWhiteSpace(token) || !Guid.TryParse(token, out _))
                 throw new BadRequestException(ErrorCode.InvalidFileToken);
         }
 
+        // Fayl tokenini loglarda tam göstərmədən tanınacaq qədər maskalayır.
         private static string MaskToken(string? token)
             => string.IsNullOrWhiteSpace(token) || token.Length <= 8
                 ? "***"
@@ -317,6 +325,7 @@ namespace ECafe.Infrastructure.Services.MinIO
             MaxSizeMb = 10
         };
 
+        // Faylın ilk baytlarının elan edilən MIME tipinə uyğunluğunu yoxlayır.
         private static async Task ValidateFileSignatureAsync(IFormFile file, string contentType)
         {
             var header = new byte[12];
@@ -360,6 +369,7 @@ namespace ECafe.Infrastructure.Services.MinIO
                 throw new BusinessRuleException(ErrorCode.FileContentTypeMismatch);
         }
 
+        // Fayl imzasının gözlənilən bayt ardıcıllığı ilə başlayıb-başlamadığını yoxlayır.
         private static bool StartsWith(ReadOnlySpan<byte> source, ReadOnlySpan<byte> expected)
             => source.Length >= expected.Length && source[..expected.Length].SequenceEqual(expected);
     }

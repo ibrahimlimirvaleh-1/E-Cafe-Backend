@@ -78,7 +78,7 @@ namespace ECafe.Application.Services.Auth.Concrete
             if (user.PasswordSetAt is null || string.IsNullOrWhiteSpace(user.Password))
             {
                 await _loginAttemptService.RecordFailureAsync(user, normalizedEmail, "PasswordNotSet");
-                throw new ForbiddenException("Password has not been set yet.");
+                throw new ForbiddenException(ErrorCode.PasswordNotSet);
             }
 
             var isPasswordValid = BCrypt.Net.BCrypt.Verify(request.Password, user.Password);
@@ -92,7 +92,7 @@ namespace ECafe.Application.Services.Auth.Concrete
             if (!user.IsActive)
             {
                 await _loginAttemptService.RecordFailureAsync(user, normalizedEmail, "InactiveAccount");
-                throw new ForbiddenException("User account is inactive.");
+                throw new ForbiddenException(ErrorCode.UserAccountInactive);
             }
 
             await _loginAttemptService.RecordSuccessAsync(user, normalizedEmail);
@@ -154,7 +154,7 @@ namespace ECafe.Application.Services.Auth.Concrete
                 throw new UnauthorizedException(ErrorCode.RefreshTokenInvalid);
 
             if (!storedToken.User.IsActive)
-                throw new ForbiddenException("User account is inactive.");
+                throw new ForbiddenException(ErrorCode.UserAccountInactive);
 
             return await RotateRefreshTokenAsync(storedToken);
         }
@@ -200,6 +200,7 @@ namespace ECafe.Application.Services.Auth.Concrete
         }
 
         #region Helpers
+        // Qeydiyyatdan əvvəl e-poçt və telefonun başqa hesaba bağlı olmadığını yoxlayır.
         private async Task EnsureUserDoesNotExistAsync(string email, string phone)
         {
             var normalizedEmail = email.Trim().ToLowerInvariant();
@@ -214,6 +215,7 @@ namespace ECafe.Application.Services.Auth.Concrete
                 throw new BusinessRuleException(ErrorCode.UserPhoneAlreadyExists);
         }
 
+        // Profil şəkli üçün yalnız mövcud və qoşulmağa uyğun faylı seçir.
         private async Task<Domain.Entities.File?> GetAttachableFileAsync(int? fileId)
         {
             if (!fileId.HasValue)
@@ -228,6 +230,7 @@ namespace ECafe.Application.Services.Auth.Concrete
             return file;
         }
 
+        // Yeni giriş sessiyasını və refresh tokenini saxlayıb cavabı yaradır.
         private async Task<AuthResponseDto> CreateAndStoreTokenResponseAsync(Domain.Entities.User user)
         {
             string? fileUrl = null;
@@ -247,12 +250,14 @@ namespace ECafe.Application.Services.Auth.Concrete
             });
         }
 
+        // Bazaya açıq token yazmamaq üçün onu sabit hash formasına çevirir.
         private static string HashRefreshToken(string refreshToken)
         {
             var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(refreshToken));
             return Convert.ToHexString(bytes);
         }
 
+        // İstifadə edilmiş refresh tokenini ləğv edib eyni sessiyada yenisini yaradır.
         private async Task<AuthResponseDto> RotateRefreshTokenAsync(Domain.Entities.UserRefreshToken storedToken)
         {
             string? fileUrl = null;
@@ -280,6 +285,7 @@ namespace ECafe.Application.Services.Auth.Concrete
             });
         }
 
+        // Yeni sessiya üçün refresh token yaradır və saxlayır.
         private async Task<string> AddRefreshTokenAsync(Domain.Entities.User user, string sessionId)
         {
             var refreshToken = _jwtService.GenerateRefreshToken();
@@ -287,6 +293,7 @@ namespace ECafe.Application.Services.Auth.Concrete
             return refreshToken;
         }
 
+        // Yeni sessiya üçün refresh token yaradır və saxlayır.
         private async Task AddRefreshTokenAsync(
             Domain.Entities.User user,
             string refreshTokenHash,
@@ -305,6 +312,7 @@ namespace ECafe.Application.Services.Auth.Concrete
             await _refreshTokenRepository.Add(refreshToken);
         }
 
+        // Köhnə tokenin təkrar istifadəsində bütün sessiyaları dayandırır.
         private async Task HandleRefreshTokenReuseAsync(Domain.Entities.UserRefreshToken reusedToken)
         {
             await _criticalEventReporter.CaptureAsync(new CriticalEvent(
@@ -336,6 +344,7 @@ namespace ECafe.Application.Services.Auth.Concrete
             throw new ForbiddenException(ErrorCode.RefreshTokenReuseDetected);
         }
 
+        // Hesabın bütün qüvvədə olan refresh tokenlərini ləğv edir.
         private async Task RevokeAllActiveRefreshTokensAsync(int userId)
         {
             var activeTokens = await _refreshTokenRepository.GetActiveByUserIdTrackedAsync(userId, DateTime.UtcNow);
@@ -345,6 +354,7 @@ namespace ECafe.Application.Services.Auth.Concrete
             }
         }
 
+        // Yalnız seçilmiş cihaz sessiyasının aktiv tokenlərini ləğv edir.
         private async Task RevokeActiveRefreshTokensForSessionAsync(int userId, string sessionId)
         {
             var activeTokens = await _refreshTokenRepository.GetActiveByUserSessionTrackedAsync(userId, sessionId, DateTime.UtcNow);
@@ -354,12 +364,14 @@ namespace ECafe.Application.Services.Auth.Concrete
             }
         }
 
+        // Tokenin ləğv vaxtını yazaraq yenidən istifadəni bağlayır.
         private void RevokeRefreshToken(Domain.Entities.UserRefreshToken refreshToken)
         {
             refreshToken.RevokedAt ??= DateTime.UtcNow;
             refreshToken.RevokedByIp ??= GetRequestIp();
         }
 
+        // Tokenin şübhəli təkrar istifadəsi barədə təhlükəsizlik e-poçtu növbəyə qoyur.
         private Task EnqueueRefreshTokenReuseEmailAsync(Domain.Entities.User user)
         {
             var ipAddress = GetRequestIp() ?? "unknown";
@@ -386,9 +398,11 @@ namespace ECafe.Application.Services.Auth.Concrete
                 user.Id);
         }
 
+        // Audit üçün sorğunun mənbə IP ünvanını götürür.
         private string? GetRequestIp()
             => HttpContextAccessor.HttpContext?.Connection.RemoteIpAddress?.ToString();
 
+        // Bir cihaz sessiyasını bütün token yeniləmələri boyunca tanıyan ID yaradır.
         private static string CreateSessionId()
             => Guid.NewGuid().ToString("N");
         #endregion

@@ -32,10 +32,6 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
         private static readonly JsonSerializerOptions NotificationJsonOptions = new(JsonSerializerDefaults.Web);
         private static string ContractFlowCode
             => WorkflowFlowCode.FromStatusType(StatusType.Contract);
-        private const string SendForSignatureActionCode = "sendForSignature";
-        private const string ApproveActionCode = "approve";
-        private const string ActivateActionCode = "activate";
-        private const string TerminateActionCode = "terminate";
 
         private readonly IRestaurantContractRepository _contractRepository;
         private readonly IRestaurantRepository _restaurantRepository;
@@ -364,7 +360,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             var contract = await GetTrackedContractAsync(restaurantId, contractId);
 
             ValidateContractCanEnterActivationFlow(contract.StartDate, contract.EndDate);
-            await EnsureWorkflowActionAllowedAsync(contract, ActivateActionCode);
+            await EnsureWorkflowActionAllowedAsync(contract, WorkflowActionCode.Contract.Activate);
 
             var nowUtc = DateTime.UtcNow;
             if (contract.StartDate > nowUtc)
@@ -424,7 +420,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             var contract = await GetTrackedContractAsync(restaurantId, contractId);
             ValidatePersistedContractDates(contract.StartDate, contract.EndDate);
             EnsureContractHasNotExpired(contract.EndDate);
-            await EnsureWorkflowActionAllowedAsync(contract, SendForSignatureActionCode);
+            await EnsureWorkflowActionAllowedAsync(contract, WorkflowActionCode.Contract.SendForSignature);
 
             var owner = await GetRestaurantOwnerAsync(restaurantId);
 
@@ -461,7 +457,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             var contract = await GetTrackedContractAsync(restaurantId, contractId);
             ValidatePersistedContractDates(contract.StartDate, contract.EndDate);
             EnsureContractHasNotExpired(contract.EndDate);
-            await EnsureWorkflowActionAllowedAsync(contract, ApproveActionCode);
+            await EnsureWorkflowActionAllowedAsync(contract, WorkflowActionCode.Contract.Approve);
 
             var owner = await GetRestaurantOwnerAsync(restaurantId);
             var currentUserId = GetCurrentUserId();
@@ -498,7 +494,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             EnsureCurrentUserCanAccessRestaurant(restaurantId);
 
             var contract = await GetTrackedContractAsync(restaurantId, contractId);
-            await EnsureWorkflowActionAllowedAsync(contract, TerminateActionCode);
+            await EnsureWorkflowActionAllowedAsync(contract, WorkflowActionCode.Contract.Terminate);
             var owner = await GetRestaurantOwnerAsync(restaurantId);
 
             contract.StatusId = ContractStatusId(ContractStatus.Terminated);
@@ -674,6 +670,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             return sentCount;
         }
 
+        // Status əməliyyatı üçün müqaviləni restoran daxilində izlənən obyekt kimi gətirir.
         private async Task<Domain.Entities.RestaurantContract> GetTrackedContractAsync(int restaurantId, int contractId)
         {
             if (restaurantId <= 0)
@@ -689,6 +686,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             return contract;
         }
 
+        // Müqavilə məlumatlarını və əlaqəli faylları API cavabına çevirir.
         private async Task<RestaurantContractResponse> MapToResponseAsync(Domain.Entities.RestaurantContract contract)
         {
             return new RestaurantContractResponse
@@ -723,6 +721,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             };
         }
 
+        // Müqavilə axtarış mətnini boş dəyər və artıq boşluqlardan təmizləyir.
         private static string? NormalizeSearch(string? value)
         {
             if (string.IsNullOrWhiteSpace(value))
@@ -731,6 +730,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             return value.Trim().ToLower();
         }
 
+        // Müqavilənin statusu və istifadəçi roluna uyğun əməliyyatları gətirir.
         private Task<List<WorkflowActionResponse>> ResolveAvailableActionsAsync(Domain.Entities.RestaurantContract contract)
             => _workflowActionService.GetAvailableActionsAsync(
                 ContractFlowCode,
@@ -738,6 +738,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
                 contract.RestaurantId,
                 contract.Id);
 
+        // Müqavilədə istənilən status keçidinin workflow qaydasında icazəli olduğunu yoxlayır.
         private Task EnsureWorkflowActionAllowedAsync(Domain.Entities.RestaurantContract contract, string actionCode)
             => _workflowActionService.EnsureCanExecuteAsync(
                 ContractFlowCode,
@@ -746,18 +747,21 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
                 contract.RestaurantId,
                 contract.Id);
 
+        // Eyni restorana paralel aktiv müqavilə açılmasının qarşısını alır.
         private async Task EnsureRestaurantDoesNotHaveActiveContractAsync(int restaurantId)
         {
             if (await _contractRepository.HasActiveContractAsync(restaurantId))
                 throw new BusinessRuleException(ErrorCode.RestaurantAlreadyHasActiveContract);
         }
 
+        // Bu müqavilədən başqa aktiv müqavilənin olmadığını yoxlayır.
         private async Task EnsureRestaurantDoesNotHaveAnotherActiveContractAsync(int restaurantId, int contractId, DateTime nowUtc)
         {
             if (await HasAnotherActiveContractAsync(restaurantId, contractId, nowUtc))
                 throw new BusinessRuleException(ErrorCode.RestaurantAlreadyHasActiveContract);
         }
 
+        // Müəyyən tarixdə restoranın başqa qüvvədə olan müqaviləsini axtarır.
         private Task<bool> HasAnotherActiveContractAsync(int restaurantId, int contractId, DateTime nowUtc)
             => _contractRepository.CheckExistAsync(x =>
                 x.RestaurantId == restaurantId &&
@@ -765,8 +769,10 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
                 x.StatusId == ContractStatusId(ContractStatus.Active) &&
                 (!x.EndDate.HasValue || x.EndDate >= nowUtc));
 
+        // Müqavilə statusunu ümumi status cədvəlinin ID-sinə çevirir.
         private static int ContractStatusId(ContractStatus status)
             => StatusIds.Contract(status);
+        // Müqavilənin statusuna uyğun redaktə qadağasının səbəbini seçir.
         private static string GetContractEditBlockedMessage(int statusId)
         {
             if (statusId == ContractStatusId(ContractStatus.OwnerApproved))
@@ -788,6 +794,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
         }
 
 
+        // Sahibkarın şərtləri və təsdiq mətnini qəbul etdiyini yoxlayır.
         private static void EnsureOwnerAcceptedContractTerms(bool hasAcceptedContractTerms, string? acceptanceText)
         {
             if (!hasAcceptedContractTerms)
@@ -797,6 +804,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
                 throw new BusinessRuleException(ErrorCode.ContractAcceptanceTextRequired);
         }
 
+        // Bildiriş və təsdiq üçün aktiv restoran sahibkarını tapır.
         private async Task<Domain.Entities.UserRestaurant> GetRestaurantOwnerAsync(int restaurantId)
         {
             var owner = await _userRestaurantRepository.GetActiveOwnerByRestaurantAsync(restaurantId);
@@ -806,6 +814,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             return owner;
         }
 
+        // Təsdiqə göndərilən müqaviləni sahibkara bildirir.
         private Task NotifyOwnerContractPendingApprovalAsync(
             Domain.Entities.RestaurantContract contract,
             int ownerUserId)
@@ -816,6 +825,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
                 "Müqavilə təsdiqinizi gözləyir",
                 $"{contract.ContractNumber} nömrəli müqavilə təsdiq üçün sizə göndərildi.");
 
+        // Müqavilənin aktivləşməsini sahibkara bildirir.
         private Task NotifyOwnerContractActivatedAsync(
             Domain.Entities.RestaurantContract contract,
             int ownerUserId)
@@ -826,6 +836,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
                 "Müqavilə aktivləşdirildi",
                 $"{contract.ContractNumber} nömrəli müqaviləniz aktivləşdirildi.");
 
+        // Müqavilənin ləğvini sahibkara bildirir.
         private Task NotifyOwnerContractTerminatedAsync(
             Domain.Entities.RestaurantContract contract,
             int ownerUserId)
@@ -836,6 +847,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
                 "Müqavilə ləğv edildi",
                 $"{contract.ContractNumber} nömrəli müqaviləniz ləğv edildi.");
 
+        // Bitmə tarixi yaxınlaşanda sahibkara xatırlatma göndərir.
         private Task NotifyOwnerContractExpiryReminderAsync(
             Domain.Entities.RestaurantContract contract,
             int ownerUserId,
@@ -847,6 +859,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
                 "Müqavilənin müddəti bitmək üzrədir",
                 BuildExpiryReminderMessage(contract, remainingDays));
 
+        // Vaxtı bitmiş müqaviləni sahibkara bildirir.
         private async Task NotifyOwnerContractExpiredAsync(Domain.Entities.RestaurantContract contract)
         {
             var owner = await _userRestaurantRepository.GetActiveOwnerByRestaurantAsync(contract.RestaurantId);
@@ -861,6 +874,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
                 $"{contract.ContractNumber} nömrəli müqavilənizin müddəti bitdi.");
         }
 
+        // Müqavilə dəyişikliyindən təsirlənən restoran istifadəçilərini məlumatlandırır.
         private async Task NotifyRestaurantUsersContractAccessChangedAsync(
             int restaurantId,
             string reason,
@@ -886,6 +900,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             }
         }
 
+        // Sahibkar təsdiqindən sonra platforma administratorlarını xəbərdar edir.
         private async Task NotifyAdminsContractOwnerApprovedAsync(
             Domain.Entities.RestaurantContract contract,
             Domain.Entities.User owner,
@@ -911,6 +926,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             }
         }
 
+        // Müqavilə hadisəsini bildiriş sisteminə əlavə edir.
         private Task CreateContractNotificationAsync(
             int userId,
             Domain.Entities.RestaurantContract contract,
@@ -930,6 +946,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
                 RelatedEntityId = contract.Id
             });
 
+        // Bildirişə daxil edilən müqavilə identifikatorlarını formalaşdırır.
         private static string BuildContractNotificationPayload(Domain.Entities.RestaurantContract contract)
             => JsonSerializer.Serialize(new
             {
@@ -938,6 +955,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
                 contractNumber = contract.ContractNumber
             }, NotificationJsonOptions);
 
+        // Qalan günlərə görə müqavilə xatırlatmasının mətnini qurur.
         private static string BuildExpiryReminderMessage(
             Domain.Entities.RestaurantContract contract,
             int remainingDays)
@@ -948,9 +966,11 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             return $"{contract.ContractNumber} nömrəli müqavilənin bitməsinə {remainingDays} gün qalıb. Bitmə vaxtı: {endDate}. Məbləğ: {amount}.";
         }
 
+        // Bildiriş mətnini saxlanma ölçüsü həddinə uyğun kəsir.
         private static string LimitNotificationMessage(string message)
             => message.Length <= 1000 ? message : message[..1000];
 
+        // Restoran və il üçün təkrarlanmayan müqavilə nömrəsi yaradır.
         private async Task<string> GenerateContractNumberAsync(int restaurantId, DateTime startDate)
         {
             var year = startDate.Year;
@@ -970,6 +990,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             throw new BusinessRuleException(ErrorCode.ContractNumberGenerationFailed);
         }
 
+        // Redaktə zamanı başlanğıc və son tarixlərin icazəli olmasını yoxlayır.
         private static void ValidateEditableContractDates(DateTime startDate, DateTime? endDate)
         {
             ValidateContractDateRange(startDate, endDate);
@@ -978,9 +999,11 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
                 throw new BusinessRuleException(ErrorCode.ContractStartDateCannotBeInPast);
         }
 
+        // Saxlanmış müqavilə tarixlərinin ardıcıllığını yoxlayır.
         private static void ValidatePersistedContractDates(DateTime startDate, DateTime? endDate)
             => ValidateContractDateRange(startDate, endDate);
 
+        // Müqavilənin təsdiq və aktivləşmə mərhələsinə tarixcə uyğunluğunu yoxlayır.
         private static void ValidateContractCanEnterActivationFlow(DateTime startDate, DateTime? endDate)
         {
             ValidateContractDateRange(startDate, endDate);
@@ -989,6 +1012,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
                 throw new BusinessRuleException(ErrorCode.ExpiredContractCannotBeActivated);
         }
 
+        // Son tarixin başlanğıcdan əvvəl olmamasını təmin edir.
         private static void ValidateContractDateRange(DateTime startDate, DateTime? endDate)
         {
             if (startDate == default)
@@ -1001,6 +1025,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
                 throw new BusinessRuleException(ErrorCode.ContractEndDateMustBeAfterStartDate);
         }
 
+        // Vaxtı keçmiş müqavilənin aktivləşdirilməsini dayandırır.
         private static void EnsureContractHasNotExpired(DateTime? endDate)
         {
             if (!endDate.HasValue)
@@ -1010,27 +1035,32 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
                 throw new BusinessRuleException(ErrorCode.ExpiredContractCannotContinueApprovalFlow);
         }
 
+        // Faiz sahəsini 0-100 aralığına məhdudlaşdırır.
         private static void ValidatePercent(decimal? value, string fieldName)
         {
             if (value is < 0 or > 100)
-                throw new BusinessRuleException($"{fieldName} must be between 0 and 100!");
+                throw new BusinessRuleException(ErrorCode.ContractPercentageOutOfRange, new { fieldName });
         }
 
+        // Müqavilə məbləğinin müsbət olmasını yoxlayır.
         private static void ValidateContractAmount(decimal amount)
         {
             if (amount <= 0)
                 throw new BusinessRuleException(ErrorCode.ContractAmountMustBeGreaterThanZero);
         }
 
+        // Xatırlatma günlərinin icazəli aralıqda olmasını yoxlayır.
         private static void ValidateExpiryReminderDaysBefore(int daysBefore)
         {
             if (daysBefore is < 1 or > 365)
                 throw new BusinessRuleException(ErrorCode.ContractExpiryReminderDaysInvalid);
         }
 
+        // Son tarixdən xatırlatma günlərini çıxıb göndəriş vaxtını hesablayır.
         private static DateTime CalculateExpiryReminderAt(DateTime endDate, int daysBefore)
             => endDate.AddDays(-daysBefore);
 
+        // Müqavilənin bitməsinə qalan tam günləri hesablayır.
         private static int CalculateRemainingDays(DateTime nowUtc, DateTime? endDate)
         {
             if (!endDate.HasValue || endDate.Value <= nowUtc)
@@ -1039,9 +1069,11 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             return Math.Max(1, (int)Math.Ceiling((endDate.Value - nowUtc).TotalDays));
         }
 
+        // Pul məbləğini bildirişdə göstərilən formaya çevirir.
         private static string FormatMoney(decimal amount)
             => $"{amount:0.##} AZN";
 
+        // Köhnə və yeni müqavilə sahələrini audit üçün müqayisə edir.
         private static List<AuditChangedField> BuildContractChangeDetails(
             DateTime previousStartDate,
             DateTime currentStartDate,
@@ -1080,6 +1112,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             return changes;
         }
 
+        // Yalnız dəyişən müqavilə sahəsini audit siyahısına əlavə edir.
         private static void AddChange<T>(List<AuditChangedField> changes, string field, T oldValue, T newValue)
         {
             if (EqualityComparer<T>.Default.Equals(oldValue, newValue))
@@ -1091,6 +1124,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
                 FormatAuditValue(newValue)));
         }
 
+        // Audit dəyərini sabit, müqayisə oluna bilən mətnə çevirir.
         private static string? FormatAuditValue<T>(T value)
         {
             if (value is null)

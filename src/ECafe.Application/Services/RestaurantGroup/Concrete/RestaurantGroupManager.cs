@@ -44,21 +44,21 @@ namespace ECafe.Application.Services.RestaurantGroup.Concrete
         public async Task<int> CreateAsync(CreateRestaurantGroupRequest request)
         {
             if (request is null)
-                throw new BusinessRuleException("Request is required.");
+                throw new BusinessRuleException(ErrorCode.RequestRequired);
 
             var name = request.Name?.Trim();
             if (string.IsNullOrWhiteSpace(name))
-                throw new BusinessRuleException("Restaurant group name is required.");
+                throw new BusinessRuleException(ErrorCode.RestaurantGroupNameRequired);
 
             var email = request.Email?.Trim().ToLowerInvariant();
             if (string.IsNullOrWhiteSpace(email))
-                throw new BusinessRuleException("Restaurant group email is required.");
+                throw new BusinessRuleException(ErrorCode.RestaurantGroupEmailRequired);
 
             var exists = await _restaurantGroupRepository
                 .CheckExistAsync(x => x.Name == name);
 
             if (exists)
-                throw new BusinessRuleException("Restaurant group with this name already exists!");
+                throw new BusinessRuleException(ErrorCode.RestaurantGroupNameAlreadyExistsBang);
 
             var group = new Domain.Entities.RestaurantGroup
             {

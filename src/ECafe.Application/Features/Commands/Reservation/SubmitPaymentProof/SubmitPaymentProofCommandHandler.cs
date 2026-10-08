@@ -3,6 +3,7 @@ using ECafe.Application.Common.Exceptions;
 using ECafe.Application.Features.Commands.File;
 using ECafe.Application.Services.Reservation.Abstract;
 using ECafe.Domain.Enums;
+using ECafe.Domain.Exceptions;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -30,7 +31,7 @@ public sealed class SubmitPaymentProofCommandHandler
         CancellationToken cancellationToken)
     {
         if (request.File is null || request.File.Length == 0)
-            throw new BadRequestException("Ödəniş çekini seçin.");
+            throw new BadRequestException(ErrorCode.PaymentProofRequired);
 
         await _reservationService.EnsurePaymentProofCanBeSubmittedAsync(
             request.RestaurantId,

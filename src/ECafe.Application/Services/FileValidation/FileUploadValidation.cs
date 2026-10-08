@@ -64,6 +64,7 @@ public static class FileUploadValidation
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToArray();
 
+    // Fayl siyasətindəki MB limitini bayt həddinə çevirir.
     private static long GetMaxUploadSizeBytes(FileUploadPolicy policy)
         => policy.MaxSizeMb > 0
             ? policy.MaxSizeMb * 1024L * 1024L

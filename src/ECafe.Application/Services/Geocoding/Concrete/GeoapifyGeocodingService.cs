@@ -78,6 +78,7 @@ public sealed class GeoapifyGeocodingService : IGeocodingService
         }
     }
 
+    // Ünvan variantlarını provayderdə axtarıb təkrarsız nəticələr toplayır.
     private async Task<IReadOnlyList<GeocodeAddressResponse>> SearchGeoapifyAsync(
         string address,
         int limit,
@@ -97,6 +98,7 @@ public sealed class GeoapifyGeocodingService : IGeocodingService
         throw new NotFoundException(ErrorCode.GeocodingAddressNotFound);
     }
 
+    // Geoapify sorğusunu göndərib cavabı etibarlı ünvan modelinə çevirir.
     private async Task<IReadOnlyList<GeocodeAddressResponse>> RequestGeoapifyAsync(
         string endpoint,
         string address,
@@ -121,6 +123,7 @@ public sealed class GeoapifyGeocodingService : IGeocodingService
             .ToList();
     }
 
+    // Ünvan, dil və ölkə ayarları ilə provayder URL-si qurur.
     private Uri BuildGeoapifyUri(string endpoint, string address, int limit)
     {
         var query = new Dictionary<string, string?>
@@ -141,6 +144,7 @@ public sealed class GeoapifyGeocodingService : IGeocodingService
         return new Uri($"{ResolveBaseUrl()}/v1/geocode/{endpoint}?{queryString}");
     }
 
+    // Provayder nəticəsindən istifadə oluna bilən koordinat və ünvanı ayırır.
     private static GeocodeAddressResponse? MapGeoapifyResult(GeoapifyResult result)
     {
         if (string.IsNullOrWhiteSpace(result.Formatted))
@@ -158,6 +162,7 @@ public sealed class GeoapifyGeocodingService : IGeocodingService
         };
     }
 
+    // Azərbaycan ünvanının müxtəlif yazılışlarını axtarış üçün hazırlayır.
     private static IReadOnlyList<string> BuildAddressSearchVariants(string address)
     {
         var normalizedAddress = address.Trim();
@@ -185,6 +190,7 @@ public sealed class GeoapifyGeocodingService : IGeocodingService
             .ToList();
     }
 
+    // Azeri hərfləri və transliterasiya variantlarını sorğuya əlavə edir.
     private static void AddAzeriLetterVariants(string address, List<string> variants)
     {
         var latinI = address
@@ -207,6 +213,7 @@ public sealed class GeoapifyGeocodingService : IGeocodingService
         }
     }
 
+    // Geokodlama ayarlarını konfiqurasiyadan oxuyur.
     private static GeocodingOptions ReadOptions(IConfiguration configuration)
     {
         return new GeocodingOptions
@@ -222,6 +229,7 @@ public sealed class GeoapifyGeocodingService : IGeocodingService
         };
     }
 
+    // Sorğudan əvvəl provayder açarı və URL ayarlarını yoxlayır.
     private void ValidateProviderConfiguration()
     {
         var provider = _options.Provider?.Trim();
@@ -237,6 +245,7 @@ public sealed class GeoapifyGeocodingService : IGeocodingService
         }
     }
 
+    // Provayderin etibarlı baza URL-sini seçir.
     private string ResolveBaseUrl()
     {
         return string.IsNullOrWhiteSpace(_options.BaseUrl)
@@ -244,6 +253,7 @@ public sealed class GeoapifyGeocodingService : IGeocodingService
             : _options.BaseUrl.TrimEnd('/');
     }
 
+    // Axtarış nəticələrinin dil ayarını seçir.
     private string ResolveLanguage()
     {
         return string.IsNullOrWhiteSpace(_options.Language)
@@ -251,6 +261,7 @@ public sealed class GeoapifyGeocodingService : IGeocodingService
             : _options.Language.Trim();
     }
 
+    // Nəticələri yaxın əraziyə yönləndirən bias ayarını seçir.
     private string ResolveBias()
     {
         return string.IsNullOrWhiteSpace(_options.Bias)
@@ -258,6 +269,7 @@ public sealed class GeoapifyGeocodingService : IGeocodingService
             : _options.Bias.Trim();
     }
 
+    // Ölkə filtrini konfiqurasiyadan götürür.
     private string? ResolveCountryFilter()
     {
         return string.IsNullOrWhiteSpace(_options.CountryCodes)
@@ -265,11 +277,13 @@ public sealed class GeoapifyGeocodingService : IGeocodingService
             : $"countrycode:{_options.CountryCodes.Trim().ToLowerInvariant()}";
     }
 
+    // Provayder sorğusu üçün timeout həddini seçir.
     private int ResolveTimeoutSeconds()
     {
         return Math.Clamp(_options.TimeoutSeconds ?? MaximumTimeoutSeconds, MinimumTimeoutSeconds, MaximumTimeoutSeconds);
     }
 
+    // Ünvan nəticələrinin keş müddətini seçir.
     private int ResolveCacheMinutes()
     {
         return Math.Clamp(_options.CacheMinutes ?? MinimumCacheMinutes, MinimumCacheMinutes, MaximumCacheMinutes);

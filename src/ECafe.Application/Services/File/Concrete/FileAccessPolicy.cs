@@ -112,11 +112,13 @@ namespace ECafe.Application.Services.FileAccess.Concrete
 
         private ClaimsPrincipal CurrentUser
             => _httpContextAccessor.HttpContext?.User
-               ?? throw new ForbiddenException("Authenticated user context is required.");
+               ?? throw new ForbiddenException(ErrorCode.AuthenticatedUserContextRequired);
 
+        // Platforma administratoru restoran məhdudiyyətindən azaddır; digər rollar aidiyyətə görə yoxlanılır.
         private bool IsCurrentUserSuperAdmin()
             => GetCurrentRoleId() == (int)RoleCode.SuperAdmin;
 
+        // Aktiv restoran başlığını yalnız istifadəçinin restoranları arasındadırsa qəbul edir.
         private int? GetCurrentRestaurantId()
         {
             var activeRestaurantId = GetActiveRestaurantIdFromHeader();
@@ -131,28 +133,31 @@ namespace ECafe.Application.Services.FileAccess.Concrete
             return restaurantIds.Count > 0 ? restaurantIds.First() : null;
         }
 
+        // Fayla sahiblik yoxlaması üçün tokenin etibarlı istifadəçi ID-sini qaytarır.
         private int GetCurrentUserId()
         {
             var userIdClaim = CurrentUser.FindFirst("userId")?.Value;
             if (!int.TryParse(userIdClaim, out var userId) || userId <= 0)
-                throw new ForbiddenException("User context is required.");
+                throw new ForbiddenException(ErrorCode.UserContextRequired);
 
             return userId;
         }
 
+        // Administrator istisnasını müəyyən etmək üçün tokenin rolunu oxuyur.
         private int GetCurrentRoleId()
         {
             var roleClaim = CurrentUser.FindFirst(ClaimTypes.Role)?.Value;
             if (!int.TryParse(roleClaim, out var roleId))
-                throw new ForbiddenException("Role context is required.");
+                throw new ForbiddenException(ErrorCode.RoleContextRequired);
 
             return roleId;
         }
 
+        // Restorana bağlı faylların başqa restoran hesabından açılmasının qarşısını alır.
         private void EnsureCurrentUserCanAccessRestaurant(int restaurantId)
         {
             if (restaurantId <= 0)
-                throw new BusinessRuleException("Invalid restaurant ID!");
+                throw new BusinessRuleException(ErrorCode.InvalidRestaurantId);
 
             if (IsCurrentUserSuperAdmin())
                 return;
@@ -162,6 +167,7 @@ namespace ECafe.Application.Services.FileAccess.Concrete
                 throw new ForbiddenException(ErrorCode.AccessDenied);
         }
 
+        // Yeni çoxrestoranlı claim-i oxuyur, köhnə tək restoranlı tokenləri də dəstəkləyir.
         private IReadOnlyCollection<int> GetCurrentRestaurantIds()
         {
             var restaurantIdsClaim = CurrentUser.FindFirst("restaurantIds")?.Value;
@@ -181,6 +187,7 @@ namespace ECafe.Application.Services.FileAccess.Concrete
                 : [];
         }
 
+        // Sorğudakı aktiv restoran ID-si düzgün deyilsə seçimə təsir etməməsi üçün null qaytarır.
         private int? GetActiveRestaurantIdFromHeader()
         {
             var request = _httpContextAccessor.HttpContext?.Request;

@@ -64,7 +64,7 @@ namespace ECafe.Application.Services.Recipe.Concrete
 
             var exists = await _recipeRepository.ExistsAsync(restaurantId, itemId, request.InventoryItemId);
             if (exists)
-                throw new BusinessRuleException("Recipe ingredient already exists for this item.");
+                throw new BusinessRuleException(ErrorCode.RecipeIngredientAlreadyExists);
 
             var recipe = Mapper.Map<Domain.Entities.Recipe>(request);
             recipe.RestaurantId = restaurantId;
@@ -99,7 +99,7 @@ namespace ECafe.Application.Services.Recipe.Concrete
 
             var exists = await _recipeRepository.ExistsAsync(restaurantId, itemId, request.InventoryItemId, recipeId);
             if (exists)
-                throw new BusinessRuleException("Recipe ingredient already exists for this item.");
+                throw new BusinessRuleException(ErrorCode.RecipeIngredientAlreadyExists);
 
             Mapper.Map(request, recipe);
             await _recipeRepository.SaveChangesAsync();
@@ -145,13 +145,14 @@ namespace ECafe.Application.Services.Recipe.Concrete
             return Mapper.Map<DeleteOrDeactivateResponse>(recipe);
         }
 
+        // Reseptin məhsulunun həmin restoran üçün yararlı olduğunu yoxlayır.
         private async Task<Domain.Entities.Item> EnsureRecipeContextAsync(int restaurantId, int itemId)
         {
             if (restaurantId <= 0)
                 throw new BusinessRuleException(ErrorCode.InvalidRestaurantId);
 
             if (itemId <= 0)
-                throw new BusinessRuleException("Invalid item ID.");
+                throw new BusinessRuleException(ErrorCode.InvalidRecipeItemId);
 
             var restaurant = await _restaurantRepository.GetRestaurantInfoAsync(restaurantId);
             if (restaurant is null)
@@ -163,21 +164,23 @@ namespace ECafe.Application.Services.Recipe.Concrete
                 .Query(x => x.Id == itemId && x.RestaurantId == restaurantId && x.IsActive)
                 .FirstOrDefaultAsync();
 
-            return item ?? throw new NotFoundException("Active item not found.");
+            return item ?? throw new NotFoundException(ErrorCode.ActiveItemNotFound);
         }
 
+        // Dəyişdiriləcək resepti məhsul və restoran daxilində gətirir.
         private async Task<Domain.Entities.Recipe> GetRecipeForMutationAsync(
             int restaurantId,
             int itemId,
             int recipeId)
         {
             if (recipeId <= 0)
-                throw new BusinessRuleException("Invalid recipe ID.");
+                throw new BusinessRuleException(ErrorCode.InvalidRecipeId);
 
             var recipe = await _recipeRepository.GetByIdForItemAsync(restaurantId, itemId, recipeId);
-            return recipe ?? throw new NotFoundException("Recipe not found.");
+            return recipe ?? throw new NotFoundException(ErrorCode.RecipeNotFound);
         }
 
+        // Resept tərkibinin aktiv stok məhsuluna bağlı olduğunu yoxlayır.
         private async Task<Domain.Entities.InventoryItem> GetActiveInventoryItemAsync(
             int restaurantId,
             int inventoryItemId)
@@ -192,21 +195,24 @@ namespace ECafe.Application.Services.Recipe.Concrete
             return inventoryItem;
         }
 
+        // Reseptdə işlədilən ölçü vahidini gətirir.
         private async Task<Unit> GetUnitAsync(int unitId)
         {
             if (unitId <= 0)
-                throw new BusinessRuleException("Invalid unit ID.");
+                throw new BusinessRuleException(ErrorCode.InvalidUnitId);
 
             var unit = await _unitRepository.GetByIdAsync(unitId);
             return unit ?? throw new NotFoundException(ErrorCode.UnitNotFound);
         }
 
+        // Resept və stok vahidlərinin eyni ölçü qrupunda olduğunu təsdiqləyir.
         private static void EnsureUnitConversionAllowed(Unit recipeUnit, Unit stockUnit)
         {
             if (GetBaseUnitId(recipeUnit) != GetBaseUnitId(stockUnit))
                 throw new BusinessRuleException(ErrorCode.InventoryUnitConversionNotAllowed);
         }
 
+        // Ölçü çevirməsi üçün əsas vahidin ID-sini çıxarır.
         private static int GetBaseUnitId(Unit unit)
             => unit.BaseUnitId ?? unit.Id;
     }

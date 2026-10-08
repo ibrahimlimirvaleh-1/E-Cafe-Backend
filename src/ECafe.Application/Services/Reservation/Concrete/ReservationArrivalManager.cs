@@ -179,6 +179,7 @@ public sealed class ReservationArrivalManager(
         return MapOffer(reservation, adjustment, now);
     }
 
+    // Gecikmə təklifinin yalnız aktiv və vaxtı keçməmiş rezervasiyada açılmasını yoxlayır.
     private static void EnsureCanRequest(ReservationEntity reservation, DateTime now)
     {
         if (reservation.ArrivalAdjustment?.AcceptedAt != null)
@@ -187,6 +188,7 @@ public sealed class ReservationArrivalManager(
             throw new BusinessRuleException(ErrorCode.ReservationArrivalNotAvailable);
     }
 
+    // Gecikmə təklifinin müştərinin görməli olduğu saat və şərtlərini qaytarır.
     private static ReservationArrivalOfferResponse MapOffer(ReservationEntity reservation,
         ReservationArrivalAdjustment adjustment, DateTime now)
         => new(adjustment.ConsentToken, ToOffset(adjustment.RequestedArrivalAt), ToOffset(adjustment.ProposedNoShowDeadlineAt),
@@ -195,5 +197,6 @@ public sealed class ReservationArrivalManager(
             reservation.PaymentProofs.Any(p => p.StatusId == StatusIds.Reservation(ReservationStatus.Confirmed)),
             ReservationCancellationRules.CanRefund(reservation, now, true), reservation.Restaurant.TimeZone);
 
+    // Bazadakı UTC vaxtını API-də saat qurşağı ilə göstərir.
     private static DateTimeOffset ToOffset(DateTime value) => new(DateTime.SpecifyKind(value, DateTimeKind.Utc));
 }

@@ -119,6 +119,7 @@ public class PasswordResetManager : IPasswordResetService
         await EnqueuePasswordChangedEmailAsync(resetToken.User);
     }
 
+    // Parol dəyişəndə əvvəlki cihaz sessiyalarının girişini ləğv edir.
     private async Task RevokeActiveRefreshTokensAsync(int userId, DateTime nowUtc)
     {
         var activeTokens = await _refreshTokenRepository.GetActiveByUserIdTrackedAsync(userId, nowUtc);
@@ -130,6 +131,7 @@ public class PasswordResetManager : IPasswordResetService
         }
     }
 
+    // Parol yeniləmə keçidini e-poçt növbəsinə əlavə edir.
     private Task EnqueueResetLinkEmailAsync(Domain.Entities.User user, string resetUrl)
     {
         var body = $"""
@@ -156,6 +158,7 @@ public class PasswordResetManager : IPasswordResetService
             user.Id);
     }
 
+    // Parol dəyişikliyi barədə təhlükəsizlik e-poçtu növbəyə qoyur.
     private Task EnqueuePasswordChangedEmailAsync(Domain.Entities.User user)
     {
         var ipAddress = GetRequestIp() ?? "unknown";
@@ -182,6 +185,7 @@ public class PasswordResetManager : IPasswordResetService
             user.Id);
     }
 
+    // Tokeni parol yeniləmə səhifəsinin URL-sinə yerləşdirir.
     private string BuildResetUrl(string token)
     {
         var frontendBaseUrl = _configuration["Frontend:BaseUrl"]?.TrimEnd('/');
@@ -191,12 +195,15 @@ public class PasswordResetManager : IPasswordResetService
         return $"{frontendBaseUrl}/reset-password?token={Uri.EscapeDataString(token)}";
     }
 
+    // Parol əməliyyatının auditinə mənbə IP ünvanını verir.
     private string? GetRequestIp()
         => _httpContextAccessor.HttpContext?.Connection.RemoteIpAddress?.ToString();
 
+    // Parol əməliyyatının auditinə cihaz məlumatını verir.
     private string? GetUserAgent()
         => _httpContextAccessor.HttpContext?.Request.Headers["User-Agent"].ToString();
 
+    // Təxmin edilməsi çətin parol yeniləmə tokeni yaradır.
     private static string GenerateSecureToken()
     {
         var bytes = RandomNumberGenerator.GetBytes(64);
@@ -206,6 +213,7 @@ public class PasswordResetManager : IPasswordResetService
             .Replace("=", string.Empty);
     }
 
+    // Parol yeniləmə tokenini yalnız hash kimi saxlayır.
     private static string HashToken(string token)
     {
         var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(token));

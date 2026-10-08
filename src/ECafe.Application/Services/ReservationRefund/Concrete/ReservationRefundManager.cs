@@ -484,6 +484,7 @@ public sealed class ReservationRefundManager : BaseManager, IReservationRefundSe
         CancellationToken cancellationToken = default)
         => ReviewTransferAsync(refundId, transferId, NormalizeDisputeReason(reason), cancellationToken);
 
+    // Müştərinin köçürmə çekini təsdiq və ya etiraz etməsini cari refund vəziyyətinə görə icra edir.
     private async Task<ReservationRefundResponse> ReviewTransferAsync(
         int refundId,
         int transferId,
@@ -591,6 +592,7 @@ public sealed class ReservationRefundManager : BaseManager, IReservationRefundSe
         return ReservationRefundResponseMapper.Map(refund, _fileAccessUrlService);
     }
 
+    // Geri ödəniş əməliyyatını yalnız restorana səlahiyyəti olan şəxsə açır.
     private async Task EnsureRestaurantAccessAsync(int restaurantId)
     {
         if (IsCurrentUserSuperAdmin())
@@ -604,6 +606,7 @@ public sealed class ReservationRefundManager : BaseManager, IReservationRefundSe
             throw new ForbiddenException(ErrorCode.OnlyRestaurantManagersCanManageRefund);
     }
 
+    // Geri ödəniş hüququnun yaranma səbəbini rezervasiyanın ləğv məlumatından çıxarır.
     private static string BuildEligibilityReason(ReservationEntity reservation)
     {
         return reservation.CancelledByUserId == reservation.CustomerUserId
@@ -611,18 +614,21 @@ public sealed class ReservationRefundManager : BaseManager, IReservationRefundSe
             : "Restoran təsdiqlənmiş rezervasiyanı ləğv edib.";
     }
 
+    // Yanlış rezervasiya ID-sini refund əməliyyatından əvvəl rədd edir.
     private static void ValidateReservationId(int reservationId)
     {
         if (reservationId <= 0)
             throw new BadRequestException(ErrorCode.InvalidReservationId);
     }
 
+    // Yanlış refund ID-sini vəziyyət dəyişməzdən əvvəl rədd edir.
     private static void ValidateRefundId(int refundId)
     {
         if (refundId <= 0)
             throw new BadRequestException(ErrorCode.InvalidReservationRefundId);
     }
 
+    // Rekvizit mətninin uzunluğunu və qadağan edilmiş həssas məlumatları yoxlayır.
     private static string NormalizePayoutDetails(string? details)
     {
         var normalizedDetails = details?.Trim() ?? string.Empty;
@@ -638,6 +644,7 @@ public sealed class ReservationRefundManager : BaseManager, IReservationRefundSe
         return normalizedDetails;
     }
 
+    // Köçürmə istinadını təmizləyir və uzunluğunu məhdudlaşdırır.
     private static string? NormalizeTransferReference(string? transferReference)
     {
         var normalizedReference = transferReference?.Trim();
@@ -647,6 +654,7 @@ public sealed class ReservationRefundManager : BaseManager, IReservationRefundSe
         return string.IsNullOrWhiteSpace(normalizedReference) ? null : normalizedReference;
     }
 
+    // Etiraz səbəbinin məcburi və ölçü həddinə uyğun olmasını yoxlayır.
     private static string NormalizeDisputeReason(string? reason)
     {
         var normalizedReason = reason?.Trim() ?? string.Empty;
@@ -656,6 +664,7 @@ public sealed class ReservationRefundManager : BaseManager, IReservationRefundSe
         return normalizedReason;
     }
 
+    // Yanlış restoran ID-si ilə geri ödəniş idarəçiliyini dayandırır.
     private static void ValidateRestaurantId(int restaurantId)
     {
         if (restaurantId <= 0)

@@ -201,6 +201,7 @@ public sealed class RestaurantScheduleManager(
             throw new BusinessRuleException(ErrorCode.ScheduleChangeRequiresConsent, new { count });
     }
 
+    // Saat dəyişikliyinin təsir etdiyi aktiv rezervasiya və sessiyaları yenidən hesablayır.
     private async Task<List<RestaurantScheduleConsent>> RefreshAsync(RestaurantScheduleChange change, CancellationToken ct)
     {
         var restaurant = await repository.GetRestaurantAsync(change.RestaurantId, ct)
@@ -242,6 +243,7 @@ public sealed class RestaurantScheduleManager(
         return active;
     }
 
+    // Yeni bağlanma vaxtına görə müştəri razılığının təhvil şərtlərini yeniləyir.
     private static void RefreshTerms(RestaurantScheduleConsent consent, DateTime? vacateAt)
     {
         if (consent.ProposedVacateAt == vacateAt) return;
@@ -252,6 +254,7 @@ public sealed class RestaurantScheduleManager(
         consent.ResponseNote = null;
     }
 
+    // Müştərinin təklifi indiki rezervasiya şərtləri ilə qəbul edə biləcəyini yoxlayır.
     private bool CanAccept(RestaurantScheduleConsent consent)
     {
         var end = consent.ProposedVacateAt;
@@ -264,6 +267,7 @@ public sealed class RestaurantScheduleManager(
             reservation.NoShowDeadlineAt < end);
     }
 
+    // Müştərinin qərarını yalnız cavab verilə bilən təklifə tətbiq edir.
     private bool Decide(RestaurantScheduleConsent consent, ScheduleDecisionRequest request, int userId)
     {
         var state = request.Accept ? ScheduleConsentState.Accepted : ScheduleConsentState.Rejected;
@@ -279,11 +283,13 @@ public sealed class RestaurantScheduleManager(
         return true;
     }
 
+    // Gecikmiş gəliş təklifinin yeni iş saatlarından təsirlənməsini müəyyən edir.
     private static bool LateArrivalAffected(Domain.Entities.Reservation reservation,
         IEnumerable<RestaurantWorkingHour> proposed, string zone)
         => reservation.ArrivalAdjustment?.AcceptedAt != null && ScheduleTerms.IsAffected(proposed, proposed, zone,
             reservation.ArrivalAdjustment.RequestedArrivalAt, reservation.MustVacateAt, out _);
 
+    // Yalnız cari və hələ gözlənilən saat dəyişikliyi təklifini qaytarır.
     private async Task<RestaurantScheduleChange> RequirePendingAsync(int restaurantId, Guid token, CancellationToken ct)
     {
         var change = await repository.GetPendingAsync(restaurantId, ct);
@@ -292,6 +298,7 @@ public sealed class RestaurantScheduleManager(
         return change;
     }
 
+    // Saat dəyişikliyini restorana səlahiyyətli şəxsə məhdudlaşdırır.
     private async Task AuthorizeManagerAsync(int restaurantId)
     {
         EnsureCurrentUserCanAccessRestaurant(restaurantId);
@@ -301,6 +308,7 @@ public sealed class RestaurantScheduleManager(
             throw new ForbiddenException(ErrorCode.AccessDenied);
     }
 
+    // Təklif edilən iş saatlarının və səbəbin tamlığını yoxlayır.
     private static void Validate(ProposeScheduleRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Reason) || request.Reason.Length > 1000 ||
@@ -313,6 +321,7 @@ public sealed class RestaurantScheduleManager(
             throw new BusinessRuleException(ErrorCode.ScheduleInvalidRequest);
     }
 
+    // Saat dəyişikliyi və razılıqları idarəetmə cavabına çevirir.
     private ScheduleChangeResponse Map(RestaurantScheduleChange change, List<RestaurantScheduleConsent> active)
         => new(change.Id, change.Token, change.State.ToString(), change.Reason, change.Restaurant.TimeZone,
             JsonSerializer.Deserialize<List<RestaurantWorkingHourDto>>(change.ProposedHoursJson)!,
@@ -323,6 +332,7 @@ public sealed class RestaurantScheduleManager(
                 c.State.ToString(), CanAccept(c), c.ResponseNote)).ToList(),
             change.State == ScheduleChangeState.Pending && active.All(c => c.State == ScheduleConsentState.Accepted && CanAccept(c)));
 
+    // Müştəriyə yalnız öz gəlişinə aid dəyişiklik şərtlərini göstərir.
     private CustomerScheduleOfferResponse MapCustomer(RestaurantScheduleConsent consent)
         => new(consent.ScheduleChangeId, consent.Id, consent.ScheduleChange.Token, consent.ScheduleChange.State == ScheduleChangeState.Pending
                 ? consent.State.ToString() : consent.ScheduleChange.State.ToString(),
@@ -331,10 +341,12 @@ public sealed class RestaurantScheduleManager(
             consent.State == ScheduleConsentState.Pending && consent.ScheduleChange.State == ScheduleChangeState.Pending &&
             IsActiveStatus(consent.Reservation!.StatusId));
 
+    // Saat dəyişikliklərində hələ qüvvədə sayılan rezervasiya statuslarını ayırır.
     private static bool IsActiveStatus(int statusId) => new[] { ReservationStatus.Confirmed, ReservationStatus.Seated,
         ReservationStatus.AwaitingPaymentInstruction, ReservationStatus.PendingPayment, ReservationStatus.PaymentSubmitted }
         .Any(status => StatusIds.Reservation(status) == statusId);
 
+    // Təklif və qərar barədə rezervasiya sahibini məlumatlandırır.
     private Task NotifyCustomerAsync(RestaurantScheduleChange change, RestaurantScheduleConsent consent, string title, string message)
         => notifications.CreateAsync(new CreateNotificationRequest
         {
@@ -345,6 +357,7 @@ public sealed class RestaurantScheduleManager(
             PayloadJson = JsonSerializer.Serialize(new { reservationId = consent.ReservationId, restaurantId = change.RestaurantId, section = "schedule-offer" })
         });
 
+    // Saat dəyişikliyinin vəziyyətini restoran məsullarına çatdırır.
     private async Task NotifyManagersAsync(RestaurantScheduleChange change, string title)
     {
         var users = await assignments.GetActiveByRestaurantAndRolesAsync(change.RestaurantId,
@@ -359,9 +372,11 @@ public sealed class RestaurantScheduleManager(
             });
     }
 
+    // Saat dəyişikliyi əməliyyatını audit tarixçəsinə yazır.
     private Task RecordAsync(RestaurantScheduleChange change, string action)
         => audit.RecordRestaurantActionAsync(change.RestaurantId, action,
             new { change.Id, change.State, change.Reason }, AuditEntityTypes.Restaurant, change.RestaurantId);
     private DateTime Now => clock.GetUtcNow().UtcDateTime;
+    // Bazadakı UTC vaxtını API üçün saat qurşağı göstərilən formaya çevirir.
     private static DateTimeOffset Offset(DateTime value) => new(DateTime.SpecifyKind(value, DateTimeKind.Utc));
 }

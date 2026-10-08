@@ -405,7 +405,7 @@ namespace ECafe.Application.Services.User.Concrete
             else
             {
                 restaurantId = GetCurrentRestaurantId()
-                    ?? throw new ForbiddenException("Restaurant context is required.");
+                    ?? throw new ForbiddenException(ErrorCode.RestaurantContextRequired);
             }
 
             IQueryable<GetAllUserResponseDto> users;
@@ -494,6 +494,7 @@ namespace ECafe.Application.Services.User.Concrete
             return await MapToStaffDetailResponseAsync(staff);
         }
 
+        // İstifadəçini restorana təyin etməzdən əvvəl restoranın mövcudluğunu təsdiqləyir.
         private async Task EnsureRestaurantExistsAsync(int restaurantId)
         {
             var restaurant = await _restaurantRepository.GetByIdAsync(restaurantId);
@@ -502,6 +503,7 @@ namespace ECafe.Application.Services.User.Concrete
                 throw new BusinessRuleException(ErrorCode.RestaurantNotFound);
         }
 
+        // Hədəf hesabın cari restoran və rol səlahiyyətinə uyğun idarə olunduğunu yoxlayır.
         private void EnsureCanManageTargetUser(Domain.Entities.User user)
         {
             if (IsCurrentUserSuperAdmin())
@@ -515,11 +517,12 @@ namespace ECafe.Application.Services.User.Concrete
                 .Select(userRestaurant => (int?)userRestaurant.RestaurantId)
                 .FirstOrDefault();
             if (!restaurantId.HasValue)
-                throw new ForbiddenException("Target user is not assigned to a restaurant.");
+                throw new ForbiddenException(ErrorCode.TargetUserNotAssignedToRestaurant);
 
             EnsureCurrentUserCanAccessRestaurant(restaurantId.Value);
         }
 
+        // Təyin ediləcək rolun sistemdə mövcudluğunu yoxlayır.
         private async Task EnsureRoleExistsAsync(int roleId)
         {
             var role = await _roleRepository.GetByIdAsync(roleId);
@@ -528,6 +531,7 @@ namespace ECafe.Application.Services.User.Concrete
                 throw new BusinessRuleException(ErrorCode.RoleNotFound);
         }
 
+        // Yeni hesabın e-poçt və telefonunun təkrar olmadığını yoxlayır.
         private async Task EnsureUserDoesNotExistAsync(string email, string phone)
         {
             var normalizedEmail = email.Trim().ToLowerInvariant();
@@ -542,6 +546,7 @@ namespace ECafe.Application.Services.User.Concrete
                 throw new BusinessRuleException(ErrorCode.UserPhoneAlreadyExists);
         }
 
+        // Profil üçün qoşula bilən mövcud faylı qaytarır.
         private async Task<Domain.Entities.File?> GetAttachableFileAsync(int? fileId)
         {
             if (!fileId.HasValue)
@@ -556,6 +561,7 @@ namespace ECafe.Application.Services.User.Concrete
             return file;
         }
 
+        // Rol kodunu istifadəçiyə göstərilən təsvirə çevirir.
         private static string GetRoleDescription(int roleId)
         {
             if (!Enum.IsDefined(typeof(RoleCode), roleId))
@@ -564,6 +570,7 @@ namespace ECafe.Application.Services.User.Concrete
             return ((RoleCode)roleId).GetDescription();
         }
 
+        // Restoranla məhdud rolun aktiv restoran təyinatı olmadan verilməsini qadağan edir.
         private async Task EnsureRestaurantScopedRoleHasRestaurantAsync(int userId, int roleId)
         {
             if (!IsRestaurantScopedRole(roleId))
@@ -574,20 +581,23 @@ namespace ECafe.Application.Services.User.Concrete
                 throw new BusinessRuleException(ErrorCode.RestaurantScopedRoleRequiresAssignment);
         }
 
+        // Rolun yalnız restoran kontekstində işləyib-işləmədiyini müəyyən edir.
         private static bool IsRestaurantScopedRole(int roleId)
             => roleId is (int)RoleCode.Owner or
                 (int)RoleCode.Manager or
                 (int)RoleCode.Waiter or
                 (int)RoleCode.Kitchen;
 
+        // Sahibkar hesabına dair dəyişiklikləri platforma administratoru ilə məhdudlaşdırır.
         private void EnsureOnlySuperAdminCanManageOwnerRole(int roleId)
         {
             if (roleId != (int)RoleCode.Owner || IsCurrentUserSuperAdmin())
                 return;
 
-            throw new ForbiddenException("Only platform admin can manage restaurant owner accounts.");
+            throw new ForbiddenException(ErrorCode.OnlyPlatformAdminCanManageRestaurantOwners);
         }
 
+        // Rol dəyişikliyinin eyni restoranda ikinci aktiv sahibkar yaratmamasını yoxlayır.
         private async Task EnsureRestaurantOwnerSlotAvailableForRoleChangeAsync(int userId, int roleId)
         {
             if (roleId != (int)RoleCode.Owner)
@@ -600,6 +610,7 @@ namespace ECafe.Application.Services.User.Concrete
             await EnsureRestaurantOwnerSlotAvailableAsync(assignment.RestaurantId, roleId, userId);
         }
 
+        // Yeni sahibkar təyinatı üçün restoranda boş yer olduğunu yoxlayır.
         private async Task EnsureRestaurantOwnerSlotAvailableAsync(int restaurantId, int roleId, int? excludedUserId = null)
         {
             if (roleId != (int)RoleCode.Owner)
@@ -612,6 +623,7 @@ namespace ECafe.Application.Services.User.Concrete
             throw new BusinessRuleException(ErrorCode.RestaurantAlreadyHasActiveOwner);
         }
 
+        // Profil cavabına icazəli istifadəçi və restoran məlumatlarını yığır.
         private async Task<ProfileResponseDto> MapToProfileResponseAsync(Domain.Entities.User user)
         {
             var response = Mapper.Map<ProfileResponseDto>(user);
@@ -632,6 +644,7 @@ namespace ECafe.Application.Services.User.Concrete
             return response;
         }
 
+        // İşçi və onun restoran təyinatından detal cavabı yaradır.
         private async Task<StaffDetailResponseDto> MapToStaffDetailResponseAsync(Domain.Entities.User user)
         {
             var response = Mapper.Map<StaffDetailResponseDto>(user);
@@ -639,6 +652,7 @@ namespace ECafe.Application.Services.User.Concrete
             return response;
         }
 
+        // İşçi və onun restoran təyinatından detal cavabı yaradır.
         private async Task<StaffDetailResponseDto> MapToStaffDetailResponseAsync(Domain.Entities.UserRestaurant userRestaurant)
         {
             var response = Mapper.Map<StaffDetailResponseDto>(userRestaurant);
@@ -646,6 +660,7 @@ namespace ECafe.Application.Services.User.Concrete
             return response;
         }
 
+        // Fayl varsa profil şəklinə giriş URL-si yaradır.
         private async Task<string?> GenerateFileUrlAsync(Domain.Entities.File? file)
         {
             if (file is null)
@@ -654,6 +669,7 @@ namespace ECafe.Application.Services.User.Concrete
             return await _minioService.GenerateFileUrl(file.Token);
         }
 
+        // Rol və restoran dəyişikliklərindən sonra yeni token cütünü saxlayır.
         private async Task<AuthResponseDto> CreateAndStoreTokenResponseAsync(Domain.Entities.User user)
         {
             var fileUrl = await GenerateFileUrlAsync(user.File);
@@ -678,6 +694,7 @@ namespace ECafe.Application.Services.User.Concrete
             });
         }
 
+        // Səlahiyyət dəyişikliyindən sonra köhnə refresh tokenlərini etibarsız edir.
         private async Task RevokeActiveRefreshTokensAsync(int userId)
         {
             var nowUtc = DateTime.UtcNow;
@@ -691,30 +708,35 @@ namespace ECafe.Application.Services.User.Concrete
             }
         }
 
+        // Restoran təyinatı dəyişən istifadəçilərin aktiv girişlərini yeniləməyə məcbur edir.
         private async Task InvalidateRestaurantAccessAsync(IEnumerable<Domain.Entities.UserRestaurant> assignments)
         {
             foreach (var assignment in assignments)
                 await _userRestaurantAccessCache.InvalidateAsync(assignment.UserId, assignment.RestaurantId);
         }
 
+        // Sessiyanın dayandırılmasını istifadəçiyə real vaxt bildirişi ilə çatdırır.
         private Task NotifyUserSessionTerminatedAsync(int userId)
         {
             const string message = "Hesabınız deaktiv edilib. Sistemə girişiniz dayandırıldı.";
             return _userRealtimeNotifier.NotifyUserDeactivatedAsync(userId, message);
         }
 
+        // Rol dəyişikliyi barədə istifadəçiyə bildiriş göndərir.
         private Task NotifyUserRoleChangedAsync(int userId, string roleName)
         {
             var message = $"Rolunuz {roleName} olaraq dəyişdirildi. Sessiya məlumatları yenilənir.";
             return _userRealtimeNotifier.NotifyUserRoleChangedAsync(userId, message);
         }
 
+        // Refresh tokenini bazada yalnız hash şəklində saxlamaq üçün çevirir.
         private static string HashRefreshToken(string refreshToken)
         {
             var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(refreshToken));
             return Convert.ToHexString(bytes);
         }
 
+        // Parol təyin etməmiş hesaba istifadə edilə bilməyən hash verir.
         private static string CreateUnusablePasswordHash()
         {
             var bytes = RandomNumberGenerator.GetBytes(32);

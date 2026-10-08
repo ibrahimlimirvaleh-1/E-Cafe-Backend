@@ -1,6 +1,7 @@
 using ECafe.Application.Features.Commands.Developer.SendTestEmail;
 using ECafe.Application.Common.Exceptions;
 using ECafe.Domain.Enums;
+using ECafe.Domain.Exceptions;
 using ECafe.Infrastructure.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ApiRoutes = ECafe.Application.Routes.Routes;
@@ -27,6 +28,6 @@ public sealed class DeveloperNotificationTestController : BaseController
     private void EnsureDeveloperTestEndpointIsAllowed()
     {
         if (_environment.IsProduction())
-            throw new ForbiddenException("Developer test endpoints are disabled in production.");
+            throw new ForbiddenException(ErrorCode.DeveloperTestEndpointDisabled);
     }
 }

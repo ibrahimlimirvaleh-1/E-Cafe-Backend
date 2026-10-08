@@ -34,7 +34,7 @@ public sealed class MobilePushInstallationService(
         if (!await IsSessionActiveAsync(userId, sessionId, now, cancellationToken))
             throw new UnauthorizedException(ErrorCode.SessionInvalid);
         if (!await IsEligibleAccountAsync(userId, cancellationToken))
-            throw new ForbiddenException("Mobile access is not available for this account.");
+            throw new ForbiddenException(ErrorCode.MobileAccessNotAvailable);
 
         var tokenHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(request.ExpoPushToken)));
         await using var transaction = context.Database.IsRelational()
@@ -45,7 +45,7 @@ public sealed class MobilePushInstallationService(
             .SingleOrDefaultAsync(x => x.Id == installationId, cancellationToken);
         if (existing is { IsActive: true } && existing.UserId != userId &&
             await IsSessionActiveAsync(existing.UserId, existing.SessionId, now, cancellationToken))
-            throw new BusinessRuleException("Installation belongs to another active account.");
+            throw new BusinessRuleException(ErrorCode.InstallationBelongsToAnotherAccount);
 
         var tokenOwner = await context.MobilePushInstallations
             .SingleOrDefaultAsync(x => x.TokenHash == tokenHash && x.IsActive, cancellationToken);
@@ -53,7 +53,7 @@ public sealed class MobilePushInstallationService(
         {
             if (tokenOwner.UserId != userId &&
                 await IsSessionActiveAsync(tokenOwner.UserId, tokenOwner.SessionId, now, cancellationToken))
-                throw new BusinessRuleException("Push token belongs to another active account.");
+                throw new BusinessRuleException(ErrorCode.PushTokenBelongsToAnotherAccount);
 
             tokenOwner.IsActive = false;
             tokenOwner.DeactivatedAt = now;
@@ -84,7 +84,7 @@ public sealed class MobilePushInstallationService(
         catch (DbUpdateException ex) when (ex.InnerException is PostgresException
             { SqlState: PostgresErrorCodes.UniqueViolation })
         {
-            throw new BusinessRuleException("Installation registration changed concurrently. Retry the request.");
+            throw new BusinessRuleException(ErrorCode.InstallationRegistrationChanged);
         }
 
         return new(installationId, true);
@@ -105,20 +105,22 @@ public sealed class MobilePushInstallationService(
         await context.SaveChangesAsync(cancellationToken);
     }
 
+    // Cihaz qeydinin ID, platforma və token formatını yoxlayır.
     private void ValidateRegistration(Guid installationId, RegisterMobilePushInstallationRequest request)
     {
         if (installationId == Guid.Empty || request is null ||
             string.IsNullOrWhiteSpace(request.ExpoPushToken) ||
             request.ExpoPushToken.Length > 256 ||
             !IsExpoToken(request.ExpoPushToken))
-            throw new BusinessRuleException("Invalid mobile push installation.");
+            throw new BusinessRuleException(ErrorCode.InvalidMobilePushInstallation);
 
         if (!configuration.GetValue<bool>("MobileApp:PushDeliveryReady") ||
             !Guid.TryParse(configuration["MobileApp:ExpoProjectId"], out var configuredProjectId) ||
             configuredProjectId != request.ExpoProjectId)
-            throw new BusinessRuleException("Mobile push registration is not ready for this app release.");
+            throw new BusinessRuleException(ErrorCode.MobilePushRegistrationNotReady);
     }
 
+    // Tokenin Expo push formatına uyğunluğunu yoxlayır.
     private static bool IsExpoToken(string value)
     {
         var prefix = value.StartsWith("ExpoPushToken[", StringComparison.Ordinal)
@@ -130,6 +132,7 @@ public sealed class MobilePushInstallationService(
                 .ToArray().All(c => char.IsAsciiLetterOrDigit(c) || c is '-' or '_');
     }
 
+    // Cihaz qeydini cari autentifikasiya sessiyasına bağlayan ID-ləri oxuyur.
     private (int UserId, string SessionId) GetCurrentSession()
     {
         var user = httpContextAccessor.HttpContext?.User;
@@ -140,12 +143,14 @@ public sealed class MobilePushInstallationService(
         return (userId, sessionId);
     }
 
+    // Token qeyd edilərkən həmin giriş sessiyasının hələ aktiv olduğunu yoxlayır.
     private Task<bool> IsSessionActiveAsync(int userId, string sessionId, DateTime now, CancellationToken cancellationToken)
         => context.UserRefreshTokens.AnyAsync(x =>
             x.UserId == userId && x.SessionId == sessionId &&
             x.RevokedAt == null && x.ExpiresAt > now && x.User.IsActive,
             cancellationToken);
 
+    // Mobil push-a yazılan hesabın aktiv və uyğun rolda olduğunu yoxlayır.
     private Task<bool> IsEligibleAccountAsync(int userId, CancellationToken cancellationToken)
     {
         var activeContractStatusId = StatusIds.Contract(ContractStatus.Active);

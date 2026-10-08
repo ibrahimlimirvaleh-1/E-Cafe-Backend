@@ -85,6 +85,7 @@ public sealed class ReservationRefundNotifier : IReservationRefundNotifier
         });
     }
 
+    // Refund bildirişinə lazım olan identifikatorları payload kimi yığır.
     private static string SerializePayload(int restaurantId, int reservationId, ReservationRefundEntity refund)
     {
         return JsonSerializer.Serialize(new

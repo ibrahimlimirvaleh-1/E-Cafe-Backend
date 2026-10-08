@@ -236,6 +236,7 @@ namespace ECafe.Application.Services.Item.Concrete
             });
         }
 
+        // Məhsul üçün restoran ID-sini kateqoriya aidiyyəti ilə uyğunlaşdırır.
         private async Task<int> ResolveTargetRestaurantIdAsync(int restaurantId, int categoryId)
         {
             var targetRestaurantId = restaurantId;
@@ -262,6 +263,7 @@ namespace ECafe.Application.Services.Item.Concrete
             return targetRestaurantId;
         }
 
+        // Siyahı sorğusunu restoran, kateqoriya və statusla məhdudlaşdırır.
         private IQueryable<Domain.Entities.Item> BuildItemQuery(int restaurantId, int categoryId, int statusId)
         {
             var query = _itemRepository.Query()
@@ -282,9 +284,11 @@ namespace ECafe.Application.Services.Item.Concrete
             return query.OrderBy(x => x.Name);
         }
 
+        // Səhifələmə filtrini etibarlı standart dəyərlərə gətirir.
         private static PaginationFilter NormalizeFilter(PaginationFilter? filter)
             => PaginationFilterNormalizer.Normalize(filter);
 
+        // Məhsul şəkillərinin istifadəçi üçün baxış URL-lərini doldurur.
         private async Task PopulateItemFileUrlsAsync(
             IReadOnlyList<ItemDto> itemDtos,
             IReadOnlyList<Domain.Entities.Item> items)
@@ -300,6 +304,7 @@ namespace ECafe.Application.Services.Item.Concrete
             }));
         }
 
+        // Məhsul əməliyyatından əvvəl restoranın mövcudluğunu yoxlayır.
         private async Task EnsureRestaurantExistsAsync(int restaurantId)
         {
             var restaurant = await _restaurantRepository.GetByIdAsync(restaurantId);
@@ -307,6 +312,7 @@ namespace ECafe.Application.Services.Item.Concrete
                 throw new BusinessRuleException(ErrorCode.RestaurantNotFound);
         }
 
+        // Kateqoriyanın seçilən restorana aid olduğunu təsdiqləyir.
         private async Task<Domain.Entities.Category> EnsureCategoryBelongsToRestaurantAsync(int categoryId, int restaurantId)
         {
             var category = await GetCategoryAsync(categoryId);
@@ -317,6 +323,7 @@ namespace ECafe.Application.Services.Item.Concrete
             return category;
         }
 
+        // Məhsulun kateqoriyasını mövcudluq yoxlaması ilə gətirir.
         private async Task<Domain.Entities.Category> GetCategoryAsync(int categoryId)
         {
             var category = await _categoryRepository.GetByIdAsync(categoryId);
@@ -326,6 +333,7 @@ namespace ECafe.Application.Services.Item.Concrete
             return category;
         }
 
+        // Dəyişdiriləcək məhsulu həmin restoran daxilində gətirir.
         private async Task<Domain.Entities.Item> GetItemForMutationAsync(int restaurantId, int itemId)
         {
             if (restaurantId <= 0)
@@ -340,6 +348,7 @@ namespace ECafe.Application.Services.Item.Concrete
             return await GetTrackedItemAsync(restaurantId, itemId);
         }
 
+        // Məhsulu yeniləmə üçün izlənən obyekt kimi gətirir.
         private async Task<Domain.Entities.Item> GetTrackedItemAsync(int restaurantId, int itemId)
         {
             var item = await _itemRepository
@@ -349,6 +358,7 @@ namespace ECafe.Application.Services.Item.Concrete
             return item ?? throw new BusinessRuleException(ErrorCode.ItemNotFound);
         }
 
+        // Kateqoriyada eyni adlı aktiv məhsul yaradılmasının qarşısını alır.
         private async Task EnsureItemNameIsUniqueAsync(int restaurantId, int categoryId, string itemName, int? excludeItemId = null)
         {
             var existItem = await _itemRepository.CheckExistAsync(x =>
@@ -361,9 +371,11 @@ namespace ECafe.Application.Services.Item.Concrete
                 throw new BusinessRuleException(ErrorCode.ItemAlreadyExistsInCategory);
         }
 
+        // Stokda olmayan məhsulun status ID-sini status kataloqundan seçir.
         private static int GetOutOfStockStatusId()
             => StatusIds.Item(ItemStatus.OutOfStock);
 
+        // Məhsul şəklinin qoşulmağa uyğun fayl olduğunu yoxlayır.
         private async Task<Domain.Entities.File?> GetAttachableFileAsync(int? fileId)
         {
             if (!fileId.HasValue)

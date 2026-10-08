@@ -71,15 +71,17 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             return await _fileAccessUrlService.BuildPrimaryUrlAsync(file);
         }
 
+        // Müqavilə PDF-i üçün konfiqurasiya edilmiş fayl tipini gətirir.
         private async Task<Domain.Entities.FileType> GetContractDocumentFileTypeAsync()
         {
             var fileType = await _fileTypeRepository.GetByTypeAsync(FileTypeCode.ContractDocument);
             if (fileType is null)
-                throw new BusinessRuleException("Contract document file type is not configured.");
+                throw new BusinessRuleException(ErrorCode.ContractDocumentFileTypeNotConfigured);
 
             return fileType;
         }
 
+        // Müqavilə sənədinin ölçü və format qaydalarını fayl tipindən qurur.
         private static FileUploadPolicy BuildUploadPolicy(Domain.Entities.FileType fileType)
             => new()
             {
@@ -88,6 +90,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
                 MaxSizeMb = fileType.MaxSizeMb
             };
 
+        // Müqavilə məlumatlarını PDF generatorunun giriş modelinə yığır.
         private static RestaurantContractDocumentData BuildContractDocumentData(
             Domain.Entities.Restaurant restaurant,
             string contractNumber,

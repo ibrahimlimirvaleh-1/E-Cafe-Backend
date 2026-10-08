@@ -103,6 +103,7 @@ public class LoginAttemptManager : ILoginAttemptService
         await _loginAttemptRepository.SaveChangesAsync();
     }
 
+    // Çoxsaylı uğursuz girişdən sonra hesab kilidini e-poçtla bildirir.
     private Task EnqueueLockoutEmailAsync(Domain.Entities.User user, DateTime lockoutUntil)
     {
         var ipAddress = GetClientIpAddress() ?? "unknown";
@@ -130,6 +131,7 @@ public class LoginAttemptManager : ILoginAttemptService
             user.Id);
     }
 
+    // Giriş cəhdlərini mənbə IP üzrə audit və limit üçün ayırır.
     private string? GetClientIpAddress()
     {
         var context = _httpContextAccessor.HttpContext;
@@ -147,12 +149,15 @@ public class LoginAttemptManager : ILoginAttemptService
         return context.Connection.RemoteIpAddress?.ToString();
     }
 
+    // Giriş cəhdinin cihaz məlumatını auditə əlavə edir.
     private string? GetUserAgent()
         => _httpContextAccessor.HttpContext?.Request.Headers["User-Agent"].FirstOrDefault();
 
+    // E-poçtu giriş cəhdlərini müqayisə etmək üçün vahid formaya gətirir.
     private static string NormalizeEmail(string email)
         => email.Trim().ToLowerInvariant();
 
+    // Konfiqurasiyadan yalnız müsbət limit götürür, əks halda ehtiyat dəyər verir.
     private static int GetPositiveInt(IConfiguration configuration, string key, int fallback)
     {
         var value = configuration[key];
@@ -161,6 +166,7 @@ public class LoginAttemptManager : ILoginAttemptService
             : fallback;
     }
 
+    // Konfiqurasiyadan boolean ayarı oxuyur, yoxdursa ehtiyat dəyər verir.
     private static bool GetBool(IConfiguration configuration, string key, bool fallback)
     {
         var value = configuration[key];

@@ -95,6 +95,7 @@ public sealed class ImageProcessingManager : IImageProcessingService
         }
     }
 
+    // Fayl tipi, ölçüsü və siyasətə görə optimizasiyanın lazım olduğunu seçir.
     private bool ShouldOptimize(IFormFile file, FileUploadPolicy policy, FileTypeCode fileTypeCode)
     {
         if (!IsOptimizableFileType(fileTypeCode))
@@ -110,10 +111,12 @@ public sealed class ImageProcessingManager : IImageProcessingService
         return FileUploadValidation.AllowsImageOutput(policy, GetOutputContentType(), GetOutputExtension());
     }
 
+    // Yalnız dəstəklənən şəkil tiplərini optimizasiyaya buraxır.
     private bool IsOptimizableFileType(FileTypeCode fileTypeCode)
         => SplitAllowedValues(_options.OptimizedFileTypeCodes)
             .Any(code => Enum.TryParse<FileTypeCode>(code, ignoreCase: true, out var parsed) && parsed == fileTypeCode);
 
+    // Orijinal faylın ölçü və format qaydalarını yoxlayır.
     private void EnsureOriginalFileIsSafe(IFormFile file, FileUploadPolicy policy)
     {
         FileUploadValidation.EnsureSizeIsAllowed(file.Length, policy);
@@ -126,11 +129,13 @@ public sealed class ImageProcessingManager : IImageProcessingService
             throw new BusinessRuleException(ErrorCode.UnsupportedFileType);
     }
 
+    // Emaldan çıxan faylın da yükləmə hədlərini aşmadığını yoxlayır.
     private static void EnsureOptimizedFileIsSafe(byte[] bytes, FileUploadPolicy policy)
     {
         FileUploadValidation.EnsureSizeIsAllowed(bytes.LongLength, policy);
     }
 
+    // Şəkli ölçü limitini aşdıqda nisbəti qoruyaraq kiçildir.
     private void ResizeIfNeeded(Image image)
     {
         var maxWidth = Math.Max(1, _options.MaxWidth);
@@ -147,12 +152,14 @@ public sealed class ImageProcessingManager : IImageProcessingService
         }));
     }
 
+    // Seçilən çıxış formatına uyğun encoder yaradır.
     private IImageEncoder BuildEncoder()
         => new WebpEncoder
         {
             Quality = Math.Clamp(_options.WebpQuality, 1, 100)
         };
 
+    // Şəkli AVIF formatında ölçü və keyfiyyət qaydasına uyğun sıxır.
     private ImageProcessingResult OptimizeToAvif(
         IFormFile file,
         FileUploadPolicy policy,
@@ -191,6 +198,7 @@ public sealed class ImageProcessingManager : IImageProcessingService
         }
     }
 
+    // Şəkli ölçü limitini aşdıqda nisbəti qoruyaraq kiçildir.
     private void ResizeIfNeeded(MagickImage image)
     {
         var maxWidth = Math.Max(1, _options.MaxWidth);
@@ -206,33 +214,42 @@ public sealed class ImageProcessingManager : IImageProcessingService
         image.Resize(width, height);
     }
 
+    // Optimallaşdırılmış şəkil üçün yeni uzantılı ad yaradır.
     private string BuildOutputFileName(string fileName)
         => $"{Path.GetFileNameWithoutExtension(fileName)}{GetOutputExtension()}";
 
+    // Konfiqurasiya edilmiş çıxış formatının dəstəkləndiyini yoxlayır.
     private bool IsSupportedOutputFormat()
         => IsWebpOutput() || IsAvifOutput();
 
+    // Çıxış formatının WebP olub-olmadığını müəyyən edir.
     private bool IsWebpOutput()
         => string.Equals(_options.OutputFormat, "webp", StringComparison.OrdinalIgnoreCase);
 
+    // Çıxış formatının AVIF olub-olmadığını müəyyən edir.
     private bool IsAvifOutput()
         => string.Equals(_options.OutputFormat, "avif", StringComparison.OrdinalIgnoreCase);
 
+    // Çıxış şəklinin MIME tipini seçir.
     private string GetOutputContentType()
         => IsAvifOutput() ? "image/avif" : "image/webp";
 
+    // Çıxış şəklinin fayl uzantısını seçir.
     private string GetOutputExtension()
         => IsAvifOutput() ? ".avif" : ".webp";
 
+    // Konfiqurasiyadakı icazəli dəyərləri siyahıya ayırır.
     private static string[] SplitAllowedValues(string values)
         => values
             .Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToArray();
 
+    // Şəkil emalı ayarını boolean kimi oxuyub ehtiyat dəyər tətbiq edir.
     private static bool GetBool(string? value, bool fallback)
         => bool.TryParse(value, out var parsed) ? parsed : fallback;
 
+    // Şəkil emalı ayarını ədəd kimi oxuyub ehtiyat dəyər tətbiq edir.
     private static int GetInt(string? value, int fallback)
         => int.TryParse(value, out var parsed) ? parsed : fallback;
 }

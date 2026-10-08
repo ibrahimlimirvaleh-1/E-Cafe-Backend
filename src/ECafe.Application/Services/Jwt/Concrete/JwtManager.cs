@@ -56,7 +56,7 @@ namespace ECafe.Application.Services.Jwt.Concrete
             if (RequiresActiveRestaurantAssignment(user.RoleId))
             {
                 if (assignedRestaurantIds.Count == 0)
-                    throw new BusinessRuleException("Restaurant-scoped role requires an active restaurant assignment.");
+                    throw new BusinessRuleException(ErrorCode.RestaurantScopedRoleRequiresAssignment);
             }
 
             if (assignedRestaurantIds.Count > 0)
@@ -94,12 +94,14 @@ namespace ECafe.Application.Services.Jwt.Concrete
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
+        // Restoran rolunun aktiv təyinat tələb edib-etmədiyini müəyyən edir.
         private static bool RequiresActiveRestaurantAssignment(int roleId)
             => roleId is (int)RoleCode.Owner or
                 (int)RoleCode.Manager or
                 (int)RoleCode.Waiter or
                 (int)RoleCode.Kitchen;
 
+        // Access token müddətini konfiqurasiyadan oxuyur.
         private int GetAccessTokenLifetimeMinutes()
         {
             var configuredLifetime = _configuration["Jwt:AccessTokenLifetimeMinutes"];
@@ -107,6 +109,7 @@ namespace ECafe.Application.Services.Jwt.Concrete
             return Math.Clamp(lifetimeMinutes, 1, 60);
         }
 
+        // İstifadəçinin rol və təyinatlarından token səlahiyyətlərini çıxarır.
         private static IEnumerable<string> GetPermissionClaims(Domain.Entities.User user)
         {
             return user.Role.RolePermissions

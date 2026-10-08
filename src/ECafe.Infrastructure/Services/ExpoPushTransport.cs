@@ -78,6 +78,7 @@ public sealed class ExpoPushTransport(HttpClient client, IConfiguration configur
         };
     }
 
+    // Expo sorğusuna yalnız konfiqurasiya edilmiş giriş məlumatını əlavə edir.
     private void AddAuthorization(HttpRequestMessage request)
     {
         var accessToken = configuration["MobileApp:ExpoAccessToken"];
@@ -85,12 +86,14 @@ public sealed class ExpoPushTransport(HttpClient client, IConfiguration configur
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
     }
 
+    // HTTP cavabının müvəqqəti xəta olub yenidən sınana biləcəyini ayırır.
     private static void EnsureRetryableResponse(HttpResponseMessage response)
     {
         if (response.StatusCode == HttpStatusCode.TooManyRequests || (int)response.StatusCode >= 500)
             throw new HttpRequestException("Expo push service is temporarily unavailable.");
     }
 
+    // Expo cavabındakı maşın tərəfindən oxunan xəta kodunu çıxarır.
     private static string GetErrorCode(JsonElement element)
     {
         if (element.TryGetProperty("details", out var details) &&

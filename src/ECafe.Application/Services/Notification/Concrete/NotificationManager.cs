@@ -41,7 +41,7 @@ namespace ECafe.Application.Services.Notification.Concrete
         public async Task CreateAsync(CreateNotificationRequest request)
         {
             if (request is null)
-                throw new BusinessRuleException("Notification request is required.");
+                throw new BusinessRuleException(ErrorCode.NotificationRequestRequired);
 
             await _validator.ValidateAndThrowAsync(request);
 
@@ -88,7 +88,7 @@ namespace ECafe.Application.Services.Notification.Concrete
         public async Task MarkAsReadAsync(int notificationId)
         {
             if (notificationId <= 0)
-                throw new BusinessRuleException("Invalid notification ID.");
+                throw new BusinessRuleException(ErrorCode.InvalidNotificationId);
 
             var notification = await _notificationRepository.GetByUserAndIdTrackedAsync(
                 GetCurrentUserId(),
@@ -96,7 +96,7 @@ namespace ECafe.Application.Services.Notification.Concrete
                 GetNotificationRestaurantScope());
 
             if (notification is null)
-                throw new BusinessRuleException("Notification not found.");
+                throw new BusinessRuleException(ErrorCode.NotificationNotFound);
 
             if (notification.IsRead && notification.StatusId == (int)NotificationStatus.Read)
                 return;
@@ -106,6 +106,7 @@ namespace ECafe.Application.Services.Notification.Concrete
             await _notificationDispatcher.NotifyChangedAsync(GetCurrentUserId());
         }
 
+        // Bildirişin oxunma vaxtını yalnız ilk oxunuşda qeyd edir.
         private static void MarkAsRead(Domain.Entities.Notification notification)
         {
             notification.IsRead = true;
@@ -113,6 +114,7 @@ namespace ECafe.Application.Services.Notification.Concrete
             notification.ReadAt ??= DateTime.UtcNow;
         }
 
+        // Cari hesabın yalnız səlahiyyətli restoran bildirişlərini görməsini təmin edir.
         private int? GetNotificationRestaurantScope()
         {
             // Customers can receive notifications from any restaurant where they

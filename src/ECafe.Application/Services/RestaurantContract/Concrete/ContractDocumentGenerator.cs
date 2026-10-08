@@ -16,6 +16,7 @@ public sealed class ContractDocumentGenerator : IContractDocumentGenerator
 
     private static readonly CultureInfo Azerbaijani = CultureInfo.GetCultureInfo("az-AZ");
     private static readonly object FontRegistrationLock = new();
+    // Müqavilə şablonunun paketlənmiş resursunu oxuyur.
     private static readonly byte[] Logo = LoadResource("ecafe-icon.png");
     private static readonly Color Ink = Color.FromRgb(24, 31, 34);
     private static readonly Color Muted = Color.FromRgb(99, 111, 118);
@@ -40,6 +41,7 @@ public sealed class ContractDocumentGenerator : IContractDocumentGenerator
         };
     }
 
+    // Müqavilənin başlıq, şərt və imza bölmələrindən PDF sənədini qurur.
     private static Document BuildDocument(RestaurantContractDocumentData data)
     {
         var document = new Document();
@@ -98,6 +100,7 @@ public sealed class ContractDocumentGenerator : IContractDocumentGenerator
         return document;
     }
 
+    // Sənədin hər səhifəsinə brend başlığını əlavə edir.
     private static void AddHeader(Section section)
     {
         var header = section.Headers.Primary;
@@ -121,6 +124,7 @@ public sealed class ContractDocumentGenerator : IContractDocumentGenerator
         rule.Format.Borders.Bottom.Color = Accent;
     }
 
+    // Səhifə altına müqavilə nömrəsi və səhifələmə məlumatını yazır.
     private static void AddFooter(Section section, string contractNumber)
     {
         var footer = section.Footers.Primary.AddParagraph();
@@ -136,6 +140,7 @@ public sealed class ContractDocumentGenerator : IContractDocumentGenerator
         footer.AddPageField();
     }
 
+    // Müqavilənin adı və tərəflərini sənədin əvvəlində göstərir.
     private static void AddTitle(Section section, RestaurantContractDocumentData data)
     {
         var eyebrow = section.AddParagraph("RESTORAN XİDMƏTLƏRİ");
@@ -156,6 +161,7 @@ public sealed class ContractDocumentGenerator : IContractDocumentGenerator
         number.AddFormattedText(data.ContractNumber).Bold = true;
     }
 
+    // Bölmə nömrəsi və başlığını eyni tipoqrafiya ilə yerləşdirir.
     private static void AddSectionHeading(Section section, string number, string title)
     {
         var heading = section.AddParagraph();
@@ -168,6 +174,7 @@ public sealed class ContractDocumentGenerator : IContractDocumentGenerator
         text.Font.Size = 11;
     }
 
+    // Müqavilə rekvizitləri üçün cədvəl qurur.
     private static PdfTable CreateDetailsTable(Section section)
     {
         var table = section.AddTable();
@@ -178,6 +185,7 @@ public sealed class ContractDocumentGenerator : IContractDocumentGenerator
         return table;
     }
 
+    // Rekvizit cədvəlinə bir etiket-dəyər sətri əlavə edir.
     private static void AddDetail(PdfTable table, string label, string value)
     {
         var row = table.AddRow();
@@ -196,6 +204,7 @@ public sealed class ContractDocumentGenerator : IContractDocumentGenerator
         valueParagraph.Format.Font.Bold = true;
     }
 
+    // Tərəflərin imza sahələrini sənədə yerləşdirir.
     private static void AddSignatures(Section section)
     {
         var table = section.AddTable();
@@ -219,15 +228,19 @@ public sealed class ContractDocumentGenerator : IContractDocumentGenerator
         }
     }
 
+    // Boş sahələr üçün sənəddə göstəriləcək ehtiyat dəyəri seçir.
     private static string Display(string? value)
         => string.IsNullOrWhiteSpace(value) ? "—" : value.Trim();
 
+    // Tarixi müqavilədə göstərilən formata çevirir.
     private static string FormatDate(DateTime? value)
         => value.HasValue ? value.Value.ToString("dd.MM.yyyy", Azerbaijani) : "—";
 
+    // Məbləği müqavilə üçün oxunaqlı pul formatına salır.
     private static string FormatAmount(decimal value)
         => value.ToString("N2", Azerbaijani) + " AZN";
 
+    // Azərbaycan hərflərinin PDF-də düzgün görünməsi üçün şriftləri qeydiyyata alır.
     private static void EnsureFontsRegistered()
     {
         if (GlobalFontSettings.FontResolver is not null)
@@ -239,6 +252,7 @@ public sealed class ContractDocumentGenerator : IContractDocumentGenerator
         }
     }
 
+    // Müqavilə şablonunun paketlənmiş resursunu oxuyur.
     private static byte[] LoadResource(string fileName)
     {
         var name = typeof(ContractDocumentGenerator).Namespace!
@@ -253,7 +267,9 @@ public sealed class ContractDocumentGenerator : IContractDocumentGenerator
     private sealed class EmbeddedNotoFontResolver : IFontResolver
     {
         public const string FamilyName = "Noto Sans ECafe";
+        // Müqavilə şablonunun paketlənmiş resursunu oxuyur.
         private static readonly byte[] Regular = LoadResource("NotoSans-Regular.ttf");
+        // Müqavilə şablonunun paketlənmiş resursunu oxuyur.
         private static readonly byte[] Bold = LoadResource("NotoSans-Bold.ttf");
 
         public FontResolverInfo? ResolveTypeface(string familyName, bool isBold, bool isItalic)

@@ -189,6 +189,7 @@ public class CategoryManager : BaseManager, ICategoryService
         return Mapper.Map<List<GetAllCategoryResponse>>(categories);
     }
 
+    // Yeni kateqoriya üçün tələb olunan və ya növbəti sıra nömrəsini seçir.
     private async Task<int> ResolveSortOrderAsync(int restaurantId, int? requestedSortOrder)
     {
         var sortOrder = requestedSortOrder.GetValueOrDefault();
@@ -199,6 +200,7 @@ public class CategoryManager : BaseManager, ICategoryService
         return maxSortOrder + 1;
     }
 
+    // Kateqoriya dəyişikliklərində restoranın mövcudluğunu və giriş kontekstini yoxlayır.
     private async Task EnsureCategoryMutationContextAsync(int restaurantId)
     {
         if (restaurantId <= 0)
@@ -214,6 +216,7 @@ public class CategoryManager : BaseManager, ICategoryService
         EnsureCurrentUserCanAccessRestaurant(restaurantId);
     }
 
+    // Redaktə üçün kateqoriyanı həmin restoran daxilində izlənən obyekt kimi gətirir.
     private async Task<Category> GetTrackedCategoryAsync(int restaurantId, int categoryId)
     {
         if (categoryId <= 0)

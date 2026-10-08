@@ -93,6 +93,7 @@ namespace ECafe.Application.Services
             await client.DisconnectAsync(true, cancellationToken);
         }
 
+        // SMTP üçün məcburi ayarın mövcudluğunu yoxlayır.
         private string GetRequiredEmailSetting(string key)
         {
             var value = _configuration[$"Email:{key}"];
@@ -102,6 +103,7 @@ namespace ECafe.Application.Services
             return value.Trim();
         }
 
+        // SMTP portuna uyğun təhlükəsiz bağlantı növünü seçir.
         private SecureSocketOptions GetSecureSocketOptions(int smtpPort)
         {
             var configuredValue = _configuration["Email:SecureSocketOption"];
@@ -119,6 +121,7 @@ namespace ECafe.Application.Services
             };
         }
 
+        // Göndəriş vaxt limitini konfiqurasiyadan oxuyur.
         private int GetEmailTimeoutMilliseconds()
         {
             var value = _configuration["Email:TimeoutSeconds"];
@@ -127,6 +130,7 @@ namespace ECafe.Application.Services
                 : 30000;
         }
 
+        // SMTP göndərən domenini konfiqurasiyadan seçir.
         private string GetEmailLocalDomain()
         {
             var value = _configuration["Email:LocalDomain"];

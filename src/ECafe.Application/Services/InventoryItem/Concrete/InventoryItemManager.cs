@@ -215,9 +215,11 @@ namespace ECafe.Application.Services.InventoryItem.Concrete
             return Mapper.Map<DeleteOrDeactivateResponse>(inventoryItem);
         }
 
+        // Anbar axtarışında boş və artıq boşluqlu sorğunu normallaşdırır.
         private static string? NormalizeSearch(string? search)
             => string.IsNullOrWhiteSpace(search) ? null : search.Trim().ToLower();
 
+        // Dəyişdiriləcək stok məhsulunu həmin restoran daxilində gətirir.
         private async Task<Domain.Entities.InventoryItem> GetInventoryItemForMutationAsync(
             int restaurantId,
             int inventoryItemId)

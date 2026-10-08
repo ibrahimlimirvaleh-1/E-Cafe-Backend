@@ -63,6 +63,7 @@ public sealed class RestaurantDepositService : BaseManager, IRestaurantDepositSe
     public Task RemoveRuleAsync(int restaurantId, DateOnly reservationDate)
         => ChangeRuleAsync(restaurantId, reservationDate, null);
 
+    // Günlük depozit qaydasını dəyişməzdən əvvəl restoran, tarix və məbləği yoxlayır.
     private async Task ChangeRuleAsync(int restaurantId, DateOnly reservationDate, decimal? amount)
     {
         if (restaurantId <= 0)
@@ -76,7 +77,7 @@ public sealed class RestaurantDepositService : BaseManager, IRestaurantDepositSe
 
         var localNow = RestaurantTimeZoneConverter.ToRestaurantLocalTime(DateTimeOffset.UtcNow, restaurant.TimeZone);
         if (reservationDate < DateOnly.FromDateTime(localNow.DateTime))
-            throw new BusinessRuleException("Keçmiş tarix üçün depozit qaydası dəyişdirilə bilməz.");
+            throw new BusinessRuleException(ErrorCode.PastDepositRuleCannotBeChanged);
         if (amount.HasValue && !RestaurantDepositAmount.IsValid(amount.Value))
             throw new BusinessRuleException(RestaurantDepositAmount.InvalidAmountMessage);
 
