@@ -155,35 +155,69 @@ public class ReservationRepository : BaseRepository<Domain.Entities.Reservation>
             .AnyAsync(cancellationToken);
     }
 
-    public Task<bool> IsCheckInWindowOpenAsync(
+    public async Task<bool> IsCheckInWindowOpenAsync(
         int restaurantId,
         int reservationId,
         DateTime nowUtc,
         CancellationToken cancellationToken = default)
     {
-        return Query(reservation =>
+        var eligible = await Query(reservation =>
                 reservation.Id == reservationId &&
                 reservation.RestaurantId == restaurantId &&
-                reservation.ReservedAt <= nowUtc &&
                 (reservation.MustVacateAt == null || reservation.MustVacateAt > nowUtc) &&
                 (reservation.NoShowDeadlineAt > nowUtc || reservation.ArrivedAt != null))
             .AnyAsync(cancellationToken);
+        return eligible && await IsWithinReservationServiceIntervalAsync(
+            restaurantId, reservationId, nowUtc, cancellationToken);
     }
 
-    public Task<bool> IsMarkArrivalWindowOpenAsync(
+    public async Task<bool> IsMarkArrivalWindowOpenAsync(
         int restaurantId,
         int reservationId,
         DateTime nowUtc,
         CancellationToken cancellationToken = default)
     {
-        return Query(reservation =>
+        var eligible = await Query(reservation =>
                 reservation.Id == reservationId &&
                 reservation.RestaurantId == restaurantId &&
-                reservation.ReservedAt <= nowUtc &&
                 reservation.NoShowDeadlineAt > nowUtc &&
                 (reservation.MustVacateAt == null || reservation.MustVacateAt > nowUtc) &&
                 reservation.ArrivedAt == null)
             .AnyAsync(cancellationToken);
+        return eligible && await IsWithinReservationServiceIntervalAsync(
+            restaurantId, reservationId, nowUtc, cancellationToken);
+    }
+
+    public async Task<bool> IsWithinReservationServiceIntervalAsync(
+        int restaurantId, int reservationId, DateTime nowUtc, CancellationToken cancellationToken = default)
+    {
+        var reservation = await Query(r => r.Id == reservationId && r.RestaurantId == restaurantId)
+            .Include(r => r.Restaurant).ThenInclude(r => r.WorkingHours)
+            .SingleOrDefaultAsync(cancellationToken);
+        if (reservation?.Restaurant is not { IsActive: true } restaurant)
+            return false;
+
+        var arrivalLocal = RestaurantTimeZoneConverter.ToRestaurantLocalTime(
+            new DateTimeOffset(DateTime.SpecifyKind(nowUtc, DateTimeKind.Utc)), restaurant.TimeZone);
+        var bookingLocal = RestaurantTimeZoneConverter.ToRestaurantLocalTime(
+            new DateTimeOffset(DateTime.SpecifyKind(reservation.ReservedAt, DateTimeKind.Utc)), restaurant.TimeZone);
+        return RestaurantWorkingHoursCalculator.TryGetActiveInterval(restaurant.WorkingHours, arrivalLocal, out var arrival) &&
+               RestaurantWorkingHoursCalculator.TryGetActiveInterval(restaurant.WorkingHours, bookingLocal, out var booking) &&
+               arrival.StartsAt == booking.StartsAt && arrival.EndsAt == booking.EndsAt;
+    }
+
+    public Task<List<ReservationWaitingCandidate>> GetWaitingEscalationCandidatesAsync(
+        DateTime nowUtc, int thresholdMinutes, int batchSize, CancellationToken cancellationToken = default)
+    {
+        var cutoff = nowUtc.AddMinutes(-thresholdMinutes);
+        return Query(r => r.StatusId == StatusIds.Reservation(ReservationStatus.Confirmed) &&
+                          r.ArrivedAt != null && r.SeatedAt == null && r.WaitingEscalatedAt == null &&
+                          r.ArrivedAt <= cutoff && r.ReservedAt <= cutoff)
+            .OrderBy(r => r.ReservedAt > r.ArrivedAt ? r.ReservedAt : r.ArrivedAt)
+            .ThenBy(r => r.Id)
+            .Take(Math.Clamp(batchSize, 1, 1000))
+            .Select(r => new ReservationWaitingCandidate(r.Id, r.RestaurantId))
+            .ToListAsync(cancellationToken);
     }
 
     public async Task<bool> IsRestaurantOpenAsync(
@@ -390,6 +424,9 @@ public class ReservationRepository : BaseRepository<Domain.Entities.Reservation>
         CancellationToken cancellationToken = default)
     {
         var query = WithDetails(Query().Where(r => r.RestaurantId == restaurantId));
+        if (request.WaitingOnly)
+            query = query.Where(r => r.StatusId == StatusIds.Reservation(ReservationStatus.Confirmed) &&
+                                     r.ArrivedAt != null && r.SeatedAt == null);
         if (request.TableId.HasValue)
             query = query.Where(r => r.TableId == request.TableId.Value);
         query = await ApplyRestaurantDateFilterAsync(query, restaurantId, request.ReservedDate, cancellationToken);
@@ -412,6 +449,10 @@ public class ReservationRepository : BaseRepository<Domain.Entities.Reservation>
 
         if (request.TableId.HasValue)
             query = query.Where(reservation => reservation.TableId == request.TableId.Value);
+
+        if (request.WaitingOnly)
+            query = query.Where(reservation => reservation.StatusId == confirmedStatusId &&
+                                               reservation.ArrivedAt != null && reservation.SeatedAt == null);
 
         query = await ApplyRestaurantDateFilterAsync(query, restaurantId, request.ReservedDate, cancellationToken);
         return await CreatePageAsync(query, request, cancellationToken, filterReservedDate: false);
@@ -488,7 +529,9 @@ public class ReservationRepository : BaseRepository<Domain.Entities.Reservation>
             query = query.Where(r => r.ReservedAt >= dayStartUtc && r.ReservedAt < nextDayStartUtc);
         }
 
-        query = query.OrderByDescending(r => r.ReservedAt).ThenByDescending(r => r.Id);
+        query = request is RestaurantReservationsQueryRequest { WaitingOnly: true }
+            ? query.OrderBy(r => r.ArrivedAt).ThenBy(r => r.Id)
+            : query.OrderByDescending(r => r.ReservedAt).ThenByDescending(r => r.Id);
         var count = await query.CountAsync(cancellationToken);
         var items = await query
             .Skip((pageNumber - 1) * pageSize)

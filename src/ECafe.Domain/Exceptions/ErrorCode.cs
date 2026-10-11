@@ -166,5 +166,11 @@ public enum ErrorCode
     ReservationArrivalCannotBeRecorded = 5062,
     RestaurantServiceActionForbidden = 5063,
     RestaurantClosedForArrival = 5064,
-    ReservationSeatingBeforeStart = 5065
+    ReservationSeatingBeforeStart = 5065,
+    ReservationWaitingRequired = 5066,
+    ReservationDepartureReasonRequired = 5067,
+    ReservationTableChangeConsentRequired = 5068,
+    ReservationTableChangeTermsConflict = 5069,
+    ReservationTableChangedRetry = 5070,
+    MobilePushStaffAccessRequired = 5071
 }

@@ -113,7 +113,8 @@ namespace ECafe.Application
                 .Validate(options => options.MaximumLateArrivalMinutes is > 0 and <= 180 &&
                     options.ArrivalDecisionMinutes is > 0 and <= 10 &&
                     options.ArrivalChoiceStepMinutes is > 0 and <= 15 &&
-                    options.CancellationGraceMinutes is >= 0 and <= 30,
+                    options.CancellationGraceMinutes is >= 0 and <= 30 &&
+                    options.WaitingEscalationMinutes is > 0 and <= 120,
                     "Reservation timing settings are outside the supported limits.")
                 .ValidateOnStart();
             services.AddScoped<IReservationRefundNotifier, ReservationRefundNotifier>();

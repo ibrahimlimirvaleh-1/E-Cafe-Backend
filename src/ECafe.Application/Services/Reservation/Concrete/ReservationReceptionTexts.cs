@@ -1,0 +1,27 @@
+namespace ECafe.Application.Services.Reservation.Concrete;
+
+internal static class ReservationReceptionTexts
+{
+    public const string ArrivedTitle = "Müştəri gəlib, masa gözləyir";
+    public const string WaitingTitle = "Müştərinin gözləmə müddəti uzanıb";
+    public const string TableChangedTitle = "Rezervasiyanın masası dəyişdirildi";
+    public const string TableChangedMessage = "Müştərinin razılığı ilə masa dəyişdirildi. Rezervasiya və çıxış vaxtı, depozit və geri ödəniş şərtləri dəyişmədi.";
+    public const string SeatedHistory = "Müştəri masaya əyləşdi və masa açıldı.";
+    public const string SeatedTitle = "Müştəri masaya əyləşdirildi";
+    public const string DepartureTitle = "Gözləyən rezervasiya bağlandı";
+    public const string RestaurantDepartureRefundReason = "Restoran gəlmiş müştərini masaya əyləşdirə bilmədiyi üçün rezervasiya ləğv edilib.";
+    public const string GuestDepartureRefundReason = "Müştərinin ayrılması qeyd edilib; geri ödəniş hüququ mövcud müştəri ləğv qaydasına uyğun təsdiqlənib.";
+    public const string WaitingSection = "waiting";
+
+    /// <summary>Ofisianta gəliş və masa barədə maliyyə məlumatı olmayan bildiriş mətnini hazırlayır.</summary>
+    public static string ArrivedMessage(int reservationId, string? tableName)
+        => $"Rezervasiya #{reservationId} üzrə müştəri gəlib. Masa: {tableName}. Müştəri hələ əyləşməyib.";
+
+    /// <summary>Menecerə rezervasiya vaxtından sonrakı xidmət gecikməsini bildirir.</summary>
+    public static string WaitingMessage(int reservationId, int delayMinutes)
+        => $"Rezervasiya #{reservationId} üzrə müştəri {delayMinutes} dəqiqədir əyləşdirilməyi gözləyir. Vəziyyəti yoxlayın.";
+
+    /// <summary>Restoran əməkdaşlarına gözləmə növbəsindən çıxarılmalı olan rezervasiyanı bildirir.</summary>
+    public static string ClosedMessage(int reservationId)
+        => $"Rezervasiya #{reservationId} artıq masa gözləmir. Siyahıdakı vəziyyət yeniləndi.";
+}

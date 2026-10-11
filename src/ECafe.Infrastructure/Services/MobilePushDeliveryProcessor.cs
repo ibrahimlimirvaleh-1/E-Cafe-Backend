@@ -74,8 +74,7 @@ public sealed class MobilePushDeliveryProcessor(
                 continue;
             }
 
-            if (await IsRestaurantEntitledAsync(payload.RestaurantId, cancellationToken) &&
-                await IsRecipientEligibleAsync(payload.UserId, payload.RestaurantId, cancellationToken))
+            if (await IsRecipientEligibleAsync(payload.UserId, payload.RestaurantId, cancellationToken))
             {
                 var installationIds = await context.MobilePushInstallations
                     .Where(x => x.UserId == payload.UserId && x.IsActive)
@@ -266,13 +265,13 @@ public sealed class MobilePushDeliveryProcessor(
         return true;
     }
 
+    /// <summary>Göndərişdən dərhal əvvəl restoran icazəsini, işçi aidiyyətini, cihazı və aktiv sessiyanı yenidən yoxlayır.</summary>
     private async Task<MobilePushInstallation?> GetEligibleInstallationAsync(
         MobilePushDelivery delivery, CancellationToken cancellationToken)
     {
         if (!IsReady() ||
             delivery.CreatedAt.Add(ReceiptLifetime) <= DateTime.UtcNow ||
             !Guid.TryParse(configuration["MobileApp:ExpoProjectId"], out var projectId) ||
-            !await IsRestaurantEntitledAsync(delivery.RestaurantId, cancellationToken) ||
             !await IsRecipientEligibleAsync(delivery.UserId, delivery.RestaurantId, cancellationToken))
             return null;
 
@@ -290,23 +289,10 @@ public sealed class MobilePushDeliveryProcessor(
         return sessionActive ? installation : null;
     }
 
-    private Task<bool> IsRestaurantEntitledAsync(int restaurantId, CancellationToken cancellationToken)
-    {
-        var activeContractStatusId = StatusIds.Contract(ContractStatus.Active);
-        return context.Restaurants.AnyAsync(x => x.Id == restaurantId && x.IsActive &&
-            x.MobilePushEnabled && x.ShowMobileDownloadLink &&
-            x.Contracts.Any(c => c.StatusId == activeContractStatusId),
-            cancellationToken);
-    }
-
+    /// <summary>Bildiriş alan şəxsin yalnız həmin icazəli restoranın aktiv işçisi olduğunu bazadan yoxlayır.</summary>
     private Task<bool> IsRecipientEligibleAsync(int userId, int restaurantId, CancellationToken cancellationToken)
-        => context.Users.AnyAsync(user => user.Id == userId && user.IsActive &&
-            (user.RoleId == (int)RoleCode.Customer || user.UserRestaurants.Any(assignment =>
-                assignment.RestaurantId == restaurantId && assignment.IsActive &&
-                (assignment.RoleId == (int)RoleCode.Owner ||
-                 assignment.RoleId == (int)RoleCode.Manager ||
-                 assignment.RoleId == (int)RoleCode.Waiter ||
-                 assignment.RoleId == (int)RoleCode.Kitchen))), cancellationToken);
+        => MobilePushEligibilityPolicy.EligibleStaff(context, restaurantId)
+            .AnyAsync(assignment => assignment.UserId == userId, cancellationToken);
 
     private async Task DeactivateIfStillSameTokenAsync(
         MobilePushInstallation installation,

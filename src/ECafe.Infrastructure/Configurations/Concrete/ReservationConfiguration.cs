@@ -26,6 +26,9 @@ namespace ECafe.Infrastructure.Configurations.Concrete
             builder.Property(e => e.CheckedInByUserId).HasColumnName("checked_in_by_user_id");
             builder.Property(e => e.ArrivedAt).HasColumnName("arrived_at");
             builder.Property(e => e.ArrivedByUserId).HasColumnName("arrived_by_user_id");
+            builder.Property(e => e.WaitingEscalatedAt).HasColumnName("waiting_escalated_at");
+            builder.Property(e => e.DepartureReason).HasColumnName("departure_reason");
+            builder.HasIndex(e => new { e.StatusId, e.ArrivedAt, e.WaitingEscalatedAt }, "reservations_waiting_lookup_idx");
             builder.Property(e => e.ConfirmedAt).HasColumnName("confirmed_at");
             builder.Property(e => e.CustomerUserId).HasColumnName("customer_user_id");
             builder.Property(e => e.DepositAmount)

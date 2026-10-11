@@ -41,6 +41,7 @@ namespace ECafe.Application.Common.Audit
         public const string ReservationCancelled = "ReservationCancelled";
         public const string ReservationCheckedIn = "ReservationCheckedIn";
         public const string ReservationArrived = "ReservationArrived";
+        public const string ReservationTableChanged = "ReservationTableChanged";
         public const string ReservationArrivalAdjusted = "ReservationArrivalAdjusted";
         public const string ReservationCompleted = "ReservationCompleted";
         public const string ReservationDepositWaived = "ReservationDepositWaived";
@@ -95,6 +96,7 @@ namespace ECafe.Application.Common.Audit
             new(48, ReservationCancelled, "Rezervasiya ləğv edildi"),
             new(49, ReservationCheckedIn, "Rezervasiya check-in edildi"),
             new(66, ReservationArrived, "Müştərinin restorana gəlişi qeyd edildi"),
+            new(68, ReservationTableChanged, "Müştərinin razılığı ilə masa dəyişdirildi"),
             new(50, ReservationCompleted, "Rezervasiya tamamlandı"),
             new(60, ReservationDepositWaived, "Rezervasiya depozitindən imtina edildi"),
             new(54, ReservationRefundRequested, "Rezervasiya geri ödənişi soruşuldu"),

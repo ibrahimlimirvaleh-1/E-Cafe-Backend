@@ -15,4 +15,8 @@ public sealed class ReservationServiceItemResponse
     public DateTimeOffset? MustVacateAt { get; init; }
     public DateTimeOffset? ArrivedAt { get; init; }
     public DateTimeOffset? SeatedAt { get; init; }
+    public DateTimeOffset? WaitingSinceAt { get; init; }
+    public int WaitingMinutes { get; init; }
+    public int ServiceDelayMinutes { get; init; }
+    public bool IsWaitingOverdue { get; init; }
 }

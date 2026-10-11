@@ -11,6 +11,14 @@ Only the platform admin changes each restaurant's `MobilePushEnabled` and
 `ShowMobileDownloadLink` settings in the admin panel. Deployment must not
 change those tenant settings.
 
+Phone push is staff-only. Customer APK access and the authenticated in-app
+inbox remain available, but customer-only accounts cannot register a push
+token or receive phone push. Registration requires an active Owner, Manager,
+Waiter or Kitchen assignment in at least one admin-enabled restaurant with
+an active contract. Outbox expansion and each send recheck the assignment
+against the notification's exact restaurant. Turning either restaurant flag
+off or deactivating the assignment suppresses pending sends when rechecked.
+
 ## Gates
 
 - Keep the APK outside `wwwroot`, public buckets and reverse-proxy static paths.
@@ -22,10 +30,13 @@ change those tenant settings.
   customer or staff release metadata or bytes. A missing or mismatched APK stays
   unavailable. Each download rechecks current account access; a stale JWT role
   does not override the active role in the database.
-- `MobileApp__PushDeliveryReady` is a separate technical test switch. It must
+- `MobileApp__PushDeliveryReady` is a separate global transport switch. It must
   be true before phone token registration; it does not prove phone delivery.
-  Set it only after the matching APK, Expo project and FCM V1 assignment are
-  verified and the pending push queues are checked. Read-only EAS project and
+  The source and deployment templates default to true; an existing server
+  environment value still overrides that default. This does not grant any
+  restaurant access. Before deploying the enabled switch, verify the matching
+  APK, Expo project and FCM V1 assignment and check pending push queues.
+  Read-only EAS project and
   owner-account checks on 2026-10-05 found Expo push security disabled, so an
   unset `MobileApp__ExpoAccessToken` is not a current blocker. Recheck before
   rollout; if security is enabled later, supply the token through a secret
@@ -91,10 +102,12 @@ Do not toggle restaurant flags in SQL or through the admin API; the human admin
 will use the panel. APK metadata readiness and successful token registration
 do not prove that a notification arrived on a physical phone.
 
-For rollback, run `docker compose -f docker-compose.yml up -d --no-build
---force-recreate api` from `/opt/ecafe` and recheck `/health/ready`. Omitting
-the override restores the baked `Release:Ready=false` and
-`PushDeliveryReady=false`; keep the backup and private artifact for diagnosis.
+For push rollback, explicitly set `MobileApp__PushDeliveryReady=false` in
+the deployment environment/override, recreate only the API service and
+recheck `/health/ready`. Do not assume omitting an override disables push:
+the source default is now true. Restore the verified previous APK override
+separately if an APK rollback is required. Preserve the data-protection mount,
+tenant flags, backup and private artifacts for diagnosis.
 
 Revoking server-side release access blocks future metadata/download requests,
 but cannot remove an APK already installed. The native app must also check

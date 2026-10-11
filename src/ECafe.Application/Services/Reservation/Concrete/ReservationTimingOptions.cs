@@ -7,4 +7,5 @@ public sealed class ReservationTimingOptions
     public int ArrivalDecisionMinutes { get; set; } = 3;
     public int ArrivalChoiceStepMinutes { get; set; } = 5;
     public int CancellationGraceMinutes { get; set; } = 10;
+    public int WaitingEscalationMinutes { get; set; } = 15;
 }

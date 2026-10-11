@@ -4,6 +4,7 @@ using ECafe.Application.Features.Commands.Reservation.Cancel;
 using ECafe.Application.Features.Commands.Reservation.CancelRestaurantReservation;
 using ECafe.Application.Features.Commands.Reservation.CheckIn;
 using ECafe.Application.Features.Commands.Reservation.MarkArrival;
+using ECafe.Application.Features.Commands.Reservation.Reception;
 using ECafe.Application.Features.Commands.Reservation.Complete;
 using ECafe.Application.Features.Commands.Reservation.RejectPaymentProof;
 using ECafe.Application.Features.Commands.Reservation.SendPaymentInstruction;
@@ -134,6 +135,22 @@ public sealed class ReservationFlowController : BaseController
 
         return Ok(result);
     }
+
+    /// <summary>Menecer və ya sahibkar gəlmiş, amma əyləşməmiş qonağın ayrılmasını səbəbi ilə qeyd edir.</summary>
+    /// <remarks>ReasonCode: 1 = restoran masa təmin edə bilmədi, 2 = müştəri özü ayrıldı. Reason məcburidir. Restoran səbəbli ayrılma restoran ləğvi, digər hal mövcud müştəri refund qaydasına uyğun hesablanır.</remarks>
+    [HasPermission(PermissionCode.ManageReservations)]
+    [HttpPost(ApiRoutes.ReservationFlow.RecordDeparture)]
+    public async Task<IActionResult> RecordDeparture([FromRoute] int restaurantId, [FromRoute] int reservationId,
+        [FromBody] ReservationDepartureRequest request, CancellationToken cancellationToken)
+        => Ok(await Mediator.Send(new RecordReservationDepartureCommand(restaurantId, reservationId, request), cancellationToken));
+
+    /// <summary>Menecer və ya sahibkar gözləyən qonağın masasını razılığı ilə dəyişir.</summary>
+    /// <remarks>CustomerConsent true olmalıdır. Yeni masa eyni restorana aid, aktiv, tutum və vaxt baxımından uyğun olmalıdır. Depozit, rezervasiya, çıxış və refund şərtləri dəyişmir; masa sessiyası açılmır.</remarks>
+    [HasPermission(PermissionCode.ManageReservations)]
+    [HttpPost(ApiRoutes.ReservationFlow.ChangeTable)]
+    public async Task<IActionResult> ChangeTable([FromRoute] int restaurantId, [FromRoute] int reservationId,
+        [FromBody] ReservationTableChangeRequest request, CancellationToken cancellationToken)
+        => Ok(await Mediator.Send(new ChangeReservationTableCommand(restaurantId, reservationId, request), cancellationToken));
 
     [HasPermission(PermissionCode.SeatReservationGuest)]
     [HttpPost(ApiRoutes.ReservationFlow.CheckIn)]

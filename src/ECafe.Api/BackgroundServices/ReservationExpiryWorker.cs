@@ -45,6 +45,7 @@ public sealed class ReservationExpiryWorker : BackgroundService
             "Reservation expiry worker stopped.");
     }
 
+    /// <summary>Vaxtı bitmiş rezervasiyaları bağlayır və gəlmiş qonaqların uzanan gözləməsini ayrıca menecerə bildirir.</summary>
     private async Task ExpireReservationsAsync(
         CancellationToken stoppingToken)
     {
@@ -59,6 +60,8 @@ public sealed class ReservationExpiryWorker : BackgroundService
                 .ExpirePendingReservationsAsync(
                     BatchSize,
                     stoppingToken);
+
+            await reservationService.EscalateWaitingReservationsAsync(BatchSize, stoppingToken);
 
             if (expiredCount > 0)
             {

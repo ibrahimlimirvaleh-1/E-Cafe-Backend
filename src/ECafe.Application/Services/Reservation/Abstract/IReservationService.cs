@@ -5,6 +5,12 @@ namespace ECafe.Application.Services.Reservation.Abstract;
 
 public interface IReservationService
 {
+    Task<int> EscalateWaitingReservationsAsync(int batchSize, CancellationToken cancellationToken = default);
+    Task<ReservationActionResponse> RecordWaitingDepartureAsync(int restaurantId, int reservationId,
+        ReservationDepartureRequest request, CancellationToken cancellationToken = default);
+    Task<ReservationActionResponse> ChangeWaitingTableAsync(int restaurantId, int reservationId,
+        ReservationTableChangeRequest request, CancellationToken cancellationToken = default);
+
     Task<ReservationResponse> GetReservationByIdAsync(
         int reservationId,
         CancellationToken cancellationToken = default);

@@ -6,6 +6,12 @@ namespace ECafe.Application.Repositories.Reservation;
 
 public interface IReservationRepository : IBaseRepository<Domain.Entities.Reservation>
 {
+    Task<bool> IsWithinReservationServiceIntervalAsync(int restaurantId, int reservationId,
+        DateTime nowUtc, CancellationToken cancellationToken = default);
+
+    Task<List<ReservationWaitingCandidate>> GetWaitingEscalationCandidatesAsync(
+        DateTime nowUtc, int thresholdMinutes, int batchSize, CancellationToken cancellationToken = default);
+
     Task<Domain.Entities.Reservation?> GetForArrivalAdjustmentAsync(
         int reservationId, int customerUserId, bool tracked, CancellationToken cancellationToken = default);
 

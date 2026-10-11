@@ -179,6 +179,8 @@ public static class Routes
         public const string RejectPaymentProof = Base + "/restaurants/{restaurantId:int}/reservations/{reservationId:int}/payment-proofs/reject";
         public const string CheckIn = Base + "/restaurants/{restaurantId:int}/reservations/{reservationId:int}/check-in";
         public const string MarkArrived = Base + "/restaurants/{restaurantId:int}/reservations/{reservationId:int}/arrival";
+        public const string RecordDeparture = Base + "/restaurants/{restaurantId:int}/reservations/{reservationId:int}/departure";
+        public const string ChangeTable = Base + "/restaurants/{restaurantId:int}/reservations/{reservationId:int}/table-change";
         public const string Complete = Base + "/restaurants/{restaurantId:int}/reservations/{reservationId:int}/complete";
         public const string CancelForRestaurant = Base + "/restaurants/{restaurantId:int}/reservations/{reservationId:int}/cancel";
     }
