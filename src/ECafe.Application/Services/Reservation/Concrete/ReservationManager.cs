@@ -310,7 +310,8 @@ public sealed partial class ReservationManager : BaseManager, IReservationServic
                     WaitingSinceAt = waiting?.WaitingSinceAt,
                     WaitingMinutes = waiting?.WaitingMinutes ?? 0,
                     ServiceDelayMinutes = waiting?.ServiceDelayMinutes ?? 0,
-                    IsWaitingOverdue = waiting?.IsOverdue ?? false
+                    IsWaitingOverdue = waiting?.IsOverdue ?? false,
+                    RequiresReceptionReview = ReservationWaitingPolicy.RequiresReceptionReview(reservation, nowUtc)
                 };
             }).ToList(),
             reservations.TotalCount,
@@ -1355,7 +1356,7 @@ public sealed partial class ReservationManager : BaseManager, IReservationServic
         };
     }
 
-    /// <summary>Rezervasiyanı rolun görə biləcəyi ödəniş və aktual gözləmə məlumatları ilə API cavabına çevirir.</summary>
+    /// <summary>Rezervasiyanı rolun görə biləcəyi ödəniş, canlı gözləmə və ayrıca nəticə yoxlaması göstəricisi ilə API cavabına çevirir.</summary>
     private ReservationResponse MapResponse(Domain.Entities.Reservation reservation)
     {
         var latestPaymentInstruction = reservation.PaymentInstructions
@@ -1366,6 +1367,7 @@ public sealed partial class ReservationManager : BaseManager, IReservationServic
             .ThenByDescending(proof => proof.Id)
             .FirstOrDefault();
         var refund = reservation.Refunds.SingleOrDefault();
+        var nowUtc = DateTime.UtcNow;
 
         return new ReservationResponse
         {
@@ -1376,7 +1378,8 @@ public sealed partial class ReservationManager : BaseManager, IReservationServic
             NoShowDeadlineAt = ToUtcOffset(reservation.NoShowDeadlineAt)!.Value,
             ArrivedAt = ToUtcOffset(reservation.ArrivedAt),
             SeatedAt = ToUtcOffset(reservation.SeatedAt),
-            Waiting = ReservationWaitingPolicy.GetInfo(reservation, DateTime.UtcNow, _timingOptions.WaitingEscalationMinutes),
+            Waiting = ReservationWaitingPolicy.GetInfo(reservation, nowUtc, _timingOptions.WaitingEscalationMinutes),
+            RequiresReceptionReview = ReservationWaitingPolicy.RequiresReceptionReview(reservation, nowUtc),
             DepartureReason = reservation.DepartureReason,
             MustVacateAt = ToUtcOffset(reservation.MustVacateAt),
             PeopleCount = reservation.PeopleCount,

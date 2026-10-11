@@ -1,4 +1,6 @@
 using ECafe.Application.DTOs.Reservation;
+using ECafe.Application.Common.Audit;
+using ECafe.Application.Services.Reservation.Concrete;
 using ECafe.Application.Repositories.Reservation;
 using ECafe.Domain.Entities;
 using ECafe.Domain.Enums;
@@ -206,19 +208,55 @@ public class ReservationRepository : BaseRepository<Domain.Entities.Reservation>
                arrival.StartsAt == booking.StartsAt && arrival.EndsAt == booking.EndsAt;
     }
 
-    public Task<List<ReservationWaitingCandidate>> GetWaitingEscalationCandidatesAsync(
+    /// <summary>Canlı gecikmə və nəticəsi açıq qalan qeydləri ayrı seçir; kiçik səhifələrdə oxuyaraq köhnə qeydlərin cari bildirişləri bloklamasını önləyir.</summary>
+    public async Task<List<ReservationWaitingCandidate>> GetWaitingEscalationCandidatesAsync(
         DateTime nowUtc, int thresholdMinutes, int batchSize, CancellationToken cancellationToken = default)
     {
-        var cutoff = nowUtc.AddMinutes(-thresholdMinutes);
-        return Query(r => r.StatusId == StatusIds.Reservation(ReservationStatus.Confirmed) &&
-                          r.ArrivedAt != null && r.SeatedAt == null && r.WaitingEscalatedAt == null &&
-                          r.ArrivedAt <= cutoff && r.ReservedAt <= cutoff)
-            .OrderBy(r => r.ReservedAt > r.ArrivedAt ? r.ReservedAt : r.ArrivedAt)
-            .ThenBy(r => r.Id)
-            .Take(Math.Clamp(batchSize, 1, 1000))
-            .Select(r => new ReservationWaitingCandidate(r.Id, r.RestaurantId))
-            .ToListAsync(cancellationToken);
+        if (batchSize <= 0)
+            return [];
+        var reviews = ReceptionReviewNotifications();
+        // Silinmiş bildirişləri də nəzərə alan alt sorğu ümumi filtrləri söndürə bilər; rezervasiya sərhədlərini açıq qoruyuruq.
+        var query = Query(r => !r.IsDeleted && !r.Restaurant.IsDeleted &&
+                          r.StatusId == StatusIds.Reservation(ReservationStatus.Confirmed) &&
+                          r.ArrivedAt != null && r.SeatedAt == null &&
+                          r.ArrivedAt <= nowUtc && r.ReservedAt <= nowUtc)
+            .Where(r => !reviews.Any(n =>
+                n.RestaurantId == r.RestaurantId && n.RelatedEntityId == r.Id));
+        var limit = Math.Clamp(batchSize, 1, 1000);
+        var candidates = new List<ReservationWaitingCandidate>();
+        var lastId = 0;
+        while (candidates.Count < limit)
+        {
+            var page = await query.Where(r => r.Id > lastId).OrderBy(r => r.Id).Take(limit)
+                .Include(r => r.Restaurant).ThenInclude(r => r.WorkingHours.Where(h => !h.IsDeleted))
+                .AsSplitQuery().ToListAsync(cancellationToken);
+            if (page.Count == 0)
+                break;
+            foreach (var reservation in page)
+            {
+                lastId = reservation.Id;
+                if (ReservationWaitingPolicy.RequiresReceptionReview(reservation, nowUtc) ||
+                    (reservation.WaitingEscalatedAt == null &&
+                     ReservationWaitingPolicy.GetInfo(reservation, nowUtc, thresholdMinutes) is { IsOverdue: true }))
+                    candidates.Add(new(reservation.Id, reservation.RestaurantId));
+                if (candidates.Count == limit)
+                    break;
+            }
+        }
+        return candidates;
     }
+
+    /// <summary>Kilid alındıqdan sonra həmin restoran və rezervasiya üçün nəticə yoxlamasının artıq bildirilib-bildirilmədiyini bazada yenidən yoxlayır.</summary>
+    public Task<bool> HasReceptionReviewNotificationAsync(int restaurantId, int reservationId,
+        CancellationToken cancellationToken = default)
+        => ReceptionReviewNotifications().AnyAsync(n => n.RestaurantId == restaurantId &&
+            n.RelatedEntityId == reservationId, cancellationToken);
+
+    /// <summary>Hətta istifadəçi bildirişi siləndən sonra da yoxlama xəbərdarlığının təkrar göndərilməsini mövcud bildiriş qeydi ilə önləyir.</summary>
+    private IQueryable<ECafe.Domain.Entities.Notification> ReceptionReviewNotifications()
+        => Context.Notifications.IgnoreQueryFilters().Where(n =>
+            n.TypeId == (int)NotificationType.ReservationReceptionReviewRequired &&
+            n.ChannelId == (int)NotificationChannel.InApp && n.RelatedEntityType == AuditEntityTypes.Reservation);
 
     public async Task<bool> IsRestaurantOpenAsync(
         int restaurantId,
@@ -444,7 +482,7 @@ public class ReservationRepository : BaseRepository<Domain.Entities.Reservation>
                 reservation.RestaurantId == restaurantId &&
                 (reservation.StatusId == confirmedStatusId || reservation.StatusId == seatedStatusId))
             .Include(reservation => reservation.Table)
-            .Include(reservation => reservation.Restaurant)
+            .Include(reservation => reservation.Restaurant).ThenInclude(restaurant => restaurant.WorkingHours)
             .Include(reservation => reservation.CustomerUser);
 
         if (request.TableId.HasValue)
@@ -477,13 +515,14 @@ public class ReservationRepository : BaseRepository<Domain.Entities.Reservation>
             reservation.ReservedAt >= startUtc && reservation.ReservedAt < endUtc);
     }
 
+    /// <summary>Rezervasiyanın göstərilməsi və xidmət intervalı hesablanması üçün əlaqəli məlumatları eyni sorğuda yükləyir.</summary>
     private static IQueryable<Domain.Entities.Reservation> WithDetails(
         IQueryable<Domain.Entities.Reservation> query)
     {
         return query
             .Include(r => r.Status)
             .Include(r => r.ArrivalAdjustment)
-            .Include(r => r.Restaurant)
+            .Include(r => r.Restaurant).ThenInclude(restaurant => restaurant.WorkingHours)
             .Include(r => r.Table)
             .Include(r => r.CustomerUser)
             .Include(r => r.PaymentInstructions

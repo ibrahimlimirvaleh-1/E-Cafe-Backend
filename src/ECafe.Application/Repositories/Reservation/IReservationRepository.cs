@@ -12,6 +12,9 @@ public interface IReservationRepository : IBaseRepository<Domain.Entities.Reserv
     Task<List<ReservationWaitingCandidate>> GetWaitingEscalationCandidatesAsync(
         DateTime nowUtc, int thresholdMinutes, int batchSize, CancellationToken cancellationToken = default);
 
+    Task<bool> HasReceptionReviewNotificationAsync(int restaurantId, int reservationId,
+        CancellationToken cancellationToken = default);
+
     Task<Domain.Entities.Reservation?> GetForArrivalAdjustmentAsync(
         int reservationId, int customerUserId, bool tracked, CancellationToken cancellationToken = default);
 
