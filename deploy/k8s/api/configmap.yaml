@@ -41,7 +41,7 @@ data:
   Email__SecureSocketOption: "StartTls"
   Email__TimeoutSeconds: "30"
   Email__LocalDomain: "ecafe.example"
-  MobileApp__PushDeliveryReady: "false"
+  MobileApp__PushDeliveryReady: "true"
   MobileApp__ExpoProjectId: "db71d0d5-bde7-47f0-8e84-95475e07588c"
   MobileApp__WorkerIntervalSeconds: "15"
   MobileApp__WorkerBatchSize: "50"

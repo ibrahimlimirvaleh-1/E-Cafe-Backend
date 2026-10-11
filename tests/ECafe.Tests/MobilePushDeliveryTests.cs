@@ -56,6 +56,11 @@ public sealed class MobilePushDeliveryTests
     [InlineData("module-off")]
     [InlineData("inactive-user")]
     [InlineData("account-switch")]
+    [InlineData("assignment-off")]
+    [InlineData("contract-expired")]
+    [InlineData("mobile-access-off")]
+    [InlineData("restaurant-off")]
+    [InlineData("non-staff-role")]
     public async Task StaleRecipientIsSuppressedAtSendTime(string change)
     {
         await using var context = CreateContext();
@@ -83,6 +88,21 @@ public sealed class MobilePushDeliveryTests
             case "account-switch":
                 context.MobilePushInstallations.Single().UserId = 2;
                 break;
+            case "assignment-off":
+                context.UserRestaurants.Single().IsActive = false;
+                break;
+            case "contract-expired":
+                context.RestaurantContracts.Single().StatusId = StatusIds.Contract(ContractStatus.Expired);
+                break;
+            case "mobile-access-off":
+                context.Restaurants.Single().ShowMobileDownloadLink = false;
+                break;
+            case "restaurant-off":
+                context.Restaurants.Single().IsActive = false;
+                break;
+            case "non-staff-role":
+                context.UserRestaurants.Single().RoleId = (int)RoleCode.Customer;
+                break;
         }
 
         await context.SaveChangesAsync();
@@ -97,13 +117,6 @@ public sealed class MobilePushDeliveryTests
         await using var context = CreateContext();
         var protector = new EphemeralDataProtectionProvider();
         await SeedEligibleRecipientAsync(context, protector);
-        context.Users.Single().RoleId = (int)RoleCode.Manager;
-        context.UserRestaurants.Add(new UserRestaurant
-        {
-            Id = 1, UserId = 1, RestaurantId = 1,
-            RoleId = (int)RoleCode.Manager, IsActive = true
-        });
-        await context.SaveChangesAsync();
         var configuration = ReadyConfiguration();
         var processor = new MobilePushDeliveryProcessor(context, configuration, protector, new FakeTransport());
 
@@ -127,6 +140,129 @@ public sealed class MobilePushDeliveryTests
         await context.SaveChangesAsync();
         await processor.ExpandOutboxAsync(10, CancellationToken.None);
         Assert.Single(context.MobilePushDeliveries);
+    }
+
+    [Theory]
+    [InlineData(RoleCode.Owner)]
+    [InlineData(RoleCode.Manager)]
+    [InlineData(RoleCode.Waiter)]
+    [InlineData(RoleCode.Kitchen)]
+    public async Task OnlyStaffInAdminGrantedRestaurantReceivePush(RoleCode role)
+    {
+        await using var context = CreateContext();
+        var protector = new EphemeralDataProtectionProvider();
+        await SeedEligibleRecipientAsync(context, protector);
+        context.UserRestaurants.Single().RoleId = (int)role;
+        context.Restaurants.Add(new Restaurant
+        {
+            Id = 2, Name = "Not granted", Location = "Baku", Phone = "2", IsActive = true,
+            MobilePushEnabled = false, ShowMobileDownloadLink = true
+        });
+        context.RestaurantContracts.Add(new RestaurantContract
+        {
+            Id = 2, RestaurantId = 2, ContractNumber = "C2", PaymentPolicyId = 1,
+            StatusId = StatusIds.Contract(ContractStatus.Active)
+        });
+        context.UserRestaurants.Add(new UserRestaurant
+        {
+            Id = 2, UserId = 1, RestaurantId = 2, RoleId = (int)role, IsActive = true
+        });
+        var configuration = ReadyConfiguration();
+        var writer = new MobilePushOutboxWriter(context, configuration);
+        writer.Enqueue(new Notification { UserId = 1, RestaurantId = 1, ChannelId = (int)NotificationChannel.InApp });
+        writer.Enqueue(new Notification { UserId = 1, RestaurantId = 2, ChannelId = (int)NotificationChannel.InApp });
+        await context.SaveChangesAsync();
+        var transport = new FakeTransport();
+        var processor = new MobilePushDeliveryProcessor(context, configuration, protector, transport);
+
+        await processor.ExpandOutboxAsync(10, CancellationToken.None);
+        Assert.Equal(1, Assert.Single(context.MobilePushDeliveries).RestaurantId);
+        await processor.SendPendingAsync(10, CancellationToken.None);
+        Assert.Equal(Token, Assert.Single(transport.SentTokens));
+    }
+
+    [Fact]
+    public async Task AssignmentToOtherGrantedRestaurantCannotReceiveThisRestaurantsPush()
+    {
+        await using var context = CreateContext();
+        var protector = new EphemeralDataProtectionProvider();
+        await SeedEligibleRecipientAsync(context, protector);
+        context.Restaurants.Add(new Restaurant
+        {
+            Id = 2, Name = "Other granted restaurant", Location = "Baku", Phone = "2", IsActive = true,
+            MobilePushEnabled = true, ShowMobileDownloadLink = true
+        });
+        context.RestaurantContracts.Add(new RestaurantContract
+        {
+            Id = 2, RestaurantId = 2, ContractNumber = "C2", PaymentPolicyId = 1,
+            StatusId = StatusIds.Contract(ContractStatus.Active)
+        });
+        context.UserRestaurants.Single().IsActive = false;
+        context.UserRestaurants.Add(new UserRestaurant
+        {
+            Id = 2, UserId = 1, RestaurantId = 2, RoleId = (int)RoleCode.Manager, IsActive = true
+        });
+        var configuration = ReadyConfiguration();
+        var writer = new MobilePushOutboxWriter(context, configuration);
+        writer.Enqueue(new Notification { UserId = 1, RestaurantId = 1, ChannelId = (int)NotificationChannel.InApp });
+        writer.Enqueue(new Notification { UserId = 1, RestaurantId = 2, ChannelId = (int)NotificationChannel.InApp });
+        await context.SaveChangesAsync();
+        var transport = new FakeTransport();
+        var processor = new MobilePushDeliveryProcessor(context, configuration, protector, transport);
+
+        await processor.ExpandOutboxAsync(10, CancellationToken.None);
+        Assert.Equal(2, Assert.Single(context.MobilePushDeliveries).RestaurantId);
+        await processor.SendPendingAsync(10, CancellationToken.None);
+        Assert.Single(transport.SentTokens);
+    }
+
+    [Fact]
+    public async Task CustomerPhonePushIsSuppressedButInAppNotificationIsRetained()
+    {
+        await using var context = CreateContext();
+        var protector = new EphemeralDataProtectionProvider();
+        await SeedEligibleRecipientAsync(context, protector);
+        context.UserRestaurants.RemoveRange(context.UserRestaurants);
+        context.Users.Single().RoleId = (int)RoleCode.Customer;
+        var notification = new Notification
+        {
+            UserId = 1, RestaurantId = 1, ChannelId = (int)NotificationChannel.InApp,
+            Title = "Customer inbox", Message = "Still visible in the app"
+        };
+        context.Notifications.Add(notification);
+        var configuration = ReadyConfiguration();
+        new MobilePushOutboxWriter(context, configuration).Enqueue(notification);
+        await context.SaveChangesAsync();
+        var transport = new FakeTransport();
+        var processor = new MobilePushDeliveryProcessor(context, configuration, protector, transport);
+
+        await processor.ExpandOutboxAsync(10, CancellationToken.None);
+        await processor.SendPendingAsync(10, CancellationToken.None);
+        Assert.Empty(context.MobilePushDeliveries);
+        Assert.Empty(transport.SentTokens);
+        Assert.Equal("Customer inbox", Assert.Single(context.Notifications).Title);
+    }
+
+    [Fact]
+    public async Task GlobalSwitchOffPreventsNewPhonePushEvents()
+    {
+        await using var context = CreateContext();
+        var protector = new EphemeralDataProtectionProvider();
+        await SeedEligibleRecipientAsync(context, protector);
+        var configuration = ReadyConfiguration();
+        configuration["MobileApp:PushDeliveryReady"] = "false";
+        new MobilePushOutboxWriter(context, configuration).Enqueue(new Notification
+        {
+            UserId = 1, RestaurantId = 1, ChannelId = (int)NotificationChannel.InApp
+        });
+        await context.SaveChangesAsync();
+        var transport = new FakeTransport();
+        var processor = new MobilePushDeliveryProcessor(context, configuration, protector, transport);
+
+        Assert.Equal(0, await processor.ExpandOutboxAsync(10, CancellationToken.None));
+        Assert.Equal(0, await processor.SendPendingAsync(10, CancellationToken.None));
+        Assert.Empty(context.OutboxEvents);
+        Assert.Empty(transport.SentTokens);
     }
 
     [Fact]
@@ -277,6 +413,7 @@ public sealed class MobilePushDeliveryTests
             ["MobileApp:ExpoProjectId"] = ProjectId.ToString()
         }).Build();
 
+    /// <summary>Test üçün icazəli restoran, aktiv işçi aidiyyəti və qeydiyyatlı telefon sessiyası yaradır.</summary>
     private static async Task SeedEligibleRecipientAsync(
         ECafeDbContext context, IDataProtectionProvider protector)
     {
@@ -284,7 +421,7 @@ public sealed class MobilePushDeliveryTests
         {
             Id = 1, Name = "Test", Surname = "User", Email = "test@example.com",
             Phone = "1", Password = "test", IsActive = true,
-            RoleId = (int)RoleCode.Customer
+            RoleId = (int)RoleCode.Manager
         });
         context.UserRefreshTokens.Add(new UserRefreshToken
         {
@@ -300,6 +437,10 @@ public sealed class MobilePushDeliveryTests
         {
             Id = 1, RestaurantId = 1, ContractNumber = "C1", PaymentPolicyId = 1,
             StatusId = StatusIds.Contract(ContractStatus.Active)
+        });
+        context.UserRestaurants.Add(new UserRestaurant
+        {
+            Id = 1, UserId = 1, RestaurantId = 1, RoleId = (int)RoleCode.Manager, IsActive = true
         });
         context.MobilePushInstallations.Add(new MobilePushInstallation
         {

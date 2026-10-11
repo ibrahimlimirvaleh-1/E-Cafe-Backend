@@ -2033,6 +2033,10 @@ namespace ECafe.Infrastructure.Migrations
                     b.Property<string>("DeletedBy")
                         .HasColumnType("text");
 
+                    b.Property<int?>("DepartureReason")
+                        .HasColumnType("integer")
+                        .HasColumnName("departure_reason");
+
                     b.Property<decimal>("DepositAmount")
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)")
@@ -2124,6 +2128,10 @@ namespace ECafe.Infrastructure.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("waiter_user_id");
 
+                    b.Property<DateTime?>("WaitingEscalatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("waiting_escalated_at");
+
                     b.HasKey("Id")
                         .HasName("reservations_pkey");
 
@@ -2139,8 +2147,6 @@ namespace ECafe.Infrastructure.Migrations
 
                     b.HasIndex("NoShowByUserId");
 
-                    b.HasIndex("StatusId");
-
                     b.HasIndex("TableId");
 
                     b.HasIndex("WaiterUserId");
@@ -2150,6 +2156,8 @@ namespace ECafe.Infrastructure.Migrations
                     b.HasIndex(new[] { "HoldExpiresAt" }, "reservations_hold_expires_at_idx");
 
                     b.HasIndex(new[] { "RestaurantResponseExpiresAt" }, "reservations_restaurant_response_expires_at_idx");
+
+                    b.HasIndex(new[] { "StatusId", "ArrivedAt", "WaitingEscalatedAt" }, "reservations_waiting_lookup_idx");
 
                     b.ToTable("reservations", "ops");
                 });

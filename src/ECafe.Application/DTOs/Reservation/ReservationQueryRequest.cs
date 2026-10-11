@@ -16,4 +16,5 @@ public class MyReservationsQueryRequest : ReservationQueryRequest
 public class RestaurantReservationsQueryRequest : ReservationQueryRequest
 {
     public int? TableId { get; set; }
+    public bool WaitingOnly { get; set; }
 }

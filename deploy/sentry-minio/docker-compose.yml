@@ -59,8 +59,8 @@ services:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: http://+:8080
       DataProtection__KeyRingPath: /var/lib/ecafe/data-protection-keys
-      MobileApp__PushDeliveryReady: "false"
-      MobileApp__ExpoProjectId: ${ECAFE_EXPO_PROJECT_ID:-}
+      MobileApp__PushDeliveryReady: ${ECAFE_PUSH_DELIVERY_READY:-true}
+      MobileApp__ExpoProjectId: ${ECAFE_EXPO_PROJECT_ID:-db71d0d5-bde7-47f0-8e84-95475e07588c}
       MobileApp__ExpoAccessToken: ${ECAFE_EXPO_ACCESS_TOKEN:-}
 
       # PostgreSQL connection

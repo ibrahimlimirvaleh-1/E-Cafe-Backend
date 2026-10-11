@@ -11,20 +11,19 @@ public sealed record ReservationArrivalWindow(DateTime MaximumDeadlineAt, DateTi
 
 public static class ReservationArrivalPolicy
 {
+    /// <summary>Təsdiqlənmiş rezervasiyada gəlişin vaxt və status şərtlərini yoxlayır; erkən gəlişin iş intervalı repository-də ayrıca yoxlanılır.</summary>
     public static bool CanRecordPhysicalArrival(ReservationEntity reservation, DateTime nowUtc)
         => reservation.StatusId == StatusIds.Reservation(ReservationStatus.Confirmed) &&
            reservation.ArrivedAt == null &&
-           reservation.ReservedAt <= nowUtc &&
            reservation.NoShowDeadlineAt > nowUtc &&
            (reservation.MustVacateAt == null || reservation.MustVacateAt > nowUtc);
 
+    /// <summary>Əyləşmə üçün status və son vaxt sərhədlərini yoxlayır; masanın faktiki uyğunluğu servis tərəfindən kilid altında yoxlanılır.</summary>
     public static ErrorCode? GetSeatingConflict(ReservationEntity reservation, DateTime nowUtc)
         => reservation switch
         {
             { StatusId: var statusId } when statusId != StatusIds.Reservation(ReservationStatus.Confirmed)
                 => ErrorCode.ReservationSeatingRequiresConfirmation,
-            { ReservedAt: var reservedAt } when reservedAt > nowUtc
-                => ErrorCode.ReservationSeatingBeforeStart,
             { ArrivedAt: null, NoShowDeadlineAt: var deadline } when deadline <= nowUtc
                 => ErrorCode.ReservationSeatingWindowExpired,
             { MustVacateAt: { } mustVacateAt } when mustVacateAt <= nowUtc

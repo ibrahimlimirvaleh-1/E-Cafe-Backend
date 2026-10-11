@@ -27,6 +27,8 @@
         ReservationRefundTransferDisputed = 23,
         ReservationArrivalAdjusted = 24,
         RestaurantScheduleChanged = 25,
-        ReservationArrived = 26
+        ReservationArrived = 26,
+        ReservationWaitingEscalated = 27,
+        ReservationTableChanged = 28
     }
 }

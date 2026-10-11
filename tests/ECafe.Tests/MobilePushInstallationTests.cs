@@ -69,18 +69,47 @@ public sealed class MobilePushInstallationTests
     }
 
     [Fact]
-    public async Task RegistrationRejectsUnassignedStaffButAcceptsActiveCustomer()
+    public async Task RegistrationRejectsCustomersAndUnassignedStaff()
     {
         await using var context = CreateContext();
         await AddSessionAsync(context, 1, "a");
-        var installationId = Guid.NewGuid();
-        await CreateService(context, 1, "a").RegisterAsync(
-            installationId, new(TokenA, ProjectId), CancellationToken.None);
-
+        context.UserRestaurants.RemoveRange(context.UserRestaurants);
+        context.Users.Single().RoleId = (int)RoleCode.Customer;
+        await context.SaveChangesAsync();
+        await Assert.ThrowsAsync<ForbiddenException>(() => CreateService(context, 1, "a")
+            .RegisterAsync(Guid.NewGuid(), new(TokenA, ProjectId), CancellationToken.None));
         context.Users.Single().RoleId = (int)RoleCode.Manager;
         await context.SaveChangesAsync();
         await Assert.ThrowsAsync<ForbiddenException>(() => CreateService(context, 1, "a")
             .RegisterAsync(Guid.NewGuid(), new(TokenB, ProjectId), CancellationToken.None));
+        Assert.Empty(context.MobilePushInstallations);
+    }
+
+    [Theory]
+    [InlineData("push-off")]
+    [InlineData("mobile-off")]
+    [InlineData("inactive-restaurant")]
+    [InlineData("expired-contract")]
+    [InlineData("inactive-assignment")]
+    [InlineData("unsupported-role")]
+    public async Task RegistrationRequiresCurrentAdminGrantAndActiveStaffAssignment(string change)
+    {
+        await using var context = CreateContext();
+        await AddSessionAsync(context, 1, "a");
+        switch (change)
+        {
+            case "push-off": context.Restaurants.Single().MobilePushEnabled = false; break;
+            case "mobile-off": context.Restaurants.Single().ShowMobileDownloadLink = false; break;
+            case "inactive-restaurant": context.Restaurants.Single().IsActive = false; break;
+            case "expired-contract": context.RestaurantContracts.Single().StatusId = StatusIds.Contract(ContractStatus.Expired); break;
+            case "inactive-assignment": context.UserRestaurants.Single().IsActive = false; break;
+            case "unsupported-role": context.UserRestaurants.Single().RoleId = (int)RoleCode.SuperAdmin; break;
+        }
+        await context.SaveChangesAsync();
+
+        await Assert.ThrowsAsync<ForbiddenException>(() => CreateService(context, 1, "a")
+            .RegisterAsync(Guid.NewGuid(), new(TokenA, ProjectId), CancellationToken.None));
+        Assert.Empty(context.MobilePushInstallations);
     }
 
     [Fact]
@@ -105,13 +134,31 @@ public sealed class MobilePushInstallationTests
         => new(new DbContextOptionsBuilder<ECafeDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);
 
+    /// <summary>Token qeydiyyatı testinə icazəli restoranın aktiv işçisini və giriş sessiyasını əlavə edir.</summary>
     private static async Task AddSessionAsync(ECafeDbContext context, int userId, string sessionCharacter)
     {
+        if (!await context.Restaurants.AnyAsync())
+        {
+            context.Restaurants.Add(new Restaurant
+            {
+                Id = 1, Name = "Granted restaurant", Location = "Baku", Phone = "1", IsActive = true,
+                MobilePushEnabled = true, ShowMobileDownloadLink = true
+            });
+            context.RestaurantContracts.Add(new RestaurantContract
+            {
+                Id = 1, RestaurantId = 1, ContractNumber = "C1", PaymentPolicyId = 1,
+                StatusId = StatusIds.Contract(ContractStatus.Active)
+            });
+        }
         context.Users.Add(new User
         {
             Id = userId, Name = "Test", Surname = "User", Email = $"user{userId}@example.com",
             Phone = userId.ToString(), Password = "test", IsActive = true,
-            RoleId = (int)RoleCode.Customer
+            RoleId = (int)RoleCode.Manager
+        });
+        context.UserRestaurants.Add(new UserRestaurant
+        {
+            Id = userId, UserId = userId, RestaurantId = 1, RoleId = (int)RoleCode.Manager, IsActive = true
         });
         context.UserRefreshTokens.Add(new UserRefreshToken
         {

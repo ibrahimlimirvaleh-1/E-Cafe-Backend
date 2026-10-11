@@ -58,6 +58,10 @@ public partial class Reservation : AuditableSoftDeletableEntity<int>
 
     public int? ArrivedByUserId { get; set; }
 
+    public DateTime? WaitingEscalatedAt { get; set; }
+
+    public ECafe.Domain.Enums.ReservationDepartureReason? DepartureReason { get; set; }
+
     public DateTime? CompletedAt { get; set; }
 
     public int? CheckedInByUserId { get; set; }
