@@ -106,6 +106,20 @@ public sealed partial class ReservationManager
             var reservation = await LoadLockedRestaurantReservationAsync(
                 candidate.RestaurantId, candidate.ReservationId, cancellationToken);
             var nowUtc = DateTime.UtcNow;
+            if (ReservationWaitingPolicy.RequiresReceptionReview(reservation, nowUtc))
+            {
+                if (!await _reservationRepository.HasReceptionReviewNotificationAsync(
+                        reservation.RestaurantId, reservation.Id, cancellationToken))
+                {
+                    var reviewed = await NotifyReceptionStaffAsync(reservation, ReservationManagerRoleIds,
+                        NotificationType.ReservationReceptionReviewRequired, ReservationReceptionTexts.ReceptionReviewTitle,
+                        ReservationReceptionTexts.ReceptionReviewMessage(reservation.Id));
+                    if (reviewed > 0)
+                        count++;
+                }
+                await transaction.CommitAsync(cancellationToken);
+                continue;
+            }
             var waiting = ReservationWaitingPolicy.GetInfo(reservation, nowUtc, _timingOptions.WaitingEscalationMinutes);
             if (waiting is not { IsOverdue: true } || reservation.WaitingEscalatedAt.HasValue)
             {

@@ -19,4 +19,5 @@ public sealed class ReservationServiceItemResponse
     public int WaitingMinutes { get; init; }
     public int ServiceDelayMinutes { get; init; }
     public bool IsWaitingOverdue { get; init; }
+    public bool RequiresReceptionReview { get; init; }
 }

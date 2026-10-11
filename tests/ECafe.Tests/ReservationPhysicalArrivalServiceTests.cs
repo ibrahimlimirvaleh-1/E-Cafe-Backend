@@ -325,6 +325,78 @@ public sealed class ReservationPhysicalArrivalServiceTests
             request.UserId == 6 && request.TypeId == (int)NotificationType.ReservationWaitingEscalated)), Times.Once);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task OldArrivedGuestReceivesOneReviewInsteadOfThousandsOfWaitingMinutes(bool previouslyWarned)
+    {
+        var fixture = new Fixture(RoleCode.Manager);
+        fixture.Reservation.ReservedAt = DateTime.UtcNow.AddDays(-3);
+        fixture.Reservation.ArrivedAt = fixture.Reservation.ReservedAt;
+        fixture.Reservation.DepositAmount = 20;
+        fixture.Reservation.WaitingEscalatedAt = previouslyWarned ? DateTime.UtcNow.AddDays(-3) : null;
+        fixture.Reservations.Setup(repository => repository.GetWaitingEscalationCandidatesAsync(
+            It.IsAny<DateTime>(), 15, 100, It.IsAny<CancellationToken>()))
+            .ReturnsAsync([new ReservationWaitingCandidate(1, 2)]);
+        fixture.Staff.Setup(repository => repository.GetActiveByRestaurantAndRolesAsync(2,
+            It.IsAny<IReadOnlyCollection<int>>())).ReturnsAsync([new UserRestaurant { UserId = 6, RestaurantId = 2 }]);
+
+        Assert.Equal(1, await fixture.Service.EscalateWaitingReservationsAsync(100));
+        Assert.Equal(0, await fixture.Service.EscalateWaitingReservationsAsync(100));
+        fixture.Notifications.Verify(service => service.CreateAsync(It.Is<CreateNotificationRequest>(request =>
+            request.UserId == 6 && request.RestaurantId == 2 &&
+            request.TypeId == (int)NotificationType.ReservationReceptionReviewRequired &&
+            request.Message.Contains("hazırda gözlədiyini göstərmir"))), Times.Once);
+        fixture.Notifications.Verify(service => service.CreateAsync(It.Is<CreateNotificationRequest>(request =>
+            request.TypeId == (int)NotificationType.ReservationWaitingEscalated)), Times.Never);
+        Assert.Equal(StatusIds.Reservation(ReservationStatus.Confirmed), fixture.Reservation.StatusId);
+        Assert.Null(fixture.Reservation.CancelledAt);
+        Assert.Null(fixture.Reservation.SeatedAt);
+        Assert.Equal(20, fixture.Reservation.DepositAmount);
+        Assert.Null(fixture.Reservation.RefundEligible);
+    }
+
+    [Fact]
+    public async Task ClosingWhileWorkerWaitsForLockChangesWarningToReview()
+    {
+        var fixture = new Fixture(RoleCode.Manager);
+        fixture.Reservation.ArrivedAt = DateTime.UtcNow.AddMinutes(-20);
+        fixture.Reservation.MustVacateAt = DateTime.UtcNow.AddMinutes(-1);
+        fixture.Reservations.Setup(repository => repository.GetWaitingEscalationCandidatesAsync(
+            It.IsAny<DateTime>(), 15, 100, It.IsAny<CancellationToken>()))
+            .ReturnsAsync([new ReservationWaitingCandidate(1, 2)]);
+        fixture.Staff.Setup(repository => repository.GetActiveByRestaurantAndRolesAsync(2,
+            It.IsAny<IReadOnlyCollection<int>>())).ReturnsAsync([new UserRestaurant { UserId = 6, RestaurantId = 2 }]);
+        Assert.Equal(1, await fixture.Service.EscalateWaitingReservationsAsync(100));
+        fixture.Notifications.Verify(service => service.CreateAsync(It.Is<CreateNotificationRequest>(request =>
+            request.TypeId == (int)NotificationType.ReservationReceptionReviewRequired)), Times.Once);
+        Assert.Null(fixture.Reservation.WaitingEscalatedAt);
+    }
+
+    [Fact]
+    public async Task ExpiredReceptionIsExposedSeparatelyFromLiveWaitingInApi()
+    {
+        var fixture = new Fixture(RoleCode.Manager);
+        fixture.Reservation.ReservedAt = DateTime.UtcNow.AddDays(-3);
+        fixture.Reservation.ArrivedAt = fixture.Reservation.ReservedAt;
+        var response = await fixture.Service.GetRestaurantReservationByIdAsync(2, 1);
+        Assert.True(response.RequiresReceptionReview);
+        Assert.Null(response.Waiting);
+        Assert.Equal(StatusIds.Reservation(ReservationStatus.Confirmed), response.StatusId);
+
+        fixture.Reservation.Table = new Table { Id = 3, Name = "Test" };
+        fixture.Reservation.CustomerUser = new User { Name = "Guest", Surname = "Test" };
+        fixture.Reservations.Setup(repository => repository.GetForServiceAsync(
+            2, It.IsAny<RestaurantReservationsQueryRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ECafe.Shared.DTOs.PaginatedList<Reservation>([fixture.Reservation], 1, 1, 20));
+        var serviceItem = Assert.Single((await fixture.Service.GetServiceReservationsAsync(
+            2, new RestaurantReservationsQueryRequest())).Items);
+        Assert.True(serviceItem.RequiresReceptionReview);
+        Assert.Null(serviceItem.WaitingSinceAt);
+        Assert.Equal(0, serviceItem.WaitingMinutes);
+        Assert.False(serviceItem.IsWaitingOverdue);
+    }
+
     [Fact]
     public async Task SeatRequestCannotUseOldTableLockAfterParallelTableChange()
     {
@@ -353,6 +425,7 @@ public sealed class ReservationPhysicalArrivalServiceTests
 
     private sealed class Fixture
     {
+        private bool _reviewNotified;
         public Reservation Reservation { get; } = new()
         {
             Id = 1, RestaurantId = 2, TableId = 3, CustomerUserId = 4,
@@ -370,6 +443,16 @@ public sealed class ReservationPhysicalArrivalServiceTests
 
         public Fixture(RoleCode role)
         {
+            Reservation.Restaurant = new Restaurant
+            {
+                Id = 2, IsActive = true, TimeZone = "UTC",
+                WorkingHours = Enum.GetValues<DayOfWeek>().Select(day => new RestaurantWorkingHour
+                {
+                    DayOfWeek = day, OpensAt = TimeOnly.MinValue, ClosesAt = TimeOnly.MinValue, CloseDayOffset = 1
+                }).ToList()
+            };
+            Reservations.Setup(repository => repository.HasReceptionReviewNotificationAsync(
+                2, 1, It.IsAny<CancellationToken>())).ReturnsAsync(() => _reviewNotified);
             Reservations.Setup(repository => repository.GetByIdForRestaurantSnapshotAsync(
                 1, 2, It.IsAny<CancellationToken>())).ReturnsAsync(Reservation);
             Reservations.Setup(repository => repository.GetByIdForRestaurantAsync(
@@ -410,6 +493,11 @@ public sealed class ReservationPhysicalArrivalServiceTests
                 It.IsAny<string>(), It.IsAny<int>(), It.IsAny<string>(),
                 It.IsAny<int?>(), It.IsAny<int?>())).Returns(Task.CompletedTask);
             Notifications.Setup(value => value.CreateAsync(It.IsAny<CreateNotificationRequest>()))
+                .Callback<CreateNotificationRequest>(request =>
+                {
+                    if (request.TypeId == (int)NotificationType.ReservationReceptionReviewRequired)
+                        _reviewNotified = true;
+                })
                 .Returns(Task.CompletedTask);
             var audit = new Mock<IAuditLogService>();
             audit.Setup(value => value.RecordRestaurantActionAsync(

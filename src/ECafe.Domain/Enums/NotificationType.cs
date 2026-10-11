@@ -29,6 +29,7 @@
         RestaurantScheduleChanged = 25,
         ReservationArrived = 26,
         ReservationWaitingEscalated = 27,
-        ReservationTableChanged = 28
+        ReservationTableChanged = 28,
+        ReservationReceptionReviewRequired = 29
     }
 }

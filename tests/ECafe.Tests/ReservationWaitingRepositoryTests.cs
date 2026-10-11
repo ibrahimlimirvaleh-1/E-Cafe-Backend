@@ -1,9 +1,12 @@
 using ECafe.Application.DTOs.Reservation;
+using System.Data.Common;
+using ECafe.Application.Common.Audit;
 using ECafe.Domain.Entities;
 using ECafe.Domain.Enums;
 using ECafe.Infrastructure.Context;
 using ECafe.Infrastructure.Repositories.Reservation;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Xunit;
 
 namespace ECafe.Tests;
@@ -56,6 +59,7 @@ public sealed class ReservationWaitingRepositoryTests
     public async Task EarlyArrivalAcrossMidnightUsesSameRestaurantWorkInterval()
     {
         await using var context = CreateContext();
+        context.RestaurantWorkingHours.RemoveRange(context.RestaurantWorkingHours.Local.Where(h => h.RestaurantId == 1));
         context.RestaurantWorkingHours.Add(new RestaurantWorkingHour
         {
             RestaurantId = 1, DayOfWeek = DayOfWeek.Sunday,
@@ -73,6 +77,108 @@ public sealed class ReservationWaitingRepositoryTests
             1, 1, new DateTime(2026, 10, 11, 19, 50, 0, DateTimeKind.Utc)));
     }
 
+    [Fact]
+    public async Task PreviousWarningDoesNotHideUnresolvedOldGuestOrStarveCurrentGuest()
+    {
+        await using var context = CreateContext();
+        var currentNotified = CreateReservation(1, 25);
+        currentNotified.WaitingEscalatedAt = Now.AddMinutes(-10);
+        var oldNotified = CreateReservation(2, 4720);
+        oldNotified.ReservedAt = Now.AddMinutes(-4720);
+        oldNotified.WaitingEscalatedAt = Now.AddDays(-3);
+        context.Reservations.AddRange(currentNotified, oldNotified, CreateReservation(3, 20));
+        await context.SaveChangesAsync();
+        var repository = new ReservationRepository(context);
+        Assert.Equal(2, Assert.Single(await repository.GetWaitingEscalationCandidatesAsync(Now, 15, 1)).ReservationId);
+        context.Notifications.Add(CreateReview(2));
+        await context.SaveChangesAsync();
+        Assert.Equal(3, Assert.Single(await repository.GetWaitingEscalationCandidatesAsync(Now, 15, 1)).ReservationId);
+    }
+
+    [Fact]
+    public async Task ReviewDeduplicationPreservesTenantEntityAndSoftDeleteBoundaries()
+    {
+        await using var context = CreateContext();
+        var reservation = CreateReservation(1, 4720);
+        reservation.ReservedAt = Now.AddMinutes(-4720);
+        context.Reservations.Add(reservation);
+        var wrongTenant = CreateReview(1);
+        wrongTenant.RestaurantId = 2;
+        var wrongEntity = CreateReview(1);
+        wrongEntity.RelatedEntityType = AuditEntityTypes.Order;
+        context.Notifications.AddRange(wrongTenant, wrongEntity);
+        await context.SaveChangesAsync();
+        var repository = new ReservationRepository(context);
+        Assert.False(await repository.HasReceptionReviewNotificationAsync(1, 1));
+        Assert.Single(await repository.GetWaitingEscalationCandidatesAsync(Now, 15, 100));
+        var deletedReview = CreateReview(1);
+        deletedReview.IsDeleted = true;
+        context.Notifications.Add(deletedReview);
+        await context.SaveChangesAsync();
+        Assert.True(await repository.HasReceptionReviewNotificationAsync(1, 1));
+        Assert.Empty(await repository.GetWaitingEscalationCandidatesAsync(Now, 15, 100));
+    }
+
+    [Fact]
+    public async Task ReadingDeletedReviewNotificationsDoesNotIncludeDeletedReservationsOrRestaurants()
+    {
+        await using var context = CreateContext();
+        var deleted = CreateReservation(1, 20);
+        deleted.IsDeleted = true;
+        var valid = CreateReservation(2, 20);
+        context.Reservations.AddRange(deleted, valid);
+        await context.SaveChangesAsync();
+        var repository = new ReservationRepository(context);
+        Assert.Equal(2, Assert.Single(await repository.GetWaitingEscalationCandidatesAsync(Now, 15, 100)).ReservationId);
+        valid.Restaurant.IsDeleted = true;
+        await context.SaveChangesAsync();
+        Assert.Empty(await repository.GetWaitingEscalationCandidatesAsync(Now, 15, 100));
+    }
+
+    [Fact]
+    public async Task ClosingRequiresReviewEvenBeforeFifteenMinutesOfWaiting()
+    {
+        await using var context = CreateContext();
+        var reservation = CreateReservation(1, 2);
+        reservation.ReservedAt = Now.AddMinutes(-3);
+        reservation.MustVacateAt = Now;
+        context.Reservations.Add(reservation);
+        await context.SaveChangesAsync();
+        Assert.Single(await new ReservationRepository(context).GetWaitingEscalationCandidatesAsync(Now, 15, 100));
+    }
+
+    [Fact]
+    public async Task PostgreSqlQueriesTranslateBeforeAnyDatabaseConnection()
+    {
+        await using var context = new ECafeDbContext(new DbContextOptionsBuilder<ECafeDbContext>()
+            .UseNpgsql("Host=localhost;Database=translation_only")
+            .AddInterceptors(new TranslationProbe()).Options);
+        var repository = new ReservationRepository(context);
+        await Assert.ThrowsAsync<TranslationVerifiedException>(() =>
+            repository.GetWaitingEscalationCandidatesAsync(Now, 15, 100));
+        await Assert.ThrowsAsync<TranslationVerifiedException>(() =>
+            repository.HasReceptionReviewNotificationAsync(1, 1));
+    }
+
+    private sealed class TranslationVerifiedException : Exception;
+
+    private sealed class TranslationProbe : DbConnectionInterceptor
+    {
+        /// <summary>Npgsql sorğunu SQL-ə çevirdikdən sonra bağlantını açmadan testi dayandırır; canlı bazaya müraciət etmir.</summary>
+        public override ValueTask<InterceptionResult> ConnectionOpeningAsync(DbConnection connection,
+            ConnectionEventData eventData, InterceptionResult result, CancellationToken cancellationToken = default)
+            => throw new TranslationVerifiedException();
+    }
+
+    /// <summary>Silinmə və restoran aidiyyəti üzrə təkrar bildiriş yoxlamaları üçün nəticə yoxlaması qeydi yaradır.</summary>
+    private static Notification CreateReview(int reservationId)
+        => new()
+        {
+            UserId = 1, RestaurantId = 1, TypeId = (int)NotificationType.ReservationReceptionReviewRequired,
+            ChannelId = (int)NotificationChannel.InApp, RelatedEntityType = AuditEntityTypes.Reservation,
+            RelatedEntityId = reservationId, Title = "Review", Message = "Review"
+        };
+
     /// <summary>İki restoranın məlumatlarını ayırmaq və repository filtrlərini yoxlamaq üçün təcrid edilmiş test bazası yaradır.</summary>
     private static ECafeDbContext CreateContext()
     {
@@ -85,6 +191,12 @@ public sealed class ReservationWaitingRepositoryTests
         context.Users.Add(new User { Id = 1, Name = "Guest", Surname = "Test", Phone = "1", Email = "guest@example.com", Password = "test" });
         foreach (var status in new[] { ReservationStatus.Confirmed, ReservationStatus.Seated, ReservationStatus.Cancelled })
             context.Statuses.Add(new Status { Id = StatusIds.Reservation(status), Name = status.ToString() });
+        foreach (var day in Enum.GetValues<DayOfWeek>())
+            context.RestaurantWorkingHours.Add(new RestaurantWorkingHour
+            {
+                RestaurantId = 1, DayOfWeek = day, OpensAt = new TimeOnly(9, 0),
+                ClosesAt = TimeOnly.MinValue, CloseDayOffset = 1
+            });
         return context;
     }
 
