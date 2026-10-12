@@ -145,8 +145,10 @@ public sealed class MobilePushInstallationService(
             x.RevokedAt == null && x.ExpiresAt > now && x.User.IsActive,
             cancellationToken);
 
-    /// <summary>Telefon tokenini yalnız adminin push icazəsi verdiyi restorana aktiv aidiyyəti olan işçi üçün qəbul edir.</summary>
-    private Task<bool> IsEligibleAccountAsync(int userId, CancellationToken cancellationToken)
-        => MobilePushEligibilityPolicy.EligibleStaff(context)
-            .AnyAsync(assignment => assignment.UserId == userId, cancellationToken);
+    /// <summary>Telefon tokenini aktiv müştəri və ya adminin icazəli restoranına aid aktiv işçi üçün qəbul edir.</summary>
+    private async Task<bool> IsEligibleAccountAsync(int userId, CancellationToken cancellationToken)
+        => await MobilePushEligibilityPolicy.EligibleCustomers(context)
+               .AnyAsync(user => user.Id == userId, cancellationToken) ||
+           await MobilePushEligibilityPolicy.EligibleStaff(context)
+               .AnyAsync(assignment => assignment.UserId == userId, cancellationToken);
 }

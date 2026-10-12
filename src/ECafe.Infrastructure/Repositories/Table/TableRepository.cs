@@ -176,6 +176,10 @@ namespace ECafe.Infrastructure.Repositories.Table
                 .FirstOrDefaultAsync(cancellationToken);
         }
 
+        /// <summary>
+        /// Masaları seçilən iş intervalının rezervasiya və sessiya maneələrinə görə süzür.
+        /// Cari intervalda əvvəlki bağlanmamış sessiyalar da maneədir; gələcək intervalı isə əvvəlki xidmət bloklamır.
+        /// </summary>
         private IQueryable<Domain.Entities.Table> BuildAvailableReservationTablesQuery(
             int restaurantId,
             DateTime reservedAtUtc,
@@ -183,6 +187,8 @@ namespace ECafe.Infrastructure.Repositories.Table
             IQueryable<Domain.Entities.Reservation> blockingReservations)
         {
             var reservationPreBlockEndsAt = reservedAtUtc.AddMinutes(policy.ReservationPreBlockMinutes);
+            var nowUtc = DateTime.UtcNow;
+            var isCurrentInterval = policy.IntervalStartsAtUtc <= nowUtc && nowUtc < policy.IntervalEndsAtUtc;
 
             return Query()
                 .Where(t =>
@@ -191,7 +197,9 @@ namespace ECafe.Infrastructure.Repositories.Table
                     !t.TableSessions.Any(ts =>
                         ts.RestaurantId == restaurantId &&
                         ts.StatusId == OpenTableSessionStatusId &&
-                        ts.ClosedAt == null) &&
+                        ts.ClosedAt == null &&
+                        ts.OpenedAt < policy.IntervalEndsAtUtc &&
+                        (isCurrentInterval || ts.OpenedAt >= policy.IntervalStartsAtUtc)) &&
                     !blockingReservations.Any(r =>
                         r.TableId == t.Id &&
                         r.ReservedAt <= reservationPreBlockEndsAt));
