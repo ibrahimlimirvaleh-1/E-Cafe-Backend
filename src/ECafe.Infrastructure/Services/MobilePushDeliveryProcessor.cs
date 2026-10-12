@@ -74,10 +74,13 @@ public sealed class MobilePushDeliveryProcessor(
                 continue;
             }
 
-            if (await IsRecipientEligibleAsync(payload.UserId, payload.RestaurantId, cancellationToken))
+            if (await IsRecipientEligibleAsync(payload, cancellationToken))
             {
                 var installationIds = await context.MobilePushInstallations
-                    .Where(x => x.UserId == payload.UserId && x.IsActive)
+                    .Where(x => x.UserId == payload.UserId && x.IsActive &&
+                        context.UserRefreshTokens.Any(session => session.UserId == x.UserId &&
+                            session.SessionId == x.SessionId && session.RevokedAt == null &&
+                            session.ExpiresAt > now && session.User.IsActive))
                     .Select(x => x.Id)
                     .ToListAsync(cancellationToken);
                 foreach (var installationId in installationIds)
@@ -265,14 +268,17 @@ public sealed class MobilePushDeliveryProcessor(
         return true;
     }
 
-    /// <summary>Göndərişdən dərhal əvvəl restoran icazəsini, işçi aidiyyətini, cihazı və aktiv sessiyanı yenidən yoxlayır.</summary>
+    /// <summary>Göndərişdən əvvəl server hadisəsinin alıcısını, müştərinin obyekt aidiyyətini və ya işçi icazəsini, cihazı və sessiyanı yoxlayır.</summary>
     private async Task<MobilePushInstallation?> GetEligibleInstallationAsync(
         MobilePushDelivery delivery, CancellationToken cancellationToken)
     {
         if (!IsReady() ||
             delivery.CreatedAt.Add(ReceiptLifetime) <= DateTime.UtcNow ||
-            !Guid.TryParse(configuration["MobileApp:ExpoProjectId"], out var projectId) ||
-            !await IsRecipientEligibleAsync(delivery.UserId, delivery.RestaurantId, cancellationToken))
+            !Guid.TryParse(configuration["MobileApp:ExpoProjectId"], out var projectId))
+            return null;
+
+        var payload = await GetDeliveryPayloadAsync(delivery, cancellationToken);
+        if (payload is null || !await IsRecipientEligibleAsync(payload, cancellationToken))
             return null;
 
         var installation = await context.MobilePushInstallations
@@ -289,10 +295,30 @@ public sealed class MobilePushDeliveryProcessor(
         return sessionActive ? installation : null;
     }
 
-    /// <summary>Bildiriş alan şəxsin yalnız həmin icazəli restoranın aktiv işçisi olduğunu bazadan yoxlayır.</summary>
-    private Task<bool> IsRecipientEligibleAsync(int userId, int restaurantId, CancellationToken cancellationToken)
-        => MobilePushEligibilityPolicy.EligibleStaff(context, restaurantId)
-            .AnyAsync(assignment => assignment.UserId == userId, cancellationToken);
+    /// <summary>Bildirişin alıcısı üçün cari müştəri və ya işçi icazəsini bazadakı rola əsasən yoxlayır.</summary>
+    private Task<bool> IsRecipientEligibleAsync(MobilePushOutboxPayload payload, CancellationToken cancellationToken)
+        => MobilePushEligibilityPolicy.CanReceiveAsync(context, payload, cancellationToken);
+
+    /// <summary>Göndərişin alıcı və restoranını serverin ilkin push hadisəsi ilə tutuşdurur; fərqli hesaba yönləndirilmiş göndərişi rədd edir.</summary>
+    private async Task<MobilePushOutboxPayload?> GetDeliveryPayloadAsync(
+        MobilePushDelivery delivery, CancellationToken cancellationToken)
+    {
+        var json = await context.OutboxEvents.AsNoTracking()
+            .Where(item => item.Id == delivery.OutboxEventId && item.EventType == OutboxEventTypes.MobilePushRequested)
+            .Select(item => item.Payload).SingleOrDefaultAsync(cancellationToken);
+        if (json is null)
+            return null;
+        try
+        {
+            var payload = JsonSerializer.Deserialize<MobilePushOutboxPayload>(json);
+            return payload?.UserId == delivery.UserId && payload.RestaurantId == delivery.RestaurantId
+                ? payload : null;
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
 
     private async Task DeactivateIfStillSameTokenAsync(
         MobilePushInstallation installation,

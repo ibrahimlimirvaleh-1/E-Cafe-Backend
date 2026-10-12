@@ -26,7 +26,8 @@ public sealed class MobilePushOutboxWriter(ECafeDbContext context, IConfiguratio
             AggregateType = notification.RelatedEntityType ?? "Notification",
             AggregateId = notification.RelatedEntityId ?? 0,
             Payload = JsonSerializer.Serialize(new MobilePushOutboxPayload(
-                notification.UserId, notification.RestaurantId.Value)),
+                notification.UserId, notification.RestaurantId.Value,
+                notification.RelatedEntityType, notification.RelatedEntityId)),
             OccurredAt = DateTime.UtcNow
         });
     }

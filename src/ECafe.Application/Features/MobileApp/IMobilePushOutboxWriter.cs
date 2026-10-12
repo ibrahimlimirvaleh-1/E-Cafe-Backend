@@ -7,4 +7,5 @@ public interface IMobilePushOutboxWriter
     void Enqueue(Notification notification);
 }
 
-public sealed record MobilePushOutboxPayload(int UserId, int RestaurantId);
+public sealed record MobilePushOutboxPayload(
+    int UserId, int RestaurantId, string? RelatedEntityType = null, long? RelatedEntityId = null);

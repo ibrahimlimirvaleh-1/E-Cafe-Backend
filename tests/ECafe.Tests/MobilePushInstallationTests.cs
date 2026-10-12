@@ -69,20 +69,60 @@ public sealed class MobilePushInstallationTests
     }
 
     [Fact]
-    public async Task RegistrationRejectsCustomersAndUnassignedStaff()
+    public async Task RegistrationAllowsCustomerWithoutStaffGrantButRejectsUnassignedStaff()
     {
         await using var context = CreateContext();
         await AddSessionAsync(context, 1, "a");
         context.UserRestaurants.RemoveRange(context.UserRestaurants);
         context.Users.Single().RoleId = (int)RoleCode.Customer;
         await context.SaveChangesAsync();
-        await Assert.ThrowsAsync<ForbiddenException>(() => CreateService(context, 1, "a")
-            .RegisterAsync(Guid.NewGuid(), new(TokenA, ProjectId), CancellationToken.None));
+        context.Restaurants.Single().MobilePushEnabled = false;
+        context.Restaurants.Single().ShowMobileDownloadLink = false;
+        await context.SaveChangesAsync();
+        await CreateService(context, 1, "a")
+            .RegisterAsync(Guid.NewGuid(), new(TokenA, ProjectId), CancellationToken.None);
+        Assert.True(Assert.Single(context.MobilePushInstallations).IsActive);
         context.Users.Single().RoleId = (int)RoleCode.Manager;
         await context.SaveChangesAsync();
         await Assert.ThrowsAsync<ForbiddenException>(() => CreateService(context, 1, "a")
             .RegisterAsync(Guid.NewGuid(), new(TokenB, ProjectId), CancellationToken.None));
+        Assert.Single(context.MobilePushInstallations);
+    }
+
+    [Theory]
+    [InlineData("inactive-user")]
+    [InlineData("expired-session")]
+    [InlineData("revoked-session")]
+    public async Task CustomerRegistrationRequiresActiveAccountAndSession(string change)
+    {
+        await using var context = CreateContext();
+        await AddSessionAsync(context, 1, "a");
+        context.UserRestaurants.RemoveRange(context.UserRestaurants);
+        context.Users.Single().RoleId = (int)RoleCode.Customer;
+        switch (change)
+        {
+            case "inactive-user": context.Users.Single().IsActive = false; break;
+            case "expired-session": context.UserRefreshTokens.Single().ExpiresAt = DateTime.UtcNow.AddMinutes(-1); break;
+            case "revoked-session": context.UserRefreshTokens.Single().RevokedAt = DateTime.UtcNow; break;
+        }
+        await context.SaveChangesAsync();
+
+        await Assert.ThrowsAsync<UnauthorizedException>(() => CreateService(context, 1, "a")
+            .RegisterAsync(Guid.NewGuid(), new(TokenA, ProjectId), CancellationToken.None));
         Assert.Empty(context.MobilePushInstallations);
+    }
+
+    [Fact]
+    public async Task ExistingManagerAssignmentStillAllowsRegistrationForNonCustomerAccount()
+    {
+        await using var context = CreateContext();
+        await AddSessionAsync(context, 1, "a");
+        context.Users.Single().RoleId = (int)RoleCode.SuperAdmin;
+        await context.SaveChangesAsync();
+
+        await CreateService(context, 1, "a")
+            .RegisterAsync(Guid.NewGuid(), new(TokenA, ProjectId), CancellationToken.None);
+        Assert.True(Assert.Single(context.MobilePushInstallations).IsActive);
     }
 
     [Theory]

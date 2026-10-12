@@ -150,7 +150,7 @@ public sealed class ErrorMessageProvider : IErrorMessageProvider
         [ErrorCode.RestaurantServiceActionForbidden] = "Bu restoran üçün əməliyyat icazəniz yoxdur.",
         [ErrorCode.RestaurantClosedForArrival] = "Restoran bu saatda bağlıdır.",
         [ErrorCode.UserNotBelongsToRestaurant] = "Giriş edən restoran işçisi deyil.",
-        [ErrorCode.MobilePushStaffAccessRequired] = "Telefon bildirişləri yalnız mobil push icazəsi verilmiş restoranın aktiv işçiləri üçün əlçatandır.",
+        [ErrorCode.MobilePushStaffAccessRequired] = "Telefon bildirişləri aktiv müştərilər və mobil push icazəsi verilmiş restoranın aktiv işçiləri üçün əlçatandır.",
         [ErrorCode.ReservationNotBelongsToRestaurant] = "Rezervasiya restorana aid deyil.",
         [ErrorCode.ThisOperatioCannotBePerformedForThisReservation] = "Bu rezervasiya üçün bu əməliyyatı yerinə yetirmək olmaz.",
         [ErrorCode.OnlyRestaurantManagersCanSendPaymentInstruction] = "Ödəniş məlumatını yalnız restoran sahibi və ya meneceri göndərə bilər.",

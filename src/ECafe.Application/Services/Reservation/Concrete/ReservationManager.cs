@@ -1065,6 +1065,10 @@ public sealed partial class ReservationManager : BaseManager, IReservationServic
             throw new BusinessRuleException(ErrorCode.RestaurantClosedForReservation);
     }
 
+    /// <summary>
+    /// Kilidlənmiş masa üçün seçilən vaxtın iş intervalına uyğun əlçatanlığı bazada yenidən yoxlayır.
+    /// Əvvəlki günün sessiyası gələcək rezervasiyanı bloklamır; məhdud oturma müddəti üçün müştərinin razılığı tələb olunur.
+    /// </summary>
     private async Task<ReservationTableAvailability> EnsureTableIsAvailableAsync(
         int restaurantId,
             int tableId,
@@ -1073,9 +1077,6 @@ public sealed partial class ReservationManager : BaseManager, IReservationServic
             string? restaurantTimeZone = null,
             int? excludedReservationId = null)
     {
-        if (await _tableRepository.HasOpenTableSessionAsync(restaurantId, tableId))
-            throw new BusinessRuleException(ErrorCode.TableAlreadyReserved);
-
         var availability = await _tableRepository.GetReservationTableAvailabilityAsync(
                 restaurantId,
                 tableId,
