@@ -468,7 +468,8 @@ public class ReservationRepository : BaseRepository<Domain.Entities.Reservation>
         if (request.TableId.HasValue)
             query = query.Where(r => r.TableId == request.TableId.Value);
         query = await ApplyRestaurantDateFilterAsync(query, restaurantId, request.ReservedDate, cancellationToken);
-        return await CreatePageAsync(query, request, cancellationToken, filterReservedDate: false);
+        return await CreatePageAsync(query, request, cancellationToken,
+            filterReservedDate: false, newestCreatedFirst: true);
     }
 
     public async Task<PaginatedList<Domain.Entities.Reservation>> GetForServiceAsync(
@@ -549,11 +550,16 @@ public class ReservationRepository : BaseRepository<Domain.Entities.Reservation>
                 .ThenInclude(history => history.ToStatus);
     }
 
+    /// <summary>
+    /// Filtrləri və sıralamanı səhifələmədən əvvəl bazada tətbiq edir.
+    /// Restoranın ümumi siyahısında ən yeni yaradılan qeyd, gözləmə siyahısında isə ən əvvəl gələn müştəri prioritetdir.
+    /// </summary>
     private static async Task<PaginatedList<Domain.Entities.Reservation>> CreatePageAsync(
         IQueryable<Domain.Entities.Reservation> query,
         ReservationQueryRequest request,
         CancellationToken cancellationToken,
-        bool filterReservedDate = true)
+        bool filterReservedDate = true,
+        bool newestCreatedFirst = false)
     {
         var pageNumber = Math.Max(request.PageNumber, 1);
         var pageSize = Math.Clamp(request.PageSize, 1, 100);
@@ -568,9 +574,13 @@ public class ReservationRepository : BaseRepository<Domain.Entities.Reservation>
             query = query.Where(r => r.ReservedAt >= dayStartUtc && r.ReservedAt < nextDayStartUtc);
         }
 
-        query = request is RestaurantReservationsQueryRequest { WaitingOnly: true }
-            ? query.OrderBy(r => r.ArrivedAt).ThenBy(r => r.Id)
-            : query.OrderByDescending(r => r.ReservedAt).ThenByDescending(r => r.Id);
+        query = (request, newestCreatedFirst) switch
+        {
+            (RestaurantReservationsQueryRequest { WaitingOnly: true }, _) =>
+                query.OrderBy(r => r.ArrivedAt).ThenBy(r => r.Id),
+            (_, true) => query.OrderByDescending(r => r.CreatedAt).ThenByDescending(r => r.Id),
+            _ => query.OrderByDescending(r => r.ReservedAt).ThenByDescending(r => r.Id)
+        };
         var count = await query.CountAsync(cancellationToken);
         var items = await query
             .Skip((pageNumber - 1) * pageSize)
