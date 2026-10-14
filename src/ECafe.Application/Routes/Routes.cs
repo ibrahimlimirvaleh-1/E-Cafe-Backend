@@ -20,6 +20,13 @@ public static class Routes
     private const string Version = "v1";
     private const string Base = Root + "/" + Version;
 
+    public static class TableSession
+    {
+        private const string Collection = Base + "/restaurants/{restaurantId:int}/table-sessions/mine";
+        public const string GetMyOpenSessions = Collection;
+        public const string GetMyOpenSession = Collection + "/{tableSessionId:int}";
+    }
+
     public static class AuditLog
     {
         public const string GetRestaurantTimeline = Base + "/restaurants/{restaurantId}/audit-logs";

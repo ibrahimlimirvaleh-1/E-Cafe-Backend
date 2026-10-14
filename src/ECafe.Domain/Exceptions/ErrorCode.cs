@@ -172,5 +172,7 @@ public enum ErrorCode
     ReservationTableChangeConsentRequired = 5068,
     ReservationTableChangeTermsConflict = 5069,
     ReservationTableChangedRetry = 5070,
-    MobilePushStaffAccessRequired = 5071
+    MobilePushStaffAccessRequired = 5071,
+    InvalidTableSessionId = 5072,
+    TableSessionNotFound = 5073
 }

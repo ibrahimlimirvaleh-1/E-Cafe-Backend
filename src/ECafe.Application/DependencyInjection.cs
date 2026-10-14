@@ -22,6 +22,8 @@ using ECafe.Application.Services.RestaurantContract.Concrete;
 using ECafe.Application.Services.Restaurant.Concrete;
 using ECafe.Application.Services.Table.Abstract;
 using ECafe.Application.Services.Table.Concrete;
+using ECafe.Application.Services.TableSessions.Abstract;
+using ECafe.Application.Services.TableSessions.Concrete;
 using ECafe.Application.Services.User.Abstract;
 using ECafe.Application.Services.User.Concrete;
 using ECafe.Application.Services.Workflow.Abstract;
@@ -92,6 +94,7 @@ namespace ECafe.Application
             services.AddScoped<IRestaurantContractService, RestaurantContractManager>();
             services.AddScoped<IUserService, UserManager>();
             services.AddScoped<ITableService, TableManager>();
+            services.AddScoped<ITableSessionService, TableSessionManager>();
             services.AddScoped<ICategoryService, CategoryManager>();
             services.AddScoped<IItemService, ItemManager>();
             services.AddScoped<IFileAccessUrlService, FileAccessUrlService>();
