@@ -148,6 +148,8 @@ public sealed class ErrorMessageProvider : IErrorMessageProvider
         [ErrorCode.ReservationVacateTimeExpired] = "Bu rezervasiya üçün masanı təhvil vermə vaxtı bitib.",
         [ErrorCode.ReservationArrivalCannotBeRecorded] = "Bu rezervasiya üzrə müştərinin gəlişini indi qeyd etmək olmaz.",
         [ErrorCode.RestaurantServiceActionForbidden] = "Bu restoran üçün əməliyyat icazəniz yoxdur.",
+        [ErrorCode.InvalidTableSessionId] = "Masa sessiyası seçimi düzgün deyil.",
+        [ErrorCode.TableSessionNotFound] = "Sizə aid açıq masa sessiyası tapılmadı.",
         [ErrorCode.RestaurantClosedForArrival] = "Restoran bu saatda bağlıdır.",
         [ErrorCode.UserNotBelongsToRestaurant] = "Giriş edən restoran işçisi deyil.",
         [ErrorCode.MobilePushStaffAccessRequired] = "Telefon bildirişləri aktiv müştərilər və mobil push icazəsi verilmiş restoranın aktiv işçiləri üçün əlçatandır.",
