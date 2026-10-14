@@ -73,12 +73,13 @@ namespace ECafe.Api.Controllers
         [RequireActiveRestaurantContract]
         [HasPermission(Domain.Enums.PermissionCode.ManageStaff)]
         [HttpPatch(ApiRoutes.User.UpdateRole)]
-        public async Task<IActionResult> UpdateRole(int userId, [FromQuery] int roleId)
+        public async Task<IActionResult> UpdateRole(int userId, [FromQuery] int roleId, [FromQuery] int? restaurantId = null)
         {
             var command = new UpdateRoleCommand
             {
                 UserId = userId,
-                RoleId = roleId
+                RoleId = roleId,
+                RestaurantId = restaurantId
             };
             return Ok(await Mediator.Send(command));
         }

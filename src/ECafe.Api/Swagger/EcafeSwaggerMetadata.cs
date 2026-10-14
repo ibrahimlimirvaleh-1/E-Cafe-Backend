@@ -45,7 +45,7 @@ public static class EcafeSwaggerMetadata
             ["Table.CreateTable"] = new("Stol yarat", "Restoran üçün stol nömrəsi, ad, tutum və aktivlik məlumatı yaradır."),
             ["User.Create"] = new("Staff istifadəçisi yarat", "Owner/manager/ofisiant kimi restoran staff hesabı yaradır və restorana bağlayır."),
             ["User.Delete"] = new("İstifadəçini sil", "Staff istifadəçisini soft-delete edir."),
-            ["User.UpdateRole"] = new("İstifadəçi rolunu dəyiş", "Staff istifadəçisinin rolunu yeniləyir."),
+            ["User.UpdateRole"] = new("İşçinin rolunu dəyiş", "Seçilmiş restaurantId üzrə işçi aidiyyətinin rolunu yeniləyir; digər restoranlardakı rollar dəyişmir. restaurantId göstərilməzsə cari restoran konteksti və ya tək aktiv aidiyyət istifadə olunur; bir neçə aidiyyət qeyri-müəyyəndirsə restoran seçmək tələb edilir. Rol dəyişəndə sessiya versiyası və icazə keşləri yenilənir. Başqa işçinin tokenləri qaytarılmır; boş accessToken/refreshToken cavabı əməliyyat xətası deyil. Platforma admini rolunu yalnız platforma admini verə bilər; mövcud sahibkar rolunun qorunması qüvvədədir."),
             ["User.GetAll"] = new("İstifadəçiləri gətir", "İstifadəçiləri səhifələmə və optional restoran filteri ilə qaytarır."),
             ["User.GetStaff"] = new("Restoran staff siyahısı", "Restorana aid owner/manager/ofisiant siyahısını qaytarır. Müştəri üçün public staff məlumatları göstərilir."),
             ["User.GetProfile"] = new("Profilimi gətir", "Token sahibi istifadəçinin profil məlumatlarını qaytarır."),
