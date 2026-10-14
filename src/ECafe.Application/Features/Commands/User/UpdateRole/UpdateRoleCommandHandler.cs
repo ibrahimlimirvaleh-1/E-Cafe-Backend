@@ -14,6 +14,6 @@ namespace ECafe.Application.Features.Commands.User.UpdateRole
         }
 
         public Task<AuthResponseDto> Handle(UpdateRoleCommand request, CancellationToken cancellationToken)
-            => _userService.UpdateRoleAsync(request.UserId, request.RoleId);
+            => _userService.UpdateRoleAsync(request.UserId, request.RoleId, request.RestaurantId);
     }
 }

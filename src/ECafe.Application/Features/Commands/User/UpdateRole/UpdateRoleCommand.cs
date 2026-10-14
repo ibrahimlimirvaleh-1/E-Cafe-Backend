@@ -7,5 +7,6 @@ namespace ECafe.Application.Features.Commands.User.UpdateRole
     {
         public int UserId { get; set; }
         public int RoleId { get; set; }
+        public int? RestaurantId { get; set; }
     }
 }

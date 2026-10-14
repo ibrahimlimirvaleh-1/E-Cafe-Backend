@@ -310,13 +310,16 @@ namespace ECafe.Application.Services.User.Concrete
             return await MapToStaffDetailResponseAsync(staffAssignment);
         }
 
-        public async Task<AuthResponseDto> UpdateRoleAsync(int userId, int roleId)
+        public async Task<AuthResponseDto> UpdateRoleAsync(int userId, int roleId, int? restaurantId = null)
         {
             if (userId <= 0)
                 throw new BusinessRuleException(ErrorCode.InvalidUserId);
 
-            if (roleId <= 0)
+            if (roleId <= 0 || !Enum.IsDefined(typeof(RoleCode), roleId))
                 throw new BusinessRuleException(ErrorCode.InvalidRoleId);
+
+            if (restaurantId is <= 0)
+                throw new BusinessRuleException(ErrorCode.InvalidRestaurantId);
 
             if (roleId == (int)RoleCode.Customer)
                 throw new BusinessRuleException(ErrorCode.CustomerCannotBeStaff);
@@ -325,29 +328,37 @@ namespace ECafe.Application.Services.User.Concrete
             if (userDetails is null)
                 throw new BusinessRuleException(ErrorCode.UserNotFound);
 
-            var isOwnerAccount = userDetails.RoleId == (int)RoleCode.Owner ||
-                userDetails.UserRestaurants.Any(userRestaurant =>
-                    userRestaurant.IsActive && userRestaurant.RoleId == (int)RoleCode.Owner);
+            if ((roleId == (int)RoleCode.SuperAdmin || userDetails.RoleId == (int)RoleCode.SuperAdmin) &&
+                !IsCurrentUserSuperAdmin())
+                throw new ForbiddenException(ErrorCode.AccessDenied);
 
-            if (isOwnerAccount && roleId != (int)RoleCode.Owner)
+            await EnsureRoleExistsAsync(roleId);
+            EnsureOnlySuperAdminCanManageOwnerRole(roleId);
+            var assignment = IsRestaurantScopedRole(roleId)
+                ? await GetRoleChangeAssignmentAsync(userDetails, restaurantId)
+                : null;
+            var isOwnerRole = assignment?.RoleId == (int)RoleCode.Owner ||
+                (assignment is null && (userDetails.RoleId == (int)RoleCode.Owner ||
+                    userDetails.UserRestaurants.Any(item => item.IsActive && item.RoleId == (int)RoleCode.Owner)));
+            if (isOwnerRole && roleId != (int)RoleCode.Owner)
                 throw new BusinessRuleException(ErrorCode.OwnerRoleCannotBeChanged);
 
-            EnsureCanManageTargetUser(userDetails);
+            if (assignment is not null)
+                await EnsureRestaurantOwnerSlotAvailableAsync(assignment.RestaurantId, roleId, userId);
 
-            var role = await _roleRepository.GetByIdAsync(roleId);
-            if (role is null)
-                throw new BusinessRuleException(ErrorCode.RoleNotFound);
-
-            EnsureOnlySuperAdminCanManageOwnerRole(roleId);
-            await EnsureRestaurantScopedRoleHasRestaurantAsync(userId, roleId);
-            await EnsureRestaurantOwnerSlotAvailableForRoleChangeAsync(userId, roleId);
-
-            var user = await _userRepository.GetByIdAsync(userId);
+            var user = assignment?.User ?? await _userRepository.GetByIdAsync(userId);
             if (user is null)
                 throw new BusinessRuleException(ErrorCode.UserNotFound);
 
-            var roleChanged = user.RoleId != roleId;
-            user.RoleId = roleId;
+            var updateAccountRole = assignment is null ||
+                (user.RoleId != (int)RoleCode.SuperAdmin && user.RoleId != (int)RoleCode.Owner &&
+                 userDetails.UserRestaurants.Count(item => item.IsActive && !item.IsDeleted) == 1);
+            var roleChanged = (assignment is not null && assignment.RoleId != roleId) ||
+                              (updateAccountRole && user.RoleId != roleId);
+            if (assignment is not null)
+                assignment.RoleId = roleId;
+            if (updateAccountRole)
+                user.RoleId = roleId;
             if (roleChanged)
                 user.SessionVersion++;
 
@@ -358,7 +369,10 @@ namespace ECafe.Application.Services.User.Concrete
             if (roleChanged)
             {
                 await _userSessionStateCache.InvalidateAsync(userId);
-                await InvalidateRestaurantAccessAsync(userDetails.UserRestaurants);
+                if (assignment is not null)
+                    await _userRestaurantAccessCache.InvalidateAsync(userId, assignment.RestaurantId);
+                else
+                    await InvalidateRestaurantAccessAsync(userDetails.UserRestaurants);
 
                 await _emailOutboxService.EnqueueEmailAsync(
                     user.Email,
@@ -564,16 +578,30 @@ namespace ECafe.Application.Services.User.Concrete
             return ((RoleCode)roleId).GetDescription();
         }
 
-        private async Task EnsureRestaurantScopedRoleHasRestaurantAsync(int userId, int roleId)
+        /// <summary>
+        /// Rol dəyişikliyi üçün yalnız seçilmiş restoranın izlənən aktiv işçi aidiyyətini qaytarır.
+        /// Restoran göstərilməyən köhnə çağırışı tək aidiyyət üçün qəbul edir; bir neçə restoran varsa təsadüfi ilk qeydi seçmir.
+        /// </summary>
+        private async Task<Domain.Entities.UserRestaurant> GetRoleChangeAssignmentAsync(
+            Domain.Entities.User user, int? restaurantId)
         {
-            if (!IsRestaurantScopedRole(roleId))
-                return;
-
-            var userRestaurant = await _userRestaurantRepository.GetActiveByUserIdAsync(userId);
-            if (userRestaurant is null)
+            var activeRestaurantIds = user.UserRestaurants
+                .Where(item => item.IsActive && !item.IsDeleted)
+                .Select(item => item.RestaurantId).Distinct().ToList();
+            var selectedRestaurantId = restaurantId ?? (IsCurrentUserSuperAdmin() ? null : GetCurrentRestaurantId());
+            if (!selectedRestaurantId.HasValue && activeRestaurantIds.Count == 1)
+                selectedRestaurantId = activeRestaurantIds[0];
+            if (!selectedRestaurantId.HasValue && activeRestaurantIds.Count == 0)
                 throw new BusinessRuleException(ErrorCode.RestaurantScopedRoleRequiresAssignment);
+            if (!selectedRestaurantId.HasValue)
+                throw new BusinessRuleException(ErrorCode.RestaurantContextRequired);
+
+            EnsureCurrentUserCanAccessRestaurant(selectedRestaurantId.Value);
+            return await _userRestaurantRepository.GetActiveStaffAssignmentAsync(selectedRestaurantId.Value, user.Id)
+                ?? throw new BusinessRuleException(ErrorCode.ActiveStaffAssignmentNotFound);
         }
 
+        /// <summary>Restoran aidiyyətində saxlanılan işçi rollarını platforma rolundan ayırır.</summary>
         private static bool IsRestaurantScopedRole(int roleId)
             => roleId is (int)RoleCode.Owner or
                 (int)RoleCode.Manager or
@@ -586,18 +614,6 @@ namespace ECafe.Application.Services.User.Concrete
                 return;
 
             throw new ForbiddenException("Only platform admin can manage restaurant owner accounts.");
-        }
-
-        private async Task EnsureRestaurantOwnerSlotAvailableForRoleChangeAsync(int userId, int roleId)
-        {
-            if (roleId != (int)RoleCode.Owner)
-                return;
-
-            var assignment = await _userRestaurantRepository.GetActiveByUserIdAsync(userId);
-            if (assignment is null)
-                return;
-
-            await EnsureRestaurantOwnerSlotAvailableAsync(assignment.RestaurantId, roleId, userId);
         }
 
         private async Task EnsureRestaurantOwnerSlotAvailableAsync(int restaurantId, int roleId, int? excludedUserId = null)
