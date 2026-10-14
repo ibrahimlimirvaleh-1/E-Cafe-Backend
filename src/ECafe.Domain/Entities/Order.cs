@@ -38,6 +38,10 @@ public partial class Order : AuditableSoftDeletableEntity<int>
 
     public string? Note { get; set; }
 
+    public Guid? CreationRequestId { get; set; }
+
+    public string? CreationRequestHash { get; set; }
+
     public virtual ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
 
     public virtual ICollection<Payment> Payments { get; set; } = new List<Payment>();

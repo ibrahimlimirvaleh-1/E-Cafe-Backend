@@ -17,6 +17,8 @@ namespace ECafe.Infrastructure.Configurations.Concrete
             builder.Property(e => e.ClosedAt).HasColumnName("closed_at");
             builder.Property(e => e.CustomerUserId).HasColumnName("customer_user_id");
             builder.Property(e => e.Note).HasColumnName("note");
+            builder.Property(e => e.CreationRequestId).HasColumnName("creation_request_id");
+            builder.Property(e => e.CreationRequestHash).HasMaxLength(64).HasColumnName("creation_request_hash");
             builder.Property(e => e.OpenedAt)
                 .HasDefaultValueSql("now()")
                 .HasColumnName("opened_at");
@@ -37,6 +39,8 @@ namespace ECafe.Infrastructure.Configurations.Concrete
 
             builder.HasIndex(e => new { e.RestaurantId, e.StatusId, e.ScheduledKitchenTime }, "orders_restaurant_status_scheduled_kitchen_time_idx");
             builder.HasIndex(e => e.TableSessionId, "orders_table_session_id_idx");
+            builder.HasIndex(e => new { e.TableSessionId, e.CreationRequestId }, "orders_session_creation_request_uidx")
+                .IsUnique();
 
             builder.HasOne(d => d.CustomerUser).WithMany()
                 .HasForeignKey(d => d.CustomerUserId)

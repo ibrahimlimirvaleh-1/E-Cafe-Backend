@@ -174,5 +174,13 @@ public enum ErrorCode
     ReservationTableChangedRetry = 5070,
     MobilePushStaffAccessRequired = 5071,
     InvalidTableSessionId = 5072,
-    TableSessionNotFound = 5073
+    TableSessionNotFound = 5073,
+    InvalidOrderRequest = 5074,
+    OrderRequestKeyRequired = 5075,
+    OrderRequestKeyConflict = 5076,
+    OrderItemUnavailable = 5077,
+    OrderItemPriceChanged = 5078,
+    OrderSessionChanged = 5079,
+    InvalidOrderId = 5080,
+    OrderNotFound = 5081
 }
