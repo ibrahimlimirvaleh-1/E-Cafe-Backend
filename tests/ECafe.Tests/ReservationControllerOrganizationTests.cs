@@ -21,7 +21,7 @@ public sealed class ReservationControllerOrganizationTests
     [Theory]
     [InlineData(typeof(ReservationController), "GetMy,GetById,GetHistory,Create")]
     [InlineData(typeof(RestaurantReservationController), "GetList,GetService,GetById,GetHistory")]
-    [InlineData(typeof(ReservationFlowController), "SubmitPaymentProof,Cancel,WaiveDeposit,SendPaymentInstruction,ApprovePaymentProof,RejectPaymentProof,MarkArrived,CheckIn,Complete,CancelForRestaurant,RecordDeparture,ChangeTable")]
+    [InlineData(typeof(ReservationFlowController), "SubmitPaymentProof,Cancel,WaiveDeposit,SendPaymentInstruction,ApprovePaymentProof,RejectPaymentProof,MarkArrived,CheckIn,Complete,CompleteOwnService,CancelForRestaurant,RecordDeparture,ChangeTable")]
     [InlineData(typeof(ReservationRefundController), "GetRefund,GetRestaurantRefund,GetRefundPayoutDetails")]
     [InlineData(typeof(ReservationRefundFlowController), "RequestRefund,SubmitRefundPayoutDetails,ConfirmRefundTransfer,DisputeRefundTransfer,SubmitRefundTransfer")]
     [InlineData(typeof(ReservationArrivalController), "Get")]

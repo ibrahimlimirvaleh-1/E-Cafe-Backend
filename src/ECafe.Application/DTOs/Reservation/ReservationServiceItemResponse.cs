@@ -20,4 +20,9 @@ public sealed class ReservationServiceItemResponse
     public int ServiceDelayMinutes { get; init; }
     public bool IsWaitingOverdue { get; init; }
     public bool RequiresReceptionReview { get; init; }
+    public int? TableSessionId { get; init; }
+    public bool RequiresSessionCloseReview { get; init; }
+    public DateTimeOffset? SessionCloseReviewDueAt { get; init; }
+    public DateTimeOffset? SessionCloseReviewConfirmedAt { get; init; }
+    public bool CanCompleteSession { get; init; }
 }

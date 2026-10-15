@@ -38,6 +38,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using StatusTypeEnum = ECafe.Domain.Enums.StatusType;
+using ECafe.Application.Services.TableSessions.Concrete;
 
 namespace ECafe.Application.Services.Reservation.Concrete;
 
@@ -292,6 +293,7 @@ public sealed partial class ReservationManager : BaseManager, IReservationServic
             reservations.Items.Select(reservation =>
             {
                 var waiting = ReservationWaitingPolicy.GetInfo(reservation, nowUtc, _timingOptions.WaitingEscalationMinutes);
+                var session = FindOpenSession(reservation);
                 return new ReservationServiceItemResponse
                 {
                     Id = reservation.Id,
@@ -311,7 +313,12 @@ public sealed partial class ReservationManager : BaseManager, IReservationServic
                     WaitingMinutes = waiting?.WaitingMinutes ?? 0,
                     ServiceDelayMinutes = waiting?.ServiceDelayMinutes ?? 0,
                     IsWaitingOverdue = waiting?.IsOverdue ?? false,
-                    RequiresReceptionReview = ReservationWaitingPolicy.RequiresReceptionReview(reservation, nowUtc)
+                    RequiresReceptionReview = ReservationWaitingPolicy.RequiresReceptionReview(reservation, nowUtc),
+                    TableSessionId = session?.Id,
+                    RequiresSessionCloseReview = session != null && TableSessionCloseReviewPolicy.RequiresReview(session, nowUtc),
+                    SessionCloseReviewDueAt = session == null ? null : ToUtcOffset(TableSessionCloseReviewPolicy.GetDueAt(session)),
+                    SessionCloseReviewConfirmedAt = ToUtcOffset(session?.CloseReviewConfirmedAt),
+                    CanCompleteSession = CanCompleteSession(session)
                 };
             }).ToList(),
             reservations.TotalCount,
@@ -465,7 +472,7 @@ public sealed partial class ReservationManager : BaseManager, IReservationServic
         await EnsureReceptionIntervalAsync(restaurantId, reservation.Id, nowUtc, cancellationToken);
         await EnsureSeatingTableAvailableAsync(reservation, reservation.TableId, nowUtc);
 
-        await _tableSessionRepository.Add(new TableSession
+        var newSession = new TableSession
         {
             RestaurantId = restaurantId,
             TableId = reservation.TableId,
@@ -473,8 +480,11 @@ public sealed partial class ReservationManager : BaseManager, IReservationServic
             WaiterUserId = userId,
             ReservationId = reservation.Id,
             StatusId = StatusIds.TableSession(TableSessionStatus.Open),
-            OpenedAt = nowUtc
-        });
+            OpenedAt = nowUtc,
+            Restaurant = reservation.Restaurant
+        };
+        newSession.CloseReviewDueAt = TableSessionCloseReviewPolicy.GetDueAt(newSession);
+        await _tableSessionRepository.Add(newSession);
 
         reservation.StatusId = seatedStatusId;
         reservation.ArrivedAt ??= nowUtc;
@@ -575,14 +585,22 @@ public sealed partial class ReservationManager : BaseManager, IReservationServic
             "Müştərinin gəlişi qeydə alındı; masa hələ açılmayıb.");
     }
 
-    public async Task<ReservationActionResponse> CompleteReservationAsync(
+    public Task<ReservationActionResponse> CompleteReservationAsync(int restaurantId, int reservationId, CancellationToken cancellationToken = default)
+        => CompleteReservationCoreAsync(restaurantId, reservationId, false, cancellationToken);
+
+    public Task<ReservationActionResponse> CompleteOwnReservationAsync(int restaurantId, int reservationId, CancellationToken cancellationToken = default)
+        => CompleteReservationCoreAsync(restaurantId, reservationId, true, cancellationToken);
+
+    /// <summary>Menecerin və ya məsul ofisiantın təsdiqi ilə sessiyanı eyni masa kilidində bağlayır; sifarişləri, ödənişi və razılaşdırılmış saatı dəyişmir.</summary>
+    private async Task<ReservationActionResponse> CompleteReservationCoreAsync(
         int restaurantId,
         int reservationId,
-        CancellationToken cancellationToken = default)
+        bool waiterAction,
+        CancellationToken cancellationToken)
     {
         ValidateRestaurantId(restaurantId);
         ValidateReservationId(reservationId);
-        await EnsureRestaurantReservationAccessAsync(restaurantId);
+        await EnsureCompletionRoleAsync(restaurantId, waiterAction);
 
         var userId = GetCurrentUserId();
         var nowUtc = DateTime.UtcNow;
@@ -610,7 +628,16 @@ public sealed partial class ReservationManager : BaseManager, IReservationServic
             cancellationToken)
             ?? throw new NotFoundException(ErrorCode.ReservationNotFound);
 
-        await _workflowActionService.EnsureCanExecuteAsync(
+        EnsureSnapshotTableUnchanged(snapshot, reservation);
+        await EnsureCompletionRoleAsync(restaurantId, waiterAction);
+        if (waiterAction && !reservation.TableSessions.Any(session => !session.IsDeleted && session.WaiterUserId == userId))
+            throw new NotFoundException(ErrorCode.TableSessionNotFound);
+        if (reservation.StatusId == completedStatusId)
+        {
+            await transaction.CommitAsync(cancellationToken);
+            return BuildActionResponse(reservation.Id, completedStatusId, ReservationStatus.Completed, "Masa sessiyası bağlandı, rezervasiya tamamlandı.");
+        }
+        if (!waiterAction) await _workflowActionService.EnsureCanExecuteAsync(
             ReservationFlowCode,
             reservation.StatusId,
             "complete",
@@ -629,7 +656,12 @@ public sealed partial class ReservationManager : BaseManager, IReservationServic
 
         if (session is null)
             throw new BusinessRuleException("Bu rezervasiya üçün açıq masa sessiyası tapılmadı.");
+        if (waiterAction && session.WaiterUserId != userId)
+            throw new NotFoundException(ErrorCode.TableSessionNotFound);
+        if (session.TableId != reservation.TableId)
+            throw new BusinessRuleException(ErrorCode.ReservationTableChangedRetry);
 
+        nowUtc = DateTime.UtcNow;
         session.StatusId = StatusIds.TableSession(TableSessionStatus.Closed);
         session.ClosedAt = nowUtc;
         reservation.StatusId = completedStatusId;
@@ -1357,7 +1389,7 @@ public sealed partial class ReservationManager : BaseManager, IReservationServic
         };
     }
 
-    /// <summary>Rezervasiyanı rolun görə biləcəyi ödəniş, canlı gözləmə və ayrıca nəticə yoxlaması göstəricisi ilə API cavabına çevirir.</summary>
+    /// <summary>Rezervasiyanı rolun görə biləcəyi ödəniş, canlı gözləmə, nəticə yoxlaması və açıq sessiyanın bağlanma yoxlaması ilə API cavabına çevirir.</summary>
     private ReservationResponse MapResponse(Domain.Entities.Reservation reservation)
     {
         var latestPaymentInstruction = reservation.PaymentInstructions
@@ -1369,6 +1401,7 @@ public sealed partial class ReservationManager : BaseManager, IReservationServic
             .FirstOrDefault();
         var refund = reservation.Refunds.SingleOrDefault();
         var nowUtc = DateTime.UtcNow;
+        var session = FindOpenSession(reservation);
 
         return new ReservationResponse
         {
@@ -1381,6 +1414,11 @@ public sealed partial class ReservationManager : BaseManager, IReservationServic
             SeatedAt = ToUtcOffset(reservation.SeatedAt),
             Waiting = ReservationWaitingPolicy.GetInfo(reservation, nowUtc, _timingOptions.WaitingEscalationMinutes),
             RequiresReceptionReview = ReservationWaitingPolicy.RequiresReceptionReview(reservation, nowUtc),
+            TableSessionId = session?.Id,
+            RequiresSessionCloseReview = session != null && TableSessionCloseReviewPolicy.RequiresReview(session, nowUtc),
+            SessionCloseReviewDueAt = session == null ? null : ToUtcOffset(TableSessionCloseReviewPolicy.GetDueAt(session)),
+            SessionCloseReviewConfirmedAt = ToUtcOffset(session?.CloseReviewConfirmedAt),
+            CanCompleteSession = CanCompleteSession(session),
             DepartureReason = reservation.DepartureReason,
             MustVacateAt = ToUtcOffset(reservation.MustVacateAt),
             PeopleCount = reservation.PeopleCount,

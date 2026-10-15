@@ -483,6 +483,7 @@ public class ReservationRepository : BaseRepository<Domain.Entities.Reservation>
                 reservation.RestaurantId == restaurantId &&
                 (reservation.StatusId == confirmedStatusId || reservation.StatusId == seatedStatusId))
             .Include(reservation => reservation.Table)
+            .Include(reservation => reservation.TableSessions)
             .Include(reservation => reservation.Restaurant).ThenInclude(restaurant => restaurant.WorkingHours)
             .Include(reservation => reservation.CustomerUser);
 
@@ -522,6 +523,7 @@ public class ReservationRepository : BaseRepository<Domain.Entities.Reservation>
     {
         return query
             .Include(r => r.Status)
+            .Include(r => r.TableSessions)
             .Include(r => r.ArrivalAdjustment)
             .Include(r => r.Restaurant).ThenInclude(restaurant => restaurant.WorkingHours)
             .Include(r => r.Table)

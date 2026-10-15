@@ -269,16 +269,17 @@ public sealed class WaiterTableSessionTests
     {
         var controller = typeof(TableSessionController);
         Assert.Contains(controller.GetCustomAttributes<AuthorizeAttribute>(), attribute => attribute.GetType() == typeof(AuthorizeAttribute));
-        Assert.Equal($"Permission:{(int)PermissionCode.ManageOrders}",
-            controller.GetCustomAttribute<HasPermissionAttribute>()!.Policy);
         var list = controller.GetMethod(nameof(TableSessionController.GetMyOpenSessions))!;
+        Assert.Equal($"Permission:{(int)PermissionCode.ManageOrders}", list.GetCustomAttribute<HasPermissionAttribute>()!.Policy);
+        Assert.Equal($"Permission:{(int)PermissionCode.ManageOrders}", controller.GetMethod(nameof(TableSessionController.GetMyOpenSession))!.GetCustomAttribute<HasPermissionAttribute>()!.Policy);
+        Assert.Equal($"Permission:{(int)PermissionCode.ManageReservations}", controller.GetMethod(nameof(TableSessionController.GetCloseReviews))!.GetCustomAttribute<HasPermissionAttribute>()!.Policy);
         var query = Assert.Single(list.GetParameters(), p => p.GetCustomAttribute<FromQueryAttribute>() != null);
         Assert.Equal(typeof(PaginationFilter), query.ParameterType);
         Assert.Null(query.ParameterType.GetProperty("WaiterUserId"));
         Assert.Null(query.ParameterType.GetProperty("RestaurantId"));
         Assert.Contains("TableSession.GetMyOpenSessions", EcafeSwaggerMetadata.Endpoints.Keys);
         Assert.Contains("TableSession.GetMyOpenSession", EcafeSwaggerMetadata.Endpoints.Keys);
-        Assert.Equal(2, controller.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly).Length);
+        Assert.Equal(3, controller.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly).Length);
     }
 
     private sealed class TranslationVerifiedException : Exception;

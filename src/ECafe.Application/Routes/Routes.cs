@@ -25,6 +25,13 @@ public static class Routes
         private const string Collection = Base + "/restaurants/{restaurantId:int}/table-sessions/mine";
         public const string GetMyOpenSessions = Collection;
         public const string GetMyOpenSession = Collection + "/{tableSessionId:int}";
+        public const string CloseReviews = Base + "/restaurants/{restaurantId:int}/table-sessions/close-reviews";
+    }
+
+    public static class TableSessionFlow
+    {
+        public const string ContinueService = Base + "/restaurants/{restaurantId:int}/table-sessions/{tableSessionId:int}/continue-service";
+        public const string CompleteOwnReservation = Base + "/restaurants/{restaurantId:int}/reservations/{reservationId:int}/complete-service";
     }
 
     public static class Order

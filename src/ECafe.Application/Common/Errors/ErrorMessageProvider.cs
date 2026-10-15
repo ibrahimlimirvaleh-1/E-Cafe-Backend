@@ -150,6 +150,8 @@ public sealed class ErrorMessageProvider : IErrorMessageProvider
         [ErrorCode.RestaurantServiceActionForbidden] = "Bu restoran üçün əməliyyat icazəniz yoxdur.",
         [ErrorCode.InvalidTableSessionId] = "Masa sessiyası seçimi düzgün deyil.",
         [ErrorCode.TableSessionNotFound] = "Sizə aid açıq masa sessiyası tapılmadı.",
+        [ErrorCode.TableSessionReviewRequired] = "Bu sessiyanın bağlanmasının yoxlanması hazırda tələb olunmur.",
+        [ErrorCode.InvalidTableSessionReview] = "Növbəti yoxlama vaxtını icazə verilən gələcək aralıqda və qərarın səbəbini düzgün qeyd edin.",
         [ErrorCode.InvalidOrderRequest] = "Sifariş məlumatlarını, məhsul sayını və qeydlərin uzunluğunu yoxlayın.",
         [ErrorCode.OrderRequestKeyRequired] = "Sifariş üçün etibarlı Idempotency-Key (UUID) göndərin.",
         [ErrorCode.OrderRequestKeyConflict] = "Bu sorğu açarı artıq başqa məzmun üçün istifadə olunub. Yeni sifariş üçün yeni açar yaradın.",

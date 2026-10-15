@@ -20,6 +20,12 @@ public class TableSession : AuditableSoftDeletableEntity<int>
 
     public DateTime? ClosedAt { get; set; }
 
+    public DateTime? CloseReviewDueAt { get; set; }
+    public DateTime? CloseReviewNotifiedAt { get; set; }
+    public DateTime? CloseReviewConfirmedAt { get; set; }
+    public int? CloseReviewConfirmedByUserId { get; set; }
+    public string? CloseReviewReason { get; set; }
+
     public string? Note { get; set; }
 
     public virtual User? CustomerUser { get; set; }

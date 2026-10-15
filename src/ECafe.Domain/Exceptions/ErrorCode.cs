@@ -175,6 +175,8 @@ public enum ErrorCode
     MobilePushStaffAccessRequired = 5071,
     InvalidTableSessionId = 5072,
     TableSessionNotFound = 5073,
+    TableSessionReviewRequired = 5081,
+    InvalidTableSessionReview = 5082,
     InvalidOrderRequest = 5074,
     OrderRequestKeyRequired = 5075,
     OrderRequestKeyConflict = 5076,

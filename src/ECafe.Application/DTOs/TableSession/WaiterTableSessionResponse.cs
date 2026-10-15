@@ -16,4 +16,7 @@ public sealed class WaiterTableSessionResponse
     public DateTimeOffset OpenedAt { get; init; }
     public DateTimeOffset? MustVacateAt { get; init; }
     public string TimeZone { get; init; } = null!;
+    public bool RequiresCloseReview { get; init; }
+    public DateTimeOffset? CloseReviewDueAt { get; init; }
+    public DateTimeOffset? CloseReviewConfirmedAt { get; init; }
 }

@@ -4860,6 +4860,27 @@ namespace ECafe.Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<DateTime?>("CloseReviewConfirmedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("close_review_confirmed_at");
+
+                    b.Property<int?>("CloseReviewConfirmedByUserId")
+                        .HasColumnType("integer")
+                        .HasColumnName("close_review_confirmed_by_user_id");
+
+                    b.Property<DateTime?>("CloseReviewDueAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("close_review_due_at");
+
+                    b.Property<DateTime?>("CloseReviewNotifiedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("close_review_notified_at");
+
+                    b.Property<string>("CloseReviewReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("close_review_reason");
+
                     b.Property<DateTime?>("ClosedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("closed_at");
@@ -4926,6 +4947,9 @@ namespace ECafe.Infrastructure.Migrations
                     b.HasIndex("StatusId");
 
                     b.HasIndex("TableId");
+
+                    b.HasIndex(new[] { "CloseReviewNotifiedAt", "CloseReviewDueAt" }, "table_sessions_close_review_idx")
+                        .HasFilter("status_id = 7001 AND closed_at IS NULL AND \"IsDeleted\" = false");
 
                     b.HasIndex(new[] { "CustomerUserId" }, "table_sessions_customer_user_id_idx");
 
