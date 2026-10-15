@@ -27,6 +27,14 @@ public static class Routes
         public const string GetMyOpenSession = Collection + "/{tableSessionId:int}";
     }
 
+    public static class Order
+    {
+        private const string Collection = Base + "/restaurants/{restaurantId:int}/table-sessions/{tableSessionId:int}/orders";
+        public const string Create = Collection;
+        public const string GetForSession = Collection;
+        public const string GetById = Collection + "/{orderId:int}";
+    }
+
     public static class AuditLog
     {
         public const string GetRestaurantTimeline = Base + "/restaurants/{restaurantId}/audit-logs";

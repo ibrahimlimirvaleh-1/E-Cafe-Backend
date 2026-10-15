@@ -24,6 +24,7 @@ using ECafe.Application.Services.Table.Abstract;
 using ECafe.Application.Services.Table.Concrete;
 using ECafe.Application.Services.TableSessions.Abstract;
 using ECafe.Application.Services.TableSessions.Concrete;
+using ECafe.Application.Services.Orders;
 using ECafe.Application.Services.User.Abstract;
 using ECafe.Application.Services.User.Concrete;
 using ECafe.Application.Services.Workflow.Abstract;
@@ -95,6 +96,14 @@ namespace ECafe.Application
             services.AddScoped<IUserService, UserManager>();
             services.AddScoped<ITableService, TableManager>();
             services.AddScoped<ITableSessionService, TableSessionManager>();
+            services.AddScoped<IOrderService, OrderManager>();
+            services.AddOptions<OrderCreationOptions>()
+                .Configure<IConfiguration>((options, configuration) =>
+                    configuration.GetSection(OrderCreationOptions.SectionName).Bind(options))
+                .Validate(options => options.MaxLines is > 0 and <= 1000 &&
+                    options.MaxQuantityPerItem is > 0 and <= 10000 && options.MaxNoteLength is > 0 and <= 4000 &&
+                    options.MaxLineNoteLength is > 0 and <= 4000, "Order creation limits are outside supported ranges.")
+                .ValidateOnStart();
             services.AddScoped<ICategoryService, CategoryManager>();
             services.AddScoped<IItemService, ItemManager>();
             services.AddScoped<IFileAccessUrlService, FileAccessUrlService>();

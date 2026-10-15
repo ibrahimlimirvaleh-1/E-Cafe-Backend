@@ -1205,6 +1205,15 @@ namespace ECafe.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("CreationRequestHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("creation_request_hash");
+
+                    b.Property<Guid?>("CreationRequestId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("creation_request_id");
+
                     b.Property<int?>("CustomerUserId")
                         .HasColumnType("integer")
                         .HasColumnName("customer_user_id");
@@ -1298,6 +1307,9 @@ namespace ECafe.Infrastructure.Migrations
                     b.HasIndex("WaiterUserId");
 
                     b.HasIndex(new[] { "RestaurantId", "StatusId", "ScheduledKitchenTime" }, "orders_restaurant_status_scheduled_kitchen_time_idx");
+
+                    b.HasIndex(new[] { "TableSessionId", "CreationRequestId" }, "orders_session_creation_request_uidx")
+                        .IsUnique();
 
                     b.HasIndex(new[] { "TableSessionId" }, "orders_table_session_id_idx");
 
