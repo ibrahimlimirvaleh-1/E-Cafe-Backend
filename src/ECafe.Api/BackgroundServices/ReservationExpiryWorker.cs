@@ -2,6 +2,8 @@
 
 namespace ECafe.Api.BackgroundServices;
 
+using ECafe.Application.Services.TableSessions.Abstract;
+
 public sealed class ReservationExpiryWorker : BackgroundService
 {
     private readonly IServiceScopeFactory _scopeFactory;
@@ -45,7 +47,7 @@ public sealed class ReservationExpiryWorker : BackgroundService
             "Reservation expiry worker stopped.");
     }
 
-    /// <summary>Vaxtı bitmiş rezervasiyaları bağlayır və gəlmiş qonaqların uzanan gözləməsini ayrıca menecerə bildirir.</summary>
+    /// <summary>Vaxtı bitmiş rezervasiyaları emal edir, uzanan gözləməni və işgünü bitmiş açıq masa sessiyalarını xəbər verir; oturan qonağın sessiyasını avtomatik bağlamır.</summary>
     private async Task ExpireReservationsAsync(
         CancellationToken stoppingToken)
     {
@@ -62,6 +64,8 @@ public sealed class ReservationExpiryWorker : BackgroundService
                     stoppingToken);
 
             await reservationService.EscalateWaitingReservationsAsync(BatchSize, stoppingToken);
+            await scope.ServiceProvider.GetRequiredService<ITableSessionCloseReviewService>()
+                .NotifyDueReviewsAsync(BatchSize, stoppingToken);
 
             if (expiredCount > 0)
             {

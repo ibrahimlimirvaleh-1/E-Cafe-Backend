@@ -4,13 +4,16 @@ using ECafe.Shared.DTOs;
 using ECafe.Domain.Enums;
 using ECafe.Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
+using ECafe.Application.Services.TableSessions.Concrete;
 
 namespace ECafe.Infrastructure.Repositories.TableSession
 {
     public class TableSessionRepository : BaseRepository<Domain.Entities.TableSession>, ITableSessionRepository
     {
-        public TableSessionRepository(ECafeDbContext context) : base(context)
+        private readonly TimeProvider _clock;
+        public TableSessionRepository(ECafeDbContext context, TimeProvider? clock = null) : base(context)
         {
+            _clock = clock ?? TimeProvider.System;
         }
 
         public async Task<PaginatedList<WaiterTableSessionResponse>> GetOpenForWaiterAsync(
@@ -23,7 +26,7 @@ namespace ECafe.Infrastructure.Repositories.TableSession
             var items = skip >= count
                 ? new List<WaiterTableSessionResponse>()
                 : await ProjectServiceView(query.OrderBy(session => session.OpenedAt).ThenBy(session => session.Id)
-                    .Skip((int)skip).Take(pagination.PageSize)).ToListAsync(cancellationToken);
+                    .Skip((int)skip).Take(pagination.PageSize), _clock.GetUtcNow().UtcDateTime).ToListAsync(cancellationToken);
 
             return new PaginatedList<WaiterTableSessionResponse>(items, count, pagination.PageNumber, pagination.PageSize);
         }
@@ -32,7 +35,7 @@ namespace ECafe.Infrastructure.Repositories.TableSession
             int restaurantId, int waiterUserId, int tableSessionId,
             CancellationToken cancellationToken = default)
             => ProjectServiceView(QueryOpenForWaiter(restaurantId, waiterUserId)
-                .Where(session => session.Id == tableSessionId)).SingleOrDefaultAsync(cancellationToken);
+                .Where(session => session.Id == tableSessionId), _clock.GetUtcNow().UtcDateTime).SingleOrDefaultAsync(cancellationToken);
 
         /// <summary>
         /// Siyahı və detal üçün restoran, ofisiant və açıq sessiya sərhədlərini eyni tracking-siz sorğuda tətbiq edir.
@@ -44,26 +47,11 @@ namespace ECafe.Infrastructure.Repositories.TableSession
                 session.Restaurant.IsActive && session.Table.RestaurantId == restaurantId &&
                 (session.Reservation == null || session.Reservation.RestaurantId == restaurantId));
 
-        /// <summary>Yalnız xidmət üçün lazım olan sahələri seçir; tarixləri UTC offset ilə qaytarır, maliyyə və əlaqə məlumatlarını yükləmir.</summary>
-        private static IQueryable<WaiterTableSessionResponse> ProjectServiceView(IQueryable<Domain.Entities.TableSession> query)
-            => query.Select(session => new WaiterTableSessionResponse
-            {
-                Id = session.Id,
-                RestaurantId = session.RestaurantId,
-                TableId = session.TableId,
-                TableNo = session.Table.TableNo,
-                TableName = session.Table.Name,
-                TableCapacity = session.Table.Capacity,
-                StatusId = session.StatusId,
-                ReservationId = session.ReservationId,
-                CustomerName = session.CustomerUser == null ? null :
-                    (session.CustomerUser.Name + " " + session.CustomerUser.Surname).Trim(),
-                PeopleCount = session.Reservation == null ? null : session.Reservation.PeopleCount,
-                OpenedAt = new DateTimeOffset(DateTime.SpecifyKind(session.OpenedAt, DateTimeKind.Utc)),
-                MustVacateAt = session.Reservation == null || !session.Reservation.MustVacateAt.HasValue ? null :
-                    new DateTimeOffset(DateTime.SpecifyKind(session.Reservation.MustVacateAt.Value, DateTimeKind.Utc)),
-                TimeZone = session.Restaurant.TimeZone
-            });
+        /// <summary>İş saatları ilə bağlanma yoxlamasını hesablayır və yalnız xidmət sahələrini qaytarır; API görünüşünə maliyyə və əlaqə məlumatı daxil etmir.</summary>
+        private static IQueryable<WaiterTableSessionResponse> ProjectServiceView(IQueryable<Domain.Entities.TableSession> query, DateTime nowUtc)
+            => query.Include(session => session.Table).Include(session => session.CustomerUser)
+                .Include(session => session.Reservation).Include(session => session.Restaurant).ThenInclude(restaurant => restaurant.WorkingHours)
+                .Select(session => TableSessionViewMapper.Map(session, nowUtc));
 
         public async Task<Dictionary<int, int>> GetOpenSessionCountsByWaitersAsync(
             int restaurantId,

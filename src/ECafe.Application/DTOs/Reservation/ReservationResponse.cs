@@ -12,6 +12,11 @@ public sealed class ReservationResponse
     public DateTimeOffset? SeatedAt { get; init; }
     public ReservationWaitingInfo? Waiting { get; init; }
     public bool RequiresReceptionReview { get; init; }
+    public int? TableSessionId { get; init; }
+    public bool RequiresSessionCloseReview { get; init; }
+    public DateTimeOffset? SessionCloseReviewDueAt { get; init; }
+    public DateTimeOffset? SessionCloseReviewConfirmedAt { get; init; }
+    public bool CanCompleteSession { get; init; }
     public ECafe.Domain.Enums.ReservationDepartureReason? DepartureReason { get; init; }
     public DateTimeOffset? MustVacateAt { get; init; }
     public int PeopleCount { get; init; }

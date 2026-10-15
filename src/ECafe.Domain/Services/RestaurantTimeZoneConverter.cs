@@ -2,6 +2,10 @@ namespace ECafe.Domain.Services;
 
 public static class RestaurantTimeZoneConverter
 {
+    /// <summary>Restoranın yerli tarix-saatını həmin tarixdəki saat qurşağı qaydaları ilə UTC-yə çevirir.</summary>
+    public static DateTime ToUtc(DateTime localDateTime, string? timeZoneId)
+        => TimeZoneInfo.ConvertTimeToUtc(DateTime.SpecifyKind(localDateTime, DateTimeKind.Unspecified), FindTimeZone(timeZoneId));
+
     public static DateTimeOffset ToRestaurantLocalTime(DateTimeOffset utcDateTime, string? timeZoneId)
     {
         var timeZone = FindTimeZone(timeZoneId);

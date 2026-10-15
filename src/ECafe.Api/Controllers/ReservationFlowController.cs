@@ -184,6 +184,14 @@ public sealed class ReservationFlowController : BaseController
         return Ok(result);
     }
 
+    /// <summary>Ofisiant özünə təyin olunmuş rezervasiyanın masa xidmətini tamamlayır.</summary>
+    /// <remarks>Aktiv rol və sessiyanın ofisianta aid olması DB-dən yoxlanılır. Müştəri ayrıldıqdan sonra çağırın. Tarix keçdiyi üçün avtomatik işləmir; sifariş, ödəniş və refund dəyişmir. Eyni uğurlu bağlama təkrarı ikinci tarixçə/bildiriş yaratmır.</remarks>
+    [HasPermission(PermissionCode.SeatReservationGuest)]
+    [HttpPost(ApiRoutes.TableSessionFlow.CompleteOwnReservation)]
+    [ProducesResponseType(typeof(ReservationActionResponse), StatusCodes.Status200OK)]
+    public async Task<IActionResult> CompleteOwnService([FromRoute] int restaurantId, [FromRoute] int reservationId, CancellationToken cancellationToken)
+        => Ok(await Mediator.Send(new CompleteOwnReservationCommand(restaurantId, reservationId), cancellationToken));
+
     [HasPermission(PermissionCode.ManageReservations)]
     [HttpPost(ApiRoutes.ReservationFlow.CancelForRestaurant)]
     public async Task<IActionResult> CancelForRestaurant(

@@ -31,6 +31,13 @@ namespace ECafe.Infrastructure.Configurations.Concrete
                 .HasDefaultValueSql("now()")
                 .HasColumnName("opened_at");
             builder.Property(e => e.ClosedAt).HasColumnName("closed_at");
+            builder.Property(e => e.CloseReviewDueAt).HasColumnName("close_review_due_at");
+            builder.Property(e => e.CloseReviewNotifiedAt).HasColumnName("close_review_notified_at");
+            builder.Property(e => e.CloseReviewConfirmedAt).HasColumnName("close_review_confirmed_at");
+            builder.Property(e => e.CloseReviewConfirmedByUserId).HasColumnName("close_review_confirmed_by_user_id");
+            builder.Property(e => e.CloseReviewReason).HasColumnName("close_review_reason").HasMaxLength(500);
+            builder.HasIndex(e => new { e.CloseReviewNotifiedAt, e.CloseReviewDueAt }, "table_sessions_close_review_idx")
+                .HasFilter("status_id = 7001 AND closed_at IS NULL AND \"IsDeleted\" = false");
             builder.Property(e => e.Note).HasColumnName("note");
 
             builder.HasOne(e => e.Restaurant)

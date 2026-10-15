@@ -96,6 +96,11 @@ namespace ECafe.Application
             services.AddScoped<IUserService, UserManager>();
             services.AddScoped<ITableService, TableManager>();
             services.AddScoped<ITableSessionService, TableSessionManager>();
+            services.AddScoped<ITableSessionCloseReviewService, TableSessionCloseReviewManager>();
+            services.AddOptions<TableSessionReviewOptions>()
+                .Configure<IConfiguration>((options, configuration) => configuration.GetSection(TableSessionReviewOptions.SectionName).Bind(options))
+                .Validate(options => options.MaxContinuationHours is > 0 and <= 24 && options.MaxReasonLength is > 0 and <= 500,
+                    "Table session review limits are outside supported ranges.").ValidateOnStart();
             services.AddScoped<IOrderService, OrderManager>();
             services.AddOptions<OrderCreationOptions>()
                 .Configure<IConfiguration>((options, configuration) =>

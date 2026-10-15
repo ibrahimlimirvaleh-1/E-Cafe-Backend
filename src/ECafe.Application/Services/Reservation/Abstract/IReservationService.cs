@@ -62,6 +62,8 @@ public interface IReservationService
         int reservationId,
         CancellationToken cancellationToken = default);
 
+    Task<ReservationActionResponse> CompleteOwnReservationAsync(int restaurantId, int reservationId, CancellationToken cancellationToken = default);
+
     Task<ReservationActionResponse> CompleteReservationAsync(
         int restaurantId,
         int reservationId,
