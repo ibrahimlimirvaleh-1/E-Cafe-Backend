@@ -18,6 +18,7 @@ public static class EcafeSwaggerMetadata
             ["OrderFlow"] = new("05.4. Order Flow", "Ofisiantın mövcud sifarişini mətbəx növbəsinə təkrara davamlı göndərməsi."),
             ["Kitchen"] = new("05.5. Kitchen", "Yalnız aktiv mətbəx işçisi üçün real, səhifələnmiş sifariş növbəsi."),
             ["KitchenFlow"] = new("05.6. Kitchen Flow", "Mətbəxdə qəbul, hazırlama və hazır mərhələlərinin təhlükəsiz və təkrara davamlı idarəsi."),
+            ["CustomerOrder"] = new("05.7. Customer Orders", "Müştərinin öz masa sessiyaları və sifarişlərinin yalnız oxuma izləmə görünüşü."),
             ["User"] = new("06. Users & Staff", "İstifadəçi, staff, ofisiant və profil əməliyyatları."),
             ["File"] = new("07. Files", "Şəkil və fayl yükləmə/göstərmə endpoint-ləri."),
             ["Reservation"] = new("08. Reservations", "Müştərinin rezervasiya yaratması, siyahısı, detalı və tarixçəsi."),

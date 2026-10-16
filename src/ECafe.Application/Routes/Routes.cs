@@ -42,6 +42,15 @@ public static class Routes
         public const string GetById = Collection + "/{orderId:int}";
     }
 
+    public static class CustomerOrder
+    {
+        private const string Collection = Base + "/public/table-sessions";
+        public const string GetMySessions = Collection + "/my";
+        public const string GetSession = Collection + "/{tableSessionId:int}";
+        public const string GetOrders = GetSession + "/orders";
+        public const string GetOrder = GetOrders + "/{orderId:int}";
+    }
+
     public static class OrderFlow
     {
         public const string SendToKitchen = Order.GetById + "/send-to-kitchen";
