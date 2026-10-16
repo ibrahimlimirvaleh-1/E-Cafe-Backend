@@ -52,6 +52,14 @@ public static class Routes
         public const string GetOrders = Base + "/restaurants/{restaurantId:int}/kitchen/orders";
     }
 
+    public static class KitchenFlow
+    {
+        private const string Order = Kitchen.GetOrders + "/{orderId:int}";
+        public const string Accept = Order + "/accept";
+        public const string StartPreparing = Order + "/start";
+        public const string MarkReady = Order + "/ready";
+    }
+
     public static class AuditLog
     {
         public const string GetRestaurantTimeline = Base + "/restaurants/{restaurantId}/audit-logs";

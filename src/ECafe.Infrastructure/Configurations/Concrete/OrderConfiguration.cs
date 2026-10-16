@@ -14,6 +14,7 @@ namespace ECafe.Infrastructure.Configurations.Concrete
 
             builder.Property(e => e.Id).HasColumnName("id");
             builder.Property(e => e.AcceptedAt).HasColumnName("accepted_at");
+            builder.Property(e => e.AcceptedByUserId).HasColumnName("accepted_by_user_id");
             builder.Property(e => e.ClosedAt).HasColumnName("closed_at");
             builder.Property(e => e.CustomerUserId).HasColumnName("customer_user_id");
             builder.Property(e => e.Note).HasColumnName("note");
@@ -23,7 +24,9 @@ namespace ECafe.Infrastructure.Configurations.Concrete
                 .HasDefaultValueSql("now()")
                 .HasColumnName("opened_at");
             builder.Property(e => e.PreparingAt).HasColumnName("preparing_at");
+            builder.Property(e => e.PreparingByUserId).HasColumnName("preparing_by_user_id");
             builder.Property(e => e.ReadyAt).HasColumnName("ready_at");
+            builder.Property(e => e.ReadyByUserId).HasColumnName("ready_by_user_id");
             builder.Property(e => e.ReservationId).HasColumnName("reservation_id");
             builder.Property(e => e.RestaurantId).HasColumnName("restaurant_id");
             builder.Property(e => e.ScheduledKitchenTime).HasColumnName("scheduled_kitchen_time");
@@ -48,6 +51,13 @@ namespace ECafe.Infrastructure.Configurations.Concrete
                 .HasForeignKey(d => d.CustomerUserId)
                 .OnDelete(DeleteBehavior.SetNull)
                 .HasConstraintName("orders_customer_user_id_fkey");
+
+            builder.HasOne<User>().WithMany().HasForeignKey(e => e.AcceptedByUserId)
+                .OnDelete(DeleteBehavior.SetNull).HasConstraintName("orders_accepted_by_user_id_fkey");
+            builder.HasOne<User>().WithMany().HasForeignKey(e => e.PreparingByUserId)
+                .OnDelete(DeleteBehavior.SetNull).HasConstraintName("orders_preparing_by_user_id_fkey");
+            builder.HasOne<User>().WithMany().HasForeignKey(e => e.ReadyByUserId)
+                .OnDelete(DeleteBehavior.SetNull).HasConstraintName("orders_ready_by_user_id_fkey");
 
             builder.HasOne(d => d.Reservation).WithMany(p => p.Orders)
                 .HasForeignKey(d => d.ReservationId)

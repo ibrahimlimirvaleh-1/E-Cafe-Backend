@@ -26,9 +26,15 @@ public partial class Order : AuditableSoftDeletableEntity<int>
 
     public DateTime? AcceptedAt { get; set; }
 
+    public int? AcceptedByUserId { get; set; }
+
     public DateTime? PreparingAt { get; set; }
 
+    public int? PreparingByUserId { get; set; }
+
     public DateTime? ReadyAt { get; set; }
+
+    public int? ReadyByUserId { get; set; }
 
     public DateTime? ServedAt { get; set; }
 
