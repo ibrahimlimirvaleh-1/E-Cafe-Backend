@@ -185,5 +185,7 @@ public enum ErrorCode
     OrderSessionChanged = 5079,
     InvalidOrderId = 5080,
     OrderNotFound = 5081,
-    OrderCannotSendToKitchen = 5084
+    OrderCannotSendToKitchen = 5084,
+    KitchenOrderTransitionNotAllowed = 5085,
+    KitchenOrderNotFound = 5086
 }

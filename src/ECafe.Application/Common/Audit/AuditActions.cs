@@ -53,6 +53,9 @@ namespace ECafe.Application.Common.Audit
         public const string ReservationRefundTransferDisputed = "ReservationRefundTransferDisputed";
         public const string OrderCreated = "OrderCreated";
         public const string OrderSentToKitchen = "OrderSentToKitchen";
+        public const string OrderAcceptedByKitchen = "OrderAcceptedByKitchen";
+        public const string OrderPreparationStarted = "OrderPreparationStarted";
+        public const string OrderMarkedReady = "OrderMarkedReady";
         public const string TableSessionServiceContinued = "TableSessionServiceContinued";
         public const string RestaurantScheduleProposed = "RestaurantScheduleProposed";
         public const string RestaurantScheduleApplied = "RestaurantScheduleApplied";
@@ -114,7 +117,10 @@ namespace ECafe.Application.Common.Audit
             new(64, RestaurantScheduleCustomerResponded, "Müştəri iş saatı təklifinə cavab verdi"),
             new(65, RestaurantScheduleWalkInAcknowledged, "Masa sessiyası üzrə razılaşma qeyd edildi"),
             new(69, TableSessionServiceContinued, "Masa sessiyasında xidmətin davamı təsdiqləndi"),
-            new(70, OrderSentToKitchen, "Sifariş mətbəxə göndərildi")
+            new(70, OrderSentToKitchen, "Sifariş mətbəxə göndərildi"),
+            new(71, OrderAcceptedByKitchen, "Sifariş mətbəxdə qəbul edildi"),
+            new(72, OrderPreparationStarted, "Sifarişin hazırlanmasına başlanıldı"),
+            new(73, OrderMarkedReady, "Sifariş hazır qeyd edildi")
         ];
 
         public static string GetDisplayName(string? action)

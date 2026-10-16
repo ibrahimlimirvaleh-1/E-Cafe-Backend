@@ -4,6 +4,12 @@ internal static class KitchenOrderTexts
 {
     internal const string NotificationTitle = "Mətbəxə yeni sifariş göndərildi";
     internal const string Section = "kitchen";
+    internal const string ReadySection = "order-ready";
+    internal const string ReadyTitle = "Sifariş hazırdır";
+
+    /// <summary>Məsul ofisianta hazır sifarişi və masanı bildirir; müştəri və ödəniş məlumatı paylaşmır.</summary>
+    internal static string ReadyMessage(int orderId, string tableName)
+        => $"{tableName} üçün #{orderId} sifarişi hazırdır. Mətbəxdən təhvil alın.";
 
     /// <summary>Ad verilməmiş masanı nömrəsi ilə göstərərək mətbəxdə boş masa başlığının qarşısını alır.</summary>
     internal static string TableName(ECafe.Domain.Entities.Table table)

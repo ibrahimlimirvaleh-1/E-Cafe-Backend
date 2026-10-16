@@ -288,7 +288,7 @@ public sealed class KitchenOrderTests
             => throw new TranslationVerifiedException();
     }
 
-    private sealed class Fixture : IAsyncDisposable
+    internal sealed class Fixture : IAsyncDisposable
     {
         public ECafeDbContext Db { get; }
         public KitchenOrderManager Service { get; }
@@ -334,7 +334,7 @@ public sealed class KitchenOrderTests
         }
 
         /// <summary>Mətbəx ekranını eyni bazada başqa istifadəçi kimi yoxlamaq üçün giriş kontekstini dəyişir.</summary>
-        public void LoginKitchen() => _accessor.HttpContext = Accessor(2, 6).HttpContext;
+        public void LoginKitchen(int userId = 2) => _accessor.HttpContext = Accessor(userId, 6).HttpContext;
 
         /// <summary>İki restoran, aktiv/deaktiv işçilər və göndərilmiş/göndərilməmiş sifarişlər yaradır.</summary>
         public static async Task<Fixture> CreateAsync(string? store = null, SemaphoreSlim? gate = null)

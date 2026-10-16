@@ -23,7 +23,7 @@ using OrderEntity = ECafe.Domain.Entities.Order;
 
 namespace ECafe.Application.Services.Orders;
 
-public sealed class KitchenOrderManager(IHttpContextAccessor accessor, IMapper mapper, IConfiguration configuration,
+public sealed partial class KitchenOrderManager(IHttpContextAccessor accessor, IMapper mapper, IConfiguration configuration,
     IOrderRepository orders, ITableSessionService sessionAccess, ITableRepository tables,
     IUserRestaurantRepository assignments, IApplicationDbTransactionFactory transactions,
     INotificationService notifications, IAuditLogService audit, TimeProvider clock)
@@ -116,12 +116,19 @@ public sealed class KitchenOrderManager(IHttpContextAccessor accessor, IMapper m
         }
     }
 
-    /// <summary>Saxlanılmış məhsul adını, miqdarını və qeydləri mətbəx görünüşünə çevirir; menyu qiymətini yenidən oxumur.</summary>
+    /// <summary>Məhsul nüsxələrini və status tarixlərini qiymətsiz mətbəx görünüşünə çevirir; icazəli növbəti addımı eyni biznes qaydası ilə hesablayır.</summary>
     private static KitchenOrderResponse MapKitchenOrder(OrderEntity order)
         => new(order.Id, order.RestaurantId, order.TableId, KitchenOrderTexts.TableName(order.Table), order.TableSessionId, order.WaiterUserId,
             order.StatusId, AsUtc(order.OpenedAt), AsUtc(order.SentToKitchenAt!.Value), order.Note,
             order.OrderItems.Where(line => !line.IsDeleted).OrderBy(line => line.Id).Select(line => new KitchenOrderLineResponse(
-                line.Id, line.ItemId, line.NameSnapshot, line.Quantity, line.Note)).ToList(), order.Restaurant.TimeZone);
+                line.Id, line.ItemId, line.NameSnapshot, line.Quantity, line.Note)).ToList(), order.Restaurant.TimeZone,
+            order.AcceptedAt.HasValue ? AsUtc(order.AcceptedAt.Value) : null,
+            order.PreparingAt.HasValue ? AsUtc(order.PreparingAt.Value) : null,
+            order.ReadyAt.HasValue ? AsUtc(order.ReadyAt.Value) : null,
+            order.AcceptedByUserId, order.PreparingByUserId, order.ReadyByUserId,
+            KitchenOrderProgressPolicy.CanApply(order, OrderStatus.Accepted),
+            KitchenOrderProgressPolicy.CanApply(order, OrderStatus.Preparing),
+            KitchenOrderProgressPolicy.CanApply(order, OrderStatus.Ready));
 
     /// <summary>Bazada UTC kimi saxlanılmış vaxtı cavabda açıq UTC offset-i ilə qaytarır.</summary>
     private static DateTimeOffset AsUtc(DateTime value) => new(DateTime.SpecifyKind(value, DateTimeKind.Utc));

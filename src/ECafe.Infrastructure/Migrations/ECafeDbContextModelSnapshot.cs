@@ -1194,6 +1194,10 @@ namespace ECafe.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("accepted_at");
 
+                    b.Property<int?>("AcceptedByUserId")
+                        .HasColumnType("integer")
+                        .HasColumnName("accepted_by_user_id");
+
                     b.Property<DateTime?>("ClosedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("closed_at");
@@ -1241,9 +1245,17 @@ namespace ECafe.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("preparing_at");
 
+                    b.Property<int?>("PreparingByUserId")
+                        .HasColumnType("integer")
+                        .HasColumnName("preparing_by_user_id");
+
                     b.Property<DateTime?>("ReadyAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("ready_at");
+
+                    b.Property<int?>("ReadyByUserId")
+                        .HasColumnType("integer")
+                        .HasColumnName("ready_by_user_id");
 
                     b.Property<int?>("ReservationId")
                         .HasColumnType("integer")
@@ -1296,7 +1308,13 @@ namespace ECafe.Infrastructure.Migrations
                     b.HasKey("Id")
                         .HasName("orders_pkey");
 
+                    b.HasIndex("AcceptedByUserId");
+
                     b.HasIndex("CustomerUserId");
+
+                    b.HasIndex("PreparingByUserId");
+
+                    b.HasIndex("ReadyByUserId");
 
                     b.HasIndex("ReservationId");
 
@@ -6582,11 +6600,29 @@ namespace ECafe.Infrastructure.Migrations
 
             modelBuilder.Entity("ECafe.Domain.Entities.Order", b =>
                 {
+                    b.HasOne("ECafe.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("AcceptedByUserId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("orders_accepted_by_user_id_fkey");
+
                     b.HasOne("ECafe.Domain.Entities.User", "CustomerUser")
                         .WithMany()
                         .HasForeignKey("CustomerUserId")
                         .OnDelete(DeleteBehavior.SetNull)
                         .HasConstraintName("orders_customer_user_id_fkey");
+
+                    b.HasOne("ECafe.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("PreparingByUserId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("orders_preparing_by_user_id_fkey");
+
+                    b.HasOne("ECafe.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("ReadyByUserId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("orders_ready_by_user_id_fkey");
 
                     b.HasOne("ECafe.Domain.Entities.Reservation", "Reservation")
                         .WithMany("Orders")
