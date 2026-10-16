@@ -42,6 +42,16 @@ public static class Routes
         public const string GetById = Collection + "/{orderId:int}";
     }
 
+    public static class OrderFlow
+    {
+        public const string SendToKitchen = Order.GetById + "/send-to-kitchen";
+    }
+
+    public static class Kitchen
+    {
+        public const string GetOrders = Base + "/restaurants/{restaurantId:int}/kitchen/orders";
+    }
+
     public static class AuditLog
     {
         public const string GetRestaurantTimeline = Base + "/restaurants/{restaurantId}/audit-logs";

@@ -39,6 +39,8 @@ namespace ECafe.Infrastructure.Configurations.Concrete
 
             builder.HasIndex(e => new { e.RestaurantId, e.StatusId, e.ScheduledKitchenTime }, "orders_restaurant_status_scheduled_kitchen_time_idx");
             builder.HasIndex(e => e.TableSessionId, "orders_table_session_id_idx");
+            builder.HasIndex(e => new { e.RestaurantId, e.SentToKitchenAt, e.Id }, "orders_kitchen_queue_idx")
+                .HasFilter("sent_to_kitchen_at IS NOT NULL AND closed_at IS NULL AND \"IsDeleted\" = false");
             builder.HasIndex(e => new { e.TableSessionId, e.CreationRequestId }, "orders_session_creation_request_uidx")
                 .IsUnique();
 

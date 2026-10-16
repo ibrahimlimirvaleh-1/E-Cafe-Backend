@@ -175,7 +175,7 @@ public enum ErrorCode
     MobilePushStaffAccessRequired = 5071,
     InvalidTableSessionId = 5072,
     TableSessionNotFound = 5073,
-    TableSessionReviewRequired = 5081,
+    TableSessionReviewRequired = 5083,
     InvalidTableSessionReview = 5082,
     InvalidOrderRequest = 5074,
     OrderRequestKeyRequired = 5075,
@@ -184,5 +184,6 @@ public enum ErrorCode
     OrderItemPriceChanged = 5078,
     OrderSessionChanged = 5079,
     InvalidOrderId = 5080,
-    OrderNotFound = 5081
+    OrderNotFound = 5081,
+    OrderCannotSendToKitchen = 5084
 }
