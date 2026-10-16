@@ -103,6 +103,7 @@ namespace ECafe.Application
                     "Table session review limits are outside supported ranges.").ValidateOnStart();
             services.AddScoped<IOrderService, OrderManager>();
             services.AddScoped<IKitchenOrderService, KitchenOrderManager>();
+            services.AddScoped<ICustomerOrderTrackingService, CustomerOrderTrackingManager>();
             services.AddOptions<OrderCreationOptions>()
                 .Configure<IConfiguration>((options, configuration) =>
                     configuration.GetSection(OrderCreationOptions.SectionName).Bind(options))
