@@ -160,6 +160,7 @@ public sealed class ErrorMessageProvider : IErrorMessageProvider
         [ErrorCode.OrderSessionChanged] = "Masa sessiyası dəyişib. Məlumatı yeniləyib yenidən cəhd edin.",
         [ErrorCode.InvalidOrderId] = "Sifariş seçimi düzgün deyil.",
         [ErrorCode.OrderNotFound] = "Bu masa sessiyası üçün sifariş tapılmadı.",
+        [ErrorCode.OrderCannotSendToKitchen] = "Bu sifariş hazırkı vəziyyətdə mətbəxə göndərilə bilməz. Sifariş siyahısını yeniləyin.",
         [ErrorCode.RestaurantClosedForArrival] = "Restoran bu saatda bağlıdır.",
         [ErrorCode.UserNotBelongsToRestaurant] = "Giriş edən restoran işçisi deyil.",
         [ErrorCode.MobilePushStaffAccessRequired] = "Telefon bildirişləri aktiv müştərilər və mobil push icazəsi verilmiş restoranın aktiv işçiləri üçün əlçatandır.",

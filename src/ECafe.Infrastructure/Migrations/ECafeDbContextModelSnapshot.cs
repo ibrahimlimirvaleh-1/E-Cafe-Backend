@@ -1306,6 +1306,9 @@ namespace ECafe.Infrastructure.Migrations
 
                     b.HasIndex("WaiterUserId");
 
+                    b.HasIndex(new[] { "RestaurantId", "SentToKitchenAt", "Id" }, "orders_kitchen_queue_idx")
+                        .HasFilter("sent_to_kitchen_at IS NOT NULL AND closed_at IS NULL AND \"IsDeleted\" = false");
+
                     b.HasIndex(new[] { "RestaurantId", "StatusId", "ScheduledKitchenTime" }, "orders_restaurant_status_scheduled_kitchen_time_idx");
 
                     b.HasIndex(new[] { "TableSessionId", "CreationRequestId" }, "orders_session_creation_request_uidx")
