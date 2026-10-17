@@ -4,12 +4,14 @@ using ECafe.Application.Common.Audit;
 using ECafe.Application.Common.Exceptions;
 using ECafe.Application.DTOs.Notification;
 using ECafe.Application.DTOs.Order;
+using ECafe.Application.Mappings;
 using ECafe.Domain.Entities;
 using ECafe.Domain.Enums;
 using ECafe.Domain.Exceptions;
+using ECafe.Domain.Policies;
 using Microsoft.EntityFrameworkCore;
 
-namespace ECafe.Application.Services.Orders;
+namespace ECafe.Application.Services.Orders.Concrete;
 
 public sealed partial class KitchenOrderManager
 {
@@ -55,7 +57,7 @@ public sealed partial class KitchenOrderManager
                 AuditEntityTypes.Order, order.Id);
         }
         await transaction.CommitAsync(cancellationToken);
-        return MapKitchenOrder(order);
+        return KitchenOrderResponseMapper.Map(order);
     }
 
     /// <summary>Hazır sifariş barədə yalnız sessiyanın cari aktiv ofisiantına xəbər verir; başqa işçi və müştəriyə göndərmir.</summary>
@@ -71,7 +73,7 @@ public sealed partial class KitchenOrderManager
         {
             UserId = waiterId.Value, RestaurantId = order.RestaurantId, TypeId = (int)NotificationType.OrderReady,
             ChannelId = (int)NotificationChannel.InApp, Title = KitchenOrderTexts.ReadyTitle,
-            Message = KitchenOrderTexts.ReadyMessage(order.Id, KitchenOrderTexts.TableName(order.Table)),
+            Message = KitchenOrderTexts.ReadyMessage(order.Id, OrderMappingValues.TableName(order.Table)),
             RelatedEntityType = AuditEntityTypes.Order, RelatedEntityId = order.Id,
             PayloadJson = JsonSerializer.Serialize(new { restaurantId = order.RestaurantId, orderId = order.Id,
                 tableSessionId = order.TableSessionId, section = KitchenOrderTexts.ReadySection })

@@ -6,6 +6,8 @@ using ECafe.Application.Common.Exceptions;
 using ECafe.Application.Common.Pagination;
 using ECafe.Application.DTOs.Notification;
 using ECafe.Application.DTOs.Order;
+using ECafe.Application.Mappings;
+using ECafe.Application.Services.Orders.Abstract;
 using ECafe.Application.Repositories.Order;
 using ECafe.Application.Repositories.Table;
 using ECafe.Application.Repositories.UserRestaurant;
@@ -21,7 +23,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using OrderEntity = ECafe.Domain.Entities.Order;
 
-namespace ECafe.Application.Services.Orders;
+namespace ECafe.Application.Services.Orders.Concrete;
 
 public sealed partial class KitchenOrderManager(IHttpContextAccessor accessor, IMapper mapper, IConfiguration configuration,
     IOrderRepository orders, ITableSessionService sessionAccess, ITableRepository tables,
@@ -84,7 +86,7 @@ public sealed partial class KitchenOrderManager(IHttpContextAccessor accessor, I
         var page = skip >= count ? [] : await query.OrderBy(order => order.SentToKitchenAt).ThenBy(order => order.Id)
             .Skip((int)skip).Take(pagination.PageSize).Include(order => order.Table)
             .Include(order => order.OrderItems).Include(order => order.Restaurant).ToListAsync(cancellationToken);
-        return new(page.Select(MapKitchenOrder).ToList(), count, pagination.PageNumber, pagination.PageSize);
+        return new(page.Select(KitchenOrderResponseMapper.Map).ToList(), count, pagination.PageNumber, pagination.PageSize);
     }
 
     /// <summary>Token kontekstindən əlavə bazadakı aktiv mətbəx təyinatını yoxlayır; başqa rol və restoranın növbəsini açmır.</summary>
@@ -108,7 +110,7 @@ public sealed partial class KitchenOrderManager(IHttpContextAccessor accessor, I
                 UserId = userId, RestaurantId = order.RestaurantId,
                 TypeId = (int)NotificationType.OrderCreated, ChannelId = (int)NotificationChannel.InApp,
                 Title = KitchenOrderTexts.NotificationTitle,
-                Message = KitchenOrderTexts.SentMessage(order.Id, KitchenOrderTexts.TableName(order.Table)),
+                Message = KitchenOrderTexts.SentMessage(order.Id, OrderMappingValues.TableName(order.Table)),
                 RelatedEntityType = AuditEntityTypes.Order, RelatedEntityId = order.Id,
                 PayloadJson = JsonSerializer.Serialize(new { restaurantId = order.RestaurantId, orderId = order.Id,
                     tableSessionId = order.TableSessionId, section = KitchenOrderTexts.Section })
@@ -116,20 +118,4 @@ public sealed partial class KitchenOrderManager(IHttpContextAccessor accessor, I
         }
     }
 
-    /// <summary>Məhsul nüsxələrini və status tarixlərini qiymətsiz mətbəx görünüşünə çevirir; icazəli növbəti addımı eyni biznes qaydası ilə hesablayır.</summary>
-    private static KitchenOrderResponse MapKitchenOrder(OrderEntity order)
-        => new(order.Id, order.RestaurantId, order.TableId, KitchenOrderTexts.TableName(order.Table), order.TableSessionId, order.WaiterUserId,
-            order.StatusId, AsUtc(order.OpenedAt), AsUtc(order.SentToKitchenAt!.Value), order.Note,
-            order.OrderItems.Where(line => !line.IsDeleted).OrderBy(line => line.Id).Select(line => new KitchenOrderLineResponse(
-                line.Id, line.ItemId, line.NameSnapshot, line.Quantity, line.Note)).ToList(), order.Restaurant.TimeZone,
-            order.AcceptedAt.HasValue ? AsUtc(order.AcceptedAt.Value) : null,
-            order.PreparingAt.HasValue ? AsUtc(order.PreparingAt.Value) : null,
-            order.ReadyAt.HasValue ? AsUtc(order.ReadyAt.Value) : null,
-            order.AcceptedByUserId, order.PreparingByUserId, order.ReadyByUserId,
-            KitchenOrderProgressPolicy.CanApply(order, OrderStatus.Accepted),
-            KitchenOrderProgressPolicy.CanApply(order, OrderStatus.Preparing),
-            KitchenOrderProgressPolicy.CanApply(order, OrderStatus.Ready));
-
-    /// <summary>Bazada UTC kimi saxlanılmış vaxtı cavabda açıq UTC offset-i ilə qaytarır.</summary>
-    private static DateTimeOffset AsUtc(DateTime value) => new(DateTime.SpecifyKind(value, DateTimeKind.Utc));
 }

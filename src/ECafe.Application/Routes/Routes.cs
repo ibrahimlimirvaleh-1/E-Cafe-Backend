@@ -54,6 +54,7 @@ public static class Routes
     public static class OrderFlow
     {
         public const string SendToKitchen = Order.GetById + "/send-to-kitchen";
+        public const string MarkServed = Order.GetById + "/serve";
     }
 
     public static class Kitchen

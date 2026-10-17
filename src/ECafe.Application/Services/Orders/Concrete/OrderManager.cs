@@ -7,6 +7,8 @@ using ECafe.Application.Common.Audit;
 using ECafe.Application.Common.Exceptions;
 using ECafe.Application.Common.Pagination;
 using ECafe.Application.DTOs.Order;
+using ECafe.Application.Mappings;
+using ECafe.Application.Services.Orders.Abstract;
 using ECafe.Application.Repositories.Item;
 using ECafe.Application.Repositories.Order;
 using ECafe.Application.Repositories.Table;
@@ -23,9 +25,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 
-namespace ECafe.Application.Services.Orders;
+namespace ECafe.Application.Services.Orders.Concrete;
 
-public sealed class OrderManager : BaseManager, IOrderService
+public sealed partial class OrderManager : BaseManager, IOrderService
 {
     private const decimal MaxStoredAmount = 99999999.99m;
     private readonly IOrderRepository _orders;
