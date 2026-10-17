@@ -1565,6 +1565,20 @@ namespace ECafe.Infrastructure.Migrations
                         .HasColumnType("numeric(10,2)")
                         .HasColumnName("amount");
 
+                    b.Property<DateTime?>("CheckoutExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("checkout_expires_at");
+
+                    b.Property<string>("CheckoutKey")
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)")
+                        .HasColumnName("checkout_key");
+
+                    b.Property<string>("CheckoutUrl")
+                        .HasMaxLength(2048)
+                        .HasColumnType("character varying(2048)")
+                        .HasColumnName("checkout_url");
+
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
@@ -1579,6 +1593,14 @@ namespace ECafe.Infrastructure.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("created_by_user_id");
 
+                    b.Property<string>("CurrencyCode")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)")
+                        .HasDefaultValue("AZN")
+                        .HasColumnName("currency_code");
+
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -1587,6 +1609,10 @@ namespace ECafe.Infrastructure.Migrations
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
+
+                    b.Property<bool>("IsTest")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_test");
 
                     b.Property<int?>("OrderId")
                         .HasColumnType("integer")
@@ -1604,13 +1630,26 @@ namespace ECafe.Infrastructure.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("payment_status_id");
 
+                    b.Property<string>("ProviderName")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("provider_name");
+
                     b.Property<string>("ProviderRef")
                         .HasColumnType("text")
                         .HasColumnName("provider_ref");
 
+                    b.Property<int>("ProviderStatus")
+                        .HasColumnType("integer")
+                        .HasColumnName("provider_status");
+
                     b.Property<DateTime?>("RefundedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("refunded_at");
+
+                    b.Property<bool>("RequiresRefund")
+                        .HasColumnType("boolean")
+                        .HasColumnName("requires_refund");
 
                     b.Property<int?>("ReservationId")
                         .HasColumnType("integer")
@@ -1629,7 +1668,8 @@ namespace ECafe.Infrastructure.Migrations
                     b.HasKey("Id")
                         .HasName("payments_pkey");
 
-                    b.HasIndex("CreatedByUserId");
+                    b.HasIndex("CreatedByUserId")
+                        .HasDatabaseName("IX_payments_created_by_user_id");
 
                     b.HasIndex("OrderId");
 
@@ -1637,9 +1677,22 @@ namespace ECafe.Infrastructure.Migrations
 
                     b.HasIndex("PaymentStatusId");
 
-                    b.HasIndex("ReservationId");
+                    b.HasIndex("ReservationId")
+                        .HasDatabaseName("IX_payments_reservation_id");
 
                     b.HasIndex("RestaurantId");
+
+                    b.HasIndex(new[] { "CreatedByUserId", "CheckoutKey" }, "payments_customer_checkout_key")
+                        .IsUnique()
+                        .HasFilter("checkout_key IS NOT NULL");
+
+                    b.HasIndex(new[] { "ReservationId" }, "payments_pending_reservation_key")
+                        .IsUnique()
+                        .HasFilter("reservation_id IS NOT NULL AND provider_name IS NOT NULL AND payment_status_id = 3001 AND NOT \"IsDeleted\"");
+
+                    b.HasIndex(new[] { "ProviderName", "ProviderRef" }, "payments_provider_reference_key")
+                        .IsUnique()
+                        .HasFilter("provider_name IS NOT NULL AND provider_ref IS NOT NULL");
 
                     b.ToTable("payments", "billing");
                 });
@@ -2491,6 +2544,20 @@ namespace ECafe.Infrastructure.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
+                    b.Property<string>("ProviderName")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("provider_name");
+
+                    b.Property<string>("ProviderRef")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("provider_ref");
+
+                    b.Property<int>("ProviderStatus")
+                        .HasColumnType("integer")
+                        .HasColumnName("provider_status");
+
                     b.Property<DateTime?>("RefundedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("refunded_at");
@@ -2502,6 +2569,10 @@ namespace ECafe.Infrastructure.Migrations
                     b.Property<int>("ReservationId")
                         .HasColumnType("integer")
                         .HasColumnName("reservation_id");
+
+                    b.Property<int?>("SourcePaymentId")
+                        .HasColumnType("integer")
+                        .HasColumnName("source_payment_id");
 
                     b.Property<int?>("SourcePaymentProofId")
                         .HasColumnType("integer")
@@ -2523,6 +2594,10 @@ namespace ECafe.Infrastructure.Migrations
                     b.HasIndex("ApprovedByUserId");
 
                     b.HasIndex("InitiatedByUserId");
+
+                    b.HasIndex("SourcePaymentId")
+                        .IsUnique()
+                        .HasFilter("source_payment_id IS NOT NULL");
 
                     b.HasIndex("SourcePaymentProofId");
 
@@ -6996,6 +7071,11 @@ namespace ECafe.Infrastructure.Migrations
                         .IsRequired()
                         .HasConstraintName("reservation_refunds_reservation_id_fkey");
 
+                    b.HasOne("ECafe.Domain.Entities.Payment", "SourcePayment")
+                        .WithMany()
+                        .HasForeignKey("SourcePaymentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("ECafe.Domain.Entities.ReservationPaymentProof", "SourcePaymentProof")
                         .WithMany("SourceRefunds")
                         .HasForeignKey("SourcePaymentProofId")
@@ -7014,6 +7094,8 @@ namespace ECafe.Infrastructure.Migrations
                     b.Navigation("InitiatedByUser");
 
                     b.Navigation("Reservation");
+
+                    b.Navigation("SourcePayment");
 
                     b.Navigation("SourcePaymentProof");
 

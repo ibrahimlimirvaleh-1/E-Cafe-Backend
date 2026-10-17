@@ -1,4 +1,5 @@
 using ECafe.Application.DTOs.Reservation;
+using ECafe.Api.Security;
 using ECafe.Application.Features.Commands.Reservation.RequestRefund;
 using ECafe.Application.Features.Commands.Reservation.ReviewRefundTransfer;
 using ECafe.Application.Features.Commands.Reservation.SubmitRefundPayoutDetails;
@@ -29,6 +30,7 @@ public sealed class ReservationRefundFlowController : BaseController
 
     [Authorize(Roles = "5")]
     [HttpPost(ApiRoutes.ReservationRefundFlow.SubmitRefundPayoutDetails)]
+    [RetiredManualPayment]
     public async Task<IActionResult> SubmitRefundPayoutDetails(
         [FromRoute] int refundId,
         [FromBody] SubmitReservationRefundPayoutDetailsRequest request,
@@ -45,6 +47,7 @@ public sealed class ReservationRefundFlowController : BaseController
 
     [Authorize(Roles = "5")]
     [HttpPost(ApiRoutes.ReservationRefundFlow.ConfirmRefundTransfer)]
+    [RetiredManualPayment]
     public async Task<IActionResult> ConfirmRefundTransfer(
         [FromRoute] int refundId,
         [FromBody] ConfirmReservationRefundTransferRequest request,
@@ -59,6 +62,7 @@ public sealed class ReservationRefundFlowController : BaseController
 
     [Authorize(Roles = "5")]
     [HttpPost(ApiRoutes.ReservationRefundFlow.DisputeRefundTransfer)]
+    [RetiredManualPayment]
     public async Task<IActionResult> DisputeRefundTransfer(
         [FromRoute] int refundId,
         [FromBody] DisputeReservationRefundTransferRequest request,
@@ -73,6 +77,7 @@ public sealed class ReservationRefundFlowController : BaseController
 
     [HasPermission(PermissionCode.ManageReservations)]
     [HttpPost(ApiRoutes.ReservationRefundFlow.SubmitRefundTransfer)]
+    [RetiredManualPayment]
     [Consumes("multipart/form-data")]
     public async Task<IActionResult> SubmitRefundTransfer(
         [FromRoute] int restaurantId,

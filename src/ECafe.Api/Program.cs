@@ -282,7 +282,7 @@ builder.Services.AddHostedService<EmailOutboxWorker>();
 builder.Services.AddHostedService<MobilePushWorker>();
 builder.Services.AddHostedService<ContractExpiryWorker>();
 builder.Services.AddHostedService<ReservationExpiryWorker>();
-builder.Services.AddHostedService<PaymentInstructionEncryptionBackfillWorker>();
+builder.Services.AddSingleton(new ECafe.Application.Services.Payments.PaymentEnvironment(builder.Environment.EnvironmentName));
 
 builder.Services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
 builder.Services.AddScoped<IAuthorizationHandler, ActiveRestaurantContractAuthorizationHandler>();

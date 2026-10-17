@@ -1,5 +1,5 @@
 using ECafe.Application.DTOs.Reservation;
-using ECafe.Application.Services.ReservationRefund.Abstract;
+using ECafe.Application.Services.Payments.Abstract;
 using MediatR;
 
 namespace ECafe.Application.Features.Commands.Reservation.RequestRefund;
@@ -12,9 +12,9 @@ public sealed class RequestReservationRefundCommand : IRequest<ReservationRefund
 public sealed class RequestReservationRefundCommandHandler
     : IRequestHandler<RequestReservationRefundCommand, ReservationRefundResponse>
 {
-    private readonly IReservationRefundService _reservationRefundService;
+    private readonly IProviderPaymentService _reservationRefundService;
 
-    public RequestReservationRefundCommandHandler(IReservationRefundService reservationRefundService)
+    public RequestReservationRefundCommandHandler(IProviderPaymentService reservationRefundService)
     {
         _reservationRefundService = reservationRefundService;
     }
@@ -22,5 +22,5 @@ public sealed class RequestReservationRefundCommandHandler
     public Task<ReservationRefundResponse> Handle(
         RequestReservationRefundCommand request,
         CancellationToken cancellationToken)
-        => _reservationRefundService.RequestAsync(request.ReservationId, cancellationToken);
+        => _reservationRefundService.RequestRefundAsync(request.ReservationId, cancellationToken);
 }

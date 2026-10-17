@@ -20,6 +20,8 @@ namespace ECafe.Application.Services.FileAccess.Concrete
 
         public void EnsureCurrentUserCanAccess(Domain.Entities.File file)
         {
+            if (file.FileTypeId == (int)FileTypeCode.PaymentReceipt)
+                throw new ForbiddenException(ErrorCode.ManualPaymentRetired);
             if (file.FileTypeId == (int)FileTypeCode.TemporaryUpload)
             {
                 if (IsCurrentUserSuperAdmin() || file.CreatedBy == GetCurrentUserId().ToString())

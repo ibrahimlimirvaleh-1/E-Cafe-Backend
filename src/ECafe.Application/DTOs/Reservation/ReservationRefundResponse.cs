@@ -5,6 +5,10 @@ public sealed class ReservationRefundResponse
     public int Id { get; init; }
     public int ReservationId { get; init; }
     public int? SourcePaymentProofId { get; init; }
+    public int? SourcePaymentId { get; init; }
+    public bool IsTest { get; init; }
+    public bool RequiresManualReview { get; init; }
+    public bool CanSimulate { get; init; }
     public int StatusId { get; init; }
     public string Status { get; init; } = null!;
     public string WorkflowFlowCode { get; init; } = null!;

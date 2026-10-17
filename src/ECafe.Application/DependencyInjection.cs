@@ -1,5 +1,8 @@
 ﻿using ECafe.Application.Mappings;
 using ECafe.Application.Services;
+using ECafe.Application.Services.Payments;
+using ECafe.Application.Services.Payments.Abstract;
+using ECafe.Application.Services.Payments.Concrete;
 using ECafe.Application.Services.AuditLog.Abstract;
 using ECafe.Application.Services.AuditLog.Concrete;
 using ECafe.Application.Services.Auth.Abstract;
@@ -104,6 +107,12 @@ namespace ECafe.Application
                 .Validate(options => options.MaxContinuationHours is > 0 and <= 24 && options.MaxReasonLength is > 0 and <= 500,
                     "Table session review limits are outside supported ranges.").ValidateOnStart();
             services.AddScoped<IOrderService, OrderManager>();
+            services.AddOptions<PaymentOptions>()
+                .Configure<IConfiguration>((options, configuration) => configuration.GetSection(PaymentOptions.SectionName).Bind(options))
+                .Validate(options => options.Mode is "Disabled" or "Simulation", "Payments:Mode must be Disabled or Simulation.")
+                .ValidateOnStart();
+            services.AddScoped<PaymentRuntime>();
+            services.AddScoped<IProviderPaymentService, ProviderPaymentManager>();
             services.AddScoped<IKitchenOrderService, KitchenOrderManager>();
             services.AddScoped<ICustomerOrderTrackingService, CustomerOrderTrackingManager>();
             services.AddOptions<OrderCreationOptions>()

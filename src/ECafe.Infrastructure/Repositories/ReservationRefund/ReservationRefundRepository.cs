@@ -128,6 +128,7 @@ public sealed class ReservationRefundRepository
         return query
             .Include(refund => refund.Reservation)
             .Include(refund => refund.Status)
+            .Include(refund => refund.SourcePayment)
             .Include(refund => refund.PayoutDetails)
             .Include(refund => refund.TransferAttempts)
             .Include(refund => refund.StatusHistory)

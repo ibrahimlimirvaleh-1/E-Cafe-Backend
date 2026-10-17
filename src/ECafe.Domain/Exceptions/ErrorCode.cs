@@ -188,5 +188,13 @@ public enum ErrorCode
     OrderCannotSendToKitchen = 5084,
     KitchenOrderTransitionNotAllowed = 5085,
     KitchenOrderNotFound = 5086,
-    OrderCannotMarkServed = 5087
+    OrderCannotMarkServed = 5087,
+    PaymentsUnavailable = 5088,
+    PaymentSimulationUnavailable = 5089,
+    ManualPaymentRetired = 5090,
+    PaymentNotFound = 5091,
+    PaymentTransitionNotAllowed = 5092,
+    PaymentProviderMismatch = 5093,
+    PaymentRequestKeyRequired = 5094,
+    PaymentRequestKeyConflict = 5095
 }

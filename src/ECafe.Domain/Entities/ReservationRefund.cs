@@ -7,6 +7,11 @@ public class ReservationRefund : AuditableSoftDeletableEntity<int>
     public int ReservationId { get; set; }
 
     public int? SourcePaymentProofId { get; set; }
+    public int? SourcePaymentId { get; set; }
+    public virtual Payment? SourcePayment { get; set; }
+    public string? ProviderName { get; set; }
+    public string? ProviderRef { get; set; }
+    public ECafe.Domain.Enums.ProviderOperationStatus ProviderStatus { get; set; }
 
     public int StatusId { get; set; }
 

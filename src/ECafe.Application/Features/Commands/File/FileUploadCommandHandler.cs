@@ -44,6 +44,8 @@ namespace ECafe.Application.Features.Commands.File
 
         public async Task<FileResponse> Handle(FileUploadCommand request, CancellationToken cancellationToken)
         {
+            if (request.FileTypeId == (int)FileTypeCode.PaymentReceipt)
+                throw new BusinessRuleException(ErrorCode.ManualPaymentRetired);
             var file = request.File;
             if (file is null || file.Length == 0)
                 throw new ArgumentException("File is required.", nameof(request));

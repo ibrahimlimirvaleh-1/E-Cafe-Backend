@@ -57,6 +57,10 @@ namespace ECafe.Application.Common.Audit
         public const string OrderPreparationStarted = "OrderPreparationStarted";
         public const string OrderMarkedReady = "OrderMarkedReady";
         public const string OrderServed = "OrderServed";
+        public const string ProviderPaymentAuthorized = "ProviderPaymentAuthorized";
+        public const string ProviderPaymentUpdated = "ProviderPaymentUpdated";
+        public const string ProviderRefundUpdated = "ProviderRefundUpdated";
+        public const string ProviderCheckoutCreated = "ProviderCheckoutCreated";
         public const string TableSessionServiceContinued = "TableSessionServiceContinued";
         public const string RestaurantScheduleProposed = "RestaurantScheduleProposed";
         public const string RestaurantScheduleApplied = "RestaurantScheduleApplied";
@@ -122,7 +126,11 @@ namespace ECafe.Application.Common.Audit
             new(71, OrderAcceptedByKitchen, "Sifariş mətbəxdə qəbul edildi"),
             new(72, OrderPreparationStarted, "Sifarişin hazırlanmasına başlanıldı"),
             new(73, OrderMarkedReady, "Sifariş hazır qeyd edildi"),
-            new(74, OrderServed, "Sifariş müştəriyə təqdim edildi")
+            new(74, OrderServed, "Sifariş müştəriyə təqdim edildi"),
+            new(75, ProviderPaymentAuthorized, "Depozitin onlayn ödənişinə icazə verildi"),
+            new(76, ProviderPaymentUpdated, "Provayder ödənişi yeniləndi"),
+            new(77, ProviderRefundUpdated, "Provayder geri ödənişi yeniləndi"),
+            new(78, ProviderCheckoutCreated, "Ödəniş sessiyası yaradıldı")
         ];
 
         public static string GetDisplayName(string? action)
