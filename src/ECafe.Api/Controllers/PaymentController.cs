@@ -11,7 +11,7 @@ namespace ECafe.Api.Controllers;
 public sealed class PaymentController : BaseController
 {
     /// <summary>Ödənişin aktivliyini və test rejimini göstərir.</summary>
-    /// <remarks>Test rejimi real pul hərəkəti etmir. Production mühitində simulyasiya bloklanır; rejim yalnız server konfiqurasiyası ilə idarə edilir.</remarks>
+    /// <remarks>Standart rejim simulyasiyadır; real pul hərəkəti yoxdur. Serverin host rejimi Production olsa da test serverində işləyir. Payments:Mode=Disabled və ya EnableSimulation=false ilə söndürülür.</remarks>
     [HttpGet(ApiRoutes.Payment.Capabilities)]
     [ProducesResponseType(typeof(PaymentCapabilities), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetCapabilities(CancellationToken cancellationToken)

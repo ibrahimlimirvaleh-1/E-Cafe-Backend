@@ -4,7 +4,7 @@ Bu modul rezervasiya depoziti və mövcud refund hüququ üçün rekvizitsiz öd
 
 ## Test rejiminin açılması
 
-Standart rejim `Disabled`-dır. Yalnız ayrıca Development, Staging və ya Testing mühitində aşağıdakı server ayarlarını verin:
+Hazırda real müştərisi olmayan test layihəsi üçün standart rejim `Simulation`, `EnableSimulation=true`-dur. Bu ayarlar həm kodun standartında, həm də `appsettings.json` daxilində verilib:
 
 ```json
 "Payments": {
@@ -13,7 +13,9 @@ Standart rejim `Disabled`-dır. Yalnız ayrıca Development, Staging və ya Test
 }
 ```
 
-Environment dəyişənləri `Payments__Mode=Simulation` və `Payments__EnableSimulation=true` şəklində də verilə bilər. Production-da bu ayarlar olsa belə simulyasiya bloklanır. Mühiti süni şəkildə dəyişərək canlı saytda test ödənişi açmayın. Test mühitinin bazası və bildiriş alıcıları da canlıdan ayrılmalıdır.
+Test serveri `ASPNETCORE_ENVIRONMENT=Production` ilə işləsə də simulyasiya aktivdir; host adı ödənişin real olması demək deyil. Local, Development, Staging, Testing və Production host adları dəstəklənir; tanınmayan host mühiti bloklanır. Hostun təhlükəsizlik ayarlarını dəyişmək tələb olunmur.
+
+Söndürmək üçün `Payments__Mode=Disabled` və ya `Payments__EnableSimulation=false` verin. Environment dəyişənləri və mühitə aid konfiqurasiya standart ayarları üstələyə bilər; serverdə əvvəlki disable ayarı qalarsa onu ayrıca yeniləmək lazımdır. Real müştərilər açılmadan əvvəl bu müvəqqəti standart simulyasiya söndürülməlidir. Test bazası və bildiriş alıcıları canlıdan ayrılmalıdır. `IsTest=false` olan ödəniş və refund simulyasiya endpointləri ilə dəyişdirilə bilməz.
 
 `AddProviderReadyTestPayments` migration-ını əvvəl test bazasında tətbiq edin. Bu migration kart məlumatı yaratmır, köhnə məlumatı silmir və əvvəlki əməliyyatları test əməliyyatına çevirmir. Yeni əməliyyatlar `IsTest` ilə işarələnir. Pul tutulmur və banka refund göndərilmir.
 
@@ -40,7 +42,7 @@ Köhnə şifrəli rekvizitlər, fayllar, audit və ehtiyat nüsxələr avtomatik
 
 ## Real provayder qoşulanda
 
-`IPaymentGateway` sərhədi və maliyyə vəziyyət policy-ləri mövcuddur, lakin canlı adapter və credentials bu mərhələdə yoxdur. Sadəcə konfiqurasiyanı dəyişmək real ödənişi aktivləşdirmir. Production üçün simulyasiya qorumasını zəiflətmək əvəzinə ayrıca yoxlanmış live provider implementasiyası və rejimi əlavə olunmalıdır.
+`IPaymentGateway` sərhədi və maliyyə vəziyyət policy-ləri mövcuddur, lakin canlı adapter və credentials bu mərhələdə yoxdur. Sadəcə konfiqurasiyanı dəyişmək real ödənişi aktivləşdirmir. Real müştərilərə açılışdan qabaq simulyasiya söndürülməli, ayrıca yoxlanmış canlı provayder implementasiyası və rejimi əlavə olunmalıdır; `IsTest=false` qoruması saxlanılmalıdır.
 
 - Kart sahələri provayderin hosted checkout səhifəsində olmalıdır. Backend məbləğ, valyuta, merchant/restoran aidiyyəti və əməliyyat istinadını yoxlamalıdır.
 - Provayder sorğuları üçün saxlanmış payment/refund ID-lərindən sabit idempotency açarı yaradılmalıdır. Xarici sorğunun cavabı itərsə yeni əməliyyat yaradılmamalıdır.
