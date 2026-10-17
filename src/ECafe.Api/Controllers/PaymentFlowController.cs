@@ -37,8 +37,8 @@ public sealed class PaymentFlowController : BaseController
     public async Task<IActionResult> Refresh(int paymentId, CancellationToken cancellationToken)
         => Ok(await Mediator.Send(new RefreshPaymentCommand(paymentId), cancellationToken));
 
-    /// <summary>Yalnız test mühitində öz ödənişinin nəticəsini simulyasiya edir.</summary>
-    /// <remarks>Outcome: Pending, Succeeded, Failed, Cancelled. Real pul tutulmur. Payments:Mode=Simulation, EnableSimulation=true və Development/Staging/Testing mühiti birlikdə tələb olunur. Production-da rədd edilir.</remarks>
+    /// <summary>Simulyasiya rejimində yalnız öz test ödənişinin nəticəsini dəyişir.</summary>
+    /// <remarks>Outcome: Pending, Succeeded, Failed, Cancelled. Real pul tutulmur. Payments:Mode=Simulation və EnableSimulation=true tələb olunur; Production host rejimində də test serveri üçün açıqdır. IsTest=false olan ödənişə tətbiq edilmir.</remarks>
     [Authorize(Roles = "5")]
     [HttpPost(ApiRoutes.Payment.TestOutcome)]
     [ProducesResponseType(typeof(CheckoutPaymentResponse), StatusCodes.Status200OK)]

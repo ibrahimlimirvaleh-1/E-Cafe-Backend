@@ -234,14 +234,30 @@ public sealed class ProviderPaymentServiceTests
     }
 
     [Fact]
-    public async Task ProductionBlocksPaymentAndRefundSimulationEvenWhenConfiguredTrue()
+    public async Task UnknownEnvironmentBlocksPaymentAndRefundSimulationEvenWhenConfiguredTrue()
     {
-        await using var f = await Fixture.CreateAsync("Production");
+        await using var f = await Fixture.CreateAsync("Unknown");
         Assert.False(f.Service.GetCapabilities().Enabled);
         await Assert.ThrowsAsync<BusinessRuleException>(() => f.Checkout());
         await Assert.ThrowsAsync<BusinessRuleException>(() => f.Service.SimulateAsync(1, ProviderOperationStatus.Succeeded, default));
         await Assert.ThrowsAsync<BusinessRuleException>(() => f.Service.SimulateRefundAsync(1, ProviderOperationStatus.Succeeded, default));
         Assert.Empty(f.Context.Payments);
+    }
+
+    [Fact]
+    public async Task ProductionHostedTestServerCanSimulatePaymentAndRefund()
+    {
+        await using var f = await Fixture.CreateAsync("Production");
+        Assert.True(f.Service.GetCapabilities().Enabled);
+        Assert.True(f.Service.GetCapabilities().IsTest);
+        var payment = await f.PayAndCancel();
+        Assert.True(payment.IsTest);
+        var refund = await f.Service.RequestRefundAsync(1, default);
+        Assert.True(refund.IsTest);
+        var result = await f.Service.SimulateRefundAsync(refund.Id, ProviderOperationStatus.Succeeded, default);
+        Assert.Equal(StatusIds.Refund(RefundStatus.Refunded), result.StatusId);
+        Assert.Single(f.Context.Payments);
+        Assert.Single(f.Context.ReservationRefunds);
     }
 
     [Fact]
@@ -265,16 +281,33 @@ public sealed class ProviderPaymentServiceTests
         Assert.Empty(f.Context.Payments);
     }
 
-    [Fact]
-    public async Task TestEndpointCannotApplyToNonTestSource()
+    [Theory]
+    [InlineData("Testing")]
+    [InlineData("Production")]
+    public async Task TestEndpointCannotApplyToNonTestSource(string environment)
     {
-        await using var f = await Fixture.CreateAsync();
+        await using var f = await Fixture.CreateAsync(environment);
         await f.Authorize();
         var checkout = await f.Checkout();
         (await f.Context.Payments.SingleAsync()).IsTest = false;
         await f.Context.SaveChangesAsync();
         await Assert.ThrowsAsync<BusinessRuleException>(() => f.Service.SimulateAsync(checkout.Id, ProviderOperationStatus.Succeeded, default));
         Assert.Null((await f.Context.Payments.SingleAsync()).PaidAt);
+    }
+
+    [Theory]
+    [InlineData("Testing")]
+    [InlineData("Production")]
+    public async Task TestRefundEndpointCannotApplyToNonTestSource(string environment)
+    {
+        await using var f = await Fixture.CreateAsync(environment);
+        await f.PayAndCancel();
+        var refund = await f.Service.RequestRefundAsync(1, default);
+        (await f.Context.Payments.SingleAsync()).IsTest = false;
+        await f.Context.SaveChangesAsync();
+        await Assert.ThrowsAsync<BusinessRuleException>(() => f.Service.SimulateRefundAsync(refund.Id, ProviderOperationStatus.Succeeded, default));
+        Assert.Null((await f.Context.Payments.SingleAsync()).RefundedAt);
+        Assert.Null((await f.Context.ReservationRefunds.SingleAsync()).RefundedAt);
     }
 
     [Fact]

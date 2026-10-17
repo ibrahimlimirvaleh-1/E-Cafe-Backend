@@ -9,9 +9,9 @@ public sealed class PaymentRuntime(IOptions<PaymentOptions> options, PaymentEnvi
 {
     public bool SimulationEnabled => options.Value.EnableSimulation &&
         string.Equals(options.Value.Mode, "Simulation", StringComparison.OrdinalIgnoreCase) &&
-        (environment.Name is "Development" or "Staging" or "Testing");
+        (environment.Name is "Local" or "Development" or "Staging" or "Testing" or "Production");
 
-    /// <summary>UI-yə yalnız serverdə həqiqətən icazə verilmiş rejimi göstərir; Production-da test aktiv görünmür.</summary>
+    /// <summary>UI-yə serverin simulyasiya rejimini göstərir; Production host adı real ödəniş rejimi sayılmır və test açıq işarələnir.</summary>
     public PaymentCapabilities GetCapabilities() => new(SimulationEnabled, SimulationEnabled,
         SimulationEnabled ? "Simulation" : "Disabled", SimulationEnabled ? PaymentTexts.TestNotice : PaymentTexts.Unavailable);
 

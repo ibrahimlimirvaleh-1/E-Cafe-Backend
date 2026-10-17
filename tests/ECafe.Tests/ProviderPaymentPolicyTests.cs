@@ -37,19 +37,37 @@ public sealed class ProviderPaymentPolicyTests
     }
 
     [Theory]
-    [InlineData("Production", true, "Simulation", false)]
+    [InlineData("Production", true, "Simulation", true)]
+    [InlineData("Production", false, "Simulation", false)]
+    [InlineData("Production", true, "Disabled", false)]
+    [InlineData("Local", true, "Simulation", true)]
     [InlineData("Unknown", true, "Simulation", false)]
     [InlineData("Development", false, "Simulation", false)]
     [InlineData("Development", true, "Disabled", false)]
     [InlineData("Development", true, "Simulation", true)]
     [InlineData("Staging", true, "Simulation", true)]
     [InlineData("Testing", true, "Simulation", true)]
-    public void SimulationRequiresBothExplicitConfigurationAndSafeEnvironment(string environment, bool enabled, string mode, bool expected)
+    public void SimulationRequiresEnabledModeAndKnownEnvironment(string environment, bool enabled, string mode, bool expected)
     {
         var runtime = new PaymentRuntime(Options.Create(new PaymentOptions { Mode = mode, EnableSimulation = enabled }), new(environment));
         Assert.Equal(expected, runtime.GetCapabilities().Enabled);
         Assert.Equal(expected, runtime.GetCapabilities().IsTest);
         if (!expected) Assert.Throws<BusinessRuleException>(runtime.EnsureEnabled);
+        Assert.Throws<BusinessRuleException>(() => runtime.EnsureSimulation(false));
+    }
+
+    [Theory]
+    [InlineData("Local")]
+    [InlineData("Development")]
+    [InlineData("Staging")]
+    [InlineData("Testing")]
+    [InlineData("Production")]
+    public void DefaultOptionsEnableOnlyTestMode(string environment)
+    {
+        var runtime = new PaymentRuntime(Options.Create(new PaymentOptions()), new(environment));
+        Assert.True(runtime.GetCapabilities().Enabled);
+        Assert.True(runtime.GetCapabilities().IsTest);
+        Assert.Equal("Simulation", runtime.GetCapabilities().Mode);
         Assert.Throws<BusinessRuleException>(() => runtime.EnsureSimulation(false));
     }
 
