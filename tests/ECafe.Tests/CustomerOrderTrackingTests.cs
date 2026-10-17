@@ -6,7 +6,8 @@ using ECafe.Api.Controllers;
 using ECafe.Api.Swagger;
 using ECafe.Application.Common.Exceptions;
 using ECafe.Application.DTOs.Order;
-using ECafe.Application.Services.Orders;
+using ECafe.Application.Mappings;
+using ECafe.Application.Services.Orders.Concrete;
 using ECafe.Domain.Entities;
 using ECafe.Domain.Enums;
 using ECafe.Domain.Exceptions;
@@ -312,12 +313,10 @@ public sealed class CustomerOrderTrackingTests
             .GetMethod("QueryOwnedSessions", flags)!.Invoke(manager, [1])!;
         var orders = (IQueryable<Order>)typeof(CustomerOrderTrackingManager)
             .GetMethod("QueryOwnedOrders", flags)!.Invoke(manager, [1, 1])!;
-        var sessionView = (IQueryable<CustomerTableSessionResponse>)typeof(CustomerOrderTrackingManager)
-            .GetMethod("ProjectSessions", BindingFlags.NonPublic | BindingFlags.Static)!
-            .Invoke(null, [sessions.OrderByDescending(s => s.OpenedAt).ThenByDescending(s => s.Id)])!;
-        var orderView = (IQueryable<CustomerSessionOrderResponse>)typeof(CustomerOrderTrackingManager)
-            .GetMethod("ProjectOrders", BindingFlags.NonPublic | BindingFlags.Static)!
-            .Invoke(null, [orders.OrderByDescending(o => o.OpenedAt).ThenByDescending(o => o.Id)])!;
+        var sessionView = CustomerOrderTrackingMapper.ProjectSessions(
+            sessions.OrderByDescending(s => s.OpenedAt).ThenByDescending(s => s.Id));
+        var orderView = CustomerOrderTrackingMapper.ProjectOrders(
+            orders.OrderByDescending(o => o.OpenedAt).ThenByDescending(o => o.Id));
         Assert.Contains("customer_user_id", sessionView.Skip(0).Take(20).ToQueryString());
         Assert.Contains("EXISTS", orderView.Skip(0).Take(20).ToQueryString());
     }

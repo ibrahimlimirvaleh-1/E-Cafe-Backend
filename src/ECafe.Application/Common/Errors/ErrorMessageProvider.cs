@@ -163,6 +163,7 @@ public sealed class ErrorMessageProvider : IErrorMessageProvider
         [ErrorCode.OrderCannotSendToKitchen] = "Bu sifariş hazırkı vəziyyətdə mətbəxə göndərilə bilməz. Sifariş siyahısını yeniləyin.",
         [ErrorCode.KitchenOrderTransitionNotAllowed] = "Sifarişin vəziyyəti dəyişib və ya bu addım hazırda mümkün deyil. Mətbəx növbəsini yeniləyin.",
         [ErrorCode.KitchenOrderNotFound] = "Bu restoran üçün mətbəx sifarişi tapılmadı.",
+        [ErrorCode.OrderCannotMarkServed] = "Yalnız hazır sifariş təqdim edilmiş kimi qeyd oluna bilər. Sifariş siyahısını yeniləyin.",
         [ErrorCode.RestaurantClosedForArrival] = "Restoran bu saatda bağlıdır.",
         [ErrorCode.UserNotBelongsToRestaurant] = "Giriş edən restoran işçisi deyil.",
         [ErrorCode.MobilePushStaffAccessRequired] = "Telefon bildirişləri aktiv müştərilər və mobil push icazəsi verilmiş restoranın aktiv işçiləri üçün əlçatandır.",

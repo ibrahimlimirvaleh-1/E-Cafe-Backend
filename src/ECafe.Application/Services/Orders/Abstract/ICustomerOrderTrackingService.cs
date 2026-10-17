@@ -1,7 +1,7 @@
 using ECafe.Application.DTOs.Order;
 using ECafe.Shared.DTOs;
 
-namespace ECafe.Application.Services.Orders;
+namespace ECafe.Application.Services.Orders.Abstract;
 
 public interface ICustomerOrderTrackingService
 {

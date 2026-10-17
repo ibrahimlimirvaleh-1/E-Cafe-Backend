@@ -12,6 +12,7 @@ using ECafe.Application.Repositories.Table;
 using ECafe.Application.Repository;
 using ECafe.Application.Services.AuditLog.Abstract;
 using ECafe.Application.Services.Orders;
+using ECafe.Application.Services.Orders.Concrete;
 using ECafe.Application.Services.TableSessions.Concrete;
 using ECafe.Domain.Entities;
 using ECafe.Domain.Enums;
@@ -369,10 +370,11 @@ public sealed class WaiterOrderCreationTests
             => throw new TranslationVerifiedException();
     }
 
-    private sealed class Fixture : IAsyncDisposable
+    internal sealed class Fixture : IAsyncDisposable
     {
         public ECafeDbContext Context { get; }
         public OrderManager Manager { get; }
+        public DefaultHttpContext Http { get; } = new();
         public Mock<IAuditLogService> Audit { get; } = new();
         public Mock<IApplicationDbTransaction> Transaction { get; } = new();
         public Func<Task>? BeforeLock { get; set; }
@@ -381,12 +383,12 @@ public sealed class WaiterOrderCreationTests
         private Fixture(ECafeDbContext context, SemaphoreSlim? gate)
         {
             Context = context;
-            var http = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity(new[]
+            Http.User = new ClaimsPrincipal(new ClaimsIdentity(new[]
             {
                 new Claim("userId", "1"), new Claim("restaurantId", "1"),
                 new Claim(ClaimTypes.Role, ((int)RoleCode.Waiter).ToString())
-            }, "test")) };
-            var accessor = Mock.Of<IHttpContextAccessor>(accessor => accessor.HttpContext == http);
+            }, "test"));
+            var accessor = Mock.Of<IHttpContextAccessor>(accessor => accessor.HttpContext == Http);
             var mapper = Mock.Of<IMapper>();
             var configuration = new ConfigurationBuilder().Build();
             var sessions = new TableSessionRepository(context);

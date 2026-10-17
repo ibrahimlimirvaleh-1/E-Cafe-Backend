@@ -187,5 +187,6 @@ public enum ErrorCode
     OrderNotFound = 5081,
     OrderCannotSendToKitchen = 5084,
     KitchenOrderTransitionNotAllowed = 5085,
-    KitchenOrderNotFound = 5086
+    KitchenOrderNotFound = 5086,
+    OrderCannotMarkServed = 5087
 }

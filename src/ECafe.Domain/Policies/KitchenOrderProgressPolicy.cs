@@ -2,17 +2,17 @@ using Order = ECafe.Domain.Entities.Order;
 using ECafe.Domain.Enums;
 using ECafe.Domain.Exceptions;
 
-namespace ECafe.Application.Services.Orders;
+namespace ECafe.Domain.Policies;
 
-internal static class KitchenOrderProgressPolicy
+public static class KitchenOrderProgressPolicy
 {
     /// <summary>Göndərilmiş aktiv sifarişin yalnız növbəti mərhələyə keçə bildiyini müəyyən edir; UI işarəsi və server eyni qaydanı istifadə edir.</summary>
-    internal static bool CanApply(Order order, OrderStatus target)
+    public static bool CanApply(Order order, OrderStatus target)
         => IsActiveKitchenOrder(order) && order.StatusId == StatusIds.Build(StatusType.Order, (int)Previous(target)) &&
            GetMilestone(order, target).At == null && order.OrderItems.Any(line => !line.IsDeleted && line.Quantity > 0);
 
     /// <summary>İlk keçiddə vaxtı və əməkdaşı qeyd edir; eyni əməkdaşın təkrarını dəyişmədən qaytarır, başqa və ya ardıcıllığı pozan qərarı rədd edir.</summary>
-    internal static bool Apply(Order order, OrderStatus target, int userId, DateTime nowUtc)
+    public static bool Apply(Order order, OrderStatus target, int userId, DateTime nowUtc)
     {
         var milestone = GetMilestone(order, target);
         if (IsActiveKitchenOrder(order) && milestone.At != null && milestone.By == userId &&

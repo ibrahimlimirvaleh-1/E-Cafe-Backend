@@ -19,6 +19,7 @@ public sealed record OrderLineResponse(int Id, int ItemId, string Name, int Quan
 
 public sealed record SessionOrderResponse(int Id, int RestaurantId, int TableId, int? TableSessionId,
     int? ReservationId, int? WaiterUserId, int SourceId, int StatusId, DateTimeOffset OpenedAt,
-    DateTimeOffset? SentToKitchenAt, string? Note, decimal Subtotal, IReadOnlyList<OrderLineResponse> Items);
+    DateTimeOffset? SentToKitchenAt, string? Note, decimal Subtotal, IReadOnlyList<OrderLineResponse> Items,
+    DateTimeOffset? ServedAt = null, bool CanMarkServed = false);
 
 public sealed record CreateOrderResult(SessionOrderResponse Order, bool IsReplay);
