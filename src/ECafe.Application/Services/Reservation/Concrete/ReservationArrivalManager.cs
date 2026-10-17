@@ -192,7 +192,7 @@ public sealed class ReservationArrivalManager(
         => new(adjustment.ConsentToken, ToOffset(adjustment.RequestedArrivalAt), ToOffset(adjustment.ProposedNoShowDeadlineAt),
             adjustment.MustVacateAt.HasValue ? ToOffset(adjustment.MustVacateAt.Value) : null,
             ToOffset(adjustment.DecisionExpiresAt), adjustment.AcceptedAt.HasValue,
-            reservation.PaymentProofs.Any(p => p.StatusId == StatusIds.Reservation(ReservationStatus.Confirmed)),
+            ECafe.Domain.Policies.ReservationDepositPolicy.HasConfirmedDeposit(reservation),
             ReservationCancellationRules.CanRefund(reservation, now, true), reservation.Restaurant.TimeZone);
 
     private static DateTimeOffset ToOffset(DateTime value) => new(DateTime.SpecifyKind(value, DateTimeKind.Utc));

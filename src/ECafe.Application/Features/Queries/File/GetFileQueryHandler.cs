@@ -3,6 +3,7 @@ using ECafe.Application.Common.Exceptions;
 using ECafe.Application.Repositories.File;
 using ECafe.Application.Services.MinIO.Abstracts;
 using ECafe.Domain.Exceptions;
+using ECafe.Domain.Enums;
 using MediatR;
 
 namespace ECafe.Application.Features.Queries.File
@@ -23,7 +24,7 @@ namespace ECafe.Application.Features.Queries.File
         public async Task<GetFileResponse> Handle(GetFileQuery request, CancellationToken cancellationToken)
         {
             var file = await _fileRepository.GetPublicByTokenAsync(request.token);
-            if (file?.FileType is null || !file.FileType.IsPublic)
+            if (file?.FileType is null || !file.FileType.IsPublic || file.FileTypeId == (int)FileTypeCode.PaymentReceipt)
                 throw new NotFoundException(ErrorCode.FileNotFound);
 
             return await _minioService.GetFileAsync(file.Token);

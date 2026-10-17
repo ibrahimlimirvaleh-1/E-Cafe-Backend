@@ -14,6 +14,12 @@ public sealed class ReservationRefundConfiguration : DbEntityConfig<ReservationR
         builder.Property(e => e.Id).HasColumnName("id");
         builder.Property(e => e.ReservationId).HasColumnName("reservation_id");
         builder.Property(e => e.SourcePaymentProofId).HasColumnName("source_payment_proof_id");
+        builder.Property(e => e.SourcePaymentId).HasColumnName("source_payment_id");
+        builder.Property(e => e.ProviderName).HasMaxLength(40).HasColumnName("provider_name");
+        builder.Property(e => e.ProviderRef).HasMaxLength(200).HasColumnName("provider_ref");
+        builder.Property(e => e.ProviderStatus).HasColumnName("provider_status");
+        builder.HasOne(e => e.SourcePayment).WithMany().HasForeignKey(e => e.SourcePaymentId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasIndex(e => e.SourcePaymentId).IsUnique().HasFilter("source_payment_id IS NOT NULL");
         builder.Property(e => e.StatusId).HasColumnName("status_id");
         builder.Property(e => e.Amount).HasPrecision(18, 2).HasColumnName("amount");
         builder.Property(e => e.CurrencyCode).HasMaxLength(3).HasColumnName("currency_code");

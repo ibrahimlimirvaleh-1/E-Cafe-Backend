@@ -17,6 +17,14 @@ public partial class Payment : AuditableSoftDeletableEntity<int>
     public int PaymentStatusId { get; set; }
 
     public string? ProviderRef { get; set; }
+    public string? ProviderName { get; set; }
+    public bool IsTest { get; set; }
+    public string CurrencyCode { get; set; } = "AZN";
+    public string? CheckoutKey { get; set; }
+    public string? CheckoutUrl { get; set; }
+    public DateTime? CheckoutExpiresAt { get; set; }
+    public ECafe.Domain.Enums.ProviderOperationStatus ProviderStatus { get; set; }
+    public bool RequiresRefund { get; set; }
 
     public DateTime? PaidAt { get; set; }
     public DateTime? RefundedAt { get; set; }

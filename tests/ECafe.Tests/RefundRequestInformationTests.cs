@@ -1,4 +1,4 @@
-using ECafe.Application.Services.ReservationRefund.Concrete;
+using ECafe.Application.Mappings;
 using ECafe.Domain.Entities;
 using ECafe.Domain.Enums;
 using ECafe.Infrastructure.Context;
@@ -85,9 +85,9 @@ public sealed class RefundRequestInformationTests
     }
 
     [Theory]
-    [InlineData(RefundStatus.AwaitingPayoutDetails, "rekvizitlərinizi")]
-    [InlineData(RefundStatus.ReadyForPayout, "köçürməsini")]
-    [InlineData(RefundStatus.Processing, "yalnız bundan sonra")]
+    [InlineData(RefundStatus.AwaitingPayoutDetails, "ayrıca yoxlama")]
+    [InlineData(RefundStatus.ReadyForPayout, "ayrıca yoxlama")]
+    [InlineData(RefundStatus.Processing, "ilkin ödənişə")]
     [InlineData(RefundStatus.Refunded, "Əlavə sorğu")]
     public void Next_step_matches_the_refund_stage(RefundStatus status, string expected)
         => Assert.Contains(expected, ReservationRefundRequestMapper.GetCustomerNextStep(StatusIds.Refund(status)));

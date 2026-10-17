@@ -5,6 +5,7 @@ using ECafe.Domain.Enums;
 using ECafe.Infrastructure.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using ECafe.Api.Security;
 using ApiRoutes = ECafe.Application.Routes.Routes;
 
 namespace ECafe.Api.Controllers;
@@ -43,6 +44,7 @@ public sealed class ReservationRefundController : BaseController
 
     [HasPermission(PermissionCode.ManageReservations)]
     [HttpGet(ApiRoutes.ReservationRefund.GetRefundPayoutDetails)]
+    [RetiredManualPayment]
     public async Task<IActionResult> GetRefundPayoutDetails(
         [FromRoute] int restaurantId,
         [FromRoute] int refundId,

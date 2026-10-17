@@ -37,6 +37,7 @@ namespace ECafe.Infrastructure.Seeders
                 });
         }
 
+        /// <summary>Tarixi köçürmə əməliyyatlarının status əlaqəsini saxlayır; yeni ödəniş üsuluna icazə ayrıca PaymentMethodPolicy ilə yoxlanılır.</summary>
         private static IEnumerable<Domain.Entities.Status> CreatePaymentMethodStatuses()
         {
             const Domain.Enums.StatusType statusType = Domain.Enums.StatusType.PaymentMethod;
@@ -48,7 +49,7 @@ namespace ECafe.Infrastructure.Seeders
                     Id = (statusTypeId * 1000) + Convert.ToInt32(paymentMethod),
                     Name = paymentMethod.GetName(),
                     StatusTypeId = statusTypeId,
-                    IsDeleted = !PaymentMethodPolicy.IsMvpSupported(paymentMethod)
+                    IsDeleted = paymentMethod is not (PaymentMethod.Online or PaymentMethod.BankTransfer)
                 });
         }
 

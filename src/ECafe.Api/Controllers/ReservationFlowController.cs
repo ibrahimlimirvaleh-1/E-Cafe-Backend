@@ -1,4 +1,5 @@
 using ECafe.Application.DTOs.Reservation;
+using ECafe.Api.Security;
 using ECafe.Application.Features.Commands.Reservation.ApprovePaymentProof;
 using ECafe.Application.Features.Commands.Reservation.Cancel;
 using ECafe.Application.Features.Commands.Reservation.CancelRestaurantReservation;
@@ -23,6 +24,7 @@ public sealed class ReservationFlowController : BaseController
 {
     [Authorize(Roles = "5")]
     [HttpPost(ApiRoutes.ReservationFlow.SubmitPaymentProof)]
+    [RetiredManualPayment]
     [Consumes("multipart/form-data")]
     public async Task<IActionResult> SubmitPaymentProof(
         [FromRoute] int restaurantId,
@@ -73,6 +75,7 @@ public sealed class ReservationFlowController : BaseController
 
     [HasPermission(PermissionCode.ManageReservations)]
     [HttpPost(ApiRoutes.ReservationFlow.SendPaymentInstruction)]
+    [RetiredManualPayment]
     public async Task<IActionResult> SendPaymentInstruction(
         [FromRoute] int restaurantId,
         [FromRoute] int reservationId,
@@ -88,6 +91,7 @@ public sealed class ReservationFlowController : BaseController
 
     [HasPermission(PermissionCode.ManageReservations)]
     [HttpPost(ApiRoutes.ReservationFlow.ApprovePaymentProof)]
+    [RetiredManualPayment]
     public async Task<IActionResult> ApprovePaymentProof(
         [FromRoute] int restaurantId,
         [FromRoute] int reservationId,
@@ -104,6 +108,7 @@ public sealed class ReservationFlowController : BaseController
 
     [HasPermission(PermissionCode.ManageReservations)]
     [HttpPost(ApiRoutes.ReservationFlow.RejectPaymentProof)]
+    [RetiredManualPayment]
     public async Task<IActionResult> RejectPaymentProof(
         [FromRoute] int restaurantId,
         [FromRoute] int reservationId,

@@ -3,6 +3,7 @@ using System.Text.RegularExpressions;
 using ECafe.Application.Common.Audit;
 using ECafe.Application.Common.Exceptions;
 using ECafe.Application.DTOs.Reservation;
+using ECafe.Application.Mappings;
 using ECafe.Application.Repositories.Reservation;
 using ECafe.Application.Repositories.ReservationPaymentProof;
 using ECafe.Application.Repositories.ReservationRefund;
@@ -607,15 +608,7 @@ public sealed class ReservationRefundManager : BaseManager, IReservationRefundSe
 
     /// <summary>Geri ödənişin səbəbini əməliyyatı edən şəxsdən deyil, qeydə alınmış ayrılma səbəbindən də müəyyən edir.</summary>
     private static string BuildEligibilityReason(ReservationEntity reservation)
-    {
-        if (reservation.DepartureReason == ReservationDepartureReason.RestaurantCannotSeat)
-            return ReservationReceptionTexts.RestaurantDepartureRefundReason;
-        if (reservation.DepartureReason == ReservationDepartureReason.GuestLeft)
-            return ReservationReceptionTexts.GuestDepartureRefundReason;
-        return reservation.CancelledByUserId == reservation.CustomerUserId
-            ? "Müştəri rezervasiyanı icazə verilən ləğv müddəti daxilində ləğv edib."
-            : "Restoran təsdiqlənmiş rezervasiyanı ləğv edib.";
-    }
+        => ReservationRefundRequestMapper.GetEligibilityReason(reservation);
 
     private static void ValidateReservationId(int reservationId)
     {

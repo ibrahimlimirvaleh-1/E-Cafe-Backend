@@ -26,8 +26,10 @@ public static class EcafeSwaggerMetadata
             ["ReservationFlow"] = new("10. Reservation Flow", "Rezervasiyanın ödəniş, ləğv, gəliş və tamamlanma əməliyyatları."),
             ["ReservationArrival"] = new("11. Reservation Arrival", "Gecikmə seçimləri və mövcud təklifin məlumatları."),
             ["ReservationArrivalFlow"] = new("11.1. Reservation Arrival Flow", "Gecikmə təklifinin yaradılması və müştərinin razılığı."),
-            ["ReservationRefund"] = new("12. Reservation Refunds", "Geri ödənişin detalı, tarixçəsi və icazəli rekvizit baxışı."),
-            ["ReservationRefundFlow"] = new("13. Reservation Refund Flow", "Geri ödəniş sorğusu, rekvizit, köçürmə, təsdiq və etiraz əməliyyatları."),
+            ["ReservationRefund"] = new("12. Reservation Refunds", "Geri ödənişin rekvizitsiz vəziyyəti və tarixçəsi."),
+            ["ReservationRefundFlow"] = new("13. Reservation Refund Flow", "Mövcud refund hüququ üzrə müraciət. Əvvəlki rekvizit/çek endpointləri 410 ilə bağlanıb."),
+            ["Payment"] = new("13.1. Payments", "Provayderə hazır ödəniş vəziyyəti və test rejiminin server imkanları."),
+            ["PaymentFlow"] = new("13.2. Payment Flow", "Rekvizitsiz checkout, provayder nəticəsinin yoxlanması və qorunan test/refund simulyasiyası."),
             ["RestaurantContract"] = new("14. Restaurant Contracts", "Restoran müqavilələrinin yaradılması, yenilənməsi və məlumatları."),
             ["RestaurantContractFlow"] = new("15. Restaurant Contract Flow", "Müqavilənin təsdiqə göndərilməsi, sahibkar təsdiqi, aktivləşdirilməsi və ləğvi."),
             ["MobileApp"] = new("16. Mobile App", "Mobil tətbiqin restoran üzrə ayarları, yükləmə linkinin yayımlanması və push cihaz qeydiyyatı.")

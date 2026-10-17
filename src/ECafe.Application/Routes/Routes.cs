@@ -2,6 +2,17 @@ namespace ECafe.Application.Routes;
 
 public static class Routes
 {
+    public static class Payment
+    {
+        public const string Capabilities = Base + "/payments/capabilities";
+        public const string Reservation = Base + "/reservations/{reservationId:int}/payment";
+        public const string Authorize = Base + "/restaurants/{restaurantId:int}/reservations/{reservationId:int}/payment/authorize";
+        public const string Checkout = Reservation + "/checkout";
+        public const string Refresh = Base + "/payments/{paymentId:int}/refresh";
+        public const string TestOutcome = Base + "/payments/{paymentId:int}/test-outcome";
+        public const string RefundTestOutcome = Base + "/refunds/{refundId:int}/test-outcome";
+        public const string RefundRefresh = Base + "/refunds/{refundId:int}/refresh";
+    }
     public static class RestaurantSchedule
     {
         private const string Collection = Base + "/restaurants/{restaurantId:int}/schedule-change";

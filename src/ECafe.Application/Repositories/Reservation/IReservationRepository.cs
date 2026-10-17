@@ -6,6 +6,8 @@ namespace ECafe.Application.Repositories.Reservation;
 
 public interface IReservationRepository : IBaseRepository<Domain.Entities.Reservation>
 {
+    Task<Domain.Entities.Reservation?> GetForProviderPaymentAsync(int reservationId, bool tracked,
+        CancellationToken cancellationToken = default);
     Task<bool> IsWithinReservationServiceIntervalAsync(int restaurantId, int reservationId,
         DateTime nowUtc, CancellationToken cancellationToken = default);
 

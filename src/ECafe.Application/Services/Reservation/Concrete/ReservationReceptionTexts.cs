@@ -10,8 +10,8 @@ internal static class ReservationReceptionTexts
     public const string SeatedHistory = "Müştəri masaya əyləşdi və masa açıldı.";
     public const string SeatedTitle = "Müştəri masaya əyləşdirildi";
     public const string DepartureTitle = "Gözləyən rezervasiya bağlandı";
-    public const string RestaurantDepartureRefundReason = "Restoran gəlmiş müştərini masaya əyləşdirə bilmədiyi üçün rezervasiya ləğv edilib.";
-    public const string GuestDepartureRefundReason = "Müştərinin ayrılması qeyd edilib; geri ödəniş hüququ mövcud müştəri ləğv qaydasına uyğun təsdiqlənib.";
+    public const string RestaurantDepartureRefundReason = ECafe.Application.Services.Payments.PaymentTexts.RestaurantDepartureRefundReason;
+    public const string GuestDepartureRefundReason = ECafe.Application.Services.Payments.PaymentTexts.GuestDepartureRefundReason;
     public const string WaitingSection = "waiting";
 
     /// <summary>Ofisianta gəliş və masa barədə maliyyə məlumatı olmayan bildiriş mətnini hazırlayır.</summary>

@@ -140,6 +140,7 @@ public class WorkflowActionManager : BaseManager, IWorkflowActionService
         }
 
         return rules
+            .Where(rule => !IsRetiredPaymentAction(normalizedFlowCode, rule.ActionCode))
             .Select(rule => new WorkflowActionResponse
             {
                 Code = rule.ActionCode,
@@ -261,6 +262,13 @@ public class WorkflowActionManager : BaseManager, IWorkflowActionService
 
         return false;
     }
+
+    /// <summary>Köhnə rekvizit, çek və əl ilə köçürmə əməliyyatlarını UI-nin workflow siyahısına çıxarmır.</summary>
+    private static bool IsRetiredPaymentAction(string flow, string action)
+        => flow == WorkflowFlowCode.FromStatusType(StatusType.Refund) ||
+            (flow == WorkflowFlowCode.FromStatusType(StatusType.Reservation) &&
+             action is WorkflowActionCode.Reservation.SendPaymentInstruction or WorkflowActionCode.Reservation.SubmitPaymentProof or
+                 WorkflowActionCode.Reservation.ApprovePaymentProof or WorkflowActionCode.Reservation.RejectPaymentProof);
 
     private static string NormalizeFlowCode(string flowCode)
         => flowCode.Trim().ToLowerInvariant();

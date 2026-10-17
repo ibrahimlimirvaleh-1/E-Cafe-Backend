@@ -26,6 +26,22 @@ namespace ECafe.Infrastructure.Configurations.Concrete
             builder.Property(e => e.PaymentMethodId).HasColumnName("payment_method_id");
             builder.Property(e => e.PaymentStatusId).HasColumnName("payment_status_id");
             builder.Property(e => e.ProviderRef).HasColumnName("provider_ref");
+            builder.Property(e => e.ProviderName).HasMaxLength(40).HasColumnName("provider_name");
+            builder.Property(e => e.IsTest).HasColumnName("is_test");
+            builder.Property(e => e.CurrencyCode).HasMaxLength(3).HasDefaultValue("AZN").HasColumnName("currency_code");
+            builder.Property(e => e.CheckoutKey).HasMaxLength(36).HasColumnName("checkout_key");
+            builder.Property(e => e.CheckoutUrl).HasMaxLength(2048).HasColumnName("checkout_url");
+            builder.Property(e => e.CheckoutExpiresAt).HasColumnName("checkout_expires_at");
+            builder.Property(e => e.ProviderStatus).HasColumnName("provider_status");
+            builder.Property(e => e.RequiresRefund).HasColumnName("requires_refund");
+            builder.HasIndex(e => e.CreatedByUserId).HasDatabaseName("IX_payments_created_by_user_id");
+            builder.HasIndex(e => e.ReservationId).HasDatabaseName("IX_payments_reservation_id");
+            builder.HasIndex(e => new { e.CreatedByUserId, e.CheckoutKey }, "payments_customer_checkout_key")
+                .IsUnique().HasFilter("checkout_key IS NOT NULL");
+            builder.HasIndex(e => new { e.ProviderName, e.ProviderRef }, "payments_provider_reference_key")
+                .IsUnique().HasFilter("provider_name IS NOT NULL AND provider_ref IS NOT NULL");
+            builder.HasIndex(e => e.ReservationId, "payments_pending_reservation_key")
+                .IsUnique().HasFilter("reservation_id IS NOT NULL AND provider_name IS NOT NULL AND payment_status_id = 3001 AND NOT \"IsDeleted\"");
             builder.Property(e => e.ReservationId).HasColumnName("reservation_id");
             builder.Property(e => e.RestaurantId).HasColumnName("restaurant_id");
 

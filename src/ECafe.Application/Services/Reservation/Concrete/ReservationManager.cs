@@ -22,6 +22,8 @@ using ECafe.Application.Services.AuditLog.Abstract;
 using ECafe.Application.Services.FileAccess.Abstract;
 using ECafe.Application.Services.Reservation.Abstract;
 using ECafe.Application.Services.ReservationRefund.Concrete;
+using ECafe.Application.Mappings;
+using ECafe.Domain.Policies;
 using ECafe.Application.Services.Restaurant.Abstract;
 using ECafe.Application.Services.PaymentInstructionDetails.Abstract;
 using ECafe.Application.Services.Workflow.Abstract;
@@ -1389,16 +1391,9 @@ public sealed partial class ReservationManager : BaseManager, IReservationServic
         };
     }
 
-    /// <summary>Rezervasiyanı rolun görə biləcəyi ödəniş, canlı gözləmə, nəticə yoxlaması və açıq sessiyanın bağlanma yoxlaması ilə API cavabına çevirir.</summary>
+    /// <summary>Rezervasiyanın depozit hüququnu və xidmət vəziyyətini göstərir; köhnə kart/hesab rekviziti və çek linkini heç bir rola çıxarmır.</summary>
     private ReservationResponse MapResponse(Domain.Entities.Reservation reservation)
     {
-        var latestPaymentInstruction = reservation.PaymentInstructions
-            .OrderByDescending(instruction => instruction.SentAt)
-            .FirstOrDefault();
-        var latestPaymentProof = reservation.PaymentProofs
-            .OrderByDescending(proof => proof.SubmittedAt)
-            .ThenByDescending(proof => proof.Id)
-            .FirstOrDefault();
         var refund = reservation.Refunds.SingleOrDefault();
         var nowUtc = DateTime.UtcNow;
         var session = FindOpenSession(reservation);
@@ -1433,7 +1428,7 @@ public sealed partial class ReservationManager : BaseManager, IReservationServic
             IsRefundEligible = reservation.RefundEligible == true,
             RefundRequest = ReservationRefundRequestMapper.Map(reservation),
             RefundCancellationDeadlineAt = ToUtcOffset(ReservationCancellationRules.GetRefundDeadline(reservation)),
-            HasConfirmedDeposit = reservation.PaymentProofs.Any(p => p.StatusId == StatusIds.Reservation(ReservationStatus.Confirmed)),
+            HasConfirmedDeposit = ReservationDepositPolicy.HasConfirmedDeposit(reservation),
             CanCancelWithRefund = ReservationCancellationRules.CanRefund(reservation, DateTime.UtcNow, true),
             ExpectedArrivalAt = reservation.ArrivalAdjustment?.AcceptedAt != null
                 ? ToUtcOffset(reservation.ArrivalAdjustment.RequestedArrivalAt) : null,
@@ -1449,43 +1444,11 @@ public sealed partial class ReservationManager : BaseManager, IReservationServic
             CustomerName = reservation.CustomerUser is null
                 ? null
                 : $"{reservation.CustomerUser.Name} {reservation.CustomerUser.Surname}".Trim(),
-            LatestPaymentInstruction = latestPaymentInstruction is null
-                ? null
-                : MapPaymentInstructionResponse(
-                    latestPaymentInstruction,
-                    reservation.Status?.Name ?? ReservationStatus.PendingPayment.ToString()),
-            LatestPaymentProof = latestPaymentProof is null
-                ? null
-                : new PaymentProofResponse
-                {
-                    Id = latestPaymentProof.Id,
-                    ReservationId = reservation.Id,
-                    FileId = latestPaymentProof.FileId,
-                    PaymentInstructionId = latestPaymentProof.PaymentInstructionId,
-                    Amount = latestPaymentProof.Amount,
-                    Status = latestPaymentProof.Status?.Name ?? ReservationStatus.PaymentSubmitted.GetName(),
-                    SubmittedAt = latestPaymentProof.SubmittedAt,
-                    FileViewUrl = _fileAccessUrlService.BuildViewUrl(latestPaymentProof.FileId)
-                },
+            LatestPaymentInstruction = null,
+            LatestPaymentProof = null,
             Refund = refund is null
                 ? null
-                : new ReservationRefundResponse
-                {
-                    Id = refund.Id,
-                    ReservationId = refund.ReservationId,
-                    SourcePaymentProofId = refund.SourcePaymentProofId,
-                    StatusId = refund.StatusId,
-                    Status = refund.Status?.Name ?? RefundStatus.AwaitingPayoutDetails.GetName(),
-                    WorkflowFlowCode = WorkflowFlowCode.FromStatusType(StatusTypeEnum.Refund),
-                    Amount = refund.Amount,
-                    CurrencyCode = refund.CurrencyCode,
-                    RequestedAt = ToUtcOffset(refund.RequestedAt)!.Value,
-                    ApprovedAt = ToUtcOffset(refund.ApprovedAt),
-                    RefundedAt = ToUtcOffset(refund.RefundedAt),
-                    EligibilityReason = refund.EligibilityReason,
-                    CustomerNextStep = ReservationRefundRequestMapper.GetCustomerNextStep(refund.StatusId),
-                    CancellationReason = refund.CancellationReasonSnapshot
-                }
+                : ReservationRefundResponseMapper.Map(refund, _fileAccessUrlService)
         };
     }
 

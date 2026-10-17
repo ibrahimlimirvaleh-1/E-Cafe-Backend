@@ -1,5 +1,6 @@
 using ECafe.Domain.Entities;
 using ECafe.Domain.Enums;
+using ECafe.Domain.Policies;
 
 namespace ECafe.Domain.Services;
 
@@ -8,7 +9,7 @@ public static class ReservationCancellationRules
     public static bool CanRefund(Reservation reservation, DateTime nowUtc, bool initiatedByCustomer)
         => reservation.StatusId == StatusIds.Reservation(ReservationStatus.Confirmed) &&
            reservation.SeatedAt == null &&
-           reservation.PaymentProofs.Any(proof => proof.StatusId == StatusIds.Reservation(ReservationStatus.Confirmed)) &&
+           ReservationDepositPolicy.HasConfirmedDeposit(reservation) &&
            (!initiatedByCustomer || IsWithinRefundWindow(reservation, nowUtc));
 
     public static DateTime GetGraceDeadline(DateTime reservedAt, DateTime confirmedAt, int graceMinutes)

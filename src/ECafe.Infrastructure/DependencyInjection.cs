@@ -50,6 +50,8 @@ using ECafe.Infrastructure.Repositories.UserRefreshToken;
 using ECafe.Infrastructure.Repositories.UserRestaurant;
 using ECafe.Infrastructure.Redis;
 using ECafe.Application.Services.Auth.Abstract;
+using ECafe.Application.Services.Payments.Abstract;
+using ECafe.Infrastructure.Services.Payments;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -89,6 +91,7 @@ namespace ECafe.Infrastructure
                     .AddInterceptors(serviceProvider.GetRequiredService<PermissionCacheInvalidationInterceptor>()));
 
             services.AddScoped(typeof(IBaseRepository<>), typeof(BaseRepository<>));
+            services.AddScoped<IPaymentGateway, SimulationPaymentGateway>();
             services.AddScoped<IApplicationDbTransactionFactory, EfApplicationDbTransactionFactory>();
             services.AddScoped<INotificationChangeDispatcher, NotificationChangeDispatcher>();
             services.AddScoped<IUserRepository, UserRepository>();

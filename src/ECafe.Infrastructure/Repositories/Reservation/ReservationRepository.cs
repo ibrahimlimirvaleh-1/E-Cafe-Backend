@@ -26,6 +26,7 @@ public class ReservationRepository : BaseRepository<Domain.Entities.Reservation>
             .Include(r => r.Table)
             .Include(r => r.TableSessions)
             .Include(r => r.PaymentProofs)
+            .Include(r => r.Payments)
             .FirstOrDefaultAsync(r => r.Id == reservationId && r.CustomerUserId == customerUserId, cancellationToken);
     }
 
@@ -537,8 +538,19 @@ public class ReservationRepository : BaseRepository<Domain.Entities.Reservation>
                 .ThenByDescending(proof => proof.Id)
                 .Take(1))
                 .ThenInclude(proof => proof.Status)
-            .Include(r => r.Refunds)
-                .ThenInclude(refund => refund.Status);
+            .Include(r => r.Payments)
+            .Include(r => r.Refunds).ThenInclude(refund => refund.SourcePayment)
+            .Include(r => r.Refunds).ThenInclude(refund => refund.Status);
+    }
+
+    /// <summary>Ödəniş üçün yalnız əlaqəli əməliyyat vəziyyətini split query ilə yükləyir; rekvizit mətnlərini və faylları oxumur.</summary>
+    public Task<Domain.Entities.Reservation?> GetForProviderPaymentAsync(int reservationId, bool tracked, CancellationToken cancellationToken = default)
+    {
+        var query = tracked ? QueryTracked() : Query();
+        return query.Where(reservation => reservation.Id == reservationId && !reservation.Restaurant.IsDeleted && !reservation.Table.IsDeleted)
+            .Include(reservation => reservation.Restaurant).Include(reservation => reservation.Payments)
+            .Include(reservation => reservation.PaymentProofs).Include(reservation => reservation.StatusHistory)
+            .Include(reservation => reservation.Refunds).AsSplitQuery().SingleOrDefaultAsync(cancellationToken);
     }
 
     private static IQueryable<Domain.Entities.Reservation> WithHistory(

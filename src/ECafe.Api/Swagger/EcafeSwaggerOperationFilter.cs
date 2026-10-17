@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using ECafe.Api.Security;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.SwaggerGen;
@@ -45,6 +46,14 @@ public sealed class EcafeSwaggerOperationFilter : IOperationFilter
 
         ImproveParameters(operation);
         ImproveResponses(operation, action);
+        if (action.MethodInfo.IsDefined(typeof(RetiredManualPaymentAttribute), true))
+        {
+            operation.Deprecated = true;
+            operation.Summary = "Deaktiv edilib: əl ilə rekvizit/çek əməliyyatı";
+            operation.Description = "Bu endpoint artıq məlumat qəbul etmir və 410 qaytarır. Kart/hesab rekviziti və çek göndərməyin. Payment və PaymentFlow endpointlərindən istifadə edin.";
+            operation.RequestBody = null;
+            operation.Responses["410"] = new OpenApiResponse { Description = "ManualPaymentRetired: rekvizit və çek axını bağlanıb." };
+        }
     }
 
     private static void ImproveParameters(OpenApiOperation operation)

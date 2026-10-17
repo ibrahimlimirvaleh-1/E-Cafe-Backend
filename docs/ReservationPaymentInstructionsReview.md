@@ -1,5 +1,7 @@
 # Rezervasiya Payment Instructions Review
 
+> Bu əvvəlki manual axının arxiv qeydləridir. Yeni tətbiq üçün [Provayder ödənişinin test rejimi](ProviderPayments.md) sənədinə baxın; rekvizit və çek endpointləri artıq məlumat qəbul etmir.
+
 Bu sənəd `payment-instructions` endpoint-i üçün son dəyişikliklərdə düzəldilməli hissələri göstərir.
 
 ## Hazırkı kritik problemlər
