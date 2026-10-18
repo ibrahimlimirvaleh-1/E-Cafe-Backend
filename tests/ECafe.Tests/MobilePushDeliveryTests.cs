@@ -267,6 +267,25 @@ public sealed class MobilePushDeliveryTests
         Assert.Empty(transport.SentTokens);
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task FinalBillPushIsDeliveredOnlyToSessionCustomer(bool ownsSession)
+    {
+        await using var context = CreateContext();
+        var protector = new EphemeralDataProtectionProvider();
+        var notification = await SeedCustomerNotificationAsync(context, protector, AuditEntityTypes.TableSession);
+        if (!ownsSession) context.TableSessions.Single().CustomerUserId = 2;
+        var configuration = ReadyConfiguration();
+        new MobilePushOutboxWriter(context, configuration).Enqueue(notification);
+        await context.SaveChangesAsync();
+        var transport = new FakeTransport();
+        var processor = new MobilePushDeliveryProcessor(context, configuration, protector, transport);
+        await processor.ExpandOutboxAsync(10, CancellationToken.None);
+        await processor.SendPendingAsync(10, CancellationToken.None);
+        Assert.Equal(ownsSession ? 1 : 0, transport.SentTokens.Count);
+    }
+
     [Fact]
     public async Task CustomerPhonePushWithoutResourceLinkIsSuppressedButInboxIsRetained()
     {
@@ -644,6 +663,7 @@ public sealed class MobilePushDeliveryTests
         };
         context.Reservations.Add(reservation);
         context.Orders.Add(new Order { Id = 20, RestaurantId = 1, TableId = 1, CustomerUserId = 1 });
+        context.TableSessions.Add(new TableSession { Id = 40, RestaurantId = 1, TableId = 1, CustomerUserId = 1 });
         context.ReservationRefunds.Add(new ReservationRefund
         {
             Id = 30, Reservation = reservation, Amount = 20, EligibilityReason = "Test refund"
@@ -658,6 +678,7 @@ public sealed class MobilePushDeliveryTests
                 AuditEntityTypes.Reservation => 10,
                 AuditEntityTypes.Order => 20,
                 AuditEntityTypes.ReservationRefund => 30,
+                AuditEntityTypes.TableSession => 40,
                 _ => throw new ArgumentOutOfRangeException(nameof(entityType))
             }
         };

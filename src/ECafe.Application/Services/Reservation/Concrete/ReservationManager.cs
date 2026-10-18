@@ -593,7 +593,7 @@ public sealed partial class ReservationManager : BaseManager, IReservationServic
     public Task<ReservationActionResponse> CompleteOwnReservationAsync(int restaurantId, int reservationId, CancellationToken cancellationToken = default)
         => CompleteReservationCoreAsync(restaurantId, reservationId, true, cancellationToken);
 
-    /// <summary>Menecerin və ya məsul ofisiantın təsdiqi ilə sessiyanı eyni masa kilidində bağlayır; sifarişləri, ödənişi və razılaşdırılmış saatı dəyişmir.</summary>
+    /// <summary>Menecerin və ya məsul ofisiantın sessiyasını ortaq masa kilidində yalnız bütün sifarişlər təqdim edilib hesab ödənildikdə bağlayır.</summary>
     private async Task<ReservationActionResponse> CompleteReservationCoreAsync(
         int restaurantId,
         int reservationId,
@@ -662,6 +662,10 @@ public sealed partial class ReservationManager : BaseManager, IReservationServic
             throw new NotFoundException(ErrorCode.TableSessionNotFound);
         if (session.TableId != reservation.TableId)
             throw new BusinessRuleException(ErrorCode.ReservationTableChangedRetry);
+
+        session = await _tableSessionRepository.GetForBillingAsync(session.Id, true, cancellationToken)
+            ?? throw new NotFoundException(ErrorCode.TableSessionNotFound);
+        TableSessionBillingPolicy.EnsureCanClose(session);
 
         nowUtc = DateTime.UtcNow;
         session.StatusId = StatusIds.TableSession(TableSessionStatus.Closed);

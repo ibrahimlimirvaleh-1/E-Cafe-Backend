@@ -232,6 +232,72 @@ public sealed class TableSessionCloseReviewTests
         Assert.Single(f.Sent, n => n.TypeId == (int)NotificationType.ReservationCompleted);
     }
 
+    [Theory]
+    [InlineData(false, OrderStatus.Served, false)]
+    [InlineData(true, OrderStatus.Served, false)]
+    [InlineData(false, OrderStatus.Preparing, true)]
+    [InlineData(true, OrderStatus.Ready, true)]
+    public async Task BothCompletionPathsRejectUnpaidOrUnservedBill(bool manager, OrderStatus status, bool paid)
+    {
+        await using var f = await Fixture.CreateAsync();
+        f.Db.Orders.Add(new Order { Id = 99, RestaurantId = 1, TableId = 1, TableSessionId = 10,
+            StatusId = StatusIds.Build(ECafe.Domain.Enums.StatusType.Order, (int)status),
+            ServedAt = status == OrderStatus.Served ? DateTime.UtcNow : null,
+            OrderItems = [new OrderItem { Id = 99, ItemId = 1, NameSnapshot = "Tea", Quantity = 2,
+                UnitPriceSnapshot = 5, UnitPrice = 5, LineTotal = 10 }] });
+        if (paid) f.Db.Payments.Add(new Payment { Id = 99, RestaurantId = 1, TableSessionId = 10, Amount = 10,
+            CurrencyCode = "AZN", ProviderName = "simulation", ProviderRef = "test", IsTest = true, PaidAt = DateTime.UtcNow,
+            PaymentStatusId = StatusIds.Build(ECafe.Domain.Enums.StatusType.PaymentStatus, (int)PaymentStatus.Paid) });
+        await f.Db.SaveChangesAsync();
+        f.Actor(manager ? 3 : 1, manager ? RoleCode.Manager : RoleCode.Waiter);
+        await Assert.ThrowsAsync<BusinessRuleException>(() => manager
+            ? f.Reservations.CompleteReservationAsync(1, 75) : f.Reservations.CompleteOwnReservationAsync(1, 75));
+        Assert.Null((await f.Db.TableSessions.SingleAsync(s => s.Id == 10)).ClosedAt);
+        Assert.Null((await f.Db.Reservations.SingleAsync()).CompletedAt);
+        Assert.DoesNotContain(f.Sent, notification => notification.TypeId == (int)NotificationType.ReservationCompleted);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task PendingPaymentBlocksBothCompletionPathsEvenWhenBalanceIsZero(bool manager)
+    {
+        await using var f = await Fixture.CreateAsync();
+        f.Db.Payments.Add(new Payment { Id = 99, RestaurantId = 1, TableSessionId = 10, Amount = 10,
+            PaymentStatusId = StatusIds.Build(ECafe.Domain.Enums.StatusType.PaymentStatus, (int)PaymentStatus.Pending) });
+        await f.Db.SaveChangesAsync();
+        f.Actor(manager ? 3 : 1, manager ? RoleCode.Manager : RoleCode.Waiter);
+        await Assert.ThrowsAsync<BusinessRuleException>(() => manager
+            ? f.Reservations.CompleteReservationAsync(1, 75) : f.Reservations.CompleteOwnReservationAsync(1, 75));
+        Assert.Null((await f.Db.TableSessions.SingleAsync(s => s.Id == 10)).ClosedAt);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task BothCompletionPathsClosePaidServedBillOnce(bool manager)
+    {
+        await using var f = await Fixture.CreateAsync();
+        f.Db.Orders.Add(new Order { Id = 99, RestaurantId = 1, TableId = 1, TableSessionId = 10,
+            StatusId = StatusIds.Build(ECafe.Domain.Enums.StatusType.Order, (int)OrderStatus.Served), ServedAt = DateTime.UtcNow,
+            OrderItems = [new OrderItem { Id = 99, ItemId = 1, NameSnapshot = "Tea", Quantity = 2,
+                UnitPriceSnapshot = 5, UnitPrice = 5, LineTotal = 10 }] });
+        f.Db.Payments.Add(new Payment { Id = 99, RestaurantId = 1, TableSessionId = 10, Amount = 10,
+            CurrencyCode = "AZN", ProviderName = "simulation", ProviderRef = "test", IsTest = true, PaidAt = DateTime.UtcNow,
+            PaymentStatusId = StatusIds.Build(ECafe.Domain.Enums.StatusType.PaymentStatus, (int)PaymentStatus.Paid) });
+        await f.Db.SaveChangesAsync();
+        f.Actor(manager ? 3 : 1, manager ? RoleCode.Manager : RoleCode.Waiter);
+        if (manager) await f.Reservations.CompleteReservationAsync(1, 75);
+        else await f.Reservations.CompleteOwnReservationAsync(1, 75);
+        var closedAt = (await f.Db.TableSessions.SingleAsync(s => s.Id == 10)).ClosedAt;
+        Assert.NotNull(closedAt);
+        if (manager) await f.Reservations.CompleteReservationAsync(1, 75);
+        else await f.Reservations.CompleteOwnReservationAsync(1, 75);
+        Assert.Equal(closedAt, (await f.Db.TableSessions.SingleAsync(s => s.Id == 10)).ClosedAt);
+        Assert.Single(f.Sent, notification => notification.TypeId == (int)NotificationType.ReservationCompleted);
+        Assert.Single((await f.Db.Reservations.Include(r => r.StatusHistory).SingleAsync()).StatusHistory);
+    }
+
     [Fact]
     public async Task StaleRoleAndWrongCompletionEndpointAreRejected()
     {

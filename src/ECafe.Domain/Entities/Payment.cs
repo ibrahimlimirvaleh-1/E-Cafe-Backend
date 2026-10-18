@@ -9,6 +9,9 @@ public partial class Payment : AuditableSoftDeletableEntity<int>
     public int? ReservationId { get; set; }
 
     public int? OrderId { get; set; }
+    public int? TableSessionId { get; set; }
+    public string? BillFingerprint { get; set; }
+    public virtual TableSession? TableSession { get; set; }
 
     public decimal Amount { get; set; }
 

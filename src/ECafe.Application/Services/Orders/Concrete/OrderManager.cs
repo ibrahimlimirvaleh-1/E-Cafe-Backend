@@ -101,8 +101,13 @@ public sealed partial class OrderManager : BaseManager, IOrderService
         var session = await _sessions.Query(session => session.Id == tableSessionId &&
             session.RestaurantId == restaurantId && session.WaiterUserId == waiterId &&
             session.StatusId == StatusIds.TableSession(TableSessionStatus.Open) && session.ClosedAt == null)
-            .SingleOrDefaultAsync(cancellationToken)
+            .Include(session => session.Payments).SingleOrDefaultAsync(cancellationToken)
             ?? throw new NotFoundException(ErrorCode.TableSessionNotFound);
+        if (session.Payments.Any(payment => !payment.IsDeleted && payment.PaymentStatusId ==
+            StatusIds.Build(StatusType.PaymentStatus, (int)PaymentStatus.Pending)))
+            throw new BusinessRuleException(ErrorCode.SessionBillPaymentPending);
+        if (session.Payments.Any(payment => !payment.IsDeleted && payment.RequiresRefund))
+            throw new BusinessRuleException(ErrorCode.SessionBillInvalid);
         var lines = await BuildLinesAsync(restaurantId, normalized.Items, cancellationToken);
         var order = new Domain.Entities.Order
         {

@@ -10,7 +10,8 @@ namespace ECafe.Infrastructure.Configurations.Concrete
         {
             builder.HasKey(e => e.Id).HasName("payments_pkey");
 
-            builder.ToTable("payments", "billing");
+            builder.ToTable("payments", "billing", table => table.HasCheckConstraint("payments_session_bill_link_check",
+                "(table_session_id IS NULL AND bill_fingerprint IS NULL) OR (table_session_id IS NOT NULL AND reservation_id IS NULL AND order_id IS NULL AND bill_fingerprint IS NOT NULL)"));
 
             builder.Property(e => e.Id).HasColumnName("id");
             builder.Property(e => e.Amount)
@@ -21,6 +22,13 @@ namespace ECafe.Infrastructure.Configurations.Concrete
                 .HasColumnName("created_at");
             builder.Property(e => e.CreatedByUserId).HasColumnName("created_by_user_id");
             builder.Property(e => e.OrderId).HasColumnName("order_id");
+            builder.Property(e => e.TableSessionId).HasColumnName("table_session_id");
+            builder.HasIndex(e => e.TableSessionId).HasDatabaseName("IX_payments_table_session_id");
+            builder.Property(e => e.BillFingerprint).HasMaxLength(64).HasColumnName("bill_fingerprint");
+            builder.HasOne(e => e.TableSession).WithMany(e => e.Payments)
+                .HasForeignKey(e => e.TableSessionId).OnDelete(DeleteBehavior.Restrict);
+            builder.HasIndex(e => e.TableSessionId, "payments_pending_session_key").IsUnique()
+                .HasFilter("table_session_id IS NOT NULL AND payment_status_id = 3001 AND NOT \"IsDeleted\"");
             builder.Property(e => e.PaidAt).HasColumnName("paid_at");
             builder.Property(e => e.RefundedAt).HasColumnName("refunded_at");
             builder.Property(e => e.PaymentMethodId).HasColumnName("payment_method_id");

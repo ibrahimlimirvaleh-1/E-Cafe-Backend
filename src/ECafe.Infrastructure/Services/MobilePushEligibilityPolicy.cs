@@ -34,7 +34,7 @@ internal static class MobilePushEligibilityPolicy
         => context.Users.Where(user => user.IsActive && user.RoleId == (int)RoleCode.Customer);
 
     /// <summary>
-    /// Müştəriyə yalnız server bildirişində göstərilmiş öz rezervasiya, refund və ya sifarişi üçün push icazəsi verir.
+    /// Müştəriyə yalnız server bildirişində göstərilmiş öz rezervasiya, refund, sifariş və ya masa sessiyası üçün push icazəsi verir.
     /// Digər hesablar üçün bildirişin dəqiq restoranına aid aktiv işçi icazəsini yoxlayır.
     /// </summary>
     public static async Task<bool> CanReceiveAsync(ECafeDbContext context,
@@ -69,6 +69,9 @@ internal static class MobilePushEligibilityPolicy
             AuditEntityTypes.Order => context.Orders.AnyAsync(order =>
                 order.Id == entityId && order.RestaurantId == payload.RestaurantId &&
                 order.CustomerUserId == payload.UserId, cancellationToken),
+            AuditEntityTypes.TableSession => context.TableSessions.AnyAsync(session =>
+                session.Id == entityId && session.RestaurantId == payload.RestaurantId &&
+                session.CustomerUserId == payload.UserId, cancellationToken),
             _ => Task.FromResult(false)
         };
     }

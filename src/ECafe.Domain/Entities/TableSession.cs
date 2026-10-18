@@ -31,6 +31,7 @@ public class TableSession : AuditableSoftDeletableEntity<int>
     public virtual User? CustomerUser { get; set; }
 
     public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
+    public virtual ICollection<Payment> Payments { get; set; } = new List<Payment>();
 
     public virtual Reservation? Reservation { get; set; }
 
