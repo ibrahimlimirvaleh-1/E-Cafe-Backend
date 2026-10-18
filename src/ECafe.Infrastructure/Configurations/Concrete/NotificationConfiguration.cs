@@ -12,6 +12,11 @@ namespace ECafe.Infrastructure.Configurations.Concrete
             builder.ToTable("notifications", "notification");
 
             builder.HasKey(x => x.Id);
+            builder.Property(x => x.TitleKey).HasMaxLength(200);
+            builder.Property(x => x.MessageKey).HasMaxLength(200);
+            builder.Property(x => x.TranslationArgumentsJson).HasColumnType("jsonb");
+            builder.Property(x => x.Language).HasMaxLength(2).HasDefaultValue("az");
+            builder.Property(x => x.TranslationVersion).HasMaxLength(80);
 
             builder.Property(x => x.Title)
                 .HasMaxLength(200);

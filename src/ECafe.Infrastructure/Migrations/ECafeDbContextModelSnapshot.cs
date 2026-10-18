@@ -1129,10 +1129,21 @@ namespace ECafe.Infrastructure.Migrations
                     b.Property<bool>("IsRead")
                         .HasColumnType("boolean");
 
+                    b.Property<string>("Language")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(2)
+                        .HasColumnType("character varying(2)")
+                        .HasDefaultValue("az");
+
                     b.Property<string>("Message")
                         .IsRequired()
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("MessageKey")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
 
                     b.Property<string>("PayloadJson")
                         .HasColumnType("jsonb");
@@ -1157,6 +1168,17 @@ namespace ECafe.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
+
+                    b.Property<string>("TitleKey")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("TranslationArgumentsJson")
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("TranslationVersion")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
 
                     b.Property<int>("TypeId")
                         .HasColumnType("integer");
@@ -5081,6 +5103,67 @@ namespace ECafe.Infrastructure.Migrations
                     b.ToTable("table_sessions", "ops");
                 });
 
+            modelBuilder.Entity("ECafe.Domain.Entities.TranslationCatalog", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("DraftJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<int?>("PublishedReleaseId")
+                        .HasColumnType("integer");
+
+                    b.Property<long>("Revision")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PublishedReleaseId");
+
+                    b.ToTable("translation_catalog", "core");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            DraftJson = "{}",
+                            Revision = 0L
+                        });
+                });
+
+            modelBuilder.Entity("ECafe.Domain.Entities.TranslationRelease", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("CreatedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("MessagesJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<int?>("SourceReleaseId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("SourceReleaseId");
+
+                    b.ToTable("translation_releases", "core");
+                });
+
             modelBuilder.Entity("ECafe.Domain.Entities.Unit", b =>
                 {
                     b.Property<int>("Id")
@@ -5265,6 +5348,14 @@ namespace ECafe.Infrastructure.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)")
                         .HasColumnName("phone");
+
+                    b.Property<string>("PreferredLanguage")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(2)
+                        .HasColumnType("character varying(2)")
+                        .HasDefaultValue("az")
+                        .HasColumnName("preferred_language");
 
                     b.Property<decimal?>("Rating")
                         .HasPrecision(3, 2)
@@ -7474,6 +7565,28 @@ namespace ECafe.Infrastructure.Migrations
                     b.Navigation("Table");
 
                     b.Navigation("WaiterUser");
+                });
+
+            modelBuilder.Entity("ECafe.Domain.Entities.TranslationCatalog", b =>
+                {
+                    b.HasOne("ECafe.Domain.Entities.TranslationRelease", null)
+                        .WithMany()
+                        .HasForeignKey("PublishedReleaseId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("ECafe.Domain.Entities.TranslationRelease", b =>
+                {
+                    b.HasOne("ECafe.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ECafe.Domain.Entities.TranslationRelease", null)
+                        .WithMany()
+                        .HasForeignKey("SourceReleaseId")
+                        .OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("ECafe.Domain.Entities.Unit", b =>

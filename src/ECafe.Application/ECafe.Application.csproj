@@ -36,6 +36,7 @@
 
 	<ItemGroup>
 		<EmbeddedResource Include="Templates\Contracts\ecafe-icon.png" />
+        <EmbeddedResource Include="Services\Localization\Resources\*.json" />
 		<EmbeddedResource Include="Templates\Contracts\NotoSans-Regular.ttf" />
 		<EmbeddedResource Include="Templates\Contracts\NotoSans-Bold.ttf" />
 		<None Include="Templates\Contracts\NotoSans-OFL.txt" />

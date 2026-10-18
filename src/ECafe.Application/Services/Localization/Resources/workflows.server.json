@@ -1,0 +1,412 @@
+{
+  "api.literal.catalog.arrivalTimeTitle": {
+    "az": "Gəliş vaxtı yeniləndi",
+    "en": "Arrival time updated",
+    "ru": "Время прибытия обновлено"
+  },
+  "api.literal.catalog.arrivalTimeBody": {
+    "az": "Rezervasiya #{id} üzrə gecikmə təsdiqləndi. Yeni vaxtlar rezervasiya detalında göstərilir.",
+    "en": "A delay was approved for reservation #{id}. Updated times are shown in the reservation details.",
+    "ru": "Для бронирования № {id} согласовано опоздание. Обновлённое время указано в деталях."
+  },
+  "api.literal.catalog.confirmedTitle": {
+    "az": "Rezervasiyanız təsdiqləndi",
+    "en": "Your reservation is confirmed",
+    "ru": "Ваше бронирование подтверждено"
+  },
+  "api.literal.catalog.noDepositBody": {
+    "az": "Rezervasiya #{id} depozit tələb olunmadan təsdiqləndi.",
+    "en": "Reservation #{id} was confirmed without a deposit.",
+    "ru": "Бронирование № {id} подтверждено без депозита."
+  },
+  "api.literal.catalog.tableOpenTitle": {
+    "az": "Masanız açıldı",
+    "en": "Your table session is open",
+    "ru": "Обслуживание за вашим столом начато"
+  },
+  "api.literal.catalog.tableOpenBody": {
+    "az": "Rezervasiya #{id} üzrə restoran gəlişinizi təsdiqlədi və masanız açıldı.",
+    "en": "The restaurant confirmed your arrival for reservation #{id} and opened your table session.",
+    "ru": "Ресторан подтвердил ваше прибытие по бронированию № {id} и открыл сеанс обслуживания."
+  },
+  "api.literal.catalog.newReservation": {
+    "az": "Yeni rezervasiya yaradıldı",
+    "en": "New reservation created",
+    "ru": "Создано новое бронирование"
+  },
+  "api.literal.catalog.newReservationNoDeposit": {
+    "az": "Masa {number} üçün depozitsiz rezervasiya avtomatik təsdiqləndi.",
+    "en": "A reservation for table {number} was confirmed automatically without a deposit.",
+    "ru": "Бронирование стола {number} автоматически подтверждено без депозита."
+  },
+  "api.literal.catalog.newReservationPay": {
+    "az": "Masa {number} üçün yeni rezervasiya ödəniş gözləyir.",
+    "en": "A new reservation for table {number} is awaiting payment.",
+    "ru": "Новое бронирование стола {number} ожидает оплаты."
+  },
+  "api.literal.catalog.stockLowTitle": {
+    "az": "Stok minimum həddə düşüb",
+    "en": "Stock reached the minimum level",
+    "ru": "Запасы достигли минимального уровня"
+  },
+  "api.literal.catalog.schedulePrepared": {
+    "az": "İş saatı dəyişikliyi hazırlanıb",
+    "en": "Working hours change prepared",
+    "ru": "Изменение графика подготовлено"
+  },
+  "api.literal.catalog.scheduleApplied": {
+    "az": "İş saatı dəyişikliyi tətbiq edildi",
+    "en": "Working hours change applied",
+    "ru": "Изменение графика применено"
+  },
+  "api.literal.catalog.scheduleCondition": {
+    "az": "Qəbul etdiyiniz masa təhvil şərti qüvvəyə mindi.",
+    "en": "The table departure condition you accepted is now in effect.",
+    "ru": "Принятое вами условие освобождения стола вступило в силу."
+  },
+  "api.literal.catalog.scheduleUpdated": {
+    "az": "İş saatları yeniləndi",
+    "en": "Working hours updated",
+    "ru": "График работы обновлён"
+  },
+  "api.literal.catalog.scheduleWithdrawn": {
+    "az": "İş saatı dəyişikliyi geri götürüldü",
+    "en": "Working hours change withdrawn",
+    "ru": "Изменение графика отозвано"
+  },
+  "api.literal.catalog.oldTerms": {
+    "az": "Əvvəlki rezervasiya şərtləriniz qüvvədə qalır.",
+    "en": "Your previous reservation terms remain valid.",
+    "ru": "Прежние условия бронирования остаются в силе."
+  },
+  "api.literal.catalog.scheduleResponse": {
+    "az": "Rezervasiya #{id}: iş saatı təklifinə cavab verildi",
+    "en": "Reservation #{id}: response to working hours proposal received",
+    "ru": "Бронирование № {id}: получен ответ на предложение изменить график"
+  },
+  "api.literal.catalog.responseRecorded": {
+    "az": "Cavabınız qeydə alındı",
+    "en": "Your response was recorded",
+    "ru": "Ваш ответ зарегистрирован"
+  },
+  "api.literal.catalog.agreementRecorded": {
+    "az": "Razılığınız qeydə alındı. Dəyişiklik tətbiq edilənədək əvvəlki şərtlər qüvvədədir.",
+    "en": "Your consent was recorded. Previous terms remain valid until the change is applied.",
+    "ru": "Ваше согласие зарегистрировано. Прежние условия действуют до применения изменения."
+  },
+  "api.literal.catalog.proposalRejected": {
+    "az": "Təklifi qəbul etmədiniz. Rezervasiyanız avtomatik ləğv edilməyib; restoran məsələni həll edəcək.",
+    "en": "You declined the proposal. Your reservation was not cancelled automatically; the restaurant will resolve the issue.",
+    "ru": "Вы отклонили предложение. Бронирование не отменено автоматически; ресторан решит этот вопрос."
+  },
+  "api.literal.catalog.sessionAgreement": {
+    "az": "Masa sessiyası üzrə razılaşma qeyd edildi",
+    "en": "Table session agreement recorded",
+    "ru": "Соглашение по обслуживанию стола зарегистрировано"
+  },
+  "api.literal.catalog.scheduleProposal": {
+    "az": "Restoran iş saatını dəyişmək istəyir",
+    "en": "The restaurant proposes changing its working hours",
+    "ru": "Ресторан предлагает изменить график работы"
+  },
+  "api.literal.catalog.scheduleProposalBody": {
+    "az": "Rezervasiyanıza təsir edən təklif var. Qəbul və ya rədd etmək üçün rezervasiya detalını açın.",
+    "en": "A proposal affects your reservation. Open the reservation details to accept or decline it.",
+    "ru": "Есть предложение, влияющее на ваше бронирование. Откройте детали, чтобы принять или отклонить его."
+  },
+  "api.literal.catalog.refundDisputedTitle": {
+    "az": "Geri ödənişə etiraz edildi",
+    "en": "Refund disputed",
+    "ru": "Возврат оспорен"
+  },
+  "api.literal.catalog.refundApprovedTitle": {
+    "az": "Geri ödəniş təsdiqləndi",
+    "en": "Refund confirmed",
+    "ru": "Возврат подтверждён"
+  },
+  "api.literal.catalog.refundDisputedBody": {
+    "az": "Rezervasiya #{id} üçün geri ödənişə etiraz edildi: {reason}",
+    "en": "The refund for reservation #{id} was disputed: {reason}",
+    "ru": "Возврат по бронированию № {id} оспорен: {reason}"
+  },
+  "api.literal.catalog.refundApprovedBody": {
+    "az": "Rezervasiya #{id} üçün geri ödəniş müştəri tərəfindən təsdiqləndi.",
+    "en": "The customer confirmed the refund for reservation #{id}.",
+    "ru": "Клиент подтвердил возврат по бронированию № {id}."
+  },
+  "api.literal.catalog.orderCreated": {
+    "az": "Sifariş yaradılıb",
+    "en": "Order created",
+    "ru": "Заказ создан"
+  },
+  "api.literal.catalog.orderAccepted": {
+    "az": "Sifariş mətbəx tərəfindən qəbul edilib",
+    "en": "Order accepted by the kitchen",
+    "ru": "Заказ принят кухней"
+  },
+  "api.literal.catalog.orderPreparing": {
+    "az": "Sifariş hazırlanır",
+    "en": "Order is being prepared",
+    "ru": "Заказ готовится"
+  },
+  "api.literal.catalog.orderReady": {
+    "az": "Sifariş hazırdır",
+    "en": "Order ready",
+    "ru": "Заказ готов"
+  },
+  "api.literal.catalog.orderServed": {
+    "az": "Sifariş təqdim olunub",
+    "en": "Order served",
+    "ru": "Заказ подан"
+  },
+  "api.literal.catalog.orderClosed": {
+    "az": "Sifariş bağlanıb",
+    "en": "Order closed",
+    "ru": "Заказ закрыт"
+  },
+  "api.literal.catalog.orderCancelled": {
+    "az": "Sifariş ləğv edilib",
+    "en": "Order cancelled",
+    "ru": "Заказ отменён"
+  },
+  "api.literal.catalog.orderScheduled": {
+    "az": "Sifariş planlaşdırılıb",
+    "en": "Order scheduled",
+    "ru": "Заказ запланирован"
+  },
+  "api.literal.catalog.paymentPending": {
+    "az": "Ödəniş gözlənilir",
+    "en": "Awaiting payment",
+    "ru": "Ожидается оплата"
+  },
+  "api.literal.catalog.paymentComplete": {
+    "az": "Ödəniş uğurla tamamlanıb",
+    "en": "Payment completed",
+    "ru": "Оплата завершена"
+  },
+  "api.literal.catalog.paymentFailed": {
+    "az": "Ödəniş uğursuz olub",
+    "en": "Payment failed",
+    "ru": "Оплата не выполнена"
+  },
+  "api.literal.catalog.paymentCancelled": {
+    "az": "Ödəniş ləğv edilib",
+    "en": "Payment cancelled",
+    "ru": "Оплата отменена"
+  },
+  "api.literal.catalog.paymentRefunded": {
+    "az": "Ödəniş geri qaytarılıb",
+    "en": "Payment refunded",
+    "ru": "Платёж возвращён"
+  },
+  "api.literal.catalog.paymentProof": {
+    "az": "Ödəniş sübutu göndərilib",
+    "en": "Payment proof submitted",
+    "ru": "Подтверждение оплаты отправлено"
+  },
+  "api.literal.catalog.paymentRejected": {
+    "az": "Ödəniş rədd edilib",
+    "en": "Payment rejected",
+    "ru": "Оплата отклонена"
+  },
+  "api.literal.catalog.reservationConfirmed": {
+    "az": "Rezervasiya təsdiqlənib",
+    "en": "Reservation confirmed",
+    "ru": "Бронирование подтверждено"
+  },
+  "api.literal.catalog.reservationSeated": {
+    "az": "Müştəri gəlib və stol arxasında əyləşib",
+    "en": "Guest arrived and is seated",
+    "ru": "Гость прибыл и размещён за столом"
+  },
+  "api.literal.catalog.reservationComplete": {
+    "az": "Rezervasiya tamamlanıb",
+    "en": "Reservation completed",
+    "ru": "Бронирование завершено"
+  },
+  "api.literal.catalog.reservationCancelled": {
+    "az": "Rezervasiya ləğv edilib",
+    "en": "Reservation cancelled",
+    "ru": "Бронирование отменено"
+  },
+  "api.literal.catalog.reservationNoShow": {
+    "az": "Müştəri gəlməyib",
+    "en": "Guest did not arrive",
+    "ru": "Гость не прибыл"
+  },
+  "api.literal.catalog.reservationExpired": {
+    "az": "Rezervasiyanın vaxtı bitib",
+    "en": "Reservation expired",
+    "ru": "Срок бронирования истёк"
+  },
+  "api.literal.catalog.reservationRejected": {
+    "az": "Rezervasiya rədd edilib",
+    "en": "Reservation rejected",
+    "ru": "Бронирование отклонено"
+  },
+  "api.literal.catalog.reservationResponse": {
+    "az": "Restoran cavabı gözlənilir",
+    "en": "Awaiting restaurant response",
+    "ru": "Ожидается ответ ресторана"
+  },
+  "api.literal.catalog.sessionOpen": {
+    "az": "Masa sessiyası açıqdır",
+    "en": "Table session is open",
+    "ru": "Сеанс обслуживания открыт"
+  },
+  "api.literal.catalog.sessionClosed": {
+    "az": "Masa sessiyası bağlanıb",
+    "en": "Table session is closed",
+    "ru": "Сеанс обслуживания закрыт"
+  },
+  "api.literal.catalog.sessionCancelled": {
+    "az": "Masa sessiyası ləğv edilib",
+    "en": "Table session is cancelled",
+    "ru": "Сеанс обслуживания отменён"
+  },
+  "api.literal.catalog.refundRequested": {
+    "az": "Geri ödəniş sorğusu gözləyir",
+    "en": "Refund request pending",
+    "ru": "Запрос возврата ожидает обработки"
+  },
+  "api.literal.catalog.refundReady": {
+    "az": "Geri ödəniş üçün hazırdır",
+    "en": "Ready for refund",
+    "ru": "Готово к возврату"
+  },
+  "api.literal.catalog.refundProcessing": {
+    "az": "Geri ödəniş emal edilir",
+    "en": "Refund processing",
+    "ru": "Возврат обрабатывается"
+  },
+  "api.literal.catalog.refundComplete": {
+    "az": "Geri ödəniş tamamlandı",
+    "en": "Refund completed",
+    "ru": "Возврат завершён"
+  },
+  "api.literal.catalog.refundDisputed": {
+    "az": "Geri ödənişlə bağlı etiraz var",
+    "en": "Refund is disputed",
+    "ru": "Возврат оспорен"
+  },
+  "api.literal.catalog.refundFailed": {
+    "az": "Geri ödəniş uğursuz oldu",
+    "en": "Refund failed",
+    "ru": "Возврат не выполнен"
+  },
+  "api.literal.catalog.refundRejected": {
+    "az": "Geri ödəniş sorğusu rədd edildi",
+    "en": "Refund request rejected",
+    "ru": "Запрос возврата отклонён"
+  },
+  "api.literal.catalog.cash": {
+    "az": "Nağd ödəniş",
+    "en": "Cash payment",
+    "ru": "Оплата наличными"
+  },
+  "api.literal.catalog.card": {
+    "az": "Kartla ödəniş",
+    "en": "Card payment",
+    "ru": "Оплата картой"
+  },
+  "api.literal.catalog.online": {
+    "az": "Onlayn ödəniş",
+    "en": "Online payment",
+    "ru": "Онлайн-оплата"
+  },
+  "api.literal.catalog.transfer": {
+    "az": "Köçürmə ilə ödəniş",
+    "en": "Bank transfer",
+    "ru": "Банковский перевод"
+  },
+  "api.literal.catalog.contractPending": {
+    "az": "İmza gözləyir",
+    "en": "Awaiting signature",
+    "ru": "Ожидается подпись"
+  },
+  "api.literal.catalog.contractExpired": {
+    "az": "Müddəti bitib",
+    "en": "Expired",
+    "ru": "Срок истёк"
+  },
+  "api.literal.catalog.cancelled": {
+    "az": "Ləğv edilib",
+    "en": "Cancelled",
+    "ru": "Отменено"
+  },
+  "api.literal.catalog.scheduled": {
+    "az": "Planlaşdırılıb",
+    "en": "Scheduled",
+    "ru": "Запланировано"
+  },
+  "api.literal.catalog.contractApproved": {
+    "az": "Owner təsdiqlədi",
+    "en": "Owner approved",
+    "ru": "Владелец подтвердил"
+  },
+  "api.literal.catalog.working": {
+    "az": "İcra olunur",
+    "en": "In progress",
+    "ru": "Выполняется"
+  },
+  "api.literal.catalog.appNotification": {
+    "az": "App bildirişi",
+    "en": "App notification",
+    "ru": "Уведомление приложения"
+  },
+  "api.literal.catalog.manualStock": {
+    "az": "Manual artım",
+    "en": "Manual stock increase",
+    "ru": "Ручное пополнение"
+  },
+  "api.literal.catalog.stockUsage": {
+    "az": "Sifariş sərfiyyatı",
+    "en": "Order consumption",
+    "ru": "Расход по заказу"
+  },
+  "api.literal.catalog.customerArrived": {
+    "az": "Müştərinin gəlişi təsdiqləndi və masa açıldı.",
+    "en": "The guest's arrival was confirmed and the table session opened.",
+    "ru": "Прибытие гостя подтверждено, сеанс обслуживания открыт."
+  },
+  "api.literal.catalog.invalidReservation": {
+    "az": "Rezervasiya seçimi düzgün deyil.",
+    "en": "The reservation selection is invalid.",
+    "ru": "Некорректно выбрано бронирование."
+  },
+  "api.literal.catalog.invalidCompletion": {
+    "az": "Bu rezervasiya tamamlanmaq üçün aktiv masa sessiyasında deyil.",
+    "en": "This reservation has no active table session to complete.",
+    "ru": "У этого бронирования нет активного сеанса обслуживания для завершения."
+  },
+  "api.literal.catalog.missingSession": {
+    "az": "Bu rezervasiya üçün açıq masa sessiyası tapılmadı.",
+    "en": "No open table session was found for this reservation.",
+    "ru": "Для этого бронирования не найден открытый сеанс обслуживания."
+  },
+  "api.literal.catalog.selectOwner": {
+    "az": "Restoran üçün sahibkar seçin və ya yeni sahibkar məlumatlarını daxil edin.",
+    "en": "Select an owner for the restaurant or enter a new owner's details.",
+    "ru": "Выберите владельца ресторана или введите данные нового владельца."
+  },
+  "api.literal.catalog.ownerInactive": {
+    "az": "Seçilən sahibkar deaktivdir.",
+    "en": "The selected owner is inactive.",
+    "ru": "Выбранный владелец неактивен."
+  },
+  "api.literal.catalog.ownerMissing": {
+    "az": "Seçilən sahibkar tapılmadı.",
+    "en": "The selected owner was not found.",
+    "ru": "Выбранный владелец не найден."
+  },
+  "api.literal.catalog.tableDuplicate": {
+    "az": "Masa adları təkrar olmamalıdır.",
+    "en": "Table names must be unique.",
+    "ru": "Названия столов не должны повторяться."
+  },
+  "api.literal.catalog.tableExists": {
+    "az": "'{name}' adlı masa artıq mövcuddur.",
+    "en": "A table named '{name}' already exists.",
+    "ru": "Стол с названием «{name}» уже существует."
+  }
+}

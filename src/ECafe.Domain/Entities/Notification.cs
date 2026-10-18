@@ -17,6 +17,11 @@ namespace ECafe.Domain.Entities
         public string Title { get; set; } = null!;
 
         public string Message { get; set; } = null!;
+        public string? TitleKey { get; set; }
+        public string? MessageKey { get; set; }
+        public string? TranslationArgumentsJson { get; set; }
+        public string Language { get; set; } = "az";
+        public string? TranslationVersion { get; set; }
 
         public bool IsRead { get; set; }
 

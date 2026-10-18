@@ -121,6 +121,7 @@ public sealed class MobilePushDeliveryProcessor(
             .Take(batchSize).Select(x => x.Id).ToListAsync(cancellationToken);
 
         var handled = 0;
+        var recipientLanguages = new Dictionary<int, string>();
         foreach (var id in ids)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -141,7 +142,13 @@ public sealed class MobilePushDeliveryProcessor(
             {
                 // Delivery is intentionally generic; private notification content stays in the authenticated inbox.
                 var token = _protector.Unprotect(installation.ProtectedToken);
-                var result = await transport.SendAsync(token, delivery.Id, cancellationToken);
+                if (!recipientLanguages.TryGetValue(delivery.UserId, out var language))
+                {
+                    language = await context.Users.AsNoTracking().Where(user => user.Id == delivery.UserId)
+                        .Select(user => user.PreferredLanguage).SingleOrDefaultAsync(cancellationToken) ?? "az";
+                    recipientLanguages[delivery.UserId] = language;
+                }
+                var result = await transport.SendLocalizedAsync(token, delivery.Id, language, cancellationToken);
                 delivery.AttemptCount++;
                 delivery.FirstSentAt ??= DateTime.UtcNow;
                 delivery.SentTokenHash = installation.TokenHash;

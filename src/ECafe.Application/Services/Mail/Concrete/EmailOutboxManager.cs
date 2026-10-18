@@ -142,6 +142,7 @@ namespace ECafe.Application.Services
             return processedCount;
         }
 
+        /// <summary>Məktubun saxlanmış dili varsa lokal göndəriş yolunu seçir; əvvəlki payload-ları köhnə müqavilə ilə emal edir.</summary>
         private async Task ProcessOutboxEventAsync(Domain.Entities.OutboxEvent outboxEvent)
         {
             if (outboxEvent.EventType == OutboxEventTypes.EmailNotificationRequested)
@@ -153,11 +154,10 @@ namespace ECafe.Application.Services
                 if (payload is null)
                     throw new BusinessRuleException("Email outbox payload is invalid.");
 
-                await _emailService.SendContractNotificationAsync(
-                    payload.ToEmail,
-                    payload.ToName,
-                    payload.Subject,
-                    payload.Body);
+                if (payload.Language != null)
+                    await _emailService.SendLocalizedNotificationAsync(payload.ToEmail, payload.ToName, payload.Subject, payload.Body, payload.Language);
+                else
+                    await _emailService.SendContractNotificationAsync(payload.ToEmail, payload.ToName, payload.Subject, payload.Body);
 
                 return;
             }

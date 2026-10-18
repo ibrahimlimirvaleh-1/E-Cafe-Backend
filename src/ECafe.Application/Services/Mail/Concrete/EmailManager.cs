@@ -4,15 +4,22 @@ using MailKit.Security;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using MimeKit;
+using ECafe.Application.Services.Localization.Abstract;
+using ECafe.Application.Services.Localization.Concrete;
+using ECafe.Domain.Policies;
 
 namespace ECafe.Application.Services
 {
     public class EmailManager : BaseManager, IEmailService
     {
+        private readonly ITranslationService? _translations;
+
         public EmailManager(IHttpContextAccessor httpContextAccessor,
-                            IMapper mapper, IConfiguration configuration)
+                            IMapper mapper, IConfiguration configuration,
+                            ITranslationService? translations = null)
                             : base(httpContextAccessor, mapper, configuration)
         {
+            _translations = translations;
         }
 
         public async Task SendMailAsync(string toEmail, string name)
@@ -39,12 +46,26 @@ namespace ECafe.Application.Services
                 $"{name} {surName} rolunuz dəyişdirildi.Yeni rolunuz : {role}");
         }
 
+        /// <summary>Əvvəlki müqavilə məktublarının Azərbaycan dilində göndərişini uyğun saxlayır; tarixi payload-un dilini dəyişmir.</summary>
         public async Task SendContractNotificationAsync(string toEmail, string name, string subject, string body)
         {
             await SendAsync(
                 toEmail,
                 subject,
                 $"Salam {name},\n\n{body}");
+        }
+
+        /// <summary>Başlıq və mətnlə eyni outbox dilində salamlaşma qurur; istifadəçinin sonrakı seçim dəyişikliyi gözləyən məktubu qarışıq dilə çevirmir.</summary>
+        public async Task SendLocalizedNotificationAsync(string toEmail, string name, string subject, string body, string language)
+            => await SendAsync(toEmail, subject, $"{await BuildGreetingAsync(name, language)}\n\n{body}");
+
+        /// <summary>Outbox dilinin yayımlanmış salamlaşmasını seçir; alıcının adını tərcümə etmir və əlavə istifadəçi DB sorğusu yaratmır.</summary>
+        private async Task<string> BuildGreetingAsync(string name, string language)
+        {
+            if (_translations == null) return $"Salam {name},";
+            var snapshot = await _translations.GetPublishedAsync(default);
+            return TextLocalizer.Render(snapshot.ForLanguage(TranslationPolicy.NormalizeLanguage(language)).Messages,
+                "notification.email.greeting", "Salam {name},", new { name });
         }
 
         public async Task SendAsync(

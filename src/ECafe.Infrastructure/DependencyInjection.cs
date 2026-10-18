@@ -91,6 +91,8 @@ namespace ECafe.Infrastructure
                     .AddInterceptors(serviceProvider.GetRequiredService<PermissionCacheInvalidationInterceptor>()));
 
             services.AddScoped(typeof(IBaseRepository<>), typeof(BaseRepository<>));
+            services.AddScoped<Application.Repositories.Localization.ITranslationRepository, Repositories.Localization.TranslationRepository>();
+            services.AddSingleton<Application.Services.Localization.Abstract.ITranslationCache, Services.Localization.TranslationMemoryCache>();
             services.AddScoped<IPaymentGateway, SimulationPaymentGateway>();
             services.AddScoped<IApplicationDbTransactionFactory, EfApplicationDbTransactionFactory>();
             services.AddScoped<INotificationChangeDispatcher, NotificationChangeDispatcher>();

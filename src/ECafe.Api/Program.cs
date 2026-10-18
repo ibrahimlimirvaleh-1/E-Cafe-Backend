@@ -26,6 +26,8 @@ using Swashbuckle.AspNetCore.SwaggerUI;
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using Microsoft.AspNetCore.Localization;
+using ECafe.Application.Services.Localization.Abstract;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -74,7 +76,13 @@ if (isSentryEnabled)
     }
 }
 
-builder.Services.AddControllers();
+builder.Services.AddControllers(options => options.Filters.Add<ECafe.Api.Filters.LocalizedResponseFilter>());
+builder.Services.Configure<RequestLocalizationOptions>(options =>
+{
+    options.SetDefaultCulture("az").AddSupportedCultures("az", "en", "ru").AddSupportedUICultures("az", "en", "ru");
+    options.RequestCultureProviders = [new AcceptLanguageHeaderRequestCultureProvider()];
+    options.ApplyCurrentCultureToResponseHeaders = true;
+});
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
@@ -155,6 +163,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("EcafeCors", policy =>
     {
+        policy.WithExposedHeaders("ETag", "Content-Language");
         var allowedOrigins = builder.Configuration
             .GetSection("Cors:AllowedOrigins")
             .Get<string[]>() ?? [];
@@ -251,7 +260,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 {
                     statusCode = StatusCodes.Status401Unauthorized,
                     code = "Unauthorized",
-                    message = "Sessiya etibarsızdır və ya vaxtı bitib. Zəhmət olmasa yenidən daxil olun.",
+                    message = context.HttpContext.RequestServices.GetRequiredService<ITextLocalizer>().Get("api.auth.unauthorized", "Sessiya etibarsızdır və ya vaxtı bitib. Zəhmət olmasa yenidən daxil olun."),
                     traceId = context.HttpContext.TraceIdentifier,
                     timestamp = DateTime.UtcNow
                 };
@@ -291,6 +300,8 @@ builder.Services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProv
 var app = builder.Build();
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
+app.UseRequestLocalization();
+app.UseMiddleware<TranslationContextMiddleware>();
 app.UseForwardedHeaders();
 app.UseMiddleware<SecurityHeadersMiddleware>();
 

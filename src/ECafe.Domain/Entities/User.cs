@@ -5,6 +5,7 @@ namespace ECafe.Domain.Entities;
 public partial class User : AuditableSoftDeletableEntity<int>
 {
     public string Name { get; set; } = null!;
+    public string PreferredLanguage { get; set; } = "az";
 
     public string Surname { get; set; } = null!;
 

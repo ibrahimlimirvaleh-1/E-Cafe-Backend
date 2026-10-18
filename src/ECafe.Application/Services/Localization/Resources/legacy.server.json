@@ -1,0 +1,182 @@
+{
+  "api.literal.legacy.restaurantContext": {
+    "source": "Restaurant context is required.",
+    "az": "Restoran konteksti tələb olunur.",
+    "en": "Restaurant context is required.",
+    "ru": "Требуется контекст ресторана."
+  },
+  "api.literal.legacy.userContext": {
+    "source": "User context is required.",
+    "az": "İstifadəçi konteksti tələb olunur.",
+    "en": "User context is required.",
+    "ru": "Требуется контекст пользователя."
+  },
+  "api.literal.legacy.invalidRestaurant": {
+    "source": "Invalid restaurant ID!",
+    "az": "Restoran identifikatoru düzgün deyil.",
+    "en": "Invalid restaurant ID!",
+    "ru": "Некорректный идентификатор ресторана."
+  },
+  "api.literal.legacy.restaurantAccess": {
+    "source": "You do not have access to this restaurant.",
+    "az": "Bu restorana giriş icazəniz yoxdur.",
+    "en": "You do not have access to this restaurant.",
+    "ru": "У вас нет доступа к этому ресторану."
+  },
+  "api.literal.legacy.authContext": {
+    "source": "Authenticated user context is required.",
+    "az": "Autentifikasiya edilmiş istifadəçi konteksti tələb olunur.",
+    "en": "Authenticated user context is required.",
+    "ru": "Требуется контекст авторизованного пользователя."
+  },
+  "api.literal.legacy.roleContext": {
+    "source": "Role context is required.",
+    "az": "Rol konteksti tələb olunur.",
+    "en": "Role context is required.",
+    "ru": "Требуется контекст роли."
+  },
+  "api.literal.legacy.passwordNotSet": {
+    "source": "Password has not been set yet.",
+    "az": "Şifrə hələ təyin edilməyib.",
+    "en": "Password has not been set yet.",
+    "ru": "Пароль ещё не установлен."
+  },
+  "api.literal.legacy.inactive": {
+    "source": "User account is inactive.",
+    "az": "İstifadəçi hesabı aktiv deyil.",
+    "en": "User account is inactive.",
+    "ru": "Учётная запись неактивна."
+  },
+  "api.literal.legacy.passwordSetup": {
+    "source": "Password setup link is invalid or expired.",
+    "az": "Şifrə təyin etmə keçidi düzgün deyil və ya vaxtı bitib.",
+    "en": "Password setup link is invalid or expired.",
+    "ru": "Ссылка установки пароля недействительна или истекла."
+  },
+  "api.literal.legacy.sessionId": {
+    "source": "Session ID is required.",
+    "az": "Sessiya identifikatoru tələb olunur.",
+    "en": "Session ID is required.",
+    "ru": "Требуется идентификатор сеанса."
+  },
+  "api.literal.legacy.staffAssignment": {
+    "source": "Restaurant-scoped role requires an active restaurant assignment.",
+    "az": "Restoran rolu üçün aktiv restoran təyinatı tələb olunur.",
+    "en": "Restaurant-scoped role requires an active restaurant assignment.",
+    "ru": "Для роли ресторана требуется активное назначение в ресторан."
+  },
+  "api.literal.legacy.notificationRequired": {
+    "source": "Notification request is required.",
+    "az": "Bildiriş məlumatları tələb olunur.",
+    "en": "Notification request is required.",
+    "ru": "Требуются данные уведомления."
+  },
+  "api.literal.legacy.notificationId": {
+    "source": "Invalid notification ID.",
+    "az": "Bildiriş identifikatoru düzgün deyil.",
+    "en": "Invalid notification ID.",
+    "ru": "Некорректный идентификатор уведомления."
+  },
+  "api.literal.legacy.notificationMissing": {
+    "source": "Notification not found.",
+    "az": "Bildiriş tapılmadı.",
+    "en": "Notification not found.",
+    "ru": "Уведомление не найдено."
+  },
+  "api.literal.legacy.recipeExists": {
+    "source": "Recipe ingredient already exists for this item.",
+    "az": "Bu məhsulun reseptində həmin tərkib artıq mövcuddur.",
+    "en": "Recipe ingredient already exists for this item.",
+    "ru": "Этот ингредиент уже есть в рецепте блюда."
+  },
+  "api.literal.legacy.itemId": {
+    "source": "Invalid item ID.",
+    "az": "Məhsul identifikatoru düzgün deyil.",
+    "en": "Invalid item ID.",
+    "ru": "Некорректный идентификатор продукта."
+  },
+  "api.literal.legacy.itemMissing": {
+    "source": "Active item not found.",
+    "az": "Aktiv məhsul tapılmadı.",
+    "en": "Active item not found.",
+    "ru": "Активный продукт не найден."
+  },
+  "api.literal.legacy.recipeId": {
+    "source": "Invalid recipe ID.",
+    "az": "Resept identifikatoru düzgün deyil.",
+    "en": "Invalid recipe ID.",
+    "ru": "Некорректный идентификатор рецепта."
+  },
+  "api.literal.legacy.recipeMissing": {
+    "source": "Recipe not found.",
+    "az": "Resept tapılmadı.",
+    "en": "Recipe not found.",
+    "ru": "Рецепт не найден."
+  },
+  "api.literal.legacy.unitId": {
+    "source": "Invalid unit ID.",
+    "az": "Ölçü vahidinin identifikatoru düzgün deyil.",
+    "en": "Invalid unit ID.",
+    "ru": "Некорректный идентификатор единицы измерения."
+  },
+  "api.literal.legacy.requestRequired": {
+    "source": "Request is required.",
+    "az": "Sorğu məlumatları tələb olunur.",
+    "en": "Request is required.",
+    "ru": "Требуются данные запроса."
+  },
+  "api.literal.legacy.groupName": {
+    "source": "Restaurant group name is required.",
+    "az": "Restoran qrupunun adı tələb olunur.",
+    "en": "Restaurant group name is required.",
+    "ru": "Требуется название группы ресторанов."
+  },
+  "api.literal.legacy.groupEmail": {
+    "source": "Restaurant group email is required.",
+    "az": "Restoran qrupunun e-poçtu tələb olunur.",
+    "en": "Restaurant group email is required.",
+    "ru": "Требуется электронная почта группы ресторанов."
+  },
+  "api.literal.legacy.groupExists": {
+    "source": "Restaurant group with this name already exists!",
+    "az": "Bu adda restoran qrupu artıq mövcuddur.",
+    "en": "Restaurant group with this name already exists!",
+    "ru": "Группа ресторанов с таким названием уже существует."
+  },
+  "api.literal.legacy.staffMissingRestaurant": {
+    "source": "Target user is not assigned to a restaurant.",
+    "az": "Seçilən istifadəçi restorana təyin edilməyib.",
+    "en": "Target user is not assigned to a restaurant.",
+    "ru": "Выбранный пользователь не назначен в ресторан."
+  },
+  "api.literal.legacy.ownerAdmin": {
+    "source": "Only platform admin can manage restaurant owner accounts.",
+    "az": "Sahibkar hesablarını yalnız platforma administratoru idarə edə bilər.",
+    "en": "Only platform admin can manage restaurant owner accounts.",
+    "ru": "Только администратор платформы может управлять учётными записями владельцев."
+  },
+  "api.literal.legacy.workflowDenied": {
+    "source": "Workflow action is not allowed.",
+    "az": "Bu proses əməliyyatına icazə verilmir.",
+    "en": "Workflow action is not allowed.",
+    "ru": "Это действие процесса не разрешено."
+  },
+  "api.literal.legacy.workflowReservation": {
+    "source": "Workflow action is not allowed for this reservation.",
+    "az": "Bu rezervasiya üçün həmin proses əməliyyatına icazə verilmir.",
+    "en": "Workflow action is not allowed for this reservation.",
+    "ru": "Это действие процесса не разрешено для данного бронирования."
+  },
+  "api.literal.legacy.workflowUser": {
+    "source": "Workflow action is not allowed for this user.",
+    "az": "Bu istifadəçiyə həmin proses əməliyyatı üçün icazə verilmir.",
+    "en": "Workflow action is not allowed for this user.",
+    "ru": "Это действие процесса не разрешено данному пользователю."
+  },
+  "api.literal.legacy.workflowState": {
+    "source": "Workflow action is not allowed in the current state.",
+    "az": "Cari vəziyyətdə həmin əməliyyata icazə verilmir.",
+    "en": "Workflow action is not allowed in the current state.",
+    "ru": "Это действие не разрешено в текущем состоянии."
+  }
+}

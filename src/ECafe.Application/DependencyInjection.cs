@@ -77,6 +77,10 @@ namespace ECafe.Application
             services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
 
             services.AddSingleton<IErrorMessageProvider, ErrorMessageProvider>();
+            services.AddSingleton<Services.Localization.TranslationBootstrap>();
+            services.AddSingleton<Services.Localization.Abstract.ITextLocalizer, Services.Localization.Concrete.TextLocalizer>();
+            services.AddScoped<Services.Localization.Abstract.ITranslationService, Services.Localization.Concrete.TranslationManager>();
+            services.AddScoped<Services.Localization.Abstract.INotificationTextService, Services.Localization.Concrete.NotificationTextService>();
             services.AddSingleton<ICriticalEventReporter, NoopCriticalEventReporter>();
             services.AddScoped<IMinioService, MinioManager>();
             services.AddScoped<AuditLogManager>();
