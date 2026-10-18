@@ -19,6 +19,7 @@ namespace ECafe.Application.Services.Notification.Concrete
         private readonly INotificationChangeDispatcher _notificationDispatcher;
         private readonly IMobilePushOutboxWriter _mobilePushOutboxWriter;
         private readonly INotificationEmailOutboxWriter _notificationEmailOutboxWriter;
+        private readonly Services.Localization.Abstract.INotificationTextService? _texts;
 
         public NotificationManager(
             IHttpContextAccessor httpContextAccessor,
@@ -28,7 +29,8 @@ namespace ECafe.Application.Services.Notification.Concrete
             IValidator<CreateNotificationRequest> validator,
             INotificationChangeDispatcher notificationDispatcher,
             IMobilePushOutboxWriter mobilePushOutboxWriter,
-            INotificationEmailOutboxWriter notificationEmailOutboxWriter)
+            INotificationEmailOutboxWriter notificationEmailOutboxWriter,
+            Services.Localization.Abstract.INotificationTextService? texts = null)
             : base(httpContextAccessor, mapper, configuration)
         {
             _notificationRepository = notificationRepository;
@@ -36,6 +38,7 @@ namespace ECafe.Application.Services.Notification.Concrete
             _notificationDispatcher = notificationDispatcher;
             _mobilePushOutboxWriter = mobilePushOutboxWriter;
             _notificationEmailOutboxWriter = notificationEmailOutboxWriter;
+            _texts = texts;
         }
 
         public async Task CreateAsync(CreateNotificationRequest request)
@@ -46,6 +49,7 @@ namespace ECafe.Application.Services.Notification.Concrete
             await _validator.ValidateAndThrowAsync(request);
 
             var notification = Mapper.Map<Domain.Entities.Notification>(request);
+            if (_texts != null) await _texts.PrepareAsync(notification, HttpContextAccessor.HttpContext?.RequestAborted ?? default);
 
             await _notificationRepository.Add(notification);
             _mobilePushOutboxWriter.Enqueue(notification);
@@ -57,7 +61,10 @@ namespace ECafe.Application.Services.Notification.Concrete
         public async Task<List<NotificationResponse>> GetMyNotificationsAsync()
         {
             var notifications = await _notificationRepository.GetByUserAsync(GetCurrentUserId(), GetNotificationRestaurantScope());
-            return Mapper.Map<List<NotificationResponse>>(notifications);
+            var responses = Mapper.Map<List<NotificationResponse>>(notifications);
+            if (_texts != null)
+                for (var index = 0; index < notifications.Count; index++) _texts.LocalizeForReader(notifications[index], responses[index]);
+            return responses;
         }
 
         public async Task<UnreadNotificationCountResponse> GetUnreadCountAsync()

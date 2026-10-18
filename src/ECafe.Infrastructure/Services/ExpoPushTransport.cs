@@ -6,17 +6,26 @@ using Microsoft.Extensions.Configuration;
 
 namespace ECafe.Infrastructure.Services;
 
-public sealed class ExpoPushTransport(HttpClient client, IConfiguration configuration) : IExpoPushTransport
+public sealed class ExpoPushTransport(HttpClient client, IConfiguration configuration,
+    ECafe.Application.Services.Localization.Abstract.ITranslationService? translations = null) : IExpoPushTransport
 {
-    public async Task<ExpoPushResult> SendAsync(string expoToken, Guid deliveryId, CancellationToken cancellationToken)
+    public Task<ExpoPushResult> SendAsync(string expoToken, Guid deliveryId, CancellationToken cancellationToken)
+        => SendLocalizedAsync(expoToken, deliveryId, "az", cancellationToken);
+
+    /// <summary>Alıcının dilində yalnız ümumi xəbərdarlığı Expo-ya göndərir; sifariş və ödəniş məzmununu telefon kilid ekranına çıxarmır.</summary>
+    public async Task<ExpoPushResult> SendLocalizedAsync(string expoToken, Guid deliveryId, string language, CancellationToken cancellationToken)
     {
+        var body = "Yeni bildirişiniz var.";
+        if (translations != null) body = (await translations.GetPublishedAsync(cancellationToken)).ForLanguage(language).Messages.GetValueOrDefault("notification.push.body", body);
+        // Admin mətni push provayderinin payload həddini aşmamalıdır.
+        if (body.Length > 500) body = body[..497] + "...";
         using var request = new HttpRequestMessage(HttpMethod.Post, "send")
         {
             Content = JsonContent.Create(new
             {
                 to = expoToken,
                 title = "ECafe",
-                body = "Yeni bildirişiniz var.",
+                body,
                 channelId = "ecafe-alerts",
                 sound = "default",
                 data = new { deliveryId }

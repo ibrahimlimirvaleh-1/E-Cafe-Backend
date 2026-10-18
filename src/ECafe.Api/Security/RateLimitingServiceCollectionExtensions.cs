@@ -7,6 +7,7 @@ namespace ECafe.Api.Security;
 
 public static class RateLimitingServiceCollectionExtensions
 {
+    /// <summary>Mövcud sorğu limitlərini qeydiyyata alır; limit cavabını biznes xəta kodunu dəyişmədən seçilmiş dildə qaytarır.</summary>
     public static IServiceCollection AddEcafeRateLimiting(
         this IServiceCollection services,
         IConfiguration configuration)
@@ -30,7 +31,7 @@ public static class RateLimitingServiceCollectionExtensions
                 {
                     statusCode = StatusCodes.Status429TooManyRequests,
                     code = ErrorCode.TooManyRequests.ToString(),
-                    message = "Çox sayda sorğu göndərildi. Bir az sonra yenidən cəhd edin.",
+                    message = context.HttpContext.RequestServices.GetRequiredService<IErrorMessageProvider>().GetMessage(ErrorCode.TooManyRequests),
                     traceId = context.HttpContext.TraceIdentifier,
                     retryAfterSeconds,
                     timestamp = DateTime.UtcNow

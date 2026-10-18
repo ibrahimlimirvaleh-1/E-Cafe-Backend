@@ -2,6 +2,15 @@ namespace ECafe.Application.Routes;
 
 public static class Routes
 {
+    public static class Localization
+    {
+        public const string Dictionary = Base + "/localization/dictionaries/{language}";
+        public const string Preference = Base + "/localization/preference";
+        public const string Draft = Base + "/admin/localization/draft";
+        public const string Publish = Base + "/admin/localization/publish";
+        public const string Releases = Base + "/admin/localization/releases";
+        public const string Rollback = Releases + "/{releaseId:int}/rollback";
+    }
     public static class Payment
     {
         public const string SessionBill = Base + "/table-sessions/{tableSessionId:int}/bill";

@@ -24,6 +24,7 @@ namespace ECafe.Infrastructure.Configurations.Concrete
             builder.Property(e => e.Email)
                 .HasMaxLength(100)
                 .HasColumnName("email");
+            builder.Property(e => e.PreferredLanguage).HasMaxLength(2).HasDefaultValue("az").HasColumnName("preferred_language");
             builder.Property(e => e.FileId).HasColumnName("file_id");
             builder.Property(e => e.IsActive)
                 .HasDefaultValue(true)

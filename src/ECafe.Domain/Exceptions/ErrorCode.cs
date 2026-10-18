@@ -200,5 +200,11 @@ public enum ErrorCode
     SessionBillUnpaid = 5096,
     SessionBillOrdersUnserved = 5097,
     SessionBillPaymentPending = 5098,
-    SessionBillInvalid = 5099
+    SessionBillInvalid = 5099,
+    LocalizationInvalidLanguage = 5100,
+    LocalizationInvalidEntry = 5101,
+    LocalizationPlaceholderMismatch = 5102,
+    LocalizationDraftConflict = 5103,
+    LocalizationReleaseNotFound = 5104,
+    LocalizationCatalogUnavailable = 5105
 }

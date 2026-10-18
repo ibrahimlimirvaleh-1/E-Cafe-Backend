@@ -1,5 +1,6 @@
 using System.Net;
 using ECafe.Application.Services.Monitoring.Abstract;
+using ECafe.Application.Services.Localization.Abstract;
 using ECafe.Domain.Exceptions;
 using FluentValidation;
 using Sentry;
@@ -12,17 +13,20 @@ public sealed class ExceptionHandlingMiddleware
     private readonly ILogger<ExceptionHandlingMiddleware> _logger;
     private readonly IErrorMessageProvider _errorMessageProvider;
     private readonly ICriticalEventReporter _criticalEventReporter;
+    private readonly ITextLocalizer? _text;
 
     public ExceptionHandlingMiddleware(
         RequestDelegate next,
         ILogger<ExceptionHandlingMiddleware> logger,
         IErrorMessageProvider errorMessageProvider,
-        ICriticalEventReporter criticalEventReporter)
+        ICriticalEventReporter criticalEventReporter,
+        ITextLocalizer? text = null)
     {
         _next = next;
         _logger = logger;
         _errorMessageProvider = errorMessageProvider;
         _criticalEventReporter = criticalEventReporter;
+        _text = text;
     }
 
     public async Task Invoke(HttpContext context)
@@ -139,6 +143,7 @@ public sealed class ExceptionHandlingMiddleware
             _ => CreateInternalErrorResponse(context)
         };
 
+    /// <summary>Validasiya xətasının texniki sahə adını qoruyur, istifadəçiyə görünən izahını sorğunun yayımlanmış dilindən seçir.</summary>
     private ApiErrorResponse CreateValidationErrorResponse(
         HttpContext context,
         ValidationException exception)
@@ -148,7 +153,19 @@ public sealed class ExceptionHandlingMiddleware
             Message: _errorMessageProvider.GetMessage(ErrorCode.ValidationFailed),
             TraceId: context.TraceIdentifier,
             Timestamp: DateTime.UtcNow,
-            Errors: exception.Errors.Select(error => new ValidationErrorResponse(error.PropertyName, error.ErrorMessage)));
+            Errors: exception.Errors.Select(error => new ValidationErrorResponse(error.PropertyName, LocalizeValidation(error))));
+
+    /// <summary>Məlum xüsusi mesajı kataloqdan seçir; standart validator üçün sərhədləri saxlayır, naməlum qaydada təhlükəsiz ümumi izah göstərir.</summary>
+    private string LocalizeValidation(FluentValidation.Results.ValidationFailure error)
+    {
+        if (_text == null) return error.ErrorMessage;
+        if (_text.ResolveSource(error.ErrorMessage) != null) return _text.TranslateLiteral(error.ErrorMessage);
+        var arguments = error.FormattedMessagePlaceholderValues == null
+            ? new Dictionary<string, object?>()
+            : error.FormattedMessagePlaceholderValues.ToDictionary(pair => pair.Key, pair => (object?)pair.Value);
+        arguments["PropertyName"] = error.PropertyName;
+        return _text.Get($"api.validation.{error.ErrorCode}", _text.Get("api.validation.default", error.ErrorMessage, arguments), arguments);
+    }
 
     private ApiErrorResponse CreateApplicationErrorResponse(
         HttpContext context,

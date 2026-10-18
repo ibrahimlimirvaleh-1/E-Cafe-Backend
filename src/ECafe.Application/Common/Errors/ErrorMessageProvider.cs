@@ -1,13 +1,21 @@
 using System.Reflection;
 using ECafe.Domain.Exceptions;
+using ECafe.Application.Services.Localization.Abstract;
 
 namespace ECafe.Application.Common.Errors;
 
-public sealed class ErrorMessageProvider : IErrorMessageProvider
+public sealed class ErrorMessageProvider(ITextLocalizer? localizer = null) : IErrorMessageProvider
 {
+    public static IReadOnlyDictionary<ErrorCode, string> DefaultMessages => Messages;
     private static readonly IReadOnlyDictionary<ErrorCode, string> Messages = new Dictionary<ErrorCode, string>
     {
         [ErrorCode.BusinessRuleViolation] = "Business rule violation.",
+        [ErrorCode.LocalizationInvalidLanguage] = "Yalnız Azərbaycan, ingilis və rus dilləri dəstəklənir.",
+        [ErrorCode.LocalizationInvalidEntry] = "Tərcümə açarı və ya mətnləri düzgün deyil.",
+        [ErrorCode.LocalizationPlaceholderMismatch] = "Bütün dillərdə mətn dəyişənləri eyni olmalıdır.",
+        [ErrorCode.LocalizationDraftConflict] = "Qaralama dəyişib. Məlumatı yeniləyib yenidən cəhd edin.",
+        [ErrorCode.LocalizationReleaseNotFound] = "Tərcümə versiyası tapılmadı.",
+        [ErrorCode.LocalizationCatalogUnavailable] = "Tərcümə kataloqu hazırda əlçatan deyil.",
         [ErrorCode.ScheduleChangeAlreadyPending] = "İş saatı dəyişikliyi artıq gözlənilir. Əvvəl onu tətbiq edin və ya geri götürün.",
         [ErrorCode.ScheduleUnchanged] = "İş saatlarında dəyişiklik yoxdur.",
         [ErrorCode.ScheduleOfferNotFound] = "İş saatı təklifi tapılmadı.",
@@ -208,7 +216,7 @@ public sealed class ErrorMessageProvider : IErrorMessageProvider
     public string GetMessage(BaseException exception)
     {
         if (!exception.UsesDynamicMessage)
-            return exception.Message;
+            return localizer?.TranslateLiteral(exception.Message) ?? exception.Message;
 
         return GetMessage(exception.Code, exception.Parameters, exception.Message);
     }
@@ -216,6 +224,7 @@ public sealed class ErrorMessageProvider : IErrorMessageProvider
     public string GetMessage(ErrorCode code, object? parameters = null, string? fallbackMessage = null)
     {
         var template = Messages.GetValueOrDefault(code, fallbackMessage ?? code.ToString());
+        if (localizer != null) return localizer.Get($"api.error.{code}", template, parameters);
         return ApplyParameters(template, parameters);
     }
 

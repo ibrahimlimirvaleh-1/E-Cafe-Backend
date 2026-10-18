@@ -12,6 +12,8 @@ public partial class ECafeDbContext : DbContext
     public ECafeDbContext(DbContextOptions<ECafeDbContext> options) : base(options) { }
 
     public virtual DbSet<Category> Categories { get; set; } = null!;
+    public DbSet<TranslationCatalog> TranslationCatalogs { get; set; } = null!;
+    public DbSet<TranslationRelease> TranslationReleases { get; set; } = null!;
     public virtual DbSet<Domain.Entities.File> Files { get; set; } = null!;
     public virtual DbSet<FileType> FileTypes { get; set; } = null!;
     public virtual DbSet<Order> Orders { get; set; } = null!;
@@ -119,6 +121,8 @@ public partial class ECafeDbContext : DbContext
         {
             if (entry.Entity is AuditLog && entry.State is EntityState.Modified or EntityState.Deleted)
                 throw new InvalidOperationException("Audit logs are immutable and cannot be updated or deleted.");
+            if (entry.Entity is TranslationRelease && entry.State is EntityState.Modified or EntityState.Deleted)
+                throw new InvalidOperationException("Published translation releases are immutable.");
             if (entry.State == EntityState.Deleted && entry.Entity is ISoftDelete softDeleteEntity)
             {
                 entry.State = EntityState.Modified;

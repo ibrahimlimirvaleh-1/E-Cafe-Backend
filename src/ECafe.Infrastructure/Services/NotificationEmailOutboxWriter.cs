@@ -37,6 +37,7 @@ public sealed class NotificationEmailOutboxWriter(ECafeDbContext context) : INot
                 ToName = recipient.Name,
                 Subject = notification.Title,
                 Body = notification.Message,
+                Language = notification.TitleKey != null || notification.MessageKey != null ? notification.Language : null,
                 RelatedEntityType = notification.RelatedEntityType,
                 RelatedEntityId = notification.RelatedEntityId
             }),
