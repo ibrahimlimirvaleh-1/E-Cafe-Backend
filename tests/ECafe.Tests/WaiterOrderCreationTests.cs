@@ -39,6 +39,36 @@ namespace ECafe.Tests;
 public sealed class WaiterOrderCreationTests
 {
     [Fact]
+    public async Task PendingFinalBillBlocksNewOrdersButExistingOrderRetryStillReplays()
+    {
+        await using var f = await Fixture.CreateAsync();
+        var key = Guid.NewGuid();
+        var created = await f.CreateAsync(Request(), key);
+        f.Context.Payments.Add(new Payment { Id = 1, RestaurantId = 1, TableSessionId = 1, Amount = 7,
+            PaymentStatusId = StatusIds.Build(ECafe.Domain.Enums.StatusType.PaymentStatus, (int)PaymentStatus.Pending) });
+        await f.Context.SaveChangesAsync();
+        var replay = await f.CreateAsync(Request(), key);
+        Assert.Equal(created.Order.Id, replay.Order.Id);
+        var error = await Assert.ThrowsAsync<BusinessRuleException>(() => f.CreateAsync(Request()));
+        Assert.Equal(ErrorCode.SessionBillPaymentPending, error.Code);
+        Assert.Single(f.Context.Orders);
+    }
+
+    [Fact]
+    public async Task PaymentCreatedWhileWaitingForTableLockBlocksNewOrder()
+    {
+        await using var f = await Fixture.CreateAsync();
+        f.BeforeLock = async () =>
+        {
+            f.Context.Payments.Add(new Payment { Id = 1, RestaurantId = 1, TableSessionId = 1, Amount = 7,
+                PaymentStatusId = StatusIds.Build(ECafe.Domain.Enums.StatusType.PaymentStatus, (int)PaymentStatus.Pending) });
+            await f.Context.SaveChangesAsync();
+        };
+        await Assert.ThrowsAsync<BusinessRuleException>(() => f.CreateAsync(Request()));
+        Assert.Empty(f.Context.Orders);
+    }
+
+    [Fact]
     public async Task CreateBindsServerContextAndStoresPriceAndNameSnapshotsWithoutKitchenSideEffects()
     {
         await using var fixture = await Fixture.CreateAsync();

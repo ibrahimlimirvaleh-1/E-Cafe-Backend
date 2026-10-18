@@ -196,5 +196,9 @@ public enum ErrorCode
     PaymentTransitionNotAllowed = 5092,
     PaymentProviderMismatch = 5093,
     PaymentRequestKeyRequired = 5094,
-    PaymentRequestKeyConflict = 5095
+    PaymentRequestKeyConflict = 5095,
+    SessionBillUnpaid = 5096,
+    SessionBillOrdersUnserved = 5097,
+    SessionBillPaymentPending = 5098,
+    SessionBillInvalid = 5099
 }

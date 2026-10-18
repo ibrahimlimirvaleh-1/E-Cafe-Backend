@@ -6,6 +6,7 @@ namespace ECafe.Application.Repositories.TableSession
 {
     public interface ITableSessionRepository : IBaseRepository<Domain.Entities.TableSession>
     {
+        Task<Domain.Entities.TableSession?> GetForBillingAsync(int id, bool tracked, CancellationToken cancellationToken);
         Task<PaginatedList<WaiterTableSessionResponse>> GetOpenForWaiterAsync(
             int restaurantId, int waiterUserId, PaginationFilter pagination,
             CancellationToken cancellationToken = default);

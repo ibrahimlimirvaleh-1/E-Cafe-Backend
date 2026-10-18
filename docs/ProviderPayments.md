@@ -1,6 +1,6 @@
 # Provayder ödənişinin test rejimi
 
-Bu modul rezervasiya depoziti və mövcud refund hüququ üçün rekvizitsiz ödəniş axınıdır. Sifariş hesablaşması, müqavilə ödənişi və cüzdan üçün yeni biznes funksiyası əlavə etmir. Məbləğ, restoranın cavab müddəti, ödəniş hold-u, depozitsiz rezervasiya və ləğv güzəşti əvvəlki qaydalarla işləyir.
+Bu modul rezervasiya depoziti, mövcud refund hüququ və masa sessiyasının yekun hesabı üçün rekvizitsiz test ödəniş axınıdır. Müqavilə ödənişi və cüzdan üçün yeni biznes funksiyası əlavə etmir. Restoranın cavab müddəti, ödəniş hold-u, depozitsiz rezervasiya və ləğv güzəşti əvvəlki qaydalarla işləyir.
 
 ## Test rejiminin açılması
 

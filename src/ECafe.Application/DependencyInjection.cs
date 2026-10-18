@@ -113,6 +113,7 @@ namespace ECafe.Application
                 .ValidateOnStart();
             services.AddScoped<PaymentRuntime>();
             services.AddScoped<IProviderPaymentService, ProviderPaymentManager>();
+            services.AddScoped<ITableSessionBillingService, TableSessionBillingManager>();
             services.AddScoped<IKitchenOrderService, KitchenOrderManager>();
             services.AddScoped<ICustomerOrderTrackingService, CustomerOrderTrackingManager>();
             services.AddOptions<OrderCreationOptions>()

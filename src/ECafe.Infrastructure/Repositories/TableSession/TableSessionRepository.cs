@@ -11,6 +11,19 @@ namespace ECafe.Infrastructure.Repositories.TableSession
     public class TableSessionRepository : BaseRepository<Domain.Entities.TableSession>, ITableSessionRepository
     {
         private readonly TimeProvider _clock;
+        /// <summary>Hesab üçün sifariş, depozit və sessiya ödənişlərini kartezyen hasil olmadan sabit saylı sorğularla yükləyir.</summary>
+        public Task<Domain.Entities.TableSession?> GetForBillingAsync(int id, bool tracked, CancellationToken cancellationToken)
+        {
+            var query = tracked ? QueryTracked() : Query().AsNoTrackingWithIdentityResolution();
+            return query.Where(session => session.Id == id)
+                .Include(session => session.Orders).ThenInclude(order => order.OrderItems)
+                .Include(session => session.Payments).Include(session => session.Restaurant)
+                .Include(session => session.Reservation).ThenInclude(reservation => reservation!.Payments)
+                .Include(session => session.Reservation).ThenInclude(reservation => reservation!.PaymentProofs)
+                .Include(session => session.Reservation).ThenInclude(reservation => reservation!.Refunds)
+                .Include(session => session.Reservation).ThenInclude(reservation => reservation!.TableSessions)
+                .AsSplitQuery().SingleOrDefaultAsync(cancellationToken);
+        }
         public TableSessionRepository(ECafeDbContext context, TimeProvider? clock = null) : base(context)
         {
             _clock = clock ?? TimeProvider.System;

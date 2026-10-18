@@ -4,6 +4,10 @@ public static class Routes
 {
     public static class Payment
     {
+        public const string SessionBill = Base + "/table-sessions/{tableSessionId:int}/bill";
+        public const string SessionBillCheckout = SessionBill + "/checkout";
+        public const string SessionBillRefresh = SessionBill + "/payments/{paymentId:int}/refresh";
+        public const string SessionBillTestOutcome = SessionBill + "/payments/{paymentId:int}/test-outcome";
         public const string Capabilities = Base + "/payments/capabilities";
         public const string Reservation = Base + "/reservations/{reservationId:int}/payment";
         public const string Authorize = Base + "/restaurants/{restaurantId:int}/reservations/{reservationId:int}/payment/authorize";

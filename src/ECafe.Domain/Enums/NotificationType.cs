@@ -31,6 +31,7 @@
         ReservationWaitingEscalated = 27,
         ReservationTableChanged = 28,
         ReservationReceptionReviewRequired = 29,
-        TableSessionCloseReviewRequired = 30
+        TableSessionCloseReviewRequired = 30,
+        TableSessionPaid = 31
     }
 }

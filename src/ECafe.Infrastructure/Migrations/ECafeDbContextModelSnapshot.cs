@@ -1565,6 +1565,11 @@ namespace ECafe.Infrastructure.Migrations
                         .HasColumnType("numeric(10,2)")
                         .HasColumnName("amount");
 
+                    b.Property<string>("BillFingerprint")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("bill_fingerprint");
+
                     b.Property<DateTime?>("CheckoutExpiresAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("checkout_expires_at");
@@ -1659,6 +1664,10 @@ namespace ECafe.Infrastructure.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("restaurant_id");
 
+                    b.Property<int?>("TableSessionId")
+                        .HasColumnType("integer")
+                        .HasColumnName("table_session_id");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -1682,6 +1691,9 @@ namespace ECafe.Infrastructure.Migrations
 
                     b.HasIndex("RestaurantId");
 
+                    b.HasIndex("TableSessionId")
+                        .HasDatabaseName("IX_payments_table_session_id");
+
                     b.HasIndex(new[] { "CreatedByUserId", "CheckoutKey" }, "payments_customer_checkout_key")
                         .IsUnique()
                         .HasFilter("checkout_key IS NOT NULL");
@@ -1690,11 +1702,18 @@ namespace ECafe.Infrastructure.Migrations
                         .IsUnique()
                         .HasFilter("reservation_id IS NOT NULL AND provider_name IS NOT NULL AND payment_status_id = 3001 AND NOT \"IsDeleted\"");
 
+                    b.HasIndex(new[] { "TableSessionId" }, "payments_pending_session_key")
+                        .IsUnique()
+                        .HasFilter("table_session_id IS NOT NULL AND payment_status_id = 3001 AND NOT \"IsDeleted\"");
+
                     b.HasIndex(new[] { "ProviderName", "ProviderRef" }, "payments_provider_reference_key")
                         .IsUnique()
                         .HasFilter("provider_name IS NOT NULL AND provider_ref IS NOT NULL");
 
-                    b.ToTable("payments", "billing");
+                    b.ToTable("payments", "billing", t =>
+                        {
+                            t.HasCheckConstraint("payments_session_bill_link_check", "(table_session_id IS NULL AND bill_fingerprint IS NULL) OR (table_session_id IS NOT NULL AND reservation_id IS NULL AND order_id IS NULL AND bill_fingerprint IS NOT NULL)");
+                        });
                 });
 
             modelBuilder.Entity("ECafe.Domain.Entities.Permission", b =>
@@ -6835,6 +6854,11 @@ namespace ECafe.Infrastructure.Migrations
                         .IsRequired()
                         .HasConstraintName("payments_restaurant_id_fkey");
 
+                    b.HasOne("ECafe.Domain.Entities.TableSession", "TableSession")
+                        .WithMany("Payments")
+                        .HasForeignKey("TableSessionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("CreatedByUser");
 
                     b.Navigation("Order");
@@ -6846,6 +6870,8 @@ namespace ECafe.Infrastructure.Migrations
                     b.Navigation("Reservation");
 
                     b.Navigation("Restaurant");
+
+                    b.Navigation("TableSession");
                 });
 
             modelBuilder.Entity("ECafe.Domain.Entities.Recipe", b =>
@@ -7755,6 +7781,8 @@ namespace ECafe.Infrastructure.Migrations
             modelBuilder.Entity("ECafe.Domain.Entities.TableSession", b =>
                 {
                     b.Navigation("Orders");
+
+                    b.Navigation("Payments");
                 });
 
             modelBuilder.Entity("ECafe.Domain.Entities.User", b =>
