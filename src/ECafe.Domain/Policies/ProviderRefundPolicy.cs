@@ -7,6 +7,9 @@ namespace ECafe.Domain.Policies;
 
 public static class ProviderRefundPolicy
 {
+    public const string SucceededReason = "Provayder geri ödənişi təsdiqlədi.";
+    public const string FailedReason = "Provayder geri ödənişi tamamlamadı.";
+
     /// <summary>Refundu yalnız ilkin ödənişə və tam məbləğə uyğun nəticə ilə tamamlayır; təkrar uğur tarixləri dəyişmir.</summary>
     public static bool Apply(ReservationRefund refund, Payment payment, ProviderOperationStatus result,
         string reference, decimal amount, string currency, bool isTest, DateTime nowUtc)
@@ -35,7 +38,7 @@ public static class ProviderRefundPolicy
         refund.StatusHistory.Add(new ReservationRefundStatusHistory
         {
             FromStatusId = previous, ToStatusId = refund.StatusId, ChangedAt = nowUtc,
-            Reason = result == ProviderOperationStatus.Succeeded ? "Provayder geri ödənişi təsdiqlədi." : "Provayder geri ödənişi tamamlamadı."
+            Reason = result == ProviderOperationStatus.Succeeded ? SucceededReason : FailedReason
         });
         return true;
     }

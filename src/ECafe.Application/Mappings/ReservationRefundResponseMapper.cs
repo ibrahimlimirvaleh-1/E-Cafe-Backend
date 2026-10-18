@@ -2,6 +2,7 @@ using ECafe.Application.DTOs.Reservation;
 using ECafe.Application.Services.FileAccess.Abstract;
 using ECafe.Application.Services.Payments;
 using ECafe.Domain.Enums;
+using ECafe.Domain.Policies;
 using ECafe.Domain.Workflow;
 using ECafe.Shared.Extensions;
 using ReservationRefundEntity = ECafe.Domain.Entities.ReservationRefund;
@@ -29,6 +30,7 @@ public static class ReservationRefundResponseMapper
             CanSimulate = refund.SourcePayment?.IsTest == true && refund.StatusId == StatusIds.Refund(RefundStatus.Processing),
             StatusId = refund.StatusId,
             Status = ResolveStatusName(refund.StatusId, refund.Status?.Name),
+            StatusLabel = ResolveStatusName(refund.StatusId, refund.Status?.Name),
             WorkflowFlowCode = RefundFlowCode,
             Amount = refund.Amount,
             CurrencyCode = refund.CurrencyCode,
@@ -48,15 +50,21 @@ public static class ReservationRefundResponseMapper
                 .Select(history => new ReservationRefundStatusHistoryResponse
                 {
                     Id = history.Id,
+                    FromStatusId = history.FromStatusId,
+                    ToStatusId = history.ToStatusId,
                     FromStatus = history.FromStatus?.Name,
+                    FromStatusLabel = history.FromStatusId.HasValue
+                        ? ResolveStatusName(history.FromStatusId.Value, history.FromStatus?.Name) : null,
                     ToStatus = ResolveStatusName(history.ToStatusId, history.ToStatus?.Name),
+                    ToStatusLabel = ResolveStatusName(history.ToStatusId, history.ToStatus?.Name),
                     ChangedAt = ToUtcOffset(history.ChangedAt),
                     ActorType = history.ChangedByUserId is null
                         ? "System"
                         : history.ChangedByUserId == refund.Reservation.CustomerUserId
                             ? "Customer"
                             : "Restaurant",
-                    Reason = history.Reason
+                    Reason = history.Reason,
+                    ReasonLabel = ResolveGeneratedHistoryReason(history)
                 })
                 .ToList()
         };
@@ -85,6 +93,20 @@ public static class ReservationRefundResponseMapper
             CustomerConfirmedAt = ToNullableUtcOffset(transfer.CustomerConfirmedAt),
             DisputedAt = ToNullableUtcOffset(transfer.DisputedAt),
             DisputeReason = transfer.DisputeReason
+        };
+    }
+
+    /// <summary>Yalnız məlum provayder mərhələlərinin sistem səbəbini görünüş üçün ayırır; sərbəst qeydləri və saxlanmış tarixçəni dəyişmir.</summary>
+    private static string? ResolveGeneratedHistoryReason(Domain.Entities.ReservationRefundStatusHistory history)
+    {
+        var status = (RefundStatus)(history.ToStatusId - (int)StatusType.Refund * 1000);
+        return (status, history.Reason) switch
+        {
+            (RefundStatus.Processing, PaymentTexts.RefundPending) => history.Reason,
+            (RefundStatus.AwaitingPayoutDetails, PaymentTexts.ManualReview) => history.Reason,
+            (RefundStatus.Failed, ProviderRefundPolicy.FailedReason) when history.ChangedByUserId is null => history.Reason,
+            (RefundStatus.Refunded, ProviderRefundPolicy.SucceededReason) when history.ChangedByUserId is null => history.Reason,
+            _ => null
         };
     }
 

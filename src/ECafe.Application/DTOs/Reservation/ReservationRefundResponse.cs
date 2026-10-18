@@ -11,6 +11,7 @@ public sealed class ReservationRefundResponse
     public bool CanSimulate { get; init; }
     public int StatusId { get; init; }
     public string Status { get; init; } = null!;
+    public string StatusLabel { get; init; } = null!;
     public string WorkflowFlowCode { get; init; } = null!;
     public decimal Amount { get; init; }
     public string CurrencyCode { get; init; } = null!;

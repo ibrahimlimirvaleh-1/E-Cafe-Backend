@@ -1,0 +1,57 @@
+{
+  "api.refund.customerCancelled": {
+    "az": "Müştəri rezervasiyanı icazə verilən ləğv müddəti daxilində ləğv edib.",
+    "en": "The customer cancelled the reservation within the permitted cancellation period.",
+    "ru": "Клиент отменил бронирование в пределах разрешённого срока отмены."
+  },
+  "api.refund.restaurantCancelled": {
+    "az": "Restoran təsdiqlənmiş rezervasiyanı ləğv edib.",
+    "en": "The restaurant cancelled the confirmed reservation.",
+    "ru": "Ресторан отменил подтверждённое бронирование."
+  },
+  "api.refund.requestedNextStep": {
+    "az": "Sorğunuz göndərilib. Geri ödəniş prosesinin yenilənməsini gözləyin.",
+    "en": "Your request has been submitted. Wait for an update on the refund.",
+    "ru": "Ваш запрос отправлен. Ожидайте обновления статуса возврата."
+  },
+  "api.refund.disputedNextStep": {
+    "az": "Etirazınız göndərilib. Restoranın köçürməni yoxlamasını və cavabını gözləyin.",
+    "en": "Your dispute has been submitted. Wait for the restaurant to review the transfer and respond.",
+    "ru": "Ваше возражение отправлено. Ожидайте проверки перевода и ответа ресторана."
+  },
+  "api.refund.completedNextStep": {
+    "az": "Geri ödəniş tamamlanıb. Əlavə sorğu göndərməyə ehtiyac yoxdur.",
+    "en": "The refund is complete. There is no need to submit another request.",
+    "ru": "Возврат завершён. Повторный запрос не требуется."
+  },
+  "api.refund.failedNextStep": {
+    "az": "Ətraflı məlumat üçün geri ödəniş tarixçəsini yoxlayın və restoranla əlaqə saxlayın.",
+    "en": "Check the refund history for details and contact the restaurant.",
+    "ru": "Подробности смотрите в истории возвратов и свяжитесь с рестораном."
+  },
+  "api.refund.defaultNextStep": {
+    "az": "Geri ödənişin cari vəziyyətini tarixçədən izləyə bilərsiniz.",
+    "en": "You can track the current refund status in its history.",
+    "ru": "Текущий статус возврата можно отслеживать в истории."
+  },
+  "api.refund.requestEligibility": {
+    "az": "{amount} AZN geri ödəniş hüququnuz var. Geri ödəniş üçün müraciət edə bilərsiniz.",
+    "en": "You are eligible for a refund of {amount} AZN. You can request the refund.",
+    "ru": "Вам доступен возврат {amount} AZN. Вы можете подать запрос на возврат."
+  },
+  "api.refund.providerSucceeded": {
+    "az": "Provayder geri ödənişi təsdiqlədi.",
+    "en": "The provider confirmed the refund.",
+    "ru": "Провайдер подтвердил возврат."
+  },
+  "api.refund.providerFailed": {
+    "az": "Provayder geri ödənişi tamamlamadı.",
+    "en": "The provider did not complete the refund.",
+    "ru": "Провайдер не завершил возврат."
+  },
+  "api.refund.awaitingDetailsStatus": {
+    "az": "Geri ödəniş məlumatları gözlənilir",
+    "en": "Awaiting refund details",
+    "ru": "Ожидаются данные для возврата"
+  }
+}

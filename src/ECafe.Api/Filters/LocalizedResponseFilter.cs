@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Reflection;
 using ECafe.Application.DTOs.Notification;
+using ECafe.Application.DTOs.Reservation;
 using ECafe.Application.Services.Localization.Abstract;
 using ECafe.Shared.DTOs;
 using Microsoft.AspNetCore.Mvc;
@@ -42,9 +43,11 @@ public sealed class LocalizedResponseFilter(ITextLocalizer text) : IAsyncResultF
         }
     }
 
-    /// <summary>İcazəli görünüş sahələrini açıq siyahı ilə seçir; Name, Note, Reason və Description kimi istifadəçi mətnlərini ümumi qayda ilə çevirmir.</summary>
+    /// <summary>İcazəli sistem və refund görünüş sahələrini seçir; orijinal statusu, ləğv səbəbini və sərbəst tarixçə qeydini tərcümə etmir.</summary>
     private static bool IsSystemText(Type type, string property)
         => property == "Message" ||
             type.Name == "WorkflowActionResponse" && property == "Label" ||
-            type.Name is "LookupItemResponse" or "RoleLookupItemResponse" && property == "Name";
+            type.Name is "LookupItemResponse" or "RoleLookupItemResponse" && property == "Name" ||
+            type == typeof(ReservationRefundResponse) && property is "StatusLabel" or "CustomerNextStep" or "EligibilityReason" ||
+            type == typeof(ReservationRefundStatusHistoryResponse) && property is "FromStatusLabel" or "ToStatusLabel" or "ReasonLabel";
 }

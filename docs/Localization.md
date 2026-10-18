@@ -33,6 +33,8 @@ Admin rolu həm token, həm canlı aktiv istifadəçi qeydi ilə yoxlanılır. P
 
 Restoran/masa/menyu/müştəri adları, qeydlər, səbəblər və yüklənmiş sənədlər avtomatik tərcümə edilmir. PDF müqavilə şablonu və əvvəl göndərilmiş məktub ayrıca sənəddir; tarixçə yenidən yazılmır.
 
+Geri ödəniş cavabında `status` və `statusId` dəyişmir; göstərilən tərcümə `statusLabel` sahəsində gəlir. Tarixçədə `fromStatusId`, `toStatusId`, `fromStatusLabel`, `toStatusLabel` əlavə olunur. `reason` orijinal qalır; yalnız məlum provayder mərhələsinin serverdə yaradılmış səbəbi `reasonLabel` ilə tərcümə edilir. Naməlum/sərbəst səbəb üçün `reasonLabel=null` olduqda orijinal göstərilməlidir. `customerNextStep` və `eligibilityReason` yalnız kataloqda tanınan sistem mətnləri üzrə çevrilir; `cancellationReason` dəyişmir. Dil seçimi dəyişəndə frontend API-dən həmin dilin cavabını yenidən almalıdır; maliyyə əməliyyatını təkrarlamamalıdır. Bu görünüş sahələri üçün migration tələb olunmur.
+
 Kodlu API xətaları kataloqdan gəlir. Köhnə sabit sistem mesajları tam uyğun build aliasları ilə tanınır; mətnin fraqmentləri və istifadəçi məzmunu sərbəst tərcümə edilmir. Naməlum əvvəlki mesajın orijinalı saxlanır. Yeni bildirişlərdə mümkün olduqca sabit açar/parametr kataloq sətri istifadə edilməlidir.
 
 Yeni tanınan sistem bildirişi alıcının saxlanmış dilində hazırlanır; e-mail outbox-a bu mətn düşür. Bildiriş açarları və parametrləri saxlanır ki, ekranda sonradan dil dəyişmək mümkün olsun. Əvvəlki açarsız bildirişlər olduğu kimi qalır. Mobil kilid ekranında şəxsi sifariş/depozit məlumatı deyil, alıcının dilində ümumi yeni bildiriş mətni göstərilir. Push icazəsi, restoran scope-u və aktiv cihaz qaydaları dəyişmir. Tarixçədəki texniki status kodları sabitdir.
