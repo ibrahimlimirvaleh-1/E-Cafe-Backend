@@ -4,7 +4,6 @@ namespace ECafe.Application.Repositories.Restaurant
 {
     public interface IRestaurantRepository : IBaseRepository<Domain.Entities.Restaurant>
     {
-        Task LoadTranslationsAsync(Domain.Entities.Restaurant owner, CancellationToken cancellationToken = default);
 
         Task AcquireScheduleLockAsync(int restaurantId, CancellationToken cancellationToken = default);
         Task<bool> HasPendingScheduleChangeAsync(int restaurantId, CancellationToken cancellationToken = default);

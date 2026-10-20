@@ -8,8 +8,6 @@ public static class ContentTranslationPolicy
     private static readonly IReadOnlyDictionary<ContentEntityType, ContentTranslationRules> Rules =
         new Dictionary<ContentEntityType, ContentTranslationRules>
         {
-            [ContentEntityType.Restaurant] = new(200, PermissionCode.EditRestaurantInfo, AllowsLocation: true),
-            [ContentEntityType.RestaurantGroup] = new(100, PermissionCode.ManageRestaurants),
             [ContentEntityType.Category] = new(100, PermissionCode.ManageCatalog),
             [ContentEntityType.Item] = new(150, PermissionCode.ManageCatalog, AllowsDescription: true),
             [ContentEntityType.Table] = new(50, PermissionCode.ManageTables),
@@ -41,12 +39,10 @@ public static class ContentTranslationPolicy
         bool requireName = false, bool trimBeforeLengthCheck = false)
     {
         var rules = For(type);
-        if (!rules.AllowsLocation && (fields.Location != null || fields.BranchName != null) ||
-            !rules.AllowsDescription && (fields.Description != null || fields.UnavailableReason != null))
+        if (!rules.AllowsDescription && (fields.Description != null || fields.UnavailableReason != null))
             throw new BusinessRuleException(ErrorCode.LocalizationInvalidEntry);
         var value = new ContentTranslationFields(Text(fields.Name, rules.NameLength, trimBeforeLengthCheck),
-            Text(fields.Description, 500, trimBeforeLengthCheck), Text(fields.Location, 1000, trimBeforeLengthCheck),
-            Text(fields.BranchName, 100, trimBeforeLengthCheck), Text(fields.UnavailableReason, 500, trimBeforeLengthCheck));
+            Text(fields.Description, 500, trimBeforeLengthCheck), Text(fields.UnavailableReason, 500, trimBeforeLengthCheck));
         if (value == new ContentTranslationFields() || requireName && value.Name == null)
             throw new BusinessRuleException(ErrorCode.LocalizationInvalidEntry);
         return value;

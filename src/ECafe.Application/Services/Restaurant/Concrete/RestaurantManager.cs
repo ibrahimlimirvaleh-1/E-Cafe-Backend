@@ -118,9 +118,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             location = NormalizeFilter(location);
             if (location is not null)
             {
-                var languageId = GetContentLanguageId();
-                restaurantsQuery = restaurantsQuery.Where(r => r.Location.ToLower().Contains(location) ||
-                    r.Translations.Any(text => text.LanguageId == languageId && text.Location != null && text.Location.ToLower().Contains(location)));
+                restaurantsQuery = restaurantsQuery.Where(r => r.Location.ToLower().Contains(location));
             }
 
             cuisine = NormalizeFilter(cuisine);
@@ -289,9 +287,6 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             restaurant.RestaurantGroup = restaurantGroup;
             restaurant.TimeZone = NormalizeTimeZone(request.TimeZone);
             restaurant.WorkingHours = NormalizeWorkingHours(request.WorkingHours);
-            ContentTranslationCollectionPolicy.Apply(restaurant.Translations,
-                RestaurantTranslationMapper.MapRestaurant(restaurant.Id, request.Translations),
-                RestaurantTranslationMapper.Canonical(restaurant), ContentTranslationMapper.Copy);
 
             await using var transaction = await _transactionFactory.BeginTransactionAsync();
 
@@ -433,9 +428,6 @@ namespace ECafe.Application.Services.Restaurant.Concrete
                 restaurant.StaffSettlementPeriod = request.StaffSettlementPeriod.Value;
             restaurant.TimeZone = NormalizeTimeZone(request.TimeZone);
             ScheduleTerms.Apply(restaurant, NormalizeWorkingHours(request.WorkingHours));
-            ContentTranslationCollectionPolicy.Apply(restaurant.Translations,
-                RestaurantTranslationMapper.MapRestaurant(restaurant.Id, request.Translations),
-                RestaurantTranslationMapper.Canonical(restaurant), ContentTranslationMapper.Copy);
 
             if (request.FileIds is not null)
                 await ReplaceRestaurantFilesAsync(restaurant, request.FileIds);
@@ -753,7 +745,6 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             if (restaurant is null)
                 throw new BusinessRuleException(ErrorCode.RestaurantNotFound);
 
-            await _restaurantRepository.LoadTranslationsAsync(restaurant);
             return restaurant;
         }
 
@@ -828,9 +819,6 @@ namespace ECafe.Application.Services.Restaurant.Concrete
                 Email = groupEmail,
                 IsActive = true
             };
-            ContentTranslationCollectionPolicy.Apply(createdGroup.Translations,
-                RestaurantTranslationMapper.MapGroup(createdGroup.Id, null),
-                RestaurantTranslationMapper.Canonical(createdGroup), ContentTranslationMapper.Copy);
             return createdGroup;
         }
 

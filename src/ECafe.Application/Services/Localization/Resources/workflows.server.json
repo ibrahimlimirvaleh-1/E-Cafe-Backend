@@ -319,6 +319,54 @@
     "en": "Bank transfer",
     "ru": "Банковский перевод"
   },
+  "api.literal.catalog.itemAvailable": {
+    "source": "Mövcuddur",
+    "az": "Mövcuddur",
+    "en": "Available",
+    "ru": "В наличии"
+  },
+  "api.literal.catalog.itemLimited": {
+    "source": "Məhduddur",
+    "az": "Məhduddur",
+    "en": "Limited",
+    "ru": "Ограничено"
+  },
+  "api.literal.catalog.itemOutOfStock": {
+    "source": "Bitib",
+    "az": "Bitib",
+    "en": "Out of stock",
+    "ru": "Нет в наличии"
+  },
+  "api.literal.catalog.contractDraft": {
+    "az": "Qaralama",
+    "en": "Draft",
+    "ru": "Черновик"
+  },
+  "api.literal.catalog.contractActive": {
+    "az": "Aktiv",
+    "en": "Active",
+    "ru": "Действует"
+  },
+  "api.literal.catalog.contractSendForSignature": {
+    "az": "Sahibkar təsdiqinə göndər",
+    "en": "Send for owner approval",
+    "ru": "Отправить на подтверждение владельцу"
+  },
+  "api.literal.catalog.contractTerminate": {
+    "az": "Müqaviləni ləğv et",
+    "en": "Terminate contract",
+    "ru": "Расторгнуть договор"
+  },
+  "api.literal.catalog.contractApprove": {
+    "az": "Müqaviləni təsdiqlə",
+    "en": "Approve contract",
+    "ru": "Подтвердить договор"
+  },
+  "api.literal.catalog.contractActivate": {
+    "az": "Müqaviləni aktivləşdir",
+    "en": "Activate contract",
+    "ru": "Активировать договор"
+  },
   "api.literal.catalog.contractPending": {
     "az": "İmza gözləyir",
     "en": "Awaiting signature",
@@ -340,7 +388,8 @@
     "ru": "Запланировано"
   },
   "api.literal.catalog.contractApproved": {
-    "az": "Owner təsdiqlədi",
+    "source": "Owner təsdiqlədi",
+    "az": "Sahibkar təsdiqlədi",
     "en": "Owner approved",
     "ru": "Владелец подтвердил"
   },

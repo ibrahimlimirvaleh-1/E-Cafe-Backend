@@ -103,7 +103,6 @@ public sealed class InactiveLanguageMutationTests
     }
 
     [Theory]
-    [InlineData("restaurant")]
     [InlineData("table")]
     [InlineData("item")]
     [InlineData("category")]
@@ -115,10 +114,6 @@ public sealed class InactiveLanguageMutationTests
         await using var db = new ECafeDbContext(options);
         switch (type)
         {
-            case "restaurant":
-                await VerifyLoadAsync(db.Restaurants.Where(row => row.Id == 1),
-                    row => row.Translations, new RestaurantRepository(db).LoadTranslationsAsync);
-                break;
             case "table":
                 await VerifyLoadAsync(db.Tables.Where(row => row.Id == 7),
                     row => row.Translations, new TableRepository(db).LoadTranslationsAsync);
@@ -173,14 +168,13 @@ public sealed class InactiveLanguageMutationTests
             Mock.Of<IAuditLogService>());
     }
 
-    /// <summary>Beş sahibin AZ və deaktiv EN sətirlərini, həmçinin başqa restoranın ayrıca tərcüməsini saxlayır.</summary>
+    /// <summary>Dörd məzmun sahibinin AZ və deaktiv EN sətirlərini, həmçinin başqa restoranın kateqoriya tərcüməsini saxlayır.</summary>
     private static async Task SeedAsync(DbContextOptions<ECafeDbContext> options)
     {
         await using var db = new ECafeDbContext(options);
         db.Languages.AddRange(new Language { Id = 1, Code = "az", Name = "AZ" },
             new Language { Id = 2, Code = "en", Name = "EN", IsActive = false });
-        var restaurant = new Restaurant { Id = 1, Name = "Cafe", Location = "Baku", Phone = "000", IsActive = true,
-            Translations = [new() { LanguageId = 1, Name = "Cafe" }, new() { LanguageId = 2, Name = "English cafe" }] };
+        var restaurant = new Restaurant { Id = 1, Name = "Cafe", Location = "Baku", Phone = "000", IsActive = true };
         var other = new Restaurant { Id = 2, Name = "Other", Location = "Baku", Phone = "001", IsActive = true };
         var category = new Category { Id = 7, Name = "Category", Slug = "category", Restaurant = restaurant,
             Translations = [new() { LanguageId = 1, Name = "Category" },

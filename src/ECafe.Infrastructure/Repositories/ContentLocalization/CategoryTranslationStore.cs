@@ -11,7 +11,7 @@ namespace ECafe.Infrastructure.Repositories.ContentLocalization;
 public sealed class CategoryTranslationStore(ECafeDbContext context)
     : ContentTranslationStore<CategoryTranslation>(context, nameof(CategoryTranslation.CategoryId),
         row => new ContentTranslationRow(row.CategoryId, row.Language.Code, row.Revision,
-            new ContentTranslationValue(row.Name, null, null, null, null)))
+            new ContentTranslationValue(row.Name, null, null)))
 {
     public override ContentEntityType Type => ContentEntityType.Category;
 
@@ -19,7 +19,7 @@ public sealed class CategoryTranslationStore(ECafeDbContext context)
     public override IQueryable<ContentTranslationSource> SourceQuery(int id)
         => Context.Categories.AsNoTracking().Where(row => row.Id == id && !row.IsDeleted && !row.Restaurant.IsDeleted)
             .Select(row => new ContentTranslationSource(row.Id, row.RestaurantId,
-                new ContentTranslationValue(row.Name, null, null, null, null)));
+                new ContentTranslationValue(row.Name, null, null)));
 
     /// <summary>Yoxlanmış entity və dil composite açarı üçün tipli tərcümə sətri yaradır.</summary>
     protected override CategoryTranslation CreateRow(int id, int languageId)

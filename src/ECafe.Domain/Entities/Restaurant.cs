@@ -4,8 +4,6 @@ namespace ECafe.Domain.Entities;
 
 public partial class Restaurant : AuditableSoftDeletableEntity<int>
 {
-    public ICollection<RestaurantTranslation> Translations { get; set; } = new List<RestaurantTranslation>();
-
     public string Name { get; set; } = null!;
 
     public string Location { get; set; } = null!;

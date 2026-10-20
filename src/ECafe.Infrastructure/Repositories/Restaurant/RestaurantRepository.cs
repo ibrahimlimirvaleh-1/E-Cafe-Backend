@@ -15,11 +15,6 @@ namespace ECafe.Infrastructure.Repositories.Restaurant
         {
         }
 
-        /// <summary>Yoxlanmış izlənən restoranın deaktiv dillər daxil bütün tərcümələrini dəyişiklik üçün yükləyir.</summary>
-        public Task LoadTranslationsAsync(Domain.Entities.Restaurant owner, CancellationToken cancellationToken = default)
-            => Context.Entry(owner).Collection(entity => entity.Translations).Query()
-                .IgnoreQueryFilters().LoadAsync(cancellationToken);
-
         public Task AcquireScheduleLockAsync(int restaurantId, CancellationToken cancellationToken = default)
             => Context.Database.IsRelational()
                 ? Context.Database.ExecuteSqlInterpolatedAsync(

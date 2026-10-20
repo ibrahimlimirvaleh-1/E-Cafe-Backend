@@ -16,8 +16,6 @@ namespace ECafe.Tests;
 public sealed class ContentTranslationStoreTests
 {
     [Theory]
-    [InlineData(ContentEntityType.Restaurant)]
-    [InlineData(ContentEntityType.RestaurantGroup)]
     [InlineData(ContentEntityType.Category)]
     [InlineData(ContentEntityType.Item)]
     [InlineData(ContentEntityType.Table)]
@@ -32,10 +30,10 @@ public sealed class ContentTranslationStoreTests
         var canonical = await repository.GetSourceAsync(type, 7, default);
         Assert.NotNull(canonical);
 
-        await repository.SaveAsync(type, 7, 2, new("English", "Description", "Location", "Branch", "Unavailable"), 1, default);
+        await repository.SaveAsync(type, 7, 2, new("English", "Description", "Unavailable"), 1, default);
         await repository.SaveAsync(type, 7, 3, new("Russian"), 1, default);
         var trackedCount = db.ChangeTracker.Entries().Count();
-        await repository.SaveAsync(type, 7, 2, new("Updated", "New description", "New location", "New branch", "New unavailable"), 2, default);
+        await repository.SaveAsync(type, 7, 2, new("Updated", "New description", "New unavailable"), 2, default);
         Assert.Equal(trackedCount, db.ChangeTracker.Entries().Count());
         await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() =>
             repository.SaveAsync(type, 7, 2, new("Stale"), 2, default));
@@ -48,11 +46,6 @@ public sealed class ContentTranslationStoreTests
         {
             Assert.Equal("New description", row.Value.Description);
             Assert.Equal("New unavailable", row.Value.UnavailableReason);
-        }
-        if (type == ContentEntityType.Restaurant)
-        {
-            Assert.Equal("New location", row.Value.Location);
-            Assert.Equal("New branch", row.Value.BranchName);
         }
         Assert.Equal(canonical, await repository.GetSourceAsync(type, 7, default));
         await repository.DeleteAsync(type, 7, 2, 2, default);
@@ -77,8 +70,6 @@ public sealed class ContentTranslationStoreTests
     }
 
     [Theory]
-    [InlineData(ContentEntityType.Restaurant, "restaurant_translations")]
-    [InlineData(ContentEntityType.RestaurantGroup, "restaurant_group_translations")]
     [InlineData(ContentEntityType.Category, "category_translations")]
     [InlineData(ContentEntityType.Item, "item_translations")]
     [InlineData(ContentEntityType.Table, "table_translations")]
@@ -101,12 +92,15 @@ public sealed class ContentTranslationStoreTests
         Assert.Equal(QueryTrackingBehavior.TrackAll, db.ChangeTracker.QueryTrackingBehavior);
     }
 
-    [Fact]
-    public async Task UnsupportedKindIsRejectedEvenWithEmptyReadOrBeforeLockSql()
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(999)]
+    public async Task RemovedAndUnsupportedKindsAreRejectedEvenWithEmptyReadOrBeforeLockSql(int id)
     {
         await using var db = CreateContext();
         var repository = new ContentTranslationRepository(db, CreateStores(db));
-        var type = (ContentEntityType)999;
+        var type = (ContentEntityType)id;
         await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => repository.GetSourceAsync(type, 7, default));
         await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => repository.GetRowsAsync(type, [], null, default));
         await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => repository.AcquireLockAsync(type, 7, default));
@@ -150,7 +144,9 @@ public sealed class ContentTranslationStoreTests
         using var first = provider.CreateScope();
         var write = first.ServiceProvider.GetRequiredService<IContentTranslationRepository>();
         Assert.Same(write, first.ServiceProvider.GetRequiredService<IContentTranslationQuery>());
-        Assert.Equal(7, first.ServiceProvider.GetServices<IContentTranslationStore>().Select(store => store.Type).Distinct().Count());
+        var registeredTypes = first.ServiceProvider.GetServices<IContentTranslationStore>().Select(store => store.Type).Order().ToArray();
+        Assert.Equal(new[] { ContentEntityType.Category, ContentEntityType.Item, ContentEntityType.Table,
+            ContentEntityType.InventoryItem, ContentEntityType.Unit }, registeredTypes);
         Assert.IsType<ContentTranslationAccessRepository>(first.ServiceProvider.GetRequiredService<IContentTranslationAccessRepository>());
         Assert.IsType<ContentLanguageRepository>(first.ServiceProvider.GetRequiredService<IContentLanguageRepository>());
         using var second = provider.CreateScope();
@@ -214,9 +210,9 @@ public sealed class ContentTranslationStoreTests
     private static ECafeDbContext CreateContext()
         => new(new DbContextOptionsBuilder<ECafeDbContext>().UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);
 
-    /// <summary>İstehsaldakı yeddi tipli saxlayıcını test üçün eyni context üzərində qurur.</summary>
+    /// <summary>İstehsaldakı beş tipli saxlayıcını test üçün eyni context üzərində qurur.</summary>
     private static IContentTranslationStore[] CreateStores(ECafeDbContext db)
-        => [new RestaurantTranslationStore(db), new RestaurantGroupTranslationStore(db), new CategoryTranslationStore(db),
+        => [new CategoryTranslationStore(db),
             new ItemTranslationStore(db), new TableTranslationStore(db), new InventoryItemTranslationStore(db), new UnitTranslationStore(db)];
 
     /// <summary>Bütün tərcümə növlərinin əsas mənbələrini və dil əlaqələrini eyni identifikatorla hazırlayır.</summary>

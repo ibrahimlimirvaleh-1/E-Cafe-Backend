@@ -5,17 +5,6 @@ namespace ECafe.Application.Mappings;
 
 public static class ContentTranslationMapper
 {
-    /// <summary>Redaktorun restoran sahələrini mövcud tərcümə sətrinə köçürür.</summary>
-    public static void Copy(ContentTranslationValue source, RestaurantTranslation target)
-    {
-        target.Name = source.Name;
-        target.Location = source.Location;
-        target.BranchName = source.BranchName;
-    }
-
-    /// <summary>Redaktorun qrup adını tərcümə sətrinə köçürür.</summary>
-    public static void Copy(ContentTranslationValue source, RestaurantGroupTranslation target) => target.Name = source.Name;
-
     /// <summary>Redaktorun kateqoriya adını tərcümə sətrinə köçürür.</summary>
     public static void Copy(ContentTranslationValue source, CategoryTranslation target) => target.Name = source.Name;
 
@@ -35,17 +24,6 @@ public static class ContentTranslationMapper
 
     /// <summary>Redaktorun ölçü vahidi adını tərcümə sətrinə köçürür.</summary>
     public static void Copy(ContentTranslationValue source, UnitTranslation target) => target.Name = source.Name;
-
-    /// <summary>Restoranın yalnız göstərilən sahələrini köçürür; FK və reviziya dəyişmir.</summary>
-    public static void Copy(RestaurantTranslation source, RestaurantTranslation target)
-    {
-        target.Name = source.Name;
-        target.Location = source.Location;
-        target.BranchName = source.BranchName;
-    }
-
-    /// <summary>Qrupun göstərilən adını köçürür; hüquqi mənbə dəyişmir.</summary>
-    public static void Copy(RestaurantGroupTranslation source, RestaurantGroupTranslation target) => target.Name = source.Name;
 
     /// <summary>Kateqoriyanın tərcümə adını mövcud sətrə köçürür.</summary>
     public static void Copy(CategoryTranslation source, CategoryTranslation target) => target.Name = source.Name;

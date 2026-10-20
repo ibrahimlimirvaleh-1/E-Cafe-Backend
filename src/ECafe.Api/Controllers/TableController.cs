@@ -19,7 +19,8 @@ namespace ECafe.Api.Controllers
                 RestaurantId = restaurantId,
                 TableNo = request.TableNo,
                 Name = request.Name,
-                Capacity = request.Capacity
+                Capacity = request.Capacity,
+                Translations = request.Translations
             };
 
             return Ok(await Mediator.Send(command));
@@ -41,7 +42,8 @@ namespace ECafe.Api.Controllers
                 TableNo = request.TableNo,
                 Name = request.Name,
                 Capacity = request.Capacity,
-                IsActive = request.IsActive
+                IsActive = request.IsActive,
+                Translations = request.Translations
             };
 
             return Ok(await Mediator.Send(command));

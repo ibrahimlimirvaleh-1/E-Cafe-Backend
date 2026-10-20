@@ -1,7 +1,5 @@
-using ECafe.Application.Mappings;
 using ECafe.Application.Repositories.Restaurant;
 using ECafe.Domain.Entities;
-using ECafe.Domain.Policies;
 using ECafe.Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
@@ -15,8 +13,11 @@ public sealed class RelationalMultilingualModelTests
     {
         using var db = Database();
         Assert.Null(db.Model.FindEntityType(typeof(EntityTranslation)));
-        Type[] types = [typeof(RestaurantTranslation), typeof(RestaurantGroupTranslation), typeof(CategoryTranslation),
-            typeof(ItemTranslation), typeof(TableTranslation), typeof(InventoryItemTranslation), typeof(UnitTranslation)];
+        Type[] types = [typeof(CategoryTranslation), typeof(ItemTranslation), typeof(TableTranslation),
+            typeof(InventoryItemTranslation), typeof(UnitTranslation)];
+        Assert.Equal(types.OrderBy(type => type.Name), db.Model.GetEntityTypes()
+            .Where(entity => typeof(EntityTranslation).IsAssignableFrom(entity.ClrType))
+            .Select(entity => entity.ClrType).OrderBy(type => type.Name));
         foreach (var type in types)
         {
             var entity = db.Model.FindEntityType(type)!;
@@ -40,28 +41,33 @@ public sealed class RelationalMultilingualModelTests
     }
 
     [Fact]
-    public async Task RestaurantAndGroupTranslationsPreserveCanonicalDataAndOmittedLanguages()
+    public async Task RestaurantAndGroupPersistCanonicalDataWithoutTranslationEntitiesOrNavigations()
     {
         await using var db = Database();
         await db.Database.EnsureCreatedAsync();
         var group = new RestaurantGroup { Id = 1, Name = "Brend", LegalName = "Legal Name", IsActive = true };
         var restaurant = new Restaurant { Id = 1, Name = "Brend Sahil", BranchName = "Sahil", Location = "Baki",
             Phone = "+994501111111", RestaurantGroup = group, RestaurantGroupId = 1, IsActive = true };
-        ApplyGroup(group, [new() { LanguageCode = "en", Name = "Brand" }]);
-        ApplyRestaurant(restaurant, [new() { LanguageCode = "en", Name = "Brand Coast", Location = "Baku" }]);
         db.Restaurants.Add(restaurant);
         await db.SaveChangesAsync();
         restaurant.BranchName = "Yeni Sahil";
-        ApplyRestaurant(restaurant, null);
+        group.Name = "Yeni brend";
         await db.SaveChangesAsync();
-        Assert.Equal("Brand Coast", restaurant.Translations.Single(row => row.LanguageId == 2).Name);
-        Assert.Equal("Yeni Sahil", restaurant.Translations.Single(row => row.LanguageId == 1).BranchName);
-        Assert.Equal("Brend Sahil", restaurant.Name);
-        Assert.Equal("Legal Name", group.LegalName);
-        ApplyRestaurant(restaurant, []);
-        await db.SaveChangesAsync();
-        Assert.Null(restaurant.Translations.Single(row => row.LanguageId == 2).Name);
-        Assert.Equal(2, await db.RestaurantTranslations.CountAsync());
+        db.ChangeTracker.Clear();
+        var persisted = await db.Restaurants.Include(row => row.RestaurantGroup).SingleAsync(row => row.Id == 1);
+        Assert.Equal("Brend Sahil", persisted.Name);
+        Assert.Equal("Yeni Sahil", persisted.BranchName);
+        Assert.Equal("Baki", persisted.Location);
+        Assert.Equal("Yeni brend", persisted.RestaurantGroup!.Name);
+        Assert.Equal("Legal Name", persisted.RestaurantGroup.LegalName);
+        Assert.Null(db.Model.FindEntityType(typeof(Restaurant))!.FindNavigation("Translations"));
+        Assert.Null(db.Model.FindEntityType(typeof(RestaurantGroup))!.FindNavigation("Translations"));
+        Assert.Null(typeof(Restaurant).GetProperty("Translations"));
+        Assert.Null(typeof(RestaurantGroup).GetProperty("Translations"));
+        Assert.Null(typeof(Restaurant).Assembly.GetType("ECafe.Domain.Entities.RestaurantTranslation"));
+        Assert.Null(typeof(RestaurantGroup).Assembly.GetType("ECafe.Domain.Entities.RestaurantGroupTranslation"));
+        Assert.DoesNotContain(db.Model.GetEntityTypes(), entity => entity.GetTableName() is
+            "restaurant_translations" or "restaurant_group_translations");
     }
 
     [Fact]
@@ -73,7 +79,8 @@ public sealed class RelationalMultilingualModelTests
             .OrderBy(row => row.Name).ThenBy(row => row.Id).Skip(0).Take(20).ToQueryString();
         Assert.Contains("item_translations", sql);
         Assert.Contains("category_translations", sql);
-        Assert.Contains("restaurant_translations", sql);
+        Assert.DoesNotContain("restaurant_translations", sql);
+        Assert.DoesNotContain("restaurant_group_translations", sql);
         Assert.Contains("LIMIT", sql);
         Assert.Contains("is_available", sql);
         Assert.Contains("IsDeleted", sql);
@@ -83,15 +90,4 @@ public sealed class RelationalMultilingualModelTests
     private static ECafeDbContext Database() => new(new DbContextOptionsBuilder<ECafeDbContext>()
         .UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);
 
-    /// <summary>Restoran sınağında mapping nəticəsini AZ mənbə ilə birlikdə domen policy-sinə ötürür.</summary>
-    private static void ApplyRestaurant(Restaurant restaurant, IReadOnlyList<ECafe.Application.DTOs.Localization.RestaurantTranslationInput>? requests)
-        => ContentTranslationCollectionPolicy.Apply(restaurant.Translations,
-            RestaurantTranslationMapper.MapRestaurant(restaurant.Id, requests),
-            RestaurantTranslationMapper.Canonical(restaurant), ContentTranslationMapper.Copy);
-
-    /// <summary>Qrup sınağında hüquqi məlumatları dəyişmədən tərcümə kolleksiyasını yeniləyir.</summary>
-    private static void ApplyGroup(RestaurantGroup group, IReadOnlyList<ECafe.Application.DTOs.Localization.RestaurantGroupTranslationInput>? requests)
-        => ContentTranslationCollectionPolicy.Apply(group.Translations,
-            RestaurantTranslationMapper.MapGroup(group.Id, requests),
-            RestaurantTranslationMapper.Canonical(group), ContentTranslationMapper.Copy);
 }

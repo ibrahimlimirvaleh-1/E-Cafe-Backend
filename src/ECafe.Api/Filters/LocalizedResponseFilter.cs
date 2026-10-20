@@ -2,11 +2,13 @@ using System.Collections;
 using System.Reflection;
 using ECafe.Application.DTOs.Notification;
 using ECafe.Application.DTOs.Reservation;
+using ECafe.Application.DTOs.RestaurantContract;
 using ECafe.Application.Services.Localization.Abstract;
 using ECafe.Application.Services.ContentLocalization.Abstract;
 using ECafe.Shared.DTOs;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
+using ItemResponse = ECafe.Application.DTOs.Item.ItemDto;
 
 namespace ECafe.Api.Filters;
 
@@ -52,9 +54,11 @@ public sealed class LocalizedResponseFilter(ITextLocalizer text, IContentTransla
         }
     }
 
-    /// <summary>İcazəli sistem və refund görünüş sahələrini seçir; orijinal statusu, ləğv səbəbini və sərbəst tarixçə qeydini tərcümə etmir.</summary>
+    /// <summary>İcazəli sistem, məhsul, müqavilə və refund görünüş sahələrini seçir; xam status kodunu, ləğv səbəbini və sərbəst tarixçə qeydini tərcümə etmir.</summary>
     private static bool IsSystemText(Type type, string property)
         => property == "Message" ||
+            type == typeof(RestaurantContractResponse) && property == nameof(RestaurantContractResponse.StatusName) ||
+            type == typeof(ItemResponse) && property == nameof(ItemResponse.StatusName) ||
             type.Name == "WorkflowActionResponse" && property == "Label" ||
             type.Name is "LookupItemResponse" or "RoleLookupItemResponse" && property == "Name" ||
             type == typeof(ReservationRefundResponse) && property is "StatusLabel" or "CustomerNextStep" or "EligibilityReason" ||
