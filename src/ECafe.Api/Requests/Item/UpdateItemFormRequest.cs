@@ -1,7 +1,13 @@
+using ECafe.Application.DTOs.Item;
+
 namespace ECafe.Api.Requests.Item
 {
     public sealed class UpdateItemFormRequest
     {
+        public List<ItemTranslationRequest>? Translations { get; set; }
+
+        public bool ClearTranslations { get; set; }
+
         public int CategoryId { get; set; }
 
         public int StatusId { get; set; } = 5001;

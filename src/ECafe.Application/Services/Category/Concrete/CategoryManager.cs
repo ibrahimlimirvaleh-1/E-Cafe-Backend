@@ -1,6 +1,7 @@
 using AutoMapper;
 using ECafe.Application.Common.Audit;
 using ECafe.Application.DTOs.Category;
+using ECafe.Application.Mappings;
 using ECafe.Application.Repositories.Category;
 using ECafe.Application.Repositories.Restaurant;
 using ECafe.Application.Services;
@@ -8,6 +9,7 @@ using ECafe.Application.Services.AuditLog.Abstract;
 using ECafe.Application.Services.Category.Abstract;
 using ECafe.Domain.Entities;
 using ECafe.Domain.Exceptions;
+using ECafe.Domain.Policies;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -47,6 +49,9 @@ public class CategoryManager : BaseManager, ICategoryService
         category.Slug = request.Name.GenerateSlug();
         category.SortOrder = await ResolveSortOrderAsync(request.RestaurantId, request.SortOrder);
         category.IsActive = true;
+        ContentTranslationCollectionPolicy.Apply(category.Translations,
+            ContentTranslationRequestMapper.MapCategory(category.Id, request.Translations),
+            ContentTranslationRequestMapper.Canonical(category), ContentTranslationMapper.Copy);
 
         await _categoryRepository.Add(category);
         await _categoryRepository.SaveChangesAsync();
@@ -83,6 +88,9 @@ public class CategoryManager : BaseManager, ICategoryService
         category.Slug = category.Name.GenerateSlug();
         category.SortOrder = await ResolveSortOrderAsync(restaurantId, request.SortOrder);
         category.IsActive = request.IsActive;
+        ContentTranslationCollectionPolicy.Apply(category.Translations,
+            ContentTranslationRequestMapper.MapCategory(category.Id, request.Translations),
+            ContentTranslationRequestMapper.Canonical(category), ContentTranslationMapper.Copy);
 
         await _categoryRepository.SaveChangesAsync();
 
@@ -214,12 +222,18 @@ public class CategoryManager : BaseManager, ICategoryService
         EnsureCurrentUserCanAccessRestaurant(restaurantId);
     }
 
+    /// <summary>Kateqoriyanı restoran daxilində yoxlayır, sonra deaktiv dillər daxil bütün tərcümələrini yazı üçün yükləyir.</summary>
     private async Task<Category> GetTrackedCategoryAsync(int restaurantId, int categoryId)
     {
         if (categoryId <= 0)
             throw new BusinessRuleException(ErrorCode.InvalidCategoryId);
 
-        var category = await _categoryRepository.GetByRestaurantAsync(restaurantId, categoryId);
-        return category ?? throw new BusinessRuleException(ErrorCode.CategoryNotFound);
+        var category = await _categoryRepository.QueryTracked(x => x.RestaurantId == restaurantId && x.Id == categoryId)
+            .FirstOrDefaultAsync();
+        if (category is null)
+            throw new BusinessRuleException(ErrorCode.CategoryNotFound);
+
+        await _categoryRepository.LoadTranslationsAsync(category);
+        return category;
     }
 }

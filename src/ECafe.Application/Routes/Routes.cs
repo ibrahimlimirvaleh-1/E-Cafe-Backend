@@ -4,12 +4,18 @@ public static class Routes
 {
     public static class Localization
     {
+        public const string Languages = Base + "/localization/languages";
         public const string Dictionary = Base + "/localization/dictionaries/{language}";
         public const string Preference = Base + "/localization/preference";
         public const string Draft = Base + "/admin/localization/draft";
         public const string Publish = Base + "/admin/localization/publish";
         public const string Releases = Base + "/admin/localization/releases";
         public const string Rollback = Releases + "/{releaseId:int}/rollback";
+    }
+    public static class ContentLocalization
+    {
+        public const string Translations = Base + "/content/{entityType}/{id:int}/translations";
+        public const string Translation = Translations + "/{languageCode}";
     }
     public static class Payment
     {

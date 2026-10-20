@@ -81,6 +81,9 @@ namespace ECafe.Application
             services.AddSingleton<Services.Localization.Abstract.ITextLocalizer, Services.Localization.Concrete.TextLocalizer>();
             services.AddScoped<Services.Localization.Abstract.ITranslationService, Services.Localization.Concrete.TranslationManager>();
             services.AddScoped<Services.Localization.Abstract.INotificationTextService, Services.Localization.Concrete.NotificationTextService>();
+            services.AddScoped<Services.ContentLocalization.Abstract.IContentTranslationService, Services.ContentLocalization.Concrete.ContentTranslationManager>();
+            services.AddScoped<Services.ContentLocalization.Abstract.IContentTranslationAccessService, Services.ContentLocalization.Concrete.ContentTranslationAccessManager>();
+            services.AddScoped<Services.ContentLocalization.Abstract.IContentTranslationReader, Services.ContentLocalization.Concrete.ContentTranslationReader>();
             services.AddSingleton<ICriticalEventReporter, NoopCriticalEventReporter>();
             services.AddScoped<IMinioService, MinioManager>();
             services.AddScoped<AuditLogManager>();

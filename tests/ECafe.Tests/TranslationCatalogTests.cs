@@ -2,6 +2,8 @@ using System.Data;
 using System.Security.Claims;
 using System.Text.Json;
 using System.Net;
+using System.Security.Cryptography;
+using System.Text;
 using AutoMapper;
 using ECafe.Application.Common.Errors;
 using ECafe.Application.Common.Outbox;
@@ -22,6 +24,7 @@ using ECafe.Domain.Enums;
 using ECafe.Domain.Exceptions;
 using ECafe.Domain.Policies;
 using ECafe.Infrastructure.Context;
+using ECafe.Infrastructure.Migrations.Seeds;
 using ECafe.Infrastructure.Repositories.Localization;
 using ECafe.Infrastructure.Repositories.User;
 using ECafe.Infrastructure.Services.Localization;
@@ -45,6 +48,17 @@ namespace ECafe.Tests;
 public sealed class TranslationCatalogTests
 {
     private const string Key = "api.error.InvalidCredentials";
+
+    [Fact]
+    public void FrozenRelationalSeedIsEmbeddedAndDoesNotDependOnFutureBootstrapEdits()
+    {
+        var sql = RelationalTranslationCatalogSeed.ReadSql();
+        Assert.Equal("4142187ADF346A66485ABF2AFA501AC2F3C3C9A1BB4397886C913789356FA2E9",
+            Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(sql))));
+        Assert.Contains("keywords: 2120; translations: 6360", sql);
+        Assert.Contains("ON CONFLICT (\"Key\") DO NOTHING", sql);
+        Assert.Contains("ON CONFLICT (\"KeywordId\", \"LanguageId\") DO NOTHING", sql);
+    }
 
     [Fact]
     public void BundledCatalogHasAllErrorCodesInThreeLanguagesWithMatchingPlaceholders()
@@ -107,7 +121,7 @@ public sealed class TranslationCatalogTests
         Assert.Equal(3, history.Count);
         Assert.Equal(rollback.Id, history[0].Id);
         Assert.Equal(first.Id, history[0].SourceReleaseId);
-        Assert.Contains("One", (await f.Db.TranslationReleases.SingleAsync(release => release.Id == first.Id)).MessagesJson);
+        Assert.Equal("One", (await new TranslationRepository(f.Db).GetReleaseEntriesAsync(first.Id, default))[Key].En);
     }
 
     [Theory]
@@ -226,7 +240,42 @@ public sealed class TranslationCatalogTests
         await using var f = await Fixture.CreateAsync();
         var release = await f.Service.PublishAsync(0, null, default);
         var entity = await f.Db.TranslationReleases.SingleAsync(value => value.Id == release.Id);
-        entity.MessagesJson = "{}";
+        entity.CreatedAt = entity.CreatedAt.AddMinutes(1);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => f.Db.SaveChangesAsync());
+    }
+
+    [Fact]
+    public async Task DraftUsesRelationalRowsAndKeepsOneTranslationPerKeywordAndLanguage()
+    {
+        await using var f = await Fixture.CreateAsync();
+        await f.Service.SaveDraftAsync(Request(0, "Bir", "One", "Один"), default);
+        var keyword = await f.Db.Set<Keyword>().Include(value => value.Translations)
+            .ThenInclude(value => value.Language).SingleAsync(value => value.Key == Key);
+        Assert.Equal(3, keyword.Translations.Count);
+        Assert.Equal("One", keyword.Translations.Single(value => value.Language.Code == "en").Value);
+        await f.Service.SaveDraftAsync(Request(1, "İki", "Two", "Два"), default);
+        Assert.Equal(3, keyword.Translations.Count);
+        Assert.Equal("Two", keyword.Translations.Single(value => value.Language.Code == "en").Value);
+        Assert.Null(f.Db.Model.FindEntityType(typeof(TranslationCatalog))!.FindProperty("DraftJson"));
+        Assert.Null(f.Db.Model.FindEntityType(typeof(TranslationRelease))!.FindProperty("MessagesJson"));
+        Assert.Equal(new[] { "KeywordId", "LanguageId" }, f.Db.Model.FindEntityType(typeof(KeywordTranslation))!
+            .FindPrimaryKey()!.Properties.Select(property => property.Name));
+    }
+
+    [Fact]
+    public async Task PublishedTranslationRowsCannotBeChangedOrAppendedAfterPublication()
+    {
+        await using var f = await Fixture.CreateAsync();
+        var release = await f.Service.PublishAsync(0, null, default);
+        var row = await f.Db.Set<TranslationReleaseEntry>().FirstAsync(value => value.TranslationReleaseId == release.Id);
+        row.Value = "Changed history";
+        await Assert.ThrowsAsync<InvalidOperationException>(() => f.Db.SaveChangesAsync());
+        f.Db.Entry(row).State = EntityState.Unchanged;
+        f.Db.Set<Keyword>().Add(new Keyword { Key = "test.unpublished.append" });
+        await f.Db.SaveChangesAsync();
+        var keyword = await f.Db.Set<Keyword>().SingleAsync(value => value.Key == "test.unpublished.append");
+        f.Db.Set<TranslationReleaseEntry>().Add(new TranslationReleaseEntry
+        { TranslationReleaseId = release.Id, KeywordId = keyword.Id, LanguageId = row.LanguageId, Value = "Appended history" });
         await Assert.ThrowsAsync<InvalidOperationException>(() => f.Db.SaveChangesAsync());
     }
 
@@ -397,7 +446,12 @@ public sealed class TranslationCatalogTests
             proxy.Setup(r => r.GetCatalogAsync(It.IsAny<bool>(), It.IsAny<CancellationToken>())).Returns((bool tracked, CancellationToken token) => repository.GetCatalogAsync(tracked, token));
             proxy.Setup(r => r.GetReleaseAsync(It.IsAny<int>(), It.IsAny<CancellationToken>())).Returns((int id, CancellationToken token) => repository.GetReleaseAsync(id, token));
             proxy.Setup(r => r.GetReleasesAsync(It.IsAny<CancellationToken>())).Returns((CancellationToken token) => repository.GetReleasesAsync(token));
-            proxy.Setup(r => r.AddReleaseAsync(It.IsAny<TranslationRelease>(), It.IsAny<CancellationToken>())).Returns((TranslationRelease release, CancellationToken token) => repository.AddReleaseAsync(release, token));
+            proxy.Setup(r => r.GetDraftEntriesAsync(It.IsAny<CancellationToken>())).Returns((CancellationToken token) => repository.GetDraftEntriesAsync(token));
+            proxy.Setup(r => r.GetReleaseEntriesAsync(It.IsAny<int>(), It.IsAny<CancellationToken>())).Returns((int id, CancellationToken token) => repository.GetReleaseEntriesAsync(id, token));
+            proxy.Setup(r => r.SaveDraftEntriesAsync(It.IsAny<IReadOnlyDictionary<string, TranslationText>>(), It.IsAny<CancellationToken>()))
+                .Returns((IReadOnlyDictionary<string, TranslationText> entries, CancellationToken token) => repository.SaveDraftEntriesAsync(entries, token));
+            proxy.Setup(r => r.AddReleaseAsync(It.IsAny<TranslationRelease>(), It.IsAny<IReadOnlyDictionary<string, TranslationText>>(), It.IsAny<CancellationToken>()))
+                .Returns((TranslationRelease release, IReadOnlyDictionary<string, TranslationText> entries, CancellationToken token) => repository.AddReleaseAsync(release, entries, token));
             proxy.Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>())).Returns((CancellationToken token) => repository.SaveChangesAsync(token));
             proxy.Setup(r => r.AcquireLockAsync(It.IsAny<CancellationToken>())).Returns(async () => { if (BeforeLock != null) await BeforeLock(); });
             var transaction = new Mock<IApplicationDbTransaction>();

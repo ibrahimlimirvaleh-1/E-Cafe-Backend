@@ -2,6 +2,9 @@ using AutoMapper;
 using ECafe.Application.Common.Exceptions;
 using ECafe.Application.Common.Pagination;
 using ECafe.Application.DTOs.InventoryItem;
+using ECafe.Application.Mappings;
+using ECafe.Domain.Policies;
+using System.Globalization;
 using ECafe.Application.Repositories.InventoryItem;
 using ECafe.Application.Repositories.Restaurant;
 using ECafe.Application.Repositories.Unit;
@@ -63,6 +66,9 @@ namespace ECafe.Application.Services.InventoryItem.Concrete
 
             var inventoryItem = Mapper.Map<Domain.Entities.InventoryItem>(request);
             inventoryItem.RestaurantId = restaurantId;
+            ContentTranslationCollectionPolicy.Apply(inventoryItem.Translations,
+                ContentTranslationRequestMapper.MapInventoryItem(inventoryItem.Id, request.Translations),
+                ContentTranslationRequestMapper.Canonical(inventoryItem), ContentTranslationMapper.Copy);
 
             await _inventoryItemRepository.Add(inventoryItem);
             await _inventoryItemRepository.SaveChangesAsync();
@@ -92,7 +98,11 @@ namespace ECafe.Application.Services.InventoryItem.Concrete
                 .AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(normalizedSearch))
-                query = query.Where(x => x.Name.ToLower().Contains(normalizedSearch));
+            {
+                var languageId = TranslationPolicy.LanguageId(CultureInfo.CurrentUICulture.Name);
+                query = query.Where(x => x.Name.ToLower().Contains(normalizedSearch) || x.Translations.Any(row =>
+                    (row.LanguageId == languageId || row.LanguageId == TranslationPolicy.DefaultLanguageId) && row.Name != null && row.Name.ToLower().Contains(normalizedSearch)));
+            }
 
             if (onlyLowStock)
                 query = query.Where(x => x.QuantityOnHand <= x.LowStockThreshold);
@@ -157,9 +167,13 @@ namespace ECafe.Application.Services.InventoryItem.Concrete
 
             EnsureCurrentUserCanAccessRestaurant(restaurantId);
 
-            var inventoryItem = await _inventoryItemRepository.GetInventoryByRestaurantIdAsync(inventoryItemId, restaurantId);
+            var inventoryItem = await _inventoryItemRepository
+                .QueryTracked(x => x.Id == inventoryItemId && x.RestaurantId == restaurantId)
+                .FirstOrDefaultAsync();
             if (inventoryItem is null)
                 throw new NotFoundException(ErrorCode.InventoryItemNotFound);
+
+            await _inventoryItemRepository.LoadTranslationsAsync(inventoryItem);
 
             var itemName = request.Name.Trim();
 
@@ -176,6 +190,9 @@ namespace ECafe.Application.Services.InventoryItem.Concrete
                 throw new BusinessRuleException(ErrorCode.InventoryItemAlreadyExists, new { name = itemName });
 
             Mapper.Map(request, inventoryItem);
+            ContentTranslationCollectionPolicy.Apply(inventoryItem.Translations,
+                ContentTranslationRequestMapper.MapInventoryItem(inventoryItem.Id, request.Translations),
+                ContentTranslationRequestMapper.Canonical(inventoryItem), ContentTranslationMapper.Copy);
 
             await _inventoryItemRepository.SaveChangesAsync();
 

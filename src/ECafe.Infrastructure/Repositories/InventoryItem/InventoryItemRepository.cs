@@ -10,6 +10,11 @@ namespace ECafe.Infrastructure.Repositories.InventoryItem
         {
         }
 
+        /// <summary>Yoxlanmış izlənən anbar məhsulunun deaktiv dillər daxil bütün tərcümələrini dəyişiklik üçün yükləyir.</summary>
+        public Task LoadTranslationsAsync(Domain.Entities.InventoryItem owner, CancellationToken cancellationToken = default)
+            => Context.Entry(owner).Collection(entity => entity.Translations).Query()
+                .IgnoreQueryFilters().LoadAsync(cancellationToken);
+
         public Task<Domain.Entities.InventoryItem?> GetInventoryByRestaurantIdAsync(int id, int restaurantId)
             => QueryTracked().FirstOrDefaultAsync(x => x.Id == id && x.RestaurantId == restaurantId);
 

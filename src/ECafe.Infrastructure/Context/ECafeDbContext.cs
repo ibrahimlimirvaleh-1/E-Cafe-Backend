@@ -14,6 +14,18 @@ public partial class ECafeDbContext : DbContext
     public virtual DbSet<Category> Categories { get; set; } = null!;
     public DbSet<TranslationCatalog> TranslationCatalogs { get; set; } = null!;
     public DbSet<TranslationRelease> TranslationReleases { get; set; } = null!;
+    public DbSet<Keyword> Keywords { get; set; } = null!;
+    public DbSet<KeywordTranslation> KeywordTranslations { get; set; } = null!;
+    public DbSet<TranslationReleaseEntry> TranslationReleaseEntries { get; set; } = null!;
+    public DbSet<Item> Items { get; set; } = null!;
+    public DbSet<Language> Languages { get; set; } = null!;
+    public DbSet<RestaurantTranslation> RestaurantTranslations { get; set; } = null!;
+    public DbSet<RestaurantGroupTranslation> RestaurantGroupTranslations { get; set; } = null!;
+    public DbSet<CategoryTranslation> CategoryTranslations { get; set; } = null!;
+    public DbSet<ItemTranslation> ItemTranslations { get; set; } = null!;
+    public DbSet<TableTranslation> TableTranslations { get; set; } = null!;
+    public DbSet<InventoryItemTranslation> InventoryItemTranslations { get; set; } = null!;
+    public DbSet<UnitTranslation> UnitTranslations { get; set; } = null!;
     public virtual DbSet<Domain.Entities.File> Files { get; set; } = null!;
     public virtual DbSet<FileType> FileTypes { get; set; } = null!;
     public virtual DbSet<Order> Orders { get; set; } = null!;
@@ -83,6 +95,8 @@ public partial class ECafeDbContext : DbContext
         // Automatically discovers all IEntityTypeConfiguration<T> configurations.
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(ECafeDbContext).Assembly);
 
+        LanguageSeeder.Seed(modelBuilder);
+        TranslationCatalogSeeder.Seed(modelBuilder);
         UnitSeeder.Seed(modelBuilder);
         InventoryMovementTypeSeeder.Seed(modelBuilder);
         FileTypeSeeder.Seed(modelBuilder);
@@ -113,8 +127,10 @@ public partial class ECafeDbContext : DbContext
         return base.SaveChangesAsync(cancellationToken);
     }
 
+    /// <summary>Yazıdan əvvəl dəyişməz tarixçəni qoruyur, soft-delete və audit tarixlərini eyni saxlamaya tətbiq edir.</summary>
     private void ApplyAuditInformation()
     {
+        EnsureImmutableTranslationHistory();
         var now = DateTime.UtcNow;
 
         foreach (var entry in ChangeTracker.Entries())
@@ -150,6 +166,20 @@ public partial class ECafeDbContext : DbContext
                         break;
                 }
             }
+        }
+    }
+
+    /// <summary>Yayımlanmış lüğət sətirlərini dəyişmək, silmək və ya köhnə yayıma sonradan sətir əlavə etməyi bloklayır.</summary>
+    private void EnsureImmutableTranslationHistory()
+    {
+        var addedReleases = ChangeTracker.Entries<TranslationRelease>()
+            .Where(entry => entry.State == EntityState.Added).Select(entry => entry.Entity).ToList();
+        foreach (var entry in ChangeTracker.Entries<TranslationReleaseEntry>())
+        {
+            if (entry.State is EntityState.Modified or EntityState.Deleted ||
+                entry.State == EntityState.Added && !addedReleases.Any(release =>
+                    ReferenceEquals(release, entry.Entity.TranslationRelease) || release.Id == entry.Entity.TranslationReleaseId))
+                throw new InvalidOperationException("Published translation entries are immutable.");
         }
     }
 

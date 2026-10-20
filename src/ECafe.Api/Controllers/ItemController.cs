@@ -2,6 +2,7 @@ using ECafe.Api.Requests.Item;
 using ECafe.Application.Features.Commands.Item;
 using ECafe.Application.Features.Queries.Item.GetAll;
 using ECafe.Domain.Enums;
+using ECafe.Domain.Exceptions;
 using ECafe.Infrastructure.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ApiRoutes = ECafe.Application.Routes.Routes;
@@ -25,7 +26,8 @@ namespace ECafe.Api.Controllers
                 BasePrice = request.BasePrice,
                 UnavailableReason = request.UnavailableReason,
                 SalesCount = request.SalesCount,
-                FileId = request.FileId
+                FileId = request.FileId,
+                Translations = request.Translations
             };
 
             return Ok(await Mediator.Send(command));
@@ -35,6 +37,9 @@ namespace ECafe.Api.Controllers
         [HttpPut(ApiRoutes.Item.Update)]
         public async Task<IActionResult> Update(int restaurantId, int itemId, [FromForm] UpdateItemFormRequest request)
         {
+            if (request.ClearTranslations && request.Translations is { Count: > 0 })
+                throw new BusinessRuleException(ErrorCode.LocalizationInvalidEntry);
+
             var command = new UpdateItemCommand
             {
                 RestaurantId = restaurantId,
@@ -46,7 +51,8 @@ namespace ECafe.Api.Controllers
                 BasePrice = request.BasePrice,
                 UnavailableReason = request.UnavailableReason,
                 SalesCount = request.SalesCount,
-                FileId = request.FileId
+                FileId = request.FileId,
+                Translations = request.ClearTranslations ? [] : request.Translations
             };
 
             return Ok(await Mediator.Send(command));

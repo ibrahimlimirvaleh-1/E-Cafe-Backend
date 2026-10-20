@@ -16,6 +16,11 @@ namespace ECafe.Infrastructure.Repositories.Table
         {
         }
 
+        /// <summary>Yoxlanmış izlənən masanın deaktiv dillər daxil bütün tərcümələrini dəyişiklik üçün yükləyir.</summary>
+        public Task LoadTranslationsAsync(Domain.Entities.Table owner, CancellationToken cancellationToken = default)
+            => Context.Entry(owner).Collection(entity => entity.Translations).Query()
+                .IgnoreQueryFilters().LoadAsync(cancellationToken);
+
         public Task<bool> HasTableWithoutOpenSessionAsync(int restaurantId)
         {
             return Query()

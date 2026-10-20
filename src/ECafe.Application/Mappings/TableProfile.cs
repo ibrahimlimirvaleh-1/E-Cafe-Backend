@@ -9,9 +9,11 @@ namespace ECafe.Application.Mappings
         public TableProfile()
         {
             CreateMap<CreateTableRequest, Table>()
+                .ForMember(dest => dest.Translations, opt => opt.Ignore())
                 .ForMember(dest => dest.IsActive, opt => opt.MapFrom(_ => true));
 
             CreateMap<UpdateTableRequest, Table>()
+                .ForMember(dest => dest.Translations, opt => opt.Ignore())
                 .ForMember(dest => dest.RestaurantId, opt => opt.Ignore());
         }
     }

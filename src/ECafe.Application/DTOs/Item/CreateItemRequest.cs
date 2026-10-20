@@ -2,6 +2,7 @@ namespace ECafe.Application.DTOs.Item
 {
     public class CreateItemRequest
     {
+        public List<ItemTranslationRequest>? Translations { get; set; }
         public int RestaurantId { get; set; }
 
         public int CategoryId { get; set; }

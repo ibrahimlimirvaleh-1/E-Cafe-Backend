@@ -10,6 +10,11 @@ namespace ECafe.Infrastructure.Repositories.Category
         {
         }
 
+        /// <summary>Yoxlanmış izlənən kateqoriyanın deaktiv dillər daxil bütün tərcümələrini dəyişiklik üçün yükləyir.</summary>
+        public Task LoadTranslationsAsync(Domain.Entities.Category owner, CancellationToken cancellationToken = default)
+            => Context.Entry(owner).Collection(entity => entity.Translations).Query()
+                .IgnoreQueryFilters().LoadAsync(cancellationToken);
+
         public Task<List<Domain.Entities.Category>> GetCategoriesByRestaurantIdAsync(int restaurantId)
         {
             return Query()

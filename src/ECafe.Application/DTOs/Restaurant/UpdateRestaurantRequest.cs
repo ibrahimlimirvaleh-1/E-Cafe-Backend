@@ -2,6 +2,7 @@ namespace ECafe.Application.DTOs.Restaurant
 {
     public class UpdateRestaurantRequest
     {
+        public List<ECafe.Application.DTOs.Localization.RestaurantTranslationInput>? Translations { get; set; }
         public string Location { get; set; } = null!;
 
         public double? Latitude { get; set; }

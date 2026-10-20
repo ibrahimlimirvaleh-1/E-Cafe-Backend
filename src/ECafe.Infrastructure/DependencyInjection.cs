@@ -92,6 +92,18 @@ namespace ECafe.Infrastructure
 
             services.AddScoped(typeof(IBaseRepository<>), typeof(BaseRepository<>));
             services.AddScoped<Application.Repositories.Localization.ITranslationRepository, Repositories.Localization.TranslationRepository>();
+            services.AddScoped<Repositories.ContentLocalization.ContentTranslationRepository>();
+            services.AddScoped<Application.Repositories.ContentLocalization.IContentTranslationRepository>(provider => provider.GetRequiredService<Repositories.ContentLocalization.ContentTranslationRepository>());
+            services.AddScoped<Application.Repositories.ContentLocalization.IContentTranslationQuery>(provider => provider.GetRequiredService<Repositories.ContentLocalization.ContentTranslationRepository>());
+            services.AddScoped<Application.Repositories.ContentLocalization.IContentTranslationAccessRepository, Repositories.ContentLocalization.ContentTranslationAccessRepository>();
+            services.AddScoped<Application.Repositories.ContentLocalization.IContentLanguageRepository, Repositories.ContentLocalization.ContentLanguageRepository>();
+            services.AddScoped<Repositories.ContentLocalization.IContentTranslationStore, Repositories.ContentLocalization.RestaurantTranslationStore>();
+            services.AddScoped<Repositories.ContentLocalization.IContentTranslationStore, Repositories.ContentLocalization.RestaurantGroupTranslationStore>();
+            services.AddScoped<Repositories.ContentLocalization.IContentTranslationStore, Repositories.ContentLocalization.CategoryTranslationStore>();
+            services.AddScoped<Repositories.ContentLocalization.IContentTranslationStore, Repositories.ContentLocalization.ItemTranslationStore>();
+            services.AddScoped<Repositories.ContentLocalization.IContentTranslationStore, Repositories.ContentLocalization.TableTranslationStore>();
+            services.AddScoped<Repositories.ContentLocalization.IContentTranslationStore, Repositories.ContentLocalization.InventoryItemTranslationStore>();
+            services.AddScoped<Repositories.ContentLocalization.IContentTranslationStore, Repositories.ContentLocalization.UnitTranslationStore>();
             services.AddSingleton<Application.Services.Localization.Abstract.ITranslationCache, Services.Localization.TranslationMemoryCache>();
             services.AddScoped<IPaymentGateway, SimulationPaymentGateway>();
             services.AddScoped<IApplicationDbTransactionFactory, EfApplicationDbTransactionFactory>();
