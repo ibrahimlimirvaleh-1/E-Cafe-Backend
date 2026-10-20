@@ -2,6 +2,7 @@ namespace ECafe.Application.DTOs.Item
 {
     public class UpdateItemRequest
     {
+        public List<ItemTranslationRequest>? Translations { get; set; }
         public int CategoryId { get; set; }
 
         public int StatusId { get; set; } = 5001;

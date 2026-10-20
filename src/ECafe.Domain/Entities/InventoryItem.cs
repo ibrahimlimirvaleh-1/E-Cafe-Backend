@@ -4,6 +4,8 @@ namespace ECafe.Domain.Entities
 {
     public class InventoryItem : AuditableSoftDeletableEntity<int>
     {
+        public ICollection<InventoryItemTranslation> Translations { get; set; } = new List<InventoryItemTranslation>();
+
         public int RestaurantId { get; set; }
         public string Name { get; set; } = null!;
         public int UnitId { get; set; }

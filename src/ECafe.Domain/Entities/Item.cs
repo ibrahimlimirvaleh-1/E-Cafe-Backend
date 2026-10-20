@@ -6,6 +6,8 @@ namespace ECafe.Domain.Entities;
 
 public partial class Item : AuditableSoftDeletableEntity<int>
 {
+    public ICollection<ItemTranslation> Translations { get; set; } = new List<ItemTranslation>();
+
     public int RestaurantId { get; set; }
 
     public int CategoryId { get; set; }

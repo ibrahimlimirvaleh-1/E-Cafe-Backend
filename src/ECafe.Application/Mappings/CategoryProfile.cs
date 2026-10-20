@@ -9,8 +9,10 @@ namespace ECafe.Application.Mappings
         public CategoryProfile()
         {
             CreateMap<CreateCategoryRequest, Category>()
+                .ForMember(dest => dest.Translations, opt => opt.Ignore())
                 .ForMember(dest => dest.SortOrder, opt => opt.Ignore());
             CreateMap<UpdateCategoryRequest, Category>()
+                .ForMember(dest => dest.Translations, opt => opt.Ignore())
                 .ForMember(dest => dest.RestaurantId, opt => opt.Ignore())
                 .ForMember(dest => dest.Slug, opt => opt.Ignore())
                 .ForMember(dest => dest.SortOrder, opt => opt.Ignore());

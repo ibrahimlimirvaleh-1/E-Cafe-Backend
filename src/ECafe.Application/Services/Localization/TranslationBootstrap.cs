@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using ECafe.Application.Common.Errors;
 using ECafe.Domain.Policies;
+using ECafe.Domain.Enums;
 
 namespace ECafe.Application.Services.Localization;
 
@@ -34,8 +35,10 @@ public sealed class TranslationBootstrap
         }
         foreach (var key in ui.Values.SelectMany(dictionary => dictionary.Keys).Distinct(StringComparer.Ordinal))
         {
-            var az = ui["az"].GetValueOrDefault(key) ?? ui["en"].GetValueOrDefault(key) ?? ui["ru"][key];
-            entries[key] = new(az, ui["en"].GetValueOrDefault(key, az), ui["ru"].GetValueOrDefault(key, az));
+            var az = ui[TranslationPolicy.Code(LanguageCode.Az)].GetValueOrDefault(key)
+                ?? ui[TranslationPolicy.Code(LanguageCode.En)].GetValueOrDefault(key) ?? ui[TranslationPolicy.Code(LanguageCode.Ru)][key];
+            entries[key] = new(az, ui[TranslationPolicy.Code(LanguageCode.En)].GetValueOrDefault(key, az),
+                ui[TranslationPolicy.Code(LanguageCode.Ru)].GetValueOrDefault(key, az));
         }
         var sorted = entries.OrderBy(entry => entry.Key, StringComparer.Ordinal).ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
         var bytes = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(sorted, TranslationJson.Options));

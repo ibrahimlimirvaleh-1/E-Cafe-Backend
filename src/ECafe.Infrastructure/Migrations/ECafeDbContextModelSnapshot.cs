@@ -207,6 +207,29 @@ namespace ECafe.Infrastructure.Migrations
                     b.ToTable("categories", "catalog");
                 });
 
+            modelBuilder.Entity("ECafe.Domain.Entities.CategoryTranslation", b =>
+                {
+                    b.Property<int>("CategoryId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("LanguageId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<long>("Revision")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint");
+
+                    b.HasKey("CategoryId", "LanguageId");
+
+                    b.HasIndex("LanguageId");
+
+                    b.ToTable("category_translations", "catalog");
+                });
+
             modelBuilder.Entity("ECafe.Domain.Entities.File", b =>
                 {
                     b.Property<int>("Id")
@@ -549,6 +572,29 @@ namespace ECafe.Infrastructure.Migrations
                     b.ToTable("inventory_items", "inventory");
                 });
 
+            modelBuilder.Entity("ECafe.Domain.Entities.InventoryItemTranslation", b =>
+                {
+                    b.Property<int>("InventoryItemId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("LanguageId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<long>("Revision")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint");
+
+                    b.HasKey("InventoryItemId", "LanguageId");
+
+                    b.HasIndex("LanguageId");
+
+                    b.ToTable("inventory_item_translations", "inventory");
+                });
+
             modelBuilder.Entity("ECafe.Domain.Entities.InventoryMovement", b =>
                 {
                     b.Property<int>("Id")
@@ -865,6 +911,132 @@ namespace ECafe.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("items", "catalog");
+                });
+
+            modelBuilder.Entity("ECafe.Domain.Entities.ItemTranslation", b =>
+                {
+                    b.Property<int>("ItemId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("LanguageId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<long>("Revision")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("UnavailableReason")
+                        .HasColumnType("text");
+
+                    b.HasKey("ItemId", "LanguageId");
+
+                    b.HasIndex("LanguageId");
+
+                    b.ToTable("item_translations", "catalog");
+                });
+
+            modelBuilder.Entity("ECafe.Domain.Entities.Keyword", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Key")
+                        .IsUnique();
+
+                    b.ToTable("keywords", "core");
+                });
+
+            modelBuilder.Entity("ECafe.Domain.Entities.KeywordTranslation", b =>
+                {
+                    b.Property<int>("KeywordId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("LanguageId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasMaxLength(16000)
+                        .HasColumnType("character varying(16000)");
+
+                    b.HasKey("KeywordId", "LanguageId");
+
+                    b.HasIndex("LanguageId");
+
+                    b.ToTable("keyword_translations", "core");
+                });
+
+            modelBuilder.Entity("ECafe.Domain.Entities.Language", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(2)
+                        .HasColumnType("character varying(2)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.ToTable("languages", "core");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Code = "az",
+                            IsActive = true,
+                            IsDefault = true,
+                            Name = "Azərbaycan"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Code = "en",
+                            IsActive = true,
+                            IsDefault = false,
+                            Name = "English"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Code = "ru",
+                            IsActive = true,
+                            IsDefault = false,
+                            Name = "Русский"
+                        });
                 });
 
             modelBuilder.Entity("ECafe.Domain.Entities.LoginAttempt", b =>
@@ -3333,6 +3505,29 @@ namespace ECafe.Infrastructure.Migrations
                     b.ToTable("restaurant_groups", "core");
                 });
 
+            modelBuilder.Entity("ECafe.Domain.Entities.RestaurantGroupTranslation", b =>
+                {
+                    b.Property<int>("RestaurantGroupId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("LanguageId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<long>("Revision")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint");
+
+                    b.HasKey("RestaurantGroupId", "LanguageId");
+
+                    b.HasIndex("LanguageId");
+
+                    b.ToTable("restaurant_group_translations", "core");
+                });
+
             modelBuilder.Entity("ECafe.Domain.Entities.RestaurantScheduleChange", b =>
                 {
                     b.Property<int>("Id")
@@ -3467,6 +3662,37 @@ namespace ECafe.Infrastructure.Migrations
                         {
                             t.HasCheckConstraint("ck_schedule_consent_target", "(\"ReservationId\" IS NULL) <> (\"TableSessionId\" IS NULL)");
                         });
+                });
+
+            modelBuilder.Entity("ECafe.Domain.Entities.RestaurantTranslation", b =>
+                {
+                    b.Property<int>("RestaurantId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("LanguageId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("BranchName")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Location")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<long>("Revision")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint");
+
+                    b.HasKey("RestaurantId", "LanguageId");
+
+                    b.HasIndex("LanguageId");
+
+                    b.ToTable("restaurant_translations", "core");
                 });
 
             modelBuilder.Entity("ECafe.Domain.Entities.RestaurantWorkingHour", b =>
@@ -5103,14 +5329,33 @@ namespace ECafe.Infrastructure.Migrations
                     b.ToTable("table_sessions", "ops");
                 });
 
+            modelBuilder.Entity("ECafe.Domain.Entities.TableTranslation", b =>
+                {
+                    b.Property<int>("TableId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("LanguageId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<long>("Revision")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint");
+
+                    b.HasKey("TableId", "LanguageId");
+
+                    b.HasIndex("LanguageId");
+
+                    b.ToTable("table_translations", "ops");
+                });
+
             modelBuilder.Entity("ECafe.Domain.Entities.TranslationCatalog", b =>
                 {
                     b.Property<int>("Id")
                         .HasColumnType("integer");
-
-                    b.Property<string>("DraftJson")
-                        .IsRequired()
-                        .HasColumnType("jsonb");
 
                     b.Property<int?>("PublishedReleaseId")
                         .HasColumnType("integer");
@@ -5129,7 +5374,6 @@ namespace ECafe.Infrastructure.Migrations
                         new
                         {
                             Id = 1,
-                            DraftJson = "{}",
                             Revision = 0L
                         });
                 });
@@ -5148,10 +5392,6 @@ namespace ECafe.Infrastructure.Migrations
                     b.Property<int>("CreatedByUserId")
                         .HasColumnType("integer");
 
-                    b.Property<string>("MessagesJson")
-                        .IsRequired()
-                        .HasColumnType("jsonb");
-
                     b.Property<int?>("SourceReleaseId")
                         .HasColumnType("integer");
 
@@ -5162,6 +5402,31 @@ namespace ECafe.Infrastructure.Migrations
                     b.HasIndex("SourceReleaseId");
 
                     b.ToTable("translation_releases", "core");
+                });
+
+            modelBuilder.Entity("ECafe.Domain.Entities.TranslationReleaseEntry", b =>
+                {
+                    b.Property<int>("TranslationReleaseId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("KeywordId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("LanguageId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasMaxLength(16000)
+                        .HasColumnType("character varying(16000)");
+
+                    b.HasKey("TranslationReleaseId", "KeywordId", "LanguageId");
+
+                    b.HasIndex("KeywordId");
+
+                    b.HasIndex("LanguageId");
+
+                    b.ToTable("translation_release_entries", "core");
                 });
 
             modelBuilder.Entity("ECafe.Domain.Entities.Unit", b =>
@@ -5284,6 +5549,29 @@ namespace ECafe.Infrastructure.Migrations
                             IsDeleted = false,
                             Name = "Ədəd"
                         });
+                });
+
+            modelBuilder.Entity("ECafe.Domain.Entities.UnitTranslation", b =>
+                {
+                    b.Property<int>("UnitId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("LanguageId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<long>("Revision")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint");
+
+                    b.HasKey("UnitId", "LanguageId");
+
+                    b.HasIndex("LanguageId");
+
+                    b.ToTable("unit_translations", "inventory");
                 });
 
             modelBuilder.Entity("ECafe.Domain.Entities.User", b =>
@@ -6611,6 +6899,25 @@ namespace ECafe.Infrastructure.Migrations
                     b.Navigation("Restaurant");
                 });
 
+            modelBuilder.Entity("ECafe.Domain.Entities.CategoryTranslation", b =>
+                {
+                    b.HasOne("ECafe.Domain.Entities.Category", "Category")
+                        .WithMany("Translations")
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ECafe.Domain.Entities.Language", "Language")
+                        .WithMany()
+                        .HasForeignKey("LanguageId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Category");
+
+                    b.Navigation("Language");
+                });
+
             modelBuilder.Entity("ECafe.Domain.Entities.File", b =>
                 {
                     b.HasOne("ECafe.Domain.Entities.FileType", "FileType")
@@ -6647,6 +6954,25 @@ namespace ECafe.Infrastructure.Migrations
                     b.Navigation("Restaurant");
 
                     b.Navigation("Unit");
+                });
+
+            modelBuilder.Entity("ECafe.Domain.Entities.InventoryItemTranslation", b =>
+                {
+                    b.HasOne("ECafe.Domain.Entities.InventoryItem", "InventoryItem")
+                        .WithMany("Translations")
+                        .HasForeignKey("InventoryItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ECafe.Domain.Entities.Language", "Language")
+                        .WithMany()
+                        .HasForeignKey("LanguageId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("InventoryItem");
+
+                    b.Navigation("Language");
                 });
 
             modelBuilder.Entity("ECafe.Domain.Entities.InventoryMovement", b =>
@@ -6735,6 +7061,44 @@ namespace ECafe.Infrastructure.Migrations
                     b.Navigation("Restaurant");
 
                     b.Navigation("Status");
+                });
+
+            modelBuilder.Entity("ECafe.Domain.Entities.ItemTranslation", b =>
+                {
+                    b.HasOne("ECafe.Domain.Entities.Item", "Item")
+                        .WithMany("Translations")
+                        .HasForeignKey("ItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ECafe.Domain.Entities.Language", "Language")
+                        .WithMany()
+                        .HasForeignKey("LanguageId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Item");
+
+                    b.Navigation("Language");
+                });
+
+            modelBuilder.Entity("ECafe.Domain.Entities.KeywordTranslation", b =>
+                {
+                    b.HasOne("ECafe.Domain.Entities.Keyword", "Keyword")
+                        .WithMany("Translations")
+                        .HasForeignKey("KeywordId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ECafe.Domain.Entities.Language", "Language")
+                        .WithMany()
+                        .HasForeignKey("LanguageId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Keyword");
+
+                    b.Navigation("Language");
                 });
 
             modelBuilder.Entity("ECafe.Domain.Entities.LoginAttempt", b =>
@@ -7401,6 +7765,25 @@ namespace ECafe.Infrastructure.Migrations
                     b.Navigation("Restaurant");
                 });
 
+            modelBuilder.Entity("ECafe.Domain.Entities.RestaurantGroupTranslation", b =>
+                {
+                    b.HasOne("ECafe.Domain.Entities.Language", "Language")
+                        .WithMany()
+                        .HasForeignKey("LanguageId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ECafe.Domain.Entities.RestaurantGroup", "RestaurantGroup")
+                        .WithMany("Translations")
+                        .HasForeignKey("RestaurantGroupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Language");
+
+                    b.Navigation("RestaurantGroup");
+                });
+
             modelBuilder.Entity("ECafe.Domain.Entities.RestaurantScheduleChange", b =>
                 {
                     b.HasOne("ECafe.Domain.Entities.Restaurant", "Restaurant")
@@ -7435,6 +7818,25 @@ namespace ECafe.Infrastructure.Migrations
                     b.Navigation("ScheduleChange");
 
                     b.Navigation("TableSession");
+                });
+
+            modelBuilder.Entity("ECafe.Domain.Entities.RestaurantTranslation", b =>
+                {
+                    b.HasOne("ECafe.Domain.Entities.Language", "Language")
+                        .WithMany()
+                        .HasForeignKey("LanguageId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ECafe.Domain.Entities.Restaurant", "Restaurant")
+                        .WithMany("Translations")
+                        .HasForeignKey("RestaurantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Language");
+
+                    b.Navigation("Restaurant");
                 });
 
             modelBuilder.Entity("ECafe.Domain.Entities.RestaurantWorkingHour", b =>
@@ -7567,6 +7969,25 @@ namespace ECafe.Infrastructure.Migrations
                     b.Navigation("WaiterUser");
                 });
 
+            modelBuilder.Entity("ECafe.Domain.Entities.TableTranslation", b =>
+                {
+                    b.HasOne("ECafe.Domain.Entities.Language", "Language")
+                        .WithMany()
+                        .HasForeignKey("LanguageId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ECafe.Domain.Entities.Table", "Table")
+                        .WithMany("Translations")
+                        .HasForeignKey("TableId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Language");
+
+                    b.Navigation("Table");
+                });
+
             modelBuilder.Entity("ECafe.Domain.Entities.TranslationCatalog", b =>
                 {
                     b.HasOne("ECafe.Domain.Entities.TranslationRelease", null)
@@ -7589,6 +8010,33 @@ namespace ECafe.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
                 });
 
+            modelBuilder.Entity("ECafe.Domain.Entities.TranslationReleaseEntry", b =>
+                {
+                    b.HasOne("ECafe.Domain.Entities.Keyword", "Keyword")
+                        .WithMany()
+                        .HasForeignKey("KeywordId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ECafe.Domain.Entities.Language", "Language")
+                        .WithMany()
+                        .HasForeignKey("LanguageId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ECafe.Domain.Entities.TranslationRelease", "TranslationRelease")
+                        .WithMany("Entries")
+                        .HasForeignKey("TranslationReleaseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Keyword");
+
+                    b.Navigation("Language");
+
+                    b.Navigation("TranslationRelease");
+                });
+
             modelBuilder.Entity("ECafe.Domain.Entities.Unit", b =>
                 {
                     b.HasOne("ECafe.Domain.Entities.Unit", "BaseUnit")
@@ -7598,6 +8046,25 @@ namespace ECafe.Infrastructure.Migrations
                         .HasConstraintName("units_base_unit_id_fkey");
 
                     b.Navigation("BaseUnit");
+                });
+
+            modelBuilder.Entity("ECafe.Domain.Entities.UnitTranslation", b =>
+                {
+                    b.HasOne("ECafe.Domain.Entities.Language", "Language")
+                        .WithMany()
+                        .HasForeignKey("LanguageId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ECafe.Domain.Entities.Unit", "Unit")
+                        .WithMany("Translations")
+                        .HasForeignKey("UnitId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Language");
+
+                    b.Navigation("Unit");
                 });
 
             modelBuilder.Entity("ECafe.Domain.Entities.User", b =>
@@ -7734,6 +8201,8 @@ namespace ECafe.Infrastructure.Migrations
             modelBuilder.Entity("ECafe.Domain.Entities.Category", b =>
                 {
                     b.Navigation("Items");
+
+                    b.Navigation("Translations");
                 });
 
             modelBuilder.Entity("ECafe.Domain.Entities.File", b =>
@@ -7759,11 +8228,20 @@ namespace ECafe.Infrastructure.Migrations
                     b.Navigation("Movements");
 
                     b.Navigation("Recipes");
+
+                    b.Navigation("Translations");
                 });
 
             modelBuilder.Entity("ECafe.Domain.Entities.Item", b =>
                 {
                     b.Navigation("OrderItems");
+
+                    b.Navigation("Translations");
+                });
+
+            modelBuilder.Entity("ECafe.Domain.Entities.Keyword", b =>
+                {
+                    b.Navigation("Translations");
                 });
 
             modelBuilder.Entity("ECafe.Domain.Entities.Order", b =>
@@ -7836,6 +8314,8 @@ namespace ECafe.Infrastructure.Migrations
 
                     b.Navigation("Tables");
 
+                    b.Navigation("Translations");
+
                     b.Navigation("UserRestaurants");
 
                     b.Navigation("WorkingHours");
@@ -7844,6 +8324,8 @@ namespace ECafe.Infrastructure.Migrations
             modelBuilder.Entity("ECafe.Domain.Entities.RestaurantGroup", b =>
                 {
                     b.Navigation("Restaurants");
+
+                    b.Navigation("Translations");
                 });
 
             modelBuilder.Entity("ECafe.Domain.Entities.RestaurantScheduleChange", b =>
@@ -7889,6 +8371,8 @@ namespace ECafe.Infrastructure.Migrations
                     b.Navigation("Reservations");
 
                     b.Navigation("TableSessions");
+
+                    b.Navigation("Translations");
                 });
 
             modelBuilder.Entity("ECafe.Domain.Entities.TableSession", b =>
@@ -7896,6 +8380,16 @@ namespace ECafe.Infrastructure.Migrations
                     b.Navigation("Orders");
 
                     b.Navigation("Payments");
+                });
+
+            modelBuilder.Entity("ECafe.Domain.Entities.TranslationRelease", b =>
+                {
+                    b.Navigation("Entries");
+                });
+
+            modelBuilder.Entity("ECafe.Domain.Entities.Unit", b =>
+                {
+                    b.Navigation("Translations");
                 });
 
             modelBuilder.Entity("ECafe.Domain.Entities.User", b =>

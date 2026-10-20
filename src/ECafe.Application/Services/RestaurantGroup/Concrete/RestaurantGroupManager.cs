@@ -1,8 +1,10 @@
 using AutoMapper;
+using ECafe.Application.Mappings;
 using ECafe.Application.DTOs.RestaurantGroup;
 using ECafe.Application.Repositories.RestaurantGroup;
 using ECafe.Application.Services.RestaurantGroup.Abstract;
 using ECafe.Domain.Exceptions;
+using ECafe.Domain.Policies;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -71,6 +73,9 @@ namespace ECafe.Application.Services.RestaurantGroup.Concrete
             };
 
             await _restaurantGroupRepository.Add(group);
+            ContentTranslationCollectionPolicy.Apply(group.Translations,
+                RestaurantTranslationMapper.MapGroup(group.Id, request.Translations),
+                RestaurantTranslationMapper.Canonical(group), ContentTranslationMapper.Copy);
             await _restaurantGroupRepository.SaveChangesAsync();
 
             return group.Id;

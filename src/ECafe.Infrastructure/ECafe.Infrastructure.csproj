@@ -32,6 +32,7 @@
 
   <ItemGroup>
     <Folder Include="Repositories\InventoryMovement\" />
+    <EmbeddedResource Include="Migrations\Seeds\RelationalTranslationCatalog.sql" />
   </ItemGroup>
 
   <PropertyGroup>

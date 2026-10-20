@@ -39,7 +39,7 @@ public sealed class TranslationManager(IHttpContextAccessor accessor, IMapper ma
             if (catalog?.PublishedReleaseId is not int releaseId) return bootstrap.Snapshot;
             var release = await repository.GetReleaseAsync(releaseId, cancellationToken);
             if (release == null) return bootstrap.Snapshot;
-            var entries = Merge(TranslationJson.Read(release.MessagesJson));
+            var entries = Merge(await repository.GetReleaseEntriesAsync(release.Id, cancellationToken));
             return new TranslationSnapshot($"{release.Id}-{bootstrap.Snapshot.Version}", entries);
         }
         catch (Exception exception) when (exception is DbException or TimeoutException or JsonException)
@@ -53,7 +53,7 @@ public sealed class TranslationManager(IHttpContextAccessor accessor, IMapper ma
     {
         await RequireAdministratorAsync(cancellationToken);
         var catalog = await repository.GetCatalogAsync(false, cancellationToken) ?? throw new BusinessRuleException(ErrorCode.LocalizationCatalogUnavailable);
-        return TranslationMapper.Draft(catalog, Merge(TranslationJson.Read(catalog.DraftJson)));
+        return TranslationMapper.Draft(catalog, Merge(await repository.GetDraftEntriesAsync(cancellationToken)));
     }
 
     public async Task<TranslationDraftResponse> SaveDraftAsync(SaveTranslationDraftRequest request, CancellationToken cancellationToken)
@@ -65,7 +65,7 @@ public sealed class TranslationManager(IHttpContextAccessor accessor, IMapper ma
             throw new BusinessRuleException(ErrorCode.LocalizationInvalidEntry);
         await using var transaction = await transactions.BeginTransactionAsync(IsolationLevel.ReadCommitted, cancellationToken);
         var catalog = await LockDraftAsync(request.ExpectedRevision, cancellationToken);
-        var entries = TranslationJson.Read(catalog.DraftJson);
+        var entries = Merge(await repository.GetDraftEntriesAsync(cancellationToken));
         foreach (var entry in request.Entries)
         {
             if (!bootstrap.Snapshot.Entries.ContainsKey(entry.Key)) throw new BusinessRuleException(ErrorCode.LocalizationInvalidEntry);
@@ -75,11 +75,12 @@ public sealed class TranslationManager(IHttpContextAccessor accessor, IMapper ma
                 throw new BusinessRuleException(ErrorCode.LocalizationPlaceholderMismatch);
             entries[entry.Key] = text;
         }
-        catalog.DraftJson = Serialize(entries);
+        ValidateCatalogSize(entries);
+        await repository.SaveDraftEntriesAsync(entries, cancellationToken);
         catalog.Revision++;
         await repository.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
-        return TranslationMapper.Draft(catalog, Merge(TranslationJson.Read(catalog.DraftJson)));
+        return TranslationMapper.Draft(catalog, entries);
     }
 
     public async Task<TranslationReleaseResponse> PublishAsync(long expectedRevision, int? rollbackReleaseId, CancellationToken cancellationToken)
@@ -87,21 +88,22 @@ public sealed class TranslationManager(IHttpContextAccessor accessor, IMapper ma
         await RequireAdministratorAsync(cancellationToken);
         await using var transaction = await transactions.BeginTransactionAsync(IsolationLevel.ReadCommitted, cancellationToken);
         var catalog = await LockDraftAsync(expectedRevision, cancellationToken);
-        var draft = TranslationJson.Read(catalog.DraftJson);
+        var draft = await repository.GetDraftEntriesAsync(cancellationToken);
         if (rollbackReleaseId.HasValue)
         {
             var source = await repository.GetReleaseAsync(rollbackReleaseId.Value, cancellationToken)
                 ?? throw new NotFoundException(ErrorCode.LocalizationReleaseNotFound);
-            draft = TranslationJson.Read(source.MessagesJson);
+            draft = await repository.GetReleaseEntriesAsync(source.Id, cancellationToken);
         }
         var entries = Merge(draft);
         foreach (var entry in entries.Values) TranslationPolicy.ValidateText(entry);
-        var release = new TranslationRelease { MessagesJson = Serialize(entries), CreatedAt = clock.GetUtcNow().UtcDateTime,
+        ValidateCatalogSize(entries);
+        await repository.SaveDraftEntriesAsync(entries, cancellationToken);
+        var release = new TranslationRelease { CreatedAt = clock.GetUtcNow().UtcDateTime,
             CreatedByUserId = GetCurrentUserId(), SourceReleaseId = rollbackReleaseId };
-        await repository.AddReleaseAsync(release, cancellationToken);
+        await repository.AddReleaseAsync(release, entries, cancellationToken);
         await repository.SaveChangesAsync(cancellationToken);
         catalog.PublishedReleaseId = release.Id;
-        catalog.DraftJson = Serialize(draft);
         catalog.Revision++;
         await repository.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
@@ -164,11 +166,10 @@ public sealed class TranslationManager(IHttpContextAccessor accessor, IMapper ma
                 entries[pair.Key] = pair.Value with { Source = original.Source };
         return entries;
     }
-    /// <summary>Kataloqu deterministik sırada JSON-a çevirir və yaddaş/DB yükü üçün ümumi ölçünü məhdudlaşdırır.</summary>
-    private static string Serialize(IReadOnlyDictionary<string, TranslationText> entries)
+    /// <summary>Kataloqun API/keş yükü üçün ümumi ölçüsünü yoxlayır; JSON nəticəsi bazada saxlanılmır.</summary>
+    private static void ValidateCatalogSize(IReadOnlyDictionary<string, TranslationText> entries)
     {
         var json = JsonSerializer.Serialize(entries.OrderBy(entry => entry.Key, StringComparer.Ordinal).ToDictionary(pair => pair.Key, pair => pair.Value), TranslationJson.Options);
         if (Encoding.UTF8.GetByteCount(json) > TranslationPolicy.MaxCatalogBytes) throw new BusinessRuleException(ErrorCode.LocalizationInvalidEntry);
-        return json;
     }
 }

@@ -1,14 +1,17 @@
 using System.Text.RegularExpressions;
 using ECafe.Domain.Exceptions;
+using ECafe.Domain.Enums;
 
 namespace ECafe.Domain.Policies;
 
-public sealed record TranslationText(string Az, string En, string Ru, string? Source = null);
-
 public static partial class TranslationPolicy
 {
-    public const string DefaultLanguage = "az";
-    public static readonly IReadOnlyList<string> Languages = Array.AsReadOnly(new[] { "az", "en", "ru" });
+    public const LanguageCode DefaultLanguageCode = LanguageCode.Az;
+    public const int DefaultLanguageId = (int)DefaultLanguageCode;
+    private static readonly IReadOnlyDictionary<string, LanguageCode> Codes = Enum.GetValues<LanguageCode>()
+        .ToDictionary(language => language.ToString().ToLowerInvariant(), StringComparer.Ordinal);
+    public static string DefaultLanguage { get; } = Code(DefaultLanguageCode);
+    public static IReadOnlyList<string> Languages { get; } = Array.AsReadOnly(Enum.GetValues<LanguageCode>().Select(Code).ToArray());
     public const int MaxTextLength = 16000;
     public const int MaxBatchSize = 250;
     public const int MaxCatalogBytes = 12 * 1024 * 1024;
@@ -17,13 +20,38 @@ public static partial class TranslationPolicy
     public static string NormalizeLanguage(string? value)
     {
         var language = value?.Trim().Split('-', '_')[0].ToLowerInvariant();
-        return language is "en" or "ru" ? language : DefaultLanguage;
+        return language != null && Codes.ContainsKey(language) ? language : DefaultLanguage;
     }
+
+    /// <summary>Sabit enum dəyərini API və bazanın dəyişməyən iki hərfli dil koduna çevirir.</summary>
+    public static string Code(LanguageCode language)
+        => Enum.IsDefined(language) ? language.ToString().ToLowerInvariant() : throw new ArgumentOutOfRangeException(nameof(language));
+
+    /// <summary>Yazı sorğusunda yalnız dəqiq dəstəklənən dil kodunu qəbul edir; rəqəm və regional alias saxlamır.</summary>
+    public static LanguageCode ParseLanguage(string? value)
+        => value != null && Codes.TryGetValue(value, out var language)
+            ? language : throw new BusinessRuleException(ErrorCode.LocalizationInvalidLanguage);
+
+    /// <summary>Sorğunun dilini normallaşdırıb enum-da sabitlənmiş dil FK-sını qaytarır.</summary>
+    public static int LanguageId(string? preference) => (int)ParseLanguage(NormalizeLanguage(preference));
+
+    /// <summary>Əlavə tərcümə sətrinin yalnız dəstəklənən, əsas olmayan dilə aid olduğunu müəyyən edir.</summary>
+    public static bool IsAdditionalLanguageId(int id)
+        => Enum.IsDefined((LanguageCode)id) && id != DefaultLanguageId;
+
+    /// <summary>Tipli dil seçiminə uyğun lüğət mətnini qaytarır; naməlum enum dəyəri səssiz fallback etmir.</summary>
+    public static string TextFor(TranslationText text, LanguageCode language) => language switch
+    {
+        LanguageCode.Az => text.Az,
+        LanguageCode.En => text.En,
+        LanguageCode.Ru => text.Ru,
+        _ => throw new ArgumentOutOfRangeException(nameof(language))
+    };
 
     /// <summary>Admin və dil seçimi yazılarında naməlum və sərhədsiz dil kodlarının bazaya düşməsini dayandırır.</summary>
     public static void ValidateLanguage(string? value)
     {
-        if (value is null || !Languages.Contains(value)) throw new BusinessRuleException(ErrorCode.LocalizationInvalidLanguage);
+        _ = ParseLanguage(value);
     }
 
     /// <summary>Tərcümə mətnini ölçü, təhlükəli markup və dəyişənlərin uyğunluğu üzrə yoxlayır; kod və HTML icrasına icazə vermir.</summary>

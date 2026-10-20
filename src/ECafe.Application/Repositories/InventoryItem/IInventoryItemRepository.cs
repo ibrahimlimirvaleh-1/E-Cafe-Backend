@@ -4,6 +4,8 @@ namespace ECafe.Application.Repositories.InventoryItem
 {
     public interface IInventoryItemRepository : IBaseRepository<Domain.Entities.InventoryItem>
     {
+        Task LoadTranslationsAsync(Domain.Entities.InventoryItem owner, CancellationToken cancellationToken = default);
+
         Task<Domain.Entities.InventoryItem?> GetInventoryByRestaurantIdAsync(int id, int restaurantId);
     }
 }

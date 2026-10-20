@@ -1,5 +1,7 @@
 ﻿using ECafe.Application.Repository;
 using ECafe.Domain.Entities.Base;
+using ECafe.Domain.Entities;
+using ECafe.Domain.Exceptions;
 using ECafe.Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
@@ -68,8 +70,24 @@ namespace ECafe.Infrastructure.Repositories
             return predicate is null ? query : query.Where(predicate);
         }
 
-        public Task<int> SaveChangesAsync()
-            => Context.SaveChangesAsync();
+        /// <summary>Tərcümə sətrinin paralel yazı konfliktini 409 biznes xətasına çevirir; əlaqəsiz DB xətalarını dəyişmir.</summary>
+        public async Task<int> SaveChangesAsync()
+        {
+            try
+            {
+                return await Context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException exception) when (exception.Entries.Any(entry => entry.Entity is EntityTranslation))
+            {
+                throw new BusinessRuleException(ErrorCode.LocalizationDraftConflict);
+            }
+            catch (DbUpdateException exception) when (
+                exception.InnerException is System.Data.Common.DbException { SqlState: "23505" } &&
+                exception.Entries.Any(entry => entry.Entity is EntityTranslation))
+            {
+                throw new BusinessRuleException(ErrorCode.LocalizationDraftConflict);
+            }
+        }
 
         public IQueryable<TEntity> QueryTracked(Expression<Func<TEntity, bool>>? predicate = null)
         {

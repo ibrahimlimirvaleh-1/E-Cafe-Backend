@@ -2,6 +2,7 @@ using AutoMapper;
 using ECafe.Application.Common.Audit;
 using ECafe.Application.Common.Exceptions;
 using ECafe.Application.DTOs.Table;
+using ECafe.Application.Mappings;
 using ECafe.Application.Repositories.Restaurant;
 using ECafe.Application.Repositories.Table;
 using ECafe.Application.Services.AuditLog.Abstract;
@@ -9,6 +10,7 @@ using ECafe.Application.Services.Table.Abstract;
 using ECafe.Application.Services.Restaurant.Abstract;
 using ECafe.Domain.Enums;
 using ECafe.Domain.Exceptions;
+using ECafe.Domain.Policies;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -57,6 +59,9 @@ namespace ECafe.Application.Services.Table.Concrete
 
             var table = _mapper.Map<Domain.Entities.Table>(request);
             table.RestaurantId = restaurantId;
+            ContentTranslationCollectionPolicy.Apply(table.Translations,
+                ContentTranslationRequestMapper.MapTable(table.Id, request.Translations),
+                ContentTranslationRequestMapper.Canonical(table), ContentTranslationMapper.Copy);
 
             await _tableRepository.Add(table);
             await _tableRepository.SaveChangesAsync();
@@ -105,6 +110,9 @@ namespace ECafe.Application.Services.Table.Concrete
             await EnsureTableNumberIsUniqueAsync(restaurantId, request.TableNo, tableId);
 
             _mapper.Map(request, table);
+            ContentTranslationCollectionPolicy.Apply(table.Translations,
+                ContentTranslationRequestMapper.MapTable(table.Id, request.Translations),
+                ContentTranslationRequestMapper.Canonical(table), ContentTranslationMapper.Copy);
             await _tableRepository.SaveChangesAsync();
 
             return MapTableResponse(table);
@@ -206,6 +214,11 @@ namespace ECafe.Application.Services.Table.Concrete
                 .ToList();
 
             await EnsureTableNamesAreUniqueAsync(restaurantId, newTables.Select(x => x.Name).ToList());
+
+            foreach (var newTable in newTables)
+                ContentTranslationCollectionPolicy.Apply(newTable.Translations,
+                    ContentTranslationRequestMapper.MapTableCopy(table, newTable.Id),
+                    ContentTranslationRequestMapper.Canonical(newTable), ContentTranslationMapper.Copy);
 
             try
             {
@@ -486,6 +499,7 @@ namespace ECafe.Application.Services.Table.Concrete
                    constraintName == "tables_restaurant_id_table_no_key";
         }
 
+        /// <summary>Masa və sessiyaları restoran daxilində yoxlayır, sonra deaktiv dillər daxil bütün tərcümələri yükləyir.</summary>
         private async Task<Domain.Entities.Table> GetTrackedTableAsync(int restaurantId, int tableId)
         {
             var table = await _tableRepository
@@ -493,7 +507,11 @@ namespace ECafe.Application.Services.Table.Concrete
                 .Include(x => x.TableSessions)
                 .FirstOrDefaultAsync();
 
-            return table ?? throw new NotFoundException(ErrorCode.TableNotFound);
+            if (table is null)
+                throw new NotFoundException(ErrorCode.TableNotFound);
+
+            await _tableRepository.LoadTranslationsAsync(table);
+            return table;
         }
 
         private static TableResponse MapTableResponse(Domain.Entities.Table table)

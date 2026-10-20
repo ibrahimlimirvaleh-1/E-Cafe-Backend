@@ -89,6 +89,7 @@ namespace ECafe.Application.Mappings
                 .ForMember(dest => dest.ImageUrls, opt => opt.Ignore());
 
             CreateMap<RegisterRestaurantRequest, Restaurant>()
+                .ForMember(dest => dest.Translations, opt => opt.Ignore())
                 .ForMember(dest => dest.Name, opt => opt.Ignore())
                 .ForMember(dest => dest.Location, opt => opt.MapFrom(src => src.Location.Trim()))
                 .ForMember(dest => dest.PlaceId, opt => opt.MapFrom(src => string.IsNullOrWhiteSpace(src.PlaceId) ? null : src.PlaceId.Trim()))

@@ -2,6 +2,7 @@ using AutoMapper;
 using ECafe.Application.Common.Audit;
 using ECafe.Application.Common.Pagination;
 using ECafe.Application.DTOs.Item;
+using ECafe.Application.Mappings;
 using ECafe.Application.Repository;
 using ECafe.Application.Repositories.Category;
 using ECafe.Application.Repositories.File;
@@ -12,6 +13,7 @@ using ECafe.Application.Services.Item.Abstract;
 using ECafe.Application.Services.MinIO.Abstracts;
 using ECafe.Domain.Enums;
 using ECafe.Domain.Exceptions;
+using ECafe.Domain.Policies;
 using ECafe.Shared.DTOs;
 using FluentValidation;
 using Microsoft.AspNetCore.Http;
@@ -73,6 +75,9 @@ namespace ECafe.Application.Services.Item.Concrete
             var status = await _statusRepository.GetByIdAsync(request.StatusId);
 
             var item = Mapper.Map<Domain.Entities.Item>(request);
+            ContentTranslationCollectionPolicy.Apply(item.Translations,
+                ContentTranslationRequestMapper.MapItem(item.Id, request.Translations),
+                ContentTranslationRequestMapper.Canonical(item), ContentTranslationMapper.Copy);
             item.File = await GetAttachableFileAsync(request.FileId);
 
             await _itemRepository.Add(item);
@@ -130,6 +135,9 @@ namespace ECafe.Application.Services.Item.Concrete
             item.UnavailableReason = string.IsNullOrWhiteSpace(request.UnavailableReason) ? null : request.UnavailableReason.Trim();
             item.SalesCount = request.SalesCount;
             item.IsAvailable = request.StatusId != GetOutOfStockStatusId();
+            ContentTranslationCollectionPolicy.Apply(item.Translations,
+                ContentTranslationRequestMapper.MapItem(item.Id, request.Translations),
+                ContentTranslationRequestMapper.Canonical(item), ContentTranslationMapper.Copy);
 
             if (request.FileId.HasValue && request.FileId.Value != item.FileId)
             {
@@ -340,13 +348,18 @@ namespace ECafe.Application.Services.Item.Concrete
             return await GetTrackedItemAsync(restaurantId, itemId);
         }
 
+        /// <summary>Məhsulu restoran daxilində yoxlayır, sonra deaktiv dillər daxil bütün tərcümələrini yazı üçün yükləyir.</summary>
         private async Task<Domain.Entities.Item> GetTrackedItemAsync(int restaurantId, int itemId)
         {
             var item = await _itemRepository
                 .QueryTracked(x => x.RestaurantId == restaurantId && x.Id == itemId)
                 .FirstOrDefaultAsync();
 
-            return item ?? throw new BusinessRuleException(ErrorCode.ItemNotFound);
+            if (item is null)
+                throw new BusinessRuleException(ErrorCode.ItemNotFound);
+
+            await _itemRepository.LoadTranslationsAsync(item);
+            return item;
         }
 
         private async Task EnsureItemNameIsUniqueAsync(int restaurantId, int categoryId, string itemName, int? excludeItemId = null)

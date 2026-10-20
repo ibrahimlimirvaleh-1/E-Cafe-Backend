@@ -4,6 +4,8 @@ namespace ECafe.Application.Repositories.Category
 {
     public interface ICategoryRepository : IBaseRepository<Domain.Entities.Category>
     {
+        Task LoadTranslationsAsync(Domain.Entities.Category owner, CancellationToken cancellationToken = default);
+
         Task<List<Domain.Entities.Category>> GetCategoriesByRestaurantIdAsync(int restaurantId);
 
         Task<int> GetMaxSortOrderByRestaurantIdAsync(int restaurantId);

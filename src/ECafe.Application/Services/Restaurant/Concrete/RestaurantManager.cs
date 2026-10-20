@@ -4,6 +4,7 @@ using ECafe.Application.Common.Exceptions;
 using ECafe.Application.Common.Outbox;
 using ECafe.Application.Common.Pagination;
 using ECafe.Application.Common.Validation;
+using ECafe.Application.Mappings;
 using ECafe.Application.DTOs.Restaurant;
 using ECafe.Application.DTOs.Restaurant.Public;
 using ECafe.Application.DTOs.User.Staff;
@@ -20,6 +21,7 @@ using ECafe.Application.Services.Restaurant.Abstract;
 using ECafe.Domain.Entities;
 using ECafe.Domain.Enums;
 using ECafe.Domain.Exceptions;
+using ECafe.Domain.Policies;
 using ECafe.Domain.Services;
 using ECafe.Shared.DTOs;
 using Microsoft.AspNetCore.Http;
@@ -110,18 +112,15 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             search = NormalizeFilter(search);
             if (search is not null)
             {
-                restaurantsQuery = restaurantsQuery.Where(r =>
-                    r.Name.ToLower().Contains(search) ||
-                    r.Location.ToLower().Contains(search) ||
-                    r.Phone.ToLower().Contains(search) ||
-                    (r.BranchName != null && r.BranchName.ToLower().Contains(search)) ||
-                    (r.RestaurantGroup != null && r.RestaurantGroup.Name.ToLower().Contains(search)));
+                restaurantsQuery = RestaurantSearchQuery.Search(restaurantsQuery, search, GetContentLanguageId(), false);
             }
 
             location = NormalizeFilter(location);
             if (location is not null)
             {
-                restaurantsQuery = restaurantsQuery.Where(r => r.Location.ToLower().Contains(location));
+                var languageId = GetContentLanguageId();
+                restaurantsQuery = restaurantsQuery.Where(r => r.Location.ToLower().Contains(location) ||
+                    r.Translations.Any(text => text.LanguageId == languageId && text.Location != null && text.Location.ToLower().Contains(location)));
             }
 
             cuisine = NormalizeFilter(cuisine);
@@ -190,21 +189,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             search = NormalizeFilter(search);
             if (search is not null)
             {
-                restaurantsQuery = restaurantsQuery.Where(r =>
-                    r.Name.ToLower().Contains(search) ||
-                    r.Location.ToLower().Contains(search) ||
-                    r.Phone.ToLower().Contains(search) ||
-                    (r.BranchName != null && r.BranchName.ToLower().Contains(search)) ||
-                    (r.RestaurantGroup != null && r.RestaurantGroup.Name.ToLower().Contains(search)) ||
-                    r.Categories.Any(c =>
-                        c.IsActive &&
-                        (c.Name.ToLower().Contains(search) ||
-                         c.Slug.ToLower().Contains(search) ||
-                         c.Items.Any(i =>
-                             i.IsActive &&
-                             i.IsAvailable &&
-                             (i.Name.ToLower().Contains(search) ||
-                              (i.Description != null && i.Description.ToLower().Contains(search)))))));
+                restaurantsQuery = RestaurantSearchQuery.Search(restaurantsQuery, search, GetContentLanguageId(), true);
             }
 
             var totalCount = await restaurantsQuery.CountAsync();
@@ -304,6 +289,9 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             restaurant.RestaurantGroup = restaurantGroup;
             restaurant.TimeZone = NormalizeTimeZone(request.TimeZone);
             restaurant.WorkingHours = NormalizeWorkingHours(request.WorkingHours);
+            ContentTranslationCollectionPolicy.Apply(restaurant.Translations,
+                RestaurantTranslationMapper.MapRestaurant(restaurant.Id, request.Translations),
+                RestaurantTranslationMapper.Canonical(restaurant), ContentTranslationMapper.Copy);
 
             await using var transaction = await _transactionFactory.BeginTransactionAsync();
 
@@ -445,6 +433,9 @@ namespace ECafe.Application.Services.Restaurant.Concrete
                 restaurant.StaffSettlementPeriod = request.StaffSettlementPeriod.Value;
             restaurant.TimeZone = NormalizeTimeZone(request.TimeZone);
             ScheduleTerms.Apply(restaurant, NormalizeWorkingHours(request.WorkingHours));
+            ContentTranslationCollectionPolicy.Apply(restaurant.Translations,
+                RestaurantTranslationMapper.MapRestaurant(restaurant.Id, request.Translations),
+                RestaurantTranslationMapper.Canonical(restaurant), ContentTranslationMapper.Copy);
 
             if (request.FileIds is not null)
                 await ReplaceRestaurantFilesAsync(restaurant, request.FileIds);
@@ -746,6 +737,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
                 .GetRestaurantStaffAsync(restaurantId);
         }
 
+        /// <summary>Restoranın əlaqələrini yoxlayır, sonra deaktiv dillər daxil bütün tərcümələrini izlənən yazı üçün yükləyir.</summary>
         private async Task<Domain.Entities.Restaurant> GetTrackedRestaurantAsync(int restaurantId)
         {
             var restaurant = await _restaurantRepository.QueryTracked(x => x.Id == restaurantId)
@@ -761,6 +753,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             if (restaurant is null)
                 throw new BusinessRuleException(ErrorCode.RestaurantNotFound);
 
+            await _restaurantRepository.LoadTranslationsAsync(restaurant);
             return restaurant;
         }
 
@@ -784,6 +777,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
                 throw new BusinessRuleException(ErrorCode.RestaurantPhoneAlreadyExists);
         }
 
+        /// <summary>Mövcud qrupu seçir və ya yeni qrupun əsas adı ilə AZ tərcüməsini yaradır; hüquqi məlumatları olduğu kimi saxlayır.</summary>
         private async Task<Domain.Entities.RestaurantGroup?> ResolveRestaurantGroupAsync(
             int? restaurantGroupId,
             string? restaurantGroupName,
@@ -825,7 +819,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             if (string.IsNullOrWhiteSpace(groupEmail))
                 throw new BusinessRuleException("Restaurant group email is required.");
 
-            return new Domain.Entities.RestaurantGroup
+            var createdGroup = new Domain.Entities.RestaurantGroup
             {
                 Name = groupName,
                 LegalName = string.IsNullOrWhiteSpace(restaurantGroupLegalName)
@@ -834,6 +828,10 @@ namespace ECafe.Application.Services.Restaurant.Concrete
                 Email = groupEmail,
                 IsActive = true
             };
+            ContentTranslationCollectionPolicy.Apply(createdGroup.Translations,
+                RestaurantTranslationMapper.MapGroup(createdGroup.Id, null),
+                RestaurantTranslationMapper.Canonical(createdGroup), ContentTranslationMapper.Copy);
+            return createdGroup;
         }
 
         private static string? NormalizeEmailOrNull(string? email)
@@ -1002,6 +1000,10 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             if (await query.AnyAsync())
                 throw new BusinessRuleException(ErrorCode.BranchAlreadyExistsInRestaurantGroup);
         }
+
+        /// <summary>Sorğunun artıq normallaşdırılmış dilini sabit dil FK-sına çevirir; naməlum mədəniyyətdə AZ mənbə qalır.</summary>
+        private static int GetContentLanguageId()
+            => TranslationPolicy.LanguageId(System.Globalization.CultureInfo.CurrentUICulture.Name);
 
         private static string NormalizeRequiredBranchName(string? branchName)
         {

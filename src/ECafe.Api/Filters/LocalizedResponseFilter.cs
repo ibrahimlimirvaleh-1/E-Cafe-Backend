@@ -3,13 +3,14 @@ using System.Reflection;
 using ECafe.Application.DTOs.Notification;
 using ECafe.Application.DTOs.Reservation;
 using ECafe.Application.Services.Localization.Abstract;
+using ECafe.Application.Services.ContentLocalization.Abstract;
 using ECafe.Shared.DTOs;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 
 namespace ECafe.Api.Filters;
 
-public sealed class LocalizedResponseFilter(ITextLocalizer text) : IAsyncResultFilter
+public sealed class LocalizedResponseFilter(ITextLocalizer text, IContentTranslationReader? content = null) : IAsyncResultFilter
 {
     public async Task OnResultExecutionAsync(ResultExecutingContext context, ResultExecutionDelegate next)
     {
@@ -17,6 +18,14 @@ public sealed class LocalizedResponseFilter(ITextLocalizer text) : IAsyncResultF
         {
             if (result.Value is IEnumerable collection && result.Value is not string) result.Value = collection.Cast<object?>().ToList();
             Localize(result.Value, new HashSet<object>(ReferenceEqualityComparer.Instance), 0);
+            if (content != null)
+            {
+                var route = context.RouteData.Values;
+                var rawId = route.GetValueOrDefault("restaurantId") ?? route.GetValueOrDefault("id");
+                int? restaurantId = int.TryParse(rawId?.ToString(), out var id) ? id : null;
+                var unitLookup = route.GetValueOrDefault("controller")?.ToString() == "Lookup" && route.GetValueOrDefault("action")?.ToString() == "GetUnits";
+                await content.LocalizeAsync(result.Value, context.HttpContext.RequestAborted, new ContentReadContext(restaurantId, unitLookup));
+            }
         }
         await next();
     }

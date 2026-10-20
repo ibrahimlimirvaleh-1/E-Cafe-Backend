@@ -9,6 +9,7 @@ namespace ECafe.Application.Mappings
         public ItemProfile()
         {
             CreateMap<CreateItemRequest, Domain.Entities.Item>()
+                .ForMember(dest => dest.Translations, opt => opt.Ignore())
                 .ForMember(dest => dest.CategoryId, opt => opt.MapFrom(src => src.CategoryId))
                 .ForMember(dest => dest.RestaurantId, opt => opt.MapFrom(src => src.RestaurantId))
                 .ForMember(dest => dest.StatusId, opt => opt.MapFrom(src => src.StatusId))
