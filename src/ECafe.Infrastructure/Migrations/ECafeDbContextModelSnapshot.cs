@@ -3505,29 +3505,6 @@ namespace ECafe.Infrastructure.Migrations
                     b.ToTable("restaurant_groups", "core");
                 });
 
-            modelBuilder.Entity("ECafe.Domain.Entities.RestaurantGroupTranslation", b =>
-                {
-                    b.Property<int>("RestaurantGroupId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("LanguageId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Name")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<long>("Revision")
-                        .IsConcurrencyToken()
-                        .HasColumnType("bigint");
-
-                    b.HasKey("RestaurantGroupId", "LanguageId");
-
-                    b.HasIndex("LanguageId");
-
-                    b.ToTable("restaurant_group_translations", "core");
-                });
-
             modelBuilder.Entity("ECafe.Domain.Entities.RestaurantScheduleChange", b =>
                 {
                     b.Property<int>("Id")
@@ -3662,37 +3639,6 @@ namespace ECafe.Infrastructure.Migrations
                         {
                             t.HasCheckConstraint("ck_schedule_consent_target", "(\"ReservationId\" IS NULL) <> (\"TableSessionId\" IS NULL)");
                         });
-                });
-
-            modelBuilder.Entity("ECafe.Domain.Entities.RestaurantTranslation", b =>
-                {
-                    b.Property<int>("RestaurantId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("LanguageId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("BranchName")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<string>("Location")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
-
-                    b.Property<string>("Name")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<long>("Revision")
-                        .IsConcurrencyToken()
-                        .HasColumnType("bigint");
-
-                    b.HasKey("RestaurantId", "LanguageId");
-
-                    b.HasIndex("LanguageId");
-
-                    b.ToTable("restaurant_translations", "core");
                 });
 
             modelBuilder.Entity("ECafe.Domain.Entities.RestaurantWorkingHour", b =>
@@ -7765,25 +7711,6 @@ namespace ECafe.Infrastructure.Migrations
                     b.Navigation("Restaurant");
                 });
 
-            modelBuilder.Entity("ECafe.Domain.Entities.RestaurantGroupTranslation", b =>
-                {
-                    b.HasOne("ECafe.Domain.Entities.Language", "Language")
-                        .WithMany()
-                        .HasForeignKey("LanguageId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("ECafe.Domain.Entities.RestaurantGroup", "RestaurantGroup")
-                        .WithMany("Translations")
-                        .HasForeignKey("RestaurantGroupId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Language");
-
-                    b.Navigation("RestaurantGroup");
-                });
-
             modelBuilder.Entity("ECafe.Domain.Entities.RestaurantScheduleChange", b =>
                 {
                     b.HasOne("ECafe.Domain.Entities.Restaurant", "Restaurant")
@@ -7818,25 +7745,6 @@ namespace ECafe.Infrastructure.Migrations
                     b.Navigation("ScheduleChange");
 
                     b.Navigation("TableSession");
-                });
-
-            modelBuilder.Entity("ECafe.Domain.Entities.RestaurantTranslation", b =>
-                {
-                    b.HasOne("ECafe.Domain.Entities.Language", "Language")
-                        .WithMany()
-                        .HasForeignKey("LanguageId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("ECafe.Domain.Entities.Restaurant", "Restaurant")
-                        .WithMany("Translations")
-                        .HasForeignKey("RestaurantId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Language");
-
-                    b.Navigation("Restaurant");
                 });
 
             modelBuilder.Entity("ECafe.Domain.Entities.RestaurantWorkingHour", b =>
@@ -8314,8 +8222,6 @@ namespace ECafe.Infrastructure.Migrations
 
                     b.Navigation("Tables");
 
-                    b.Navigation("Translations");
-
                     b.Navigation("UserRestaurants");
 
                     b.Navigation("WorkingHours");
@@ -8324,8 +8230,6 @@ namespace ECafe.Infrastructure.Migrations
             modelBuilder.Entity("ECafe.Domain.Entities.RestaurantGroup", b =>
                 {
                     b.Navigation("Restaurants");
-
-                    b.Navigation("Translations");
                 });
 
             modelBuilder.Entity("ECafe.Domain.Entities.RestaurantScheduleChange", b =>

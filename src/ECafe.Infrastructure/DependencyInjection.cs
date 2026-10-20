@@ -97,8 +97,6 @@ namespace ECafe.Infrastructure
             services.AddScoped<Application.Repositories.ContentLocalization.IContentTranslationQuery>(provider => provider.GetRequiredService<Repositories.ContentLocalization.ContentTranslationRepository>());
             services.AddScoped<Application.Repositories.ContentLocalization.IContentTranslationAccessRepository, Repositories.ContentLocalization.ContentTranslationAccessRepository>();
             services.AddScoped<Application.Repositories.ContentLocalization.IContentLanguageRepository, Repositories.ContentLocalization.ContentLanguageRepository>();
-            services.AddScoped<Repositories.ContentLocalization.IContentTranslationStore, Repositories.ContentLocalization.RestaurantTranslationStore>();
-            services.AddScoped<Repositories.ContentLocalization.IContentTranslationStore, Repositories.ContentLocalization.RestaurantGroupTranslationStore>();
             services.AddScoped<Repositories.ContentLocalization.IContentTranslationStore, Repositories.ContentLocalization.CategoryTranslationStore>();
             services.AddScoped<Repositories.ContentLocalization.IContentTranslationStore, Repositories.ContentLocalization.ItemTranslationStore>();
             services.AddScoped<Repositories.ContentLocalization.IContentTranslationStore, Repositories.ContentLocalization.TableTranslationStore>();

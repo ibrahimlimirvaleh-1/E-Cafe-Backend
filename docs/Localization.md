@@ -48,8 +48,6 @@ Hər entity öz adlı faylındadır. Əsas entity-lərin `Translations` kolleksi
 | --- | --- |
 | `Language` | Dilin bazadakı ID-si, `az/en/ru` kodu, ana dilində adı, aktivliyi və əsas dil olub-olmaması. |
 | `EntityTranslation` | Ortaq `LanguageId`, dil əlaqəsi və `Revision`. Ayrıca DB cədvəli deyil. |
-| `RestaurantTranslation` | `RestaurantId` ilə restoranın görünən adını, ünvanını və filial adını dilə bağlayır. |
-| `RestaurantGroupTranslation` | Qrupun görünən adını dilə bağlayır; hüquqi adı tərcümə etmir. |
 | `CategoryTranslation` | Kateqoriya adını dilə bağlayır; slug sabit qalır. |
 | `ItemTranslation` | Məhsulun adını, açıqlamasını və mövcud olmama səbəbini dilə bağlayır. Qiymət və stok burada deyil. |
 | `TableTranslation` | Masanın görünən adını dilə bağlayır; masa nömrəsi və tutum əsas entity-də qalır. |
@@ -100,7 +98,7 @@ Silinib yenidən yaradılan tərcümənin reviziyası 1-ə qayıtmır: məsələ
 
 Adi mənbə CRUD-u yeniləmədən əvvəl repository vasitəsilə bütün əlaqəli dil sətirlərini yükləyir, o cümlədən müvəqqəti deaktiv dili. Yalnız yoxlanmış owner-in translation kolleksiyası üçün query filter buraxılır; əsas entity-nin soft-delete və restoran filtrləri qalır. Beləliklə deaktiv dil yenidən aktivləşəndə köhnə tərcümə geri çıxmır və təkrar composite açar yaranmır. İctimai oxuma deaktiv dilləri göstərmir. CRUD-un saxlanmasında yalnız tərcümə sətirinə aid paralel reviziya/təkrar açar konflikti 409-a çevrilir; başqa DB xətaları gizlədilmir.
 
-Məhsul və restoran tərcümələri üçün ayrıca “Dərc et” yoxdur: uğurlu saxlamadan sonra növbəti uyğun API oxunuşunda görünür. Aşağıdakı yayım axını yalnız sistem lüğətinə aiddir.
+Məhsul, kateqoriya, masa, anbar məhsulu və ölçü vahidi tərcümələri üçün ayrıca “Dərc et” yoxdur: uğurlu saxlamadan sonra növbəti uyğun API oxunuşunda görünür. Aşağıdakı yayım axını yalnız sistem lüğətinə aiddir.
 
 ### Sistem Lüğətinin Axını
 
@@ -112,24 +110,25 @@ Məhsul və restoran tərcümələri üçün ayrıca “Dərc et” yoxdur: uğu
 
 Məsələn: aktiv yayımda AZ “Saxla” var. Qaralamada “Yadda saxla” edib yalnız saxlasan, istifadəçi “Saxla” görür. Dərc edəndə yeni versiya aktiv olur və lüğətin növbəti yenilənməsində “Yadda saxla” görünür. `ItemTranslation` içində “Black tea” redaktəsi isə bu yayım göstəricisindən asılı deyil.
 
-Restoran, qrup, kateqoriya, məhsul, xüsusi masa adı, anbar məhsulu və ölçü vahidi üçün ayrıca `*Translation` entity-ləri və real xarici açarlar var. Yalnız həmin entity-lərin göstərilən mətnləri seçilmiş dildə oxunur. Müştəri/işçi adları, hüquqi adlar, sərbəst qeydlər, ləğv/etiraz səbəbləri, sifarişin ad/qiymət snapshot-ları və yüklənmiş sənədlər avtomatik tərcümə edilmir. PDF müqavilə şablonu və əvvəl göndərilmiş məktub ayrıca sənəddir; tarixçə yenidən yazılmır.
+Kateqoriya, məhsul, xüsusi masa adı, anbar məhsulu və ölçü vahidi seçilmiş dildə oxunur. Restoranın adı, filialı, ünvanı və qrup adı həmişə əsas entity-dən göstərilir. Restoran/qrup üçün tərcümə modeli və CRUD sahələri yoxdur; `RemoveRestaurantTranslations` migration-ı yalnız əvvəlki iki tərcümə cədvəlini silir. Əsas restoran/qrup məlumatları dəyişmir. Müştəri/işçi adları, hüquqi adlar, sərbəst qeydlər, ləğv/etiraz səbəbləri, sifarişin ad/qiymət snapshot-ları və yüklənmiş sənədlər avtomatik tərcümə edilmir. PDF müqavilə şablonu və əvvəl göndərilmiş məktub ayrıca sənəddir; tarixçə yenidən yazılmır.
 
 ### Entity CRUD Müqaviləsi
 
-- Mövcud create/update mətn sahələri AZ əsas mənbə kimi qalır. Optional `translations` yalnız EN/RU sətirlərini qəbul edir: `{ "languageCode": "en", "name": "Tea", "description": "Black tea" }`. `description` və `unavailableReason` məhsula; `location` və `branchName` restorana aiddir.
+- Tərcüməsi açıq beş növdə mövcud create/update mətn sahələri AZ əsas mənbə kimi qalır. Optional `translations` yalnız EN/RU sətirlərini qəbul edir: `{ "languageCode": "en", "name": "Tea", "description": "Black tea" }`. `description` və `unavailableReason` məhsula aiddir.
+- Restoran və qrup create/update sorğularında `translations` sahəsi yoxdur; adi əsas CRUD sahələrindən istifadə edilir. Restoran tərcüməsi üçün xüsusi xəta və ya uyğunluq endpointi yoxdur.
 - `translations` göndərilmirsə və ya `null` olarsa əlavə dillər qorunur. `[]` EN/RU mətnlərini təmizləyir, reviziya nişanları isə qalır. Siyahı göndərilərsə əlavə dillərin tam yeni siyahısıdır; qorunacaq dillər də daxil edilməlidir. AZ bu siyahıda qəbul edilmir, əsas sahələrdən eyni SaveChanges əməliyyatında sinxronlaşdırılır.
-- Multipart sorğularda indeksli sahələr göndərilir: `Translations[0].LanguageCode=en`, `Translations[0].Name=Tea`. Məhsul yeniləməsində əlavə dilləri tam silmək üçün `ClearTranslations=true` istifadə edilir; bu bayraqla dolu `Translations` siyahısını eyni sorğuda göndərmək rədd olunur. Məhsul formunda hər ikisini göndərməmək mövcud tərcümələri qoruyur. Restoran qeydiyyatında boş siyahını göndərməmək kifayətdir, restoran yeniləməsi JSON qəbul edir.
+- Multipart məhsul sorğularında indeksli sahələr göndərilir: `Translations[0].LanguageCode=en`, `Translations[0].Name=Tea`. Məhsul yeniləməsində əlavə dilləri tam silmək üçün `ClearTranslations=true` istifadə edilir; bu bayraqla dolu `Translations` siyahısını eyni sorğuda göndərmək rədd olunur. Məhsul formunda hər ikisini göndərməmək mövcud tərcümələri qoruyur.
 - Boş/çatışmayan tərcümə sahəsi oxuma zamanı əsas mətnə qayıdır. Tərcümə yoxdursa avtomatik maşın tərcüməsi yaradılmır. Sərbəst qeydlər tərcümə kimi qəbul edilmir.
 - Mənbə soft-delete olduqda tərcümə sətirləri query filter ilə görünmür; fiziki silmədə əlaqə sətirləri cascade ilə silinir. Deaktivləşdirmə tərcümələri itirmir. Masa surəti özünə aid yeni tərcümə sətirləri yaradır.
-- Siyahı cavablarında mətnlər entity növünə görə toplu oxunur. Restoran/menyu axtarışı mənbə və seçilmiş dil üzrə SQL-də edilir; səhifələmədən sonra yaddaşda axtarış aparılmır.
+- Siyahı cavablarında mətnlər entity növünə görə toplu oxunur. Restoran axtarışı əsas ad/filial/ünvan/qrup üzrə, menyu axtarışı isə mənbə və seçilmiş dil üzrə SQL-də edilir. Səhifələmədən sonra yaddaşda axtarış aparılmır.
 
 ### Tərcümə Redaktoru API
 
 - `GET /api/v1/localization/languages`: aktiv dəstəklənən dillər.
-- `GET /api/v1/content/{entityType}/{id}/translations`: xam AZ əsas sahələri və aktiv dillərin fallback edilməmiş mətnləri. Cavab: `{ entityType, id, restaurantId, translations: [{ languageCode, revision, name, description, location, branchName, unavailableReason }] }`.
+- `GET /api/v1/content/{entityType}/{id}/translations`: xam AZ əsas sahələri və aktiv dillərin fallback edilməmiş mətnləri. Cavab: `{ entityType, id, restaurantId, translations: [{ languageCode, revision, name, description, unavailableReason }] }`.
 - `PUT /api/v1/content/{entityType}/{id}/translations/{languageCode}`: yalnız EN/RU. `expectedRevision` məcburidir: yeni sətir üçün 0, yeniləmədə GET-dən gələn rəqəm. Köhnə reviziya 409 qaytarır.
 - `DELETE /api/v1/content/{entityType}/{id}/translations/{languageCode}?expectedRevision=...`: yalnız seçilmiş EN/RU mətnlərini təmizləyib reviziyanı artırır; mənbə obyekt və maliyyə əlaqələri dəyişmir. AZ silinə bilməz.
-- `entityType`: `restaurants`, `restaurant-groups`, `categories`, `items`, `tables`, `inventory-items`, `units`. Restoran məzmunu yalnız aid restoranın səlahiyyətli meneceri/sahibkarına açıqdır; qrup və ölçü vahidi redaktoru yalnız platforma super administratoruna açıqdır.
+- Redaktə edilən `entityType`: `categories`, `items`, `tables`, `inventory-items`, `units`. Aid restoranın səlahiyyətli meneceri/sahibkarı restoran məzmununu redaktə edə bilər; ölçü vahidi redaktoru yalnız platforma super administratoruna açıqdır.
 - Redaktə forması göstərilən lokallaşdırılmış DTO-dan AZ dəyərini götürməməlidir: xam mətn bu redaktor GET-dən alınır. Yükləmə və ya giriş xətasında tərcümələr boş siyahı kimi saxlanılmamalıdır.
 
 Geri ödəniş cavabında `status` və `statusId` dəyişmir; göstərilən tərcümə `statusLabel` sahəsində gəlir. Tarixçədə `fromStatusId`, `toStatusId`, `fromStatusLabel`, `toStatusLabel` əlavə olunur. `reason` orijinal qalır; yalnız məlum provayder mərhələsinin serverdə yaradılmış səbəbi `reasonLabel` ilə tərcümə edilir. Naməlum/sərbəst səbəb üçün `reasonLabel=null` olduqda orijinal göstərilməlidir. `customerNextStep` və `eligibilityReason` yalnız kataloqda tanınan sistem mətnləri üzrə çevrilir; `cancellationReason` dəyişmir. Dil seçimi dəyişəndə frontend API-dən həmin dilin cavabını yenidən almalıdır; maliyyə əməliyyatını təkrarlamamalıdır. Bu görünüş sahələri üçün migration tələb olunmur.
@@ -141,6 +140,8 @@ Yeni tanınan sistem bildirişi alıcının saxlanmış dilində hazırlanır; e
 ## Deploy
 
 Migration-lar: əvvəl `20261018105154_AddTranslationCatalog`, sonra `20261019190941_RelationalMultilingualContent`. Sonuncu migration dondurulmuş 2120 açar/6360 dil sətrini əlavə edir, əvvəlki JSON redaktələri ilə onları əvəzləyir, bütün əvvəlki yayımları əlaqəli sətirlərə köçürür və yalnız bundan sonra köhnə JSON sütunlarını silir. Mövcud entity mətnləri AZ əlaqə sətirlərinə köçürülür; ilkin biznes məlumatları dəyişmir.
+
+Sonrakı `20261020153138_RemoveRestaurantTranslations` yalnız `core.restaurant_translations` və `core.restaurant_group_translations` cədvəllərini silir. Saxlanmış restoran/qrup tərcümələri bu əməliyyatda itir; lazım olan tarixçə varsa əvvəl export/backup edin. Əsas ad, filial, ünvan, qrup, digər beş məzmun tərcüməsi və maliyyə məlumatları saxlanır. Down yalnız iki boş cədvəli bərpa edir, silinmiş tərcümə mətnlərini geri gətirmir. Köhnə API prosesi bu cədvəllərə müraciət edə bildiyi üçün yeni backend/frontend və migration eyni deploy planı ilə tətbiq edilməlidir. Tətbiq edilmiş əvvəlki migration faylları dəyişdirilmir.
 
 Əvvəl ehtiyat nüsxəsi və staging yoxlaması aparılmalıdır. Server bazasına migration tətbiq edilməyib. Bu keçid zamanı köhnə API prosesləri dayandırılmalıdır: köhnə kod artıq silinən JSON sütunlarını oxuyur, ona görə qarışıq köhnə/yeni instansiyalarla rolling deploy uyğun deyil. Downgrade sistem lüğətini JSON-a bərpa edir, amma EN/RU biznes tərcümələri varsa onların itirilməməsi üçün əməliyyatı dayandırır; əvvəl export/backup və ayrıca geri keçid planı lazımdır.
 
@@ -154,7 +155,7 @@ Bu əmr yalnız seçilmiş mühitin mövcud təhlükəsiz connection konfiqurasi
 
 1. Təmiz browserdə AZ açılsın; EN və RU seçimindən sonra refresh-də seçilmiş dil qalsın.
 2. Login/logout, müştəri, menecer, ofisiant və mətbəx ekranlarında dili dəyişin. Başlıq, düymə, tarix/say və modal mətnlərini yoxlayın.
-3. Tərcüməsi olmayan restoran, masa və məhsul adlarının əsas dildə qaldığını, tərcüməsi olanların seçilmiş dildə göründüyünü yoxlayın. Müştəri adları və əvvəlki sifariş snapshot-ları dəyişməməlidir.
+3. Restoran, filial, ünvan və qrup adları AZ/EN/RU-da eyni qalsın. Restoran formalarında tərcümə seçimi olmasın. Masa və məhsul tərcümələri seçilmiş dildə, olmayanları əsas dildə görünsün. Müştəri adları və əvvəlki sifariş snapshot-ları dəyişməməlidir.
 4. Dil seçimini hesabda saxlayın; başqa browserdə həmin hesabla girişdə seçim bərpa olunsun.
 5. Eyni uğursuz əməliyyatı üç dildə göndərin: xəta kodu/status eyni, mesaj seçilmiş dildə olsun.
 6. Eyni lüğət sorğusunu ETag ilə təkrarlayın: `304`; başqa dil üçün fərqli ETag.
@@ -167,6 +168,6 @@ Bu əmr yalnız seçilmiş mühitin mövcud təhlükəsiz connection konfiqurasi
 13. Alıcının dili RU, əməliyyatçının dili EN olduqda yeni sistem bildirişi/e-mail RU, mobil ümumi push RU olsun.
 14. Şəbəkəni bağlayıb əvvəl yüklənmiş dilə keçin: UI boş qalmasın; reconnect-dən sonra versiya yenidən yoxlanılsın.
 15. Rezervasiya-depozit-sifariş-mətbəx-təqdim-hesablaşma-sessiya bağlama və refund axınlarını yenidən keçin: məbləğ, icazə, status keçidi və idempotentlik dəyişməməlidir.
-16. Hər məzmun növündə EN/RU tərcüməsi yaradın, yeniləyin və silin; AZ əsas məlumatı, ID-lər və digər dillər ayrıca redaktə zamanı dəyişməməlidir. Əsas CRUD-da `null`/göndərilməyən siyahı tərcümələri qorumalı, `[]` isə əlavə dilləri təmizləməlidir.
+16. Dəstəklənən beş məzmun növündə EN/RU tərcüməsi yaradın, yeniləyin və silin; AZ əsas məlumatı, ID-lər və digər dillər ayrıca redaktə zamanı dəyişməməlidir. Əsas CRUD-da `null`/göndərilməyən siyahı tərcümələri qorumalı, `[]` isə əlavə dilləri təmizləməlidir.
 17. Başqa restoran meneceri və əsas yazı icazəsi ləğv edilmiş istifadəçi tərcümə endpointlərinə daxil ola bilməməlidir. Köhnə `expectedRevision` ilə ayrıca redaktə 409 verməlidir.
 18. Mənbə məlumatını silin: tərcümələr public siyahı və redaktorda görünməməlidir. Məhsulu yalnız deaktiv etdikdə tərcümələri itirilməməlidir.

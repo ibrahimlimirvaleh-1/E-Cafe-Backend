@@ -45,7 +45,8 @@ namespace ECafe.Api.Controllers
                 Name = request.Name,
                 UnitId = request.UnitId,
                 QuantityOnHand = request.QuantityOnHand,
-                LowStockThreshold = request.LowStockThreshold
+                LowStockThreshold = request.LowStockThreshold,
+                Translations = request.Translations
             };
 
             return Ok(await Mediator.Send(command));
@@ -80,7 +81,8 @@ namespace ECafe.Api.Controllers
                 Name = request.Name,
                 UnitId = request.UnitId,
                 LowStockThreshold = request.LowStockThreshold,
-                IsActive = request.IsActive
+                IsActive = request.IsActive,
+                Translations = request.Translations
             };
 
             return Ok(await Mediator.Send(command));

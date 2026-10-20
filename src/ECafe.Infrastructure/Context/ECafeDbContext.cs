@@ -19,8 +19,6 @@ public partial class ECafeDbContext : DbContext
     public DbSet<TranslationReleaseEntry> TranslationReleaseEntries { get; set; } = null!;
     public DbSet<Item> Items { get; set; } = null!;
     public DbSet<Language> Languages { get; set; } = null!;
-    public DbSet<RestaurantTranslation> RestaurantTranslations { get; set; } = null!;
-    public DbSet<RestaurantGroupTranslation> RestaurantGroupTranslations { get; set; } = null!;
     public DbSet<CategoryTranslation> CategoryTranslations { get; set; } = null!;
     public DbSet<ItemTranslation> ItemTranslations { get; set; } = null!;
     public DbSet<TableTranslation> TableTranslations { get; set; } = null!;

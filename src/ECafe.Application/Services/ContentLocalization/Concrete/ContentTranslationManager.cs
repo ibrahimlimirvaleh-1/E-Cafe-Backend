@@ -34,7 +34,7 @@ public sealed class ContentTranslationManager(IContentTranslationRepository repo
         var type = ContentTranslationEditorMapper.ParseType(entityType);
         ContentTranslationPolicy.RequireRevision(request?.ExpectedRevision);
         var value = ContentTranslationEditorMapper.Value(ContentTranslationPolicy.Normalize(type,
-            new(request!.Name, request.Description, request.Location, request.BranchName, request.UnavailableReason)));
+            new(request!.Name, request.Description, request.UnavailableReason)));
         await access.RequireAsync(type, id, cancellationToken);
         await using var transaction = await transactions.BeginTransactionAsync(IsolationLevel.ReadCommitted, cancellationToken);
         await repository.AcquireLockAsync(type, id, cancellationToken);

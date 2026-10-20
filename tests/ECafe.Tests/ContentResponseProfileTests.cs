@@ -54,13 +54,12 @@ namespace ECafe.Tests
         }
 
         [Fact]
-        public void ContextResolvesIdlessRestaurantAndKeepsGenericLookupsUntouched()
+        public void ContextNeverBindsRestaurantButResolvesExplicitUnitLookup()
         {
             var restaurant = new RestaurantDetailDto { Name = "Esas", Location = "Baki" };
             Assert.Empty(ContentTranslationReadMapper.Collect(restaurant));
             var bindings = ContentTranslationReadMapper.Collect(restaurant, restaurantId: 23);
-            Assert.Equal(3, bindings.Count);
-            Assert.All(bindings, binding => Assert.Equal(23, binding.Id));
+            Assert.Empty(bindings);
             var lookup = new LookupItemResponse { Id = 5, Name = "kq" };
             Assert.Empty(ContentTranslationReadMapper.Collect(lookup));
             var unit = Assert.Single(ContentTranslationReadMapper.Collect(lookup, unitLookup: true));
@@ -77,18 +76,20 @@ namespace ECafe.Tests
             var kitchenLine = new KitchenOrderLineResponse(1, 7, "Immutable tea", 2, "Do not translate");
             var profile = new ProfileResponseDto { Id = 3, Name = "Ali", Surname = "Valiyev", RestaurantId = 2, RestaurantName = "Cafe" };
             var group = new RestaurantGroupResponse { Id = 8, Name = "Brand", LegalName = "Legal MMC" };
-            var editor = new ContentTranslationsResponse("items", 7, 2, [new("az", "Raw", null, null, null, null, 1)]);
+            var editor = new ContentTranslationsResponse("items", 7, 2, [new("az", "Raw", null, null, 1)]);
             var response = new object[] { reservation, line, kitchenLine, profile, group, editor };
             var bindings = ContentTranslationReadMapper.Collect(response);
-            Assert.Equal(4, bindings.Count);
+            Assert.Single(bindings);
             foreach (var binding in bindings) ContentTranslationReadMapper.Apply(binding, new("Translated"));
-            Assert.Equal("Translated", reservation.RestaurantName);
+            Assert.Equal("Cafe", reservation.RestaurantName);
             Assert.Equal("Translated", reservation.TableName);
             Assert.Equal("Immutable tea", line.Name);
             Assert.Equal("Immutable tea", kitchenLine.Name);
             Assert.Equal("Do not translate", kitchenLine.Note);
             Assert.Equal("Ali", profile.Name);
             Assert.Equal("Valiyev", profile.Surname);
+            Assert.Equal("Cafe", profile.RestaurantName);
+            Assert.Equal("Brand", group.Name);
             Assert.Equal("Legal MMC", group.LegalName);
             Assert.Equal("Raw", editor.Translations[0].Name);
         }
@@ -115,7 +116,7 @@ namespace ECafe.Tests
         public void ExplicitProfileCannotOptRawEditorDtosIntoTraversal()
         {
             var value = new ContentTranslationValue("Raw");
-            var response = new ContentTranslationsResponse("items", 7, 1, [new("az", "Raw", null, null, null, null, 1)]);
+            var response = new ContentTranslationsResponse("items", 7, 1, [new("az", "Raw", null, null, 1)]);
             var intercepted = false;
             var profile = new InterceptEditorProfile(() => intercepted = true);
             Assert.Empty(ContentTranslationReadMapper.Collect(response, [profile]));
@@ -139,7 +140,7 @@ namespace ECafe.Tests
             Assert.Equal(count, bindings.Count);
             Assert.All(bindings, binding => Assert.True(binding.Id > 0));
             foreach (var binding in bindings)
-                ContentTranslationReadMapper.Apply(binding, new("Translated", "Description", "Location", "Branch", "Unavailable"));
+                ContentTranslationReadMapper.Apply(binding, new("Translated", "Description", "Unavailable"));
         }
 
         [Fact]
@@ -153,18 +154,17 @@ namespace ECafe.Tests
                 repository.Setup(r => r.GetRowsAsync(It.IsAny<ContentEntityType>(), It.IsAny<IReadOnlyCollection<int>>(),
                     "en", It.IsAny<CancellationToken>())).ReturnsAsync((ContentEntityType type, IReadOnlyCollection<int> ids,
                     string? _, CancellationToken _) => (IReadOnlyList<ContentTranslationRow>)ids.Select(id =>
-                        new ContentTranslationRow(id, "en", 1, new(type.ToString(), Location: " "))).ToList());
-                var first = new PublicRestaurantListItemDto { Id = 7, RestaurantGroupId = 4, Name = "Cafe", Location = "Baki" };
-                var second = new PublicRestaurantListItemDto { Id = 7, RestaurantGroupId = 4, Name = "Cafe", Location = "Baki" };
-                var page = new PaginatedList<PublicRestaurantListItemDto>([first, second], 20, 2, 2);
+                        new ContentTranslationRow(id, "en", 1, new(type.ToString()))).ToList());
+                var first = new InventoryItemDto { Id = 7, UnitId = 4, Name = "Sugar", UnitName = "Original unit" };
+                var second = new InventoryItemDto { Id = 7, UnitId = 4, Name = "Sugar", UnitName = "Original unit" };
+                var page = new PaginatedList<InventoryItemDto>([first, second], 20, 2, 2);
                 await new ContentTranslationReader(repository.Object).LocalizeAsync(page, default);
-                Assert.Equal("Restaurant", first.Name);
-                Assert.Equal("RestaurantGroup", first.RestaurantGroupName);
-                Assert.Equal("Restaurant", second.Name);
-                Assert.Equal("Baki", first.Location);
+                Assert.Equal("InventoryItem", first.Name);
+                Assert.Equal("Unit", first.UnitName);
+                Assert.Equal("InventoryItem", second.Name);
                 Assert.Equal(20, page.TotalCount);
                 Assert.Equal(2, page.PageIndex);
-                foreach (var type in new[] { ContentEntityType.Restaurant, ContentEntityType.RestaurantGroup })
+                foreach (var type in new[] { ContentEntityType.InventoryItem, ContentEntityType.Unit })
                     repository.Verify(r => r.GetRowsAsync(type, It.Is<IReadOnlyCollection<int>>(ids => ids.Count == 1),
                         "en", It.IsAny<CancellationToken>()), Times.Once);
                 repository.VerifyNoOtherCalls();
@@ -175,11 +175,11 @@ namespace ECafe.Tests
         /// <summary>Əvvəlki ağ siyahının bütün DTO növlərini və icazəli bağ saylarını müqayisə üçün verir.</summary>
         public static IEnumerable<object[]> ExistingResponses()
         {
-            yield return [new GetAllRestaurantsResponse { Id = 1, RestaurantGroupId = 2 }, 4];
-            yield return [new PublicRestaurantListItemDto { Id = 1, RestaurantGroupId = 2 }, 4];
-            yield return [new PublicRestaurantDetailDto { Id = 1, RestaurantGroupId = 2 }, 4];
-            yield return [new RestaurantDetailDto { RestaurantGroupId = 2 }, 4];
-            yield return [new RestaurantGroupResponse { Id = 1 }, 1];
+            yield return [new GetAllRestaurantsResponse { Id = 1, RestaurantGroupId = 2 }, 0];
+            yield return [new PublicRestaurantListItemDto { Id = 1, RestaurantGroupId = 2 }, 0];
+            yield return [new PublicRestaurantDetailDto { Id = 1, RestaurantGroupId = 2 }, 0];
+            yield return [new RestaurantDetailDto { RestaurantGroupId = 2 }, 0];
+            yield return [new RestaurantGroupResponse { Id = 1 }, 0];
             yield return [new ECafe.Application.DTOs.Category.GetAllCategoryResponse { Id = 1 }, 1];
             yield return [new CategoryDto { Id = 1 }, 1];
             yield return [new PublicMenuCategoryDto { Id = 1 }, 1];
@@ -194,14 +194,14 @@ namespace ECafe.Tests
             yield return [new InventoryMovementResponse { UnitId = 1 }, 1];
             yield return [new InventoryMovementHistoryResponse { UnitId = 1 }, 1];
             yield return [new LookupItemResponse { Id = 1 }, 1];
-            yield return [new ReservationResponse { RestaurantId = 1, TableId = 2 }, 2];
+            yield return [new ReservationResponse { RestaurantId = 1, TableId = 2 }, 1];
             yield return [new ReservationServiceItemResponse { RestaurantId = 1, TableId = 2 }, 1];
             yield return [new WaiterTableSessionResponse { RestaurantId = 1, TableId = 2 }, 1];
-            yield return [new CustomerTableSessionResponse(1, 2, "Cafe", 3, "Table", null, 1, DateTimeOffset.UtcNow, null, "Asia/Baku"), 2];
+            yield return [new CustomerTableSessionResponse(1, 2, "Cafe", 3, "Table", null, 1, DateTimeOffset.UtcNow, null, "Asia/Baku"), 1];
             yield return [new KitchenOrderResponse(1, 2, 3, "Table", null, null, 1, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow,
                 null, [], "Asia/Baku", null, null, null, null, null, null, true, false, false), 1];
-            yield return [new ProfileResponseDto { RestaurantId = 1 }, 1];
-            yield return [new UserProfileAssignmentDto { RestaurantId = 1 }, 1];
+            yield return [new ProfileResponseDto { RestaurantId = 1 }, 0];
+            yield return [new UserProfileAssignmentDto { RestaurantId = 1 }, 0];
         }
 
         /// <summary>Yeni DTO-nun yalnız etiketini qeydiyyata alır; fərdi ad və digər sahələri daxil etmir.</summary>

@@ -70,8 +70,6 @@ public sealed class ContentTranslationPolicyTests
     }
 
     [Theory]
-    [InlineData(ContentEntityType.Restaurant, 200)]
-    [InlineData(ContentEntityType.RestaurantGroup, 100)]
     [InlineData(ContentEntityType.Category, 100)]
     [InlineData(ContentEntityType.Item, 150)]
     [InlineData(ContentEntityType.Table, 50)]
@@ -82,6 +80,32 @@ public sealed class ContentTranslationPolicyTests
         Assert.Equal(limit, ContentTranslationPolicy.For(type).NameLength);
         Assert.Equal(limit, ContentTranslationPolicy.Normalize(type, new(new string('a', limit))).Name!.Length);
         Assert.Throws<BusinessRuleException>(() => ContentTranslationPolicy.Normalize(type, new(new string('a', limit + 1))));
+    }
+
+    [Theory]
+    [InlineData(ContentEntityType.Category, 3, "categories")]
+    [InlineData(ContentEntityType.Item, 4, "items")]
+    [InlineData(ContentEntityType.Table, 5, "tables")]
+    [InlineData(ContentEntityType.InventoryItem, 6, "inventory-items")]
+    [InlineData(ContentEntityType.Unit, 7, "units")]
+    public void SupportedKindsRetainOriginalNumericIdsAndEditorRoutes(ContentEntityType type, int id, string route)
+    {
+        Assert.Equal(id, (int)type);
+        Assert.Equal(type, ECafe.Application.Mappings.ContentTranslationEditorMapper.ParseType(route));
+        Assert.Equal(5, Enum.GetValues<ContentEntityType>().Length);
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void RemovedKindsHaveNoEnumMemberOrTranslationRules(int id)
+    {
+        var type = (ContentEntityType)id;
+        Assert.False(Enum.IsDefined(type));
+        var error = Assert.Throws<BusinessRuleException>(() => ContentTranslationPolicy.For(type));
+        Assert.Equal(ErrorCode.LocalizationInvalidEntry, error.Code);
+        error = Assert.Throws<BusinessRuleException>(() => ContentTranslationPolicy.Normalize(type, new(Name: "Brand")));
+        Assert.Equal(ErrorCode.LocalizationInvalidEntry, error.Code);
     }
 
     [Fact]

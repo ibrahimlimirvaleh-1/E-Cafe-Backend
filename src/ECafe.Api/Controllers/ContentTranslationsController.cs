@@ -19,7 +19,7 @@ public sealed class ContentTranslationsController(IContentTranslationService ser
         => Ok(await service.GetLanguagesAsync(cancellationToken));
 
     /// <summary>Məzmunun bütün aktiv dillər üzrə xam tərcümələrini və redaktə reviziyalarını göstərir.</summary>
-    /// <remarks>Növlər: restaurants, restaurant-groups, categories, items, tables, inventory-items, units. Restoran məzmununu yalnız öz meneceri/sahibkarı; qrup və vahidləri yalnız platforma admini dəyişir.</remarks>
+    /// <remarks>Dəstəklənən növlər: categories, items, tables, inventory-items, units. Restorana aid məzmunu yalnız öz meneceri/sahibkarı; vahidləri yalnız platforma admini dəyişir.</remarks>
     [HttpGet(ApiRoutes.ContentLocalization.Translations)]
     [ProducesResponseType(typeof(ContentTranslationsResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> Get(string entityType, int id, CancellationToken cancellationToken)
@@ -33,7 +33,7 @@ public sealed class ContentTranslationsController(IContentTranslationService ser
         [FromBody] SaveContentTranslationRequest request, CancellationToken cancellationToken)
         => Ok(await service.SaveAsync(entityType, id, languageCode, request, cancellationToken));
 
-    /// <summary>Yalnız seçilmiş EN/RU tərcüməsini silir; entity və əlaqəli biznes məlumatları saxlanılır, oxuma əsas mətnə qayıdır.</summary>
+    /// <summary>Seçilmiş EN/RU mətnini təmizləyib reviziyanı artırır; entity və biznes məlumatları saxlanılır, oxuma əsas mətnə qayıdır.</summary>
     [HttpDelete(ApiRoutes.ContentLocalization.Translation)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> Delete(string entityType, int id, string languageCode,

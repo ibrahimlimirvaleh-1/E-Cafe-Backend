@@ -31,8 +31,6 @@ namespace ECafe.Tests;
 public sealed class ContentTranslationApiTests
 {
     [Theory]
-    [InlineData("restaurants", PermissionCode.EditRestaurantInfo)]
-    [InlineData("restaurant-groups", PermissionCode.ManageRestaurants)]
     [InlineData("categories", PermissionCode.ManageCatalog)]
     [InlineData("items", PermissionCode.ManageCatalog)]
     [InlineData("tables", PermissionCode.ManageTables)]
@@ -73,7 +71,7 @@ public sealed class ContentTranslationApiTests
     }
 
     [Fact]
-    public async Task SuccessfulRestaurantTranslationWritesRecordAuditWithoutRawText()
+    public async Task SuccessfulItemTranslationWritesRecordRestaurantAuditWithoutRawText()
     {
         var f = new Fixture();
         await f.Service.SaveAsync("items", 7, "en", new() { ExpectedRevision = 0, Name = "Private draft text" }, default);
@@ -180,7 +178,6 @@ public sealed class ContentTranslationApiTests
 
     [Theory]
     [InlineData("units")]
-    [InlineData("restaurant-groups")]
     public async Task GlobalContentRequiresLiveSuperAdmin(string entityType)
     {
         var f = new Fixture { Source = new ContentTranslationSource(7, null, new("Main")) };
@@ -189,6 +186,27 @@ public sealed class ContentTranslationApiTests
         f.Context.User = Principal(1);
         var response = await f.Service.SaveAsync(entityType, 7, "en", new() { ExpectedRevision = 0, Name = "Translated" }, default);
         Assert.Equal("Translated", response.Translations.Single(row => row.LanguageCode == "en").Name);
+    }
+
+    [Theory]
+    [InlineData("restaurants")]
+    [InlineData("restaurant-groups")]
+    public async Task RemovedRestaurantContentKindsUseGenericUnsupportedTypeValidation(string entityType)
+    {
+        var f = new Fixture { Actor = new ContentActor(1, 3, []) };
+        f.Context.User = Principal(1);
+        var error = await Assert.ThrowsAsync<BusinessRuleException>(() => f.Service.GetAsync(entityType, 7, default));
+        Assert.Equal(ErrorCode.LocalizationInvalidEntry, error.Code);
+        error = await Assert.ThrowsAsync<BusinessRuleException>(() => f.Service.SaveAsync(entityType, 7, "en",
+            new() { ExpectedRevision = 0, Name = "Translated brand" }, default));
+        Assert.Equal(ErrorCode.LocalizationInvalidEntry, error.Code);
+        error = await Assert.ThrowsAsync<BusinessRuleException>(() => f.Service.DeleteAsync(entityType, 7, "en", 0, default));
+        Assert.Equal(ErrorCode.LocalizationInvalidEntry, error.Code);
+        Assert.Equal(0, f.Writes);
+        f.Repository.VerifyNoOtherCalls();
+        f.AccessRepository.VerifyNoOtherCalls();
+        f.LanguageRepository.VerifyNoOtherCalls();
+        f.Audit.VerifyNoOtherCalls();
     }
 
     [Fact]
@@ -224,7 +242,7 @@ public sealed class ContentTranslationApiTests
         await Assert.ThrowsAsync<BusinessRuleException>(() => f.Service.SaveAsync("categories", 7, "en",
             new() { ExpectedRevision = 0, Name = "Category", Description = "Unsupported" }, default));
         await Assert.ThrowsAsync<BusinessRuleException>(() => f.Service.SaveAsync("items", 7, "en",
-            new() { ExpectedRevision = 0, Name = "Tea", Location = "Unsupported" }, default));
+            new() { ExpectedRevision = 0, Name = "Tea", UnavailableReason = new string('a', 501) }, default));
         Assert.Equal(0, f.Writes);
     }
 
@@ -233,17 +251,17 @@ public sealed class ContentTranslationApiTests
     {
         using var culture = new CultureScope("en");
         var f = new Fixture();
-        f.Rows[ContentEntityType.Restaurant].Add(new(7, "en", 1, new(Name: "Cafe", Location: null)));
-        var first = new PublicRestaurantListItemDto { Id = 7, Name = "Restoran", Location = "Baki" };
-        var second = new PublicRestaurantListItemDto { Id = 7, Name = "Restoran", Location = "Baki" };
-        var page = new PaginatedList<PublicRestaurantListItemDto>([first, second], 25, 2, 2);
+        f.Rows[ContentEntityType.Item].Add(new(7, "en", 1, new(Name: "Tea")));
+        var first = new PublicMenuItemDto { Id = 7, Name = "Cay", Description = "Esas" };
+        var second = new PublicMenuItemDto { Id = 7, Name = "Cay", Description = "Esas" };
+        var page = new PaginatedList<PublicMenuItemDto>([first, second], 25, 2, 2);
         await new ContentTranslationReader(f.Repository.Object).LocalizeAsync(page, default);
-        Assert.Equal("Cafe", first.Name);
-        Assert.Equal("Cafe", second.Name);
-        Assert.Equal("Baki", first.Location);
+        Assert.Equal("Tea", first.Name);
+        Assert.Equal("Tea", second.Name);
+        Assert.Equal("Esas", first.Description);
         Assert.Equal(25, page.TotalCount);
         Assert.Equal(2, page.PageIndex);
-        f.Repository.Verify(repository => repository.GetRowsAsync(ContentEntityType.Restaurant,
+        f.Repository.Verify(repository => repository.GetRowsAsync(ContentEntityType.Item,
             It.Is<IReadOnlyCollection<int>>(ids => ids.Count == 1 && ids.Contains(7)), "en", It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -253,20 +271,18 @@ public sealed class ContentTranslationApiTests
         using var culture = new CultureScope("en");
         var f = new Fixture();
         f.Rows[ContentEntityType.Item].Add(new(7, "en", 1, new("Tea")));
-        f.Rows[ContentEntityType.Restaurant].Add(new(7, "en", 1, new("Cafe")));
-        f.Rows[ContentEntityType.RestaurantGroup].Add(new(7, "en", 1, new("Translated brand")));
         var order = new CustomerOrderLineResponse(1, 7, "Cay snapshot", 2, 5, 10);
         var kitchen = new KitchenOrderLineResponse(1, 7, "Cay snapshot", 2, "My note");
         var profile = new ProfileResponseDto { Id = 7, Name = "Ali", Surname = "Valiyev", RestaurantId = 7, RestaurantName = "Restoran" };
         var group = new RestaurantGroupResponse { Id = 7, Name = "Brand", LegalName = "Brand MMC" };
-        var editor = new ContentTranslationsResponse("items", 7, 1, [new("az", "Cay", "Esas", null, null, null, 1)]);
+        var editor = new ContentTranslationsResponse("items", 7, 1, [new("az", "Cay", "Esas", null, 1)]);
         await new ContentTranslationReader(f.Repository.Object).LocalizeAsync(new object[] { order, kitchen, profile, group, editor }, default);
         Assert.Equal("Cay snapshot", order.Name);
         Assert.Equal("Cay snapshot", kitchen.Name);
         Assert.Equal("My note", kitchen.Note);
         Assert.Equal("Ali", profile.Name);
-        Assert.Equal("Cafe", profile.RestaurantName);
-        Assert.Equal("Translated brand", group.Name);
+        Assert.Equal("Restoran", profile.RestaurantName);
+        Assert.Equal("Brand", group.Name);
         Assert.Equal("Brand MMC", group.LegalName);
         Assert.Equal("Cay", editor.Translations[0].Name);
         f.Repository.Verify(repository => repository.GetRowsAsync(ContentEntityType.Item,
@@ -276,12 +292,27 @@ public sealed class ContentTranslationApiTests
     [Fact]
     public void HttpTranslationEntryHasFlatCompatibleContract()
     {
-        var json = JsonSerializer.Serialize(new ContentTranslationEntry("en", "Tea", "Hot", null, null, null, 3),
+        var json = JsonSerializer.Serialize(new ContentTranslationEntry("en", "Tea", "Hot", null, 3),
             new JsonSerializerOptions(JsonSerializerDefaults.Web));
         Assert.Contains("\"languageCode\":\"en\"", json);
         Assert.Contains("\"name\":\"Tea\"", json);
         Assert.Contains("\"revision\":3", json);
         Assert.DoesNotContain("\"value\"", json);
+        Assert.DoesNotContain("\"location\"", json);
+        Assert.DoesNotContain("\"branchName\"", json);
+    }
+
+    [Fact]
+    public void SupportedTranslationContractsHaveNoRestaurantLocationOrBranchFields()
+    {
+        Type[] contracts = [typeof(ContentTranslationValue), typeof(ContentTranslationEntry), typeof(SaveContentTranslationRequest),
+            typeof(ECafe.Domain.Policies.ContentTranslationFields), typeof(ECafe.Domain.Policies.ContentTranslationRules)];
+        foreach (var type in contracts)
+        {
+            Assert.Null(type.GetProperty("Location"));
+            Assert.Null(type.GetProperty("BranchName"));
+            Assert.Null(type.GetProperty("AllowsLocation"));
+        }
     }
 
     [Fact]
