@@ -1,4 +1,9 @@
 {
+  "ui.fileUpload.choose": "Fayl seç",
+  "ui.fileUpload.uploading": "Yüklənir...",
+  "ui.fileUpload.tooLarge": "Fayl çox böyükdür. Maksimum {{maxSizeMb}} MB fayl seçin.",
+  "ui.fileUpload.uploaded": "Fayl #{{id}}",
+  "ui.fileUpload.failed": "Fayl yüklənmədi. Zəhmət olmasa yenidən cəhd edin.",
   "ui.adminNotice.menuStatus.Available": "Mövcuddur",
   "ui.adminNotice.menuStatus.Limited": "Məhduddur",
   "ui.adminNotice.menuStatus.OutOfStock": "Bitib",

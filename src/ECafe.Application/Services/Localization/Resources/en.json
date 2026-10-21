@@ -1,4 +1,9 @@
 {
+  "ui.fileUpload.choose": "Choose file",
+  "ui.fileUpload.uploading": "Uploading...",
+  "ui.fileUpload.tooLarge": "The file is too large. Choose a file up to {{maxSizeMb}} MB.",
+  "ui.fileUpload.uploaded": "File #{{id}}",
+  "ui.fileUpload.failed": "File upload failed. Please try again.",
   "ui.adminNotice.categoryNameRequired": "Enter a category name.",
   "ui.adminNotice.menuStatus.Available": "Available",
   "ui.adminNotice.menuStatus.Limited": "Limited",

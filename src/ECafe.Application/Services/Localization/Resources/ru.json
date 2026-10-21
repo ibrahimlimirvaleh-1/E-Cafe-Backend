@@ -1,4 +1,9 @@
 {
+  "ui.fileUpload.choose": "Выбрать файл",
+  "ui.fileUpload.uploading": "Загрузка...",
+  "ui.fileUpload.tooLarge": "Файл слишком большой. Выберите файл размером не более {{maxSizeMb}} МБ.",
+  "ui.fileUpload.uploaded": "Файл №{{id}}",
+  "ui.fileUpload.failed": "Не удалось загрузить файл. Попробуйте ещё раз.",
   "ui.adminNotice.categoryNameRequired": "Введите название категории.",
   "ui.adminNotice.menuStatus.Available": "В наличии",
   "ui.adminNotice.menuStatus.Limited": "Ограничено",
