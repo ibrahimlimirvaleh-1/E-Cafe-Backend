@@ -62,5 +62,6 @@ public sealed class LocalizedResponseFilter(ITextLocalizer text, IContentTransla
             type.Name == "WorkflowActionResponse" && property == "Label" ||
             type.Name is "LookupItemResponse" or "RoleLookupItemResponse" && property == "Name" ||
             type == typeof(ReservationRefundResponse) && property is "StatusLabel" or "CustomerNextStep" or "EligibilityReason" ||
-            type == typeof(ReservationRefundStatusHistoryResponse) && property is "FromStatusLabel" or "ToStatusLabel" or "ReasonLabel";
+            type == typeof(ReservationRefundStatusHistoryResponse) && property is "FromStatusLabel" or "ToStatusLabel" or "ReasonLabel" ||
+            type == typeof(ReservationHistoryItemResponse) && property == nameof(ReservationHistoryItemResponse.ReasonLabel);
 }

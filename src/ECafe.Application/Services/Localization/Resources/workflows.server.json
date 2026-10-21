@@ -1,4 +1,14 @@
 {
+  "api.literal.reservationHistory.noDepositConfirmed": {
+    "az": "Depozitsiz rezervasiya avtomatik təsdiqləndi.",
+    "en": "The reservation was automatically confirmed without a deposit.",
+    "ru": "Бронирование автоматически подтверждено без депозита."
+  },
+  "api.literal.reservationHistory.created": {
+    "az": "Rezervasiya yaradıldı.",
+    "en": "The reservation was created.",
+    "ru": "Бронирование создано."
+  },
   "api.literal.catalog.arrivalTimeTitle": {
     "az": "Gəliş vaxtı yeniləndi",
     "en": "Arrival time updated",

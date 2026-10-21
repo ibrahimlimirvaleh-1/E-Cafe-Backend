@@ -23,6 +23,7 @@ using ECafe.Application.Services.FileAccess.Abstract;
 using ECafe.Application.Services.Reservation.Abstract;
 using ECafe.Application.Services.ReservationRefund.Concrete;
 using ECafe.Application.Mappings;
+using ECafe.Domain.Constants;
 using ECafe.Domain.Policies;
 using ECafe.Application.Services.Restaurant.Abstract;
 using ECafe.Application.Services.PaymentInstructionDetails.Abstract;
@@ -195,8 +196,8 @@ public sealed partial class ReservationManager : BaseManager, IReservationServic
             ChangedByUserId = userId,
             ChangedAt = DateTime.UtcNow,
             Reason = depositAmount == 0
-                ? "Depozitsiz rezervasiya avtomatik təsdiqləndi."
-                : "Rezervasiya yaradıldı."
+                ? ReservationHistoryTexts.NoDepositConfirmed
+                : ReservationHistoryTexts.Created
         });
         await _reservationRepository.Add(reservation);
         await _reservationRepository.SaveChangesAsync();
@@ -249,7 +250,7 @@ public sealed partial class ReservationManager : BaseManager, IReservationServic
         if (reservation is null)
             throw new NotFoundException(ErrorCode.ReservationNotFound);
 
-        return MapHistoryResponse(reservation);
+        return ReservationHistoryResponseMapper.Map(reservation);
     }
 
     public async Task<PaginatedList<ReservationResponse>> GetMyReservationsAsync(
@@ -367,7 +368,7 @@ public sealed partial class ReservationManager : BaseManager, IReservationServic
         if (reservation is null)
             throw new NotFoundException(ErrorCode.ReservationNotFound);
 
-        return MapHistoryResponse(reservation);
+        return ReservationHistoryResponseMapper.Map(reservation);
     }
 
 
@@ -1453,36 +1454,6 @@ public sealed partial class ReservationManager : BaseManager, IReservationServic
             Refund = refund is null
                 ? null
                 : ReservationRefundResponseMapper.Map(refund, _fileAccessUrlService)
-        };
-    }
-
-    private static ReservationHistoryResponse MapHistoryResponse(
-        Domain.Entities.Reservation reservation)
-    {
-        var items = reservation.StatusHistory
-            .OrderBy(history => history.ChangedAt)
-            .ThenBy(history => history.Id)
-            .Select(history => new ReservationHistoryItemResponse
-            {
-                Id = history.Id,
-                FromStatus = history.FromStatus?.Name,
-                ToStatus = history.ToStatus?.Name ?? ReservationStatus.PendingPayment.GetName(),
-                ChangedAt = ToUtcOffset(history.ChangedAt)!.Value,
-                ActorType = history.ChangedByUserId is null
-                    ? "System"
-                    : history.ChangedByUserId == reservation.CustomerUserId
-                        ? "Customer"
-                        : "Restaurant",
-                Reason = history.Reason
-            })
-            .ToList();
-
-        return new ReservationHistoryResponse
-        {
-            ReservationId = reservation.Id,
-            ArrivedAt = ToUtcOffset(reservation.ArrivedAt),
-            SeatedAt = ToUtcOffset(reservation.SeatedAt),
-            Items = items
         };
     }
 

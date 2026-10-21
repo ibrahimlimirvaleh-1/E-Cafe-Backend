@@ -20,4 +20,5 @@ public sealed class ReservationHistoryItemResponse
     public DateTimeOffset ChangedAt { get; init; }
     public string ActorType { get; init; } = null!;
     public string? Reason { get; init; }
+    public string? ReasonLabel { get; init; }
 }
