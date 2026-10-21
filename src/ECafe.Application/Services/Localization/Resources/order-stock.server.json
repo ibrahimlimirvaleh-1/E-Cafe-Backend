@@ -1,0 +1,22 @@
+{
+  "api.error.InventoryStockQuantityInvalid": {
+    "az": "Stok miqdarı icazə verilən həddi aşır.",
+    "en": "The stock quantity exceeds the supported limit.",
+    "ru": "Количество на складе превышает допустимый предел."
+  },
+  "api.error.KitchenOrderRecipeInvalid": {
+    "az": "Sifarişin resepti və ya inqrediyent vahidləri düzgün qurulmayıb. Restoran məsulu resepti yoxlamalıdır.",
+    "en": "The order recipe or ingredient units are not configured correctly. Ask the restaurant manager to check the recipe.",
+    "ru": "Рецепт заказа или единицы ингредиентов настроены неверно. Попросите менеджера проверить рецепт."
+  },
+  "api.error.KitchenOrderStockInsufficient": {
+    "az": "{Ingredient} üçün stok çatmır. Tələb olunur: {Required} {Unit}; mövcuddur: {Available} {Unit}. Hazırlama başlanmadı.",
+    "en": "Insufficient stock for {Ingredient}. Required: {Required} {Unit}; available: {Available} {Unit}. Preparation was not started.",
+    "ru": "Недостаточно ингредиента {Ingredient}. Требуется: {Required} {Unit}; в наличии: {Available} {Unit}. Приготовление не начато."
+  },
+  "api.error.KitchenOrderStockStateInvalid": {
+    "az": "Sifarişin əvvəlki stok hərəkəti mövcuddur. Təkrar silinmə dayandırıldı; restoran məsulu vəziyyəti yoxlamalıdır.",
+    "en": "Stock consumption already exists for this order. Duplicate consumption was blocked; ask the restaurant manager to review it.",
+    "ru": "Расход ингредиентов по этому заказу уже существует. Повторное списание заблокировано; обратитесь к менеджеру."
+  }
+}

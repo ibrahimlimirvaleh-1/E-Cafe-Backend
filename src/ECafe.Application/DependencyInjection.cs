@@ -122,6 +122,7 @@ namespace ECafe.Application
             services.AddScoped<IProviderPaymentService, ProviderPaymentManager>();
             services.AddScoped<ITableSessionBillingService, TableSessionBillingManager>();
             services.AddScoped<IKitchenOrderService, KitchenOrderManager>();
+            services.AddScoped<IOrderStockService, OrderStockManager>();
             services.AddScoped<ICustomerOrderTrackingService, CustomerOrderTrackingManager>();
             services.AddOptions<OrderCreationOptions>()
                 .Configure<IConfiguration>((options, configuration) =>
@@ -141,6 +142,7 @@ namespace ECafe.Application
             services.AddScoped<IOutboxAdminService, OutboxAdminManager>();
             services.AddScoped<IInventoryItemService, InventoryItemManager>();
             services.AddScoped<IInventoryMovementService, InventoryMovementManager>();
+            services.AddScoped<IInventoryLowStockNotifier, InventoryLowStockNotifier>();
             services.AddScoped<IRecipeService, RecipeManager>();
             services.AddScoped<IReservationService,ReservationManager>();
             services.AddScoped<IReservationArrivalService, ReservationArrivalManager>();

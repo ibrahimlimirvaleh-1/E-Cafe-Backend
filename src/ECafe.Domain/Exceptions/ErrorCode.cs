@@ -206,5 +206,9 @@ public enum ErrorCode
     LocalizationPlaceholderMismatch = 5102,
     LocalizationDraftConflict = 5103,
     LocalizationReleaseNotFound = 5104,
-    LocalizationCatalogUnavailable = 5105
+    LocalizationCatalogUnavailable = 5105,
+    KitchenOrderRecipeInvalid = 5106,
+    KitchenOrderStockInsufficient = 5107,
+    KitchenOrderStockStateInvalid = 5108,
+    InventoryStockQuantityInvalid = 5109
 }

@@ -7,5 +7,6 @@ namespace ECafe.Application.Repositories.InventoryItem
         Task LoadTranslationsAsync(Domain.Entities.InventoryItem owner, CancellationToken cancellationToken = default);
 
         Task<Domain.Entities.InventoryItem?> GetInventoryByRestaurantIdAsync(int id, int restaurantId);
+        Task LockForStockChangeAsync(int restaurantId, IReadOnlyCollection<int> ids, CancellationToken cancellationToken = default);
     }
 }

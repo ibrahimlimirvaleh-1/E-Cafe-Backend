@@ -252,7 +252,8 @@ public sealed class WaiterOrderServingTests
         var kitchen = new KitchenOrderManager(Mock.Of<IHttpContextAccessor>(a => a.HttpContext == f.Http),
             Mock.Of<IMapper>(), new ConfigurationBuilder().Build(), new OrderRepository(f.Context),
             Mock.Of<ITableSessionService>(), Mock.Of<ITableRepository>(), new UserRestaurantRepository(f.Context),
-            Mock.Of<IApplicationDbTransactionFactory>(), Mock.Of<INotificationService>(), f.Audit.Object, TimeProvider.System);
+            Mock.Of<IApplicationDbTransactionFactory>(), Mock.Of<INotificationService>(), f.Audit.Object, TimeProvider.System,
+            Mock.Of<ECafe.Application.Services.Orders.Abstract.IOrderStockService>());
         Assert.Equal(id, Assert.Single((await kitchen.GetQueueAsync(1, new PaginationFilter())).Items).Id);
         f.Http.User = waiterClaims;
         await f.Manager.MarkServedAsync(1, 1, id);

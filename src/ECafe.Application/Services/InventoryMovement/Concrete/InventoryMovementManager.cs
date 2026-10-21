@@ -3,23 +3,22 @@ using AutoMapper.QueryableExtensions;
 using ECafe.Application.Common.Exceptions;
 using ECafe.Application.Common.Pagination;
 using ECafe.Application.DTOs.InventoryMovement;
-using ECafe.Application.DTOs.Notification;
 using ECafe.Application.Repositories.InventoryItem;
 using ECafe.Application.Repositories.InventoryMovement;
 using ECafe.Application.Repositories.InventoryMovementType;
 using ECafe.Application.Repositories.Restaurant;
 using ECafe.Application.Repositories.Unit;
-using ECafe.Application.Repositories.UserRestaurant;
+using ECafe.Application.Repository;
 using ECafe.Application.Services.InventoryMovement.Abstract;
-using ECafe.Application.Services.Notification.Abstract;
 using ECafe.Domain.Entities;
 using ECafe.Domain.Enums;
 using ECafe.Domain.Exceptions;
+using ECafe.Domain.Policies;
 using ECafe.Shared.DTOs;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-using System.Text.Json;
+using System.Data;
 
 namespace ECafe.Application.Services.InventoryMovement.Concrete
 {
@@ -45,8 +44,8 @@ namespace ECafe.Application.Services.InventoryMovement.Concrete
         private readonly IInventoryItemRepository _inventoryItemRepository;
         private readonly IInventoryMovementTypeRepository _inventoryMovementTypeRepository;
         private readonly IUnitRepository _unitRepository;
-        private readonly IUserRestaurantRepository _userRestaurantRepository;
-        private readonly INotificationService _notificationService;
+        private readonly IInventoryLowStockNotifier _lowStock;
+        private readonly IApplicationDbTransactionFactory _transactions;
 
         public InventoryMovementManager(
             IHttpContextAccessor httpContextAccessor,
@@ -57,8 +56,8 @@ namespace ECafe.Application.Services.InventoryMovement.Concrete
             IInventoryItemRepository inventoryItemRepository,
             IInventoryMovementTypeRepository inventoryMovementTypeRepository,
             IUnitRepository unitRepository,
-            IUserRestaurantRepository userRestaurantRepository,
-            INotificationService notificationService)
+            IInventoryLowStockNotifier lowStock,
+            IApplicationDbTransactionFactory transactions)
             : base(httpContextAccessor, mapper, configuration)
         {
             _inventoryMovementRepository = inventoryMovementRepository;
@@ -66,10 +65,11 @@ namespace ECafe.Application.Services.InventoryMovement.Concrete
             _inventoryItemRepository = inventoryItemRepository;
             _inventoryMovementTypeRepository = inventoryMovementTypeRepository;
             _unitRepository = unitRepository;
-            _userRestaurantRepository = userRestaurantRepository;
-            _notificationService = notificationService;
+            _lowStock = lowStock;
+            _transactions = transactions;
         }
 
+        /// <summary>Əl ilə stok hərəkətini mətbəxlə eyni sətir kilidi altında saxlayır; qalıq, hərəkət və minimum bildirişi birlikdə commit olunur.</summary>
         public async Task<InventoryMovementResponse> CreateAsync(
             int inventoryItemId,
             int restaurantId,
@@ -79,18 +79,19 @@ namespace ECafe.Application.Services.InventoryMovement.Concrete
             EnsureCurrentUserCanAccessRestaurant(restaurantId);
 
             await EnsureRestaurantExistsAsync(restaurantId);
-
+            await using var transaction = await _transactions.BeginTransactionAsync(IsolationLevel.ReadCommitted);
+            await _inventoryItemRepository.LockForStockChangeAsync(restaurantId, [inventoryItemId]);
             var inventoryItem = await GetInventoryItemAsync(inventoryItemId, restaurantId);
             var requestUnit = await GetUnitAsync(request.UnitId);
             var stockUnit = await GetUnitAsync(inventoryItem.UnitId);
             var movementType = await GetMovementTypeAsync(request.MovementTypeId);
 
             var movementTypeCode = ResolveMovementTypeCode(movementType.Id);
-            var normalizedQuantity = ConvertToStockUnit(request.Quantity, requestUnit, stockUnit);
+            var normalizedQuantity = InventoryStockPolicy.ConvertQuantity(request.Quantity, requestUnit, stockUnit);
             var quantityChange = ResolveQuantityChange(normalizedQuantity, movementTypeCode);
             var quantityBeforeMovement = inventoryItem.QuantityOnHand;
-            var quantityAfterMovement = ApplyStockChange(inventoryItem, quantityChange);
-            var shouldNotifyLowStock = ShouldNotifyLowStock(inventoryItem, quantityBeforeMovement, quantityAfterMovement);
+            InventoryStockPolicy.ApplyChange(inventoryItem, quantityChange);
+            var quantityAfterMovement = inventoryItem.QuantityOnHand;
 
             var movement = CreateMovement(
                 request,
@@ -100,11 +101,9 @@ namespace ECafe.Application.Services.InventoryMovement.Concrete
                 quantityChange);
 
             await _inventoryMovementRepository.Add(movement);
+            await _lowStock.NotifyAsync(inventoryItem, stockUnit, quantityBeforeMovement);
             await _inventoryMovementRepository.SaveChangesAsync();
-
-            if (shouldNotifyLowStock)
-                await NotifyLowStockAsync(inventoryItem, stockUnit);
-
+            await transaction.CommitAsync();
             return BuildResponse(movement, stockUnit, movementType, quantityAfterMovement);
         }
 
@@ -226,88 +225,6 @@ namespace ECafe.Application.Services.InventoryMovement.Concrete
             return response;
         }
 
-        private static decimal ApplyStockChange(
-            Domain.Entities.InventoryItem inventoryItem,
-            decimal quantityChange)
-        {
-            var quantityAfterMovement = inventoryItem.QuantityOnHand + quantityChange;
-            if (quantityAfterMovement < 0)
-                throw new BusinessRuleException(ErrorCode.InventoryStockCannotBeNegative);
-
-            inventoryItem.QuantityOnHand = quantityAfterMovement;
-            ResetLowStockNotificationIfStockRecovered(inventoryItem, quantityAfterMovement);
-            return quantityAfterMovement;
-        }
-
-        private static bool ShouldNotifyLowStock(
-            Domain.Entities.InventoryItem inventoryItem,
-            decimal quantityBeforeMovement,
-            decimal quantityAfterMovement)
-        {
-            if (quantityAfterMovement > inventoryItem.LowStockThreshold)
-                return false;
-
-            var crossedThreshold = quantityBeforeMovement > inventoryItem.LowStockThreshold;
-            var hasNeverBeenNotified = inventoryItem.LastLowStockNotifiedAt is null;
-
-            if (crossedThreshold || hasNeverBeenNotified)
-            {
-                inventoryItem.LastLowStockNotifiedAt = DateTime.UtcNow;
-                return true;
-            }
-
-            return false;
-        }
-
-        private static void ResetLowStockNotificationIfStockRecovered(
-            Domain.Entities.InventoryItem inventoryItem,
-            decimal quantityAfterMovement)
-        {
-            if (quantityAfterMovement > inventoryItem.LowStockThreshold)
-                inventoryItem.LastLowStockNotifiedAt = null;
-        }
-
-        private async Task NotifyLowStockAsync(
-            Domain.Entities.InventoryItem inventoryItem,
-            Unit stockUnit)
-        {
-            var recipients = await _userRestaurantRepository.GetActiveByRestaurantAndRolesAsync(
-                inventoryItem.RestaurantId,
-                [(int)RoleCode.Owner, (int)RoleCode.Kitchen]);
-
-            var recipientUserIds = recipients
-                .Select(x => x.UserId)
-                .Distinct()
-                .ToList();
-
-            if (recipientUserIds.Count == 0)
-                return;
-
-            foreach (var userId in recipientUserIds)
-            {
-                await _notificationService.CreateAsync(new CreateNotificationRequest
-                {
-                    UserId = userId,
-                    RestaurantId = inventoryItem.RestaurantId,
-                    Title = "Stok minimum həddə düşüb",
-                    Message = $"{inventoryItem.Name} stoku minimum həddə düşüb. Cari stok: {inventoryItem.QuantityOnHand} {stockUnit.Code}.",
-                    TypeId = (int)NotificationType.InventoryLowStock,
-                    ChannelId = (int)NotificationChannel.InApp,
-                    RelatedEntityType = nameof(InventoryItem),
-                    RelatedEntityId = inventoryItem.Id,
-                    PayloadJson = JsonSerializer.Serialize(new
-                    {
-                        inventoryItemId = inventoryItem.Id,
-                        inventoryItemName = inventoryItem.Name,
-                        quantityOnHand = inventoryItem.QuantityOnHand,
-                        lowStockThreshold = inventoryItem.LowStockThreshold,
-                        unitId = stockUnit.Id,
-                        unitCode = stockUnit.Code
-                    })
-                });
-            }
-        }
-
         private static InventoryMovementTypeCode ResolveMovementTypeCode(int movementTypeId)
         {
             if (!Enum.IsDefined(typeof(InventoryMovementTypeCode), movementTypeId))
@@ -328,24 +245,6 @@ namespace ECafe.Application.Services.InventoryMovement.Concrete
 
             throw new BusinessRuleException(ErrorCode.InvalidInventoryMovementType);
         }
-
-        private static decimal ConvertToStockUnit(
-            decimal quantity,
-            Unit requestUnit,
-            Unit stockUnit)
-        {
-            if (requestUnit.Id == stockUnit.Id)
-                return quantity;
-
-            if (GetBaseUnitId(requestUnit) != GetBaseUnitId(stockUnit))
-                throw new BusinessRuleException(ErrorCode.InventoryUnitConversionNotAllowed);
-
-            var quantityInBaseUnit = quantity * requestUnit.ConversionRateToBase;
-            return quantityInBaseUnit / stockUnit.ConversionRateToBase;
-        }
-
-        private static int GetBaseUnitId(Unit unit)
-            => unit.BaseUnitId ?? unit.Id;
 
 
         #endregion
