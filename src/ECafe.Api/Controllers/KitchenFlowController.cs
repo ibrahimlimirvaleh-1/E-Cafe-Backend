@@ -20,7 +20,7 @@ public sealed class KitchenFlowController : BaseController
         => Ok(await Mediator.Send(new AcceptKitchenOrderCommand(restaurantId, orderId), cancellationToken));
 
     /// <summary>Qəbul edilmiş sifarişin hazırlanmasına başlayır və vaxtı/əməkdaşı qeyd edir.</summary>
-    /// <remarks>Body yoxdur. Ümumi mətbəx növbəsində başqa aktiv Kitchen əməkdaşı işi davam etdirə bilər. Qəbul mərhələsini atlamaq və geri statusa keçmək olmaz. Təkrar sorğu vaxtı və auditi yenidən yaratmır. Stok və ödəniş dəyişmir.</remarks>
+    /// <remarks>Body yoxdur. Aktiv resept və kifayət edən inqrediyent tələb olunur. Resept miqdarı sifariş sayına vurulur, anbar vahidinə çevrilib stokdan bir dəfə silinir. Çatışmazlıq 409 KitchenOrderStockInsufficient, səhv resept 409 KitchenOrderRecipeInvalid qaytarır; status Accepted qalır və heç bir inqrediyent silinmir. Status, stok hərəkətləri və audit eyni transaction-dadır. Təkrar sorğu ikinci silinmə yaratmır. Başqa aktiv Kitchen əməkdaşı işi davam etdirə bilər; ödəniş dəyişmir.</remarks>
     [HttpPost(ApiRoutes.KitchenFlow.StartPreparing)]
     [ProducesResponseType(typeof(KitchenOrderResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> StartPreparing([FromRoute] int restaurantId, [FromRoute] int orderId, CancellationToken cancellationToken)

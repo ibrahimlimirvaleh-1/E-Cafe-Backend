@@ -14,6 +14,7 @@ public sealed class OrderModuleStructureTests
     [InlineData(typeof(OrderManager), typeof(IOrderService))]
     [InlineData(typeof(KitchenOrderManager), typeof(IKitchenOrderService))]
     [InlineData(typeof(CustomerOrderTrackingManager), typeof(ICustomerOrderTrackingService))]
+    [InlineData(typeof(OrderStockManager), typeof(IOrderStockService))]
     public void ServicesUseSeparateContractsAndImplementations(Type implementation, Type contract)
     {
         Assert.Equal("ECafe.Application.Services.Orders.Abstract", contract.Namespace);
@@ -29,6 +30,8 @@ public sealed class OrderModuleStructureTests
     [Theory]
     [InlineData(typeof(OrderServingPolicy))]
     [InlineData(typeof(KitchenOrderProgressPolicy))]
+    [InlineData(typeof(OrderStockPolicy))]
+    [InlineData(typeof(InventoryStockPolicy))]
     public void BusinessPoliciesBelongToIndependentDomainLayer(Type policy)
     {
         Assert.Equal("ECafe.Domain.Policies", policy.Namespace);
@@ -41,6 +44,7 @@ public sealed class OrderModuleStructureTests
     [InlineData(typeof(OrderResponseMapper))]
     [InlineData(typeof(KitchenOrderResponseMapper))]
     [InlineData(typeof(CustomerOrderTrackingMapper))]
+    [InlineData(typeof(OrderStockMovementMapper))]
     public void ResponseMappingBelongsToMappingLayer(Type mapper)
     {
         Assert.Equal("ECafe.Application.Mappings", mapper.Namespace);

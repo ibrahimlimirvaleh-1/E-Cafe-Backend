@@ -675,6 +675,10 @@ namespace ECafe.Infrastructure.Migrations
 
                     b.HasIndex(new[] { "RestaurantId", "InventoryItemId", "CreatedAt" }, "inventory_movements_restaurant_item_created_at_idx");
 
+                    b.HasIndex(new[] { "RelatedOrderItemId", "InventoryItemId" }, "inventory_order_consumption_once_idx")
+                        .IsUnique()
+                        .HasFilter("movement_type_id = 4 AND related_order_item_id IS NOT NULL");
+
                     b.ToTable("inventory_movements", "inventory");
                 });
 

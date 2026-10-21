@@ -15,6 +15,7 @@ using ECafe.Application.Repository;
 using ECafe.Application.Services.AuditLog.Abstract;
 using ECafe.Application.Services.Notification.Abstract;
 using ECafe.Application.Services.Orders.Concrete;
+using ECafe.Application.Services.Orders.Abstract;
 using ECafe.Application.Services.TableSessions.Concrete;
 using ECafe.Domain.Entities;
 using ECafe.Domain.Enums;
@@ -252,7 +253,7 @@ public sealed class KitchenOrderTests
         var service = new KitchenOrderManager(Accessor(2, 6), Mock.Of<IMapper>(), new ConfigurationBuilder().Build(),
             new OrderRepository(db), Mock.Of<ECafe.Application.Services.TableSessions.Abstract.ITableSessionService>(),
             Mock.Of<ITableRepository>(), roles.Object, Mock.Of<IApplicationDbTransactionFactory>(),
-            Mock.Of<INotificationService>(), Mock.Of<IAuditLogService>(), TimeProvider.System);
+            Mock.Of<INotificationService>(), Mock.Of<IAuditLogService>(), TimeProvider.System, Mock.Of<IOrderStockService>());
         await Assert.ThrowsAsync<TranslationVerifiedException>(() => service.GetQueueAsync(1, new PaginationFilter()));
         var index = db.Model.FindEntityType(typeof(Order))!.GetIndexes().Single(i => i.GetDatabaseName() == "orders_kitchen_queue_idx");
         Assert.Equal(new[] { "RestaurantId", "SentToKitchenAt", "Id" }, index.Properties.Select(p => p.Name));
@@ -330,7 +331,7 @@ public sealed class KitchenOrderTests
             Notifications.Setup(n => n.CreateAsync(It.IsAny<CreateNotificationRequest>()))
                 .Callback<CreateNotificationRequest>(Sent.Add).Returns(Task.CompletedTask);
             Service = new KitchenOrderManager(_accessor, Mock.Of<IMapper>(), config, new OrderRepository(db), access,
-                tables.Object, assignments, transactions.Object, Notifications.Object, Audit.Object, TimeProvider.System);
+                tables.Object, assignments, transactions.Object, Notifications.Object, Audit.Object, TimeProvider.System, Mock.Of<IOrderStockService>());
         }
 
         /// <summary>Mətbəx ekranını eyni bazada başqa istifadəçi kimi yoxlamaq üçün giriş kontekstini dəyişir.</summary>

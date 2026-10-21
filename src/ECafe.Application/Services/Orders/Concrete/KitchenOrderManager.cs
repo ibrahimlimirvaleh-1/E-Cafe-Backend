@@ -28,7 +28,7 @@ namespace ECafe.Application.Services.Orders.Concrete;
 public sealed partial class KitchenOrderManager(IHttpContextAccessor accessor, IMapper mapper, IConfiguration configuration,
     IOrderRepository orders, ITableSessionService sessionAccess, ITableRepository tables,
     IUserRestaurantRepository assignments, IApplicationDbTransactionFactory transactions,
-    INotificationService notifications, IAuditLogService audit, TimeProvider clock)
+    INotificationService notifications, IAuditLogService audit, TimeProvider clock, IOrderStockService stock)
     : BaseManager(accessor, mapper, configuration), IKitchenOrderService
 {
     /// <summary>Ofisiantın sifarişini masa kilidində mətbəxə bir dəfə göndərir; qəbul statusu, stok və ödəniş dəyişmir.</summary>

@@ -201,12 +201,13 @@ namespace ECafe.Application.Services.InventoryItem.Concrete
             return Mapper.Map<InventoryItemDto>(inventoryItem);
         }
 
+        /// <summary>İzlənən məhsulu yalnız deaktiv və silinmiş işarələyir; paralel mətbəx istehlakının yenilənmiş qalığını köhnə nüsxə ilə əvəz etmir.</summary>
         public async Task<DeleteOrDeactivateResponse> DeleteAsync(int restaurantId, int inventoryItemId)
         {
             var inventoryItem = await GetInventoryItemForMutationAsync(restaurantId, inventoryItemId);
 
             inventoryItem.IsActive = false;
-            await _inventoryItemRepository.Delete(inventoryItem);
+            inventoryItem.IsDeleted = true;
             await _inventoryItemRepository.SaveChangesAsync();
 
             return Mapper.Map<DeleteOrDeactivateResponse>(inventoryItem);

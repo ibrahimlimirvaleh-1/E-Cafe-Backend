@@ -19,7 +19,7 @@ public sealed partial class KitchenOrderManager
     public Task<KitchenOrderResponse> AcceptAsync(int restaurantId, int orderId, CancellationToken cancellationToken = default)
         => ProgressAsync(restaurantId, orderId, OrderStatus.Accepted, cancellationToken);
 
-    /// <summary>Qəbul edilmiş sifarişi hazırlanmaya keçirir; ümumi mətbəxdə başqa aktiv əməkdaş da işi davam etdirə bilər.</summary>
+    /// <summary>Qəbul edilmiş sifarişi yalnız tam resept və kifayət edən stok olduqda hazırlanmaya keçirir; inqrediyentlər transaction daxilində bir dəfə silinir.</summary>
     public Task<KitchenOrderResponse> StartPreparingAsync(int restaurantId, int orderId, CancellationToken cancellationToken = default)
         => ProgressAsync(restaurantId, orderId, OrderStatus.Preparing, cancellationToken);
 
@@ -27,7 +27,7 @@ public sealed partial class KitchenOrderManager
     public Task<KitchenOrderResponse> MarkReadyAsync(int restaurantId, int orderId, CancellationToken cancellationToken = default)
         => ProgressAsync(restaurantId, orderId, OrderStatus.Ready, cancellationToken);
 
-    /// <summary>Masa kilidindən sonra rol və sifarişi yenidən yoxlayır; status, tarix, əməkdaş, audit və bildiriş birlikdə saxlanılır.</summary>
+    /// <summary>Masa kilidindən sonra rol və sifarişi yenidən yoxlayır; hazırlama istehlakı, status, tarix, audit və bildiriş birlikdə saxlanılır.</summary>
     private async Task<KitchenOrderResponse> ProgressAsync(int restaurantId, int orderId, OrderStatus target,
         CancellationToken cancellationToken)
     {
@@ -48,7 +48,12 @@ public sealed partial class KitchenOrderManager
         if (order.TableId != tableId) throw new BusinessRuleException(ErrorCode.OrderSessionChanged);
 
         var fromStatusId = order.StatusId;
-        if (KitchenOrderProgressPolicy.Apply(order, target, GetCurrentUserId(), clock.GetUtcNow().UtcDateTime))
+        if (target == OrderStatus.Preparing && KitchenOrderProgressPolicy.CanApply(order, target))
+            await stock.ConsumeAsync(order, cancellationToken);
+        // PostgreSQL mikrosaniyə saxlayır; ilk cavabın vaxtı təkrar sorğudakı DB vaxtı ilə eyni dəqiqlikdə qalır.
+        var nowUtc = clock.GetUtcNow().UtcDateTime;
+        var storedUtc = new DateTime(nowUtc.Ticks - nowUtc.Ticks % TimeSpan.TicksPerMicrosecond, DateTimeKind.Utc);
+        if (KitchenOrderProgressPolicy.Apply(order, target, GetCurrentUserId(), storedUtc))
         {
             await orders.SaveChangesAsync();
             if (target == OrderStatus.Ready) await NotifyResponsibleWaiterAsync(order, cancellationToken);

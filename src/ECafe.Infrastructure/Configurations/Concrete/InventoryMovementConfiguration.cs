@@ -16,6 +16,8 @@ namespace ECafe.Infrastructure.Configurations.Concrete
             builder.HasIndex(e => e.RelatedOrderId, "inventory_movements_related_order_id_idx");
             builder.HasIndex(e => e.RelatedOrderItemId, "inventory_movements_related_order_item_id_idx");
             builder.HasIndex(e => e.MovementTypeId, "inventory_movements_movement_type_id_idx");
+            builder.HasIndex(e => new { e.RelatedOrderItemId, e.InventoryItemId }, "inventory_order_consumption_once_idx")
+                .IsUnique().HasFilter("movement_type_id = 4 AND related_order_item_id IS NOT NULL");
 
             builder.Property(e => e.Id).HasColumnName("id");
             builder.Property(e => e.RestaurantId).HasColumnName("restaurant_id");
