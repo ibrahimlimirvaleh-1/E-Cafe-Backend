@@ -12,6 +12,15 @@ namespace ECafe.Api.Controllers;
 [Authorize]
 public sealed class TableSessionController : BaseController
 {
+    /// <summary>Ofisiantın öz açıq masalarındakı hazır sifarişləri ən çox gözləyəndən başlayaraq gətirir.</summary>
+    /// <remarks>Ofisiant token sahibindən və bazadakı aktiv təyinatdan müəyyən edilir; təqdim etmə əməliyyatı ayrıca mövcud endpointdə yenidən yoxlanılır.</remarks>
+    [HttpGet(ApiRoutes.TableSession.GetMyReadyOrders)]
+    [HasPermission(PermissionCode.ManageOrders)]
+    [ProducesResponseType(typeof(PaginatedList<WaiterReadyOrderResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetMyReadyOrders([FromRoute] int restaurantId,
+        [FromQuery] PaginationFilter pagination, CancellationToken cancellationToken)
+        => Ok(await Mediator.Send(new GetMyReadyOrdersQuery(restaurantId, pagination), cancellationToken));
+
     /// <summary>Ofisiantın seçilmiş restoranda özünə bağlı açıq masa sessiyalarını səhifələnmiş qaytarır.</summary>
     /// <remarks>Ofisiant ID-si token sahibindən götürülür. Bağlı, ləğv edilmiş və başqa ofisiantın sessiyaları göstərilmir.</remarks>
     [HttpGet(ApiRoutes.TableSession.GetMyOpenSessions)]

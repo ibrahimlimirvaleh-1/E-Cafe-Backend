@@ -6,7 +6,8 @@ namespace ECafe.Application.Services.TableSessions.Concrete;
 public static class TableSessionViewMapper
 {
     /// <summary>Sessiyanı maliyyə və əlaqə məlumatları olmayan xidmət görünüşünə, işgünü sonu yoxlama göstəricisi ilə çevirir.</summary>
-    public static WaiterTableSessionResponse Map(TableSession session, DateTime nowUtc) => new()
+    public static WaiterTableSessionResponse Map(TableSession session, DateTime nowUtc,
+        int readyOrderCount = 0, int unsentOrderCount = 0) => new()
     {
         Id = session.Id, RestaurantId = session.RestaurantId, TableId = session.TableId,
         TableNo = session.Table.TableNo, TableName = session.Table.Name, TableCapacity = session.Table.Capacity,
@@ -16,7 +17,8 @@ public static class TableSessionViewMapper
         MustVacateAt = Offset(session.Reservation?.MustVacateAt), TimeZone = session.Restaurant.TimeZone,
         CloseReviewDueAt = Offset(TableSessionCloseReviewPolicy.GetDueAt(session)),
         RequiresCloseReview = TableSessionCloseReviewPolicy.RequiresReview(session, nowUtc),
-        CloseReviewConfirmedAt = Offset(session.CloseReviewConfirmedAt)
+        CloseReviewConfirmedAt = Offset(session.CloseReviewConfirmedAt),
+        ReadyOrderCount = readyOrderCount, UnsentOrderCount = unsentOrderCount
     };
 
     /// <summary>Bazada UTC saxlanan nullable tarixi API-nin UTC offset formatına çevirir.</summary>

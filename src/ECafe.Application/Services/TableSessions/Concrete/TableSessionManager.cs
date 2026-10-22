@@ -34,6 +34,14 @@ public sealed class TableSessionManager : BaseManager, ITableSessionService
             PaginationFilterNormalizer.Normalize(pagination), cancellationToken);
     }
 
+    public async Task<PaginatedList<WaiterReadyOrderResponse>> GetMyReadyOrdersAsync(
+        int restaurantId, PaginationFilter pagination, CancellationToken cancellationToken = default)
+    {
+        var waiterUserId = await RequireActiveWaiterAsync(restaurantId);
+        return await _sessions.GetReadyForWaiterAsync(restaurantId, waiterUserId,
+            PaginationFilterNormalizer.Normalize(pagination), cancellationToken);
+    }
+
     public async Task<WaiterTableSessionResponse> GetMyOpenSessionAsync(
         int restaurantId, int tableSessionId, CancellationToken cancellationToken = default)
     {

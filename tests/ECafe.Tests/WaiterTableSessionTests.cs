@@ -24,6 +24,7 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Moq;
 using Xunit;
+using StatusType = ECafe.Domain.Enums.StatusType;
 
 namespace ECafe.Tests;
 
@@ -107,6 +108,7 @@ public sealed class WaiterTableSessionTests
         await Assert.ThrowsAsync<ForbiddenException>(() =>
             fixture.Manager.GetMyOpenSessionsAsync(1, new PaginationFilter()));
         await Assert.ThrowsAsync<ForbiddenException>(() => fixture.Manager.GetMyOpenSessionAsync(1, 1));
+        await Assert.ThrowsAsync<ForbiddenException>(() => fixture.Manager.GetMyReadyOrdersAsync(1, new PaginationFilter()));
     }
 
     [Theory]
@@ -130,6 +132,7 @@ public sealed class WaiterTableSessionTests
         await fixture.Context.SaveChangesAsync();
         await Assert.ThrowsAsync<ForbiddenException>(() =>
             fixture.Manager.GetMyOpenSessionsAsync(1, new PaginationFilter()));
+        await Assert.ThrowsAsync<ForbiddenException>(() => fixture.Manager.GetMyReadyOrdersAsync(1, new PaginationFilter()));
     }
 
     [Fact]
@@ -139,6 +142,7 @@ public sealed class WaiterTableSessionTests
         await Assert.ThrowsAsync<ForbiddenException>(() =>
             fixture.Manager.GetMyOpenSessionsAsync(2, new PaginationFilter()));
         await Assert.ThrowsAsync<ForbiddenException>(() => fixture.Manager.GetMyOpenSessionAsync(2, 3));
+        await Assert.ThrowsAsync<ForbiddenException>(() => fixture.Manager.GetMyReadyOrdersAsync(2, new PaginationFilter()));
         fixture.Http.User = new ClaimsPrincipal(new ClaimsIdentity());
         await Assert.ThrowsAsync<ForbiddenException>(() => fixture.Manager.GetMyOpenSessionAsync(1, 1));
     }
@@ -152,6 +156,7 @@ public sealed class WaiterTableSessionTests
         await Assert.ThrowsAsync<BadRequestException>(() =>
             fixture.Manager.GetMyOpenSessionsAsync(value, new PaginationFilter()));
         await Assert.ThrowsAsync<BadRequestException>(() => fixture.Manager.GetMyOpenSessionAsync(1, value));
+        await Assert.ThrowsAsync<BadRequestException>(() => fixture.Manager.GetMyReadyOrdersAsync(value, new PaginationFilter()));
     }
 
     [Fact]
@@ -265,6 +270,132 @@ public sealed class WaiterTableSessionTests
     }
 
     [Fact]
+    public async Task ReadyQueueTranslatesForPostgreSqlBeforeOpeningConnection()
+    {
+        await using var context = new ECafeDbContext(new DbContextOptionsBuilder<ECafeDbContext>()
+            .UseNpgsql("Host=localhost;Database=translation_only")
+            .AddInterceptors(new TranslationProbe()).Options);
+        await Assert.ThrowsAsync<TranslationVerifiedException>(() =>
+            new TableSessionRepository(context).GetReadyForWaiterAsync(1, 1, new PaginationFilter()));
+    }
+
+    [Fact]
+    public async Task ReadyQueueContainsOnlyOwnOpenSessionOrdersWithStableOldestReadyPagination()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        fixture.Context.Orders.AddRange(ReadyOrder(100, 1), ReadyOrder(101, 10, -5), ReadyOrder(102, 11));
+        for (var sessionId = 2; sessionId <= 9; sessionId++)
+            fixture.Context.Orders.Add(ReadyOrder(200 + sessionId, sessionId));
+        await fixture.Context.SaveChangesAsync();
+        fixture.Context.ChangeTracker.Clear();
+
+        var first = await fixture.Manager.GetMyReadyOrdersAsync(1, new PaginationFilter(1, 1));
+        Assert.Equal(3, first.TotalCount);
+        var entry = Assert.Single(first.Items);
+        Assert.Equal(101, entry.Order.Id);
+        Assert.Equal(10, entry.Order.TableSessionId);
+        Assert.Equal(1, entry.TableNo);
+        Assert.Equal("Asia/Baku", entry.TimeZone);
+        Assert.Equal(TimeSpan.Zero, entry.ReadyAt.Offset);
+        Assert.True(entry.Order.CanMarkServed);
+        Assert.Single(entry.Order.Items);
+        Assert.Equal(100, Assert.Single((await fixture.Manager.GetMyReadyOrdersAsync(1, new PaginationFilter(2, 1))).Items).Order.Id);
+        Assert.Equal(102, Assert.Single((await fixture.Manager.GetMyReadyOrdersAsync(1, new PaginationFilter(3, 1))).Items).Order.Id);
+        Assert.Empty(fixture.Context.ChangeTracker.Entries());
+    }
+
+    [Fact]
+    public async Task TableCountsAndReadyQueueShareServingRulesAndIgnoreMalformedOrHistoricalOrders()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var valid = ReadyOrder(100, 1);
+        valid.WaiterUserId = 2; // Cari sessiya sahibi ilkin sifarişi yaradan ofisiantdan asılı deyil.
+        var deleted = ReadyOrder(101, 1); deleted.IsDeleted = true;
+        var noKitchen = ReadyOrder(102, 1); noKitchen.SentToKitchenAt = null;
+        var noReadyTime = ReadyOrder(103, 1); noReadyTime.ReadyAt = null;
+        var served = ReadyOrder(104, 1); served.ServedAt = served.ReadyAt;
+        var closed = ReadyOrder(105, 1); closed.ClosedAt = closed.ReadyAt;
+        var zeroQuantity = ReadyOrder(106, 1); zeroQuantity.OrderItems.Single().Quantity = 0;
+        var removedItems = ReadyOrder(107, 1); removedItems.OrderItems.Single().IsDeleted = true;
+        var wrongRestaurant = ReadyOrder(108, 1); wrongRestaurant.RestaurantId = 2;
+        var wrongTable = ReadyOrder(109, 1); wrongTable.TableId = 2;
+        var preparing = ReadyOrder(110, 1); preparing.StatusId = StatusIds.Build(StatusType.Order, (int)OrderStatus.Preparing);
+        var unsent = ReadyOrder(111, 1); unsent.StatusId = StatusIds.Build(StatusType.Order, (int)OrderStatus.Created); unsent.SentToKitchenAt = null; unsent.ReadyAt = null;
+        var sent = ReadyOrder(112, 1); sent.StatusId = StatusIds.Build(StatusType.Order, (int)OrderStatus.Created); sent.ReadyAt = null;
+        var deletedDraft = ReadyOrder(113, 1); deletedDraft.StatusId = unsent.StatusId; deletedDraft.SentToKitchenAt = null; deletedDraft.IsDeleted = true;
+        fixture.Context.Orders.AddRange(valid, deleted, noKitchen, noReadyTime, served, closed, zeroQuantity,
+            removedItems, wrongRestaurant, wrongTable, preparing, unsent, sent, deletedDraft);
+        await fixture.Context.SaveChangesAsync();
+        fixture.Context.ChangeTracker.Clear();
+
+        var detail = await fixture.Manager.GetMyOpenSessionAsync(1, 1);
+        Assert.Equal(1, detail.ReadyOrderCount);
+        Assert.Equal(1, detail.UnsentOrderCount);
+        var listEntry = (await fixture.Manager.GetMyOpenSessionsAsync(1, new PaginationFilter())).Items.Single(session => session.Id == 1);
+        Assert.Equal(detail.ReadyOrderCount, listEntry.ReadyOrderCount);
+        Assert.Equal(detail.UnsentOrderCount, listEntry.UnsentOrderCount);
+        Assert.Equal(100, Assert.Single((await fixture.Manager.GetMyReadyOrdersAsync(1, new PaginationFilter())).Items).Order.Id);
+    }
+
+    [Fact]
+    public async Task ReadyQueueImmediatelyReflectsServingClosingAndWaiterReassignment()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var order = ReadyOrder(100, 1);
+        fixture.Context.Orders.Add(order);
+        await fixture.Context.SaveChangesAsync();
+        Assert.Single((await fixture.Manager.GetMyReadyOrdersAsync(1, new PaginationFilter())).Items);
+        ECafe.Domain.Policies.OrderServingPolicy.Apply(order, DateTime.UtcNow);
+        await fixture.Context.SaveChangesAsync();
+        Assert.Empty((await fixture.Manager.GetMyReadyOrdersAsync(1, new PaginationFilter())).Items);
+        Assert.Equal(0, (await fixture.Manager.GetMyOpenSessionAsync(1, 1)).ReadyOrderCount);
+        var next = ReadyOrder(101, 1);
+        fixture.Context.Orders.Add(next);
+        await fixture.Context.SaveChangesAsync();
+        var session = await fixture.Context.TableSessions.SingleAsync(item => item.Id == 1);
+        session.WaiterUserId = 2;
+        await fixture.Context.SaveChangesAsync();
+        Assert.Empty((await fixture.Manager.GetMyReadyOrdersAsync(1, new PaginationFilter())).Items);
+        session.WaiterUserId = 1;
+        session.ClosedAt = DateTime.UtcNow;
+        await fixture.Context.SaveChangesAsync();
+        Assert.Empty((await fixture.Manager.GetMyReadyOrdersAsync(1, new PaginationFilter())).Items);
+    }
+
+    [Fact]
+    public async Task ReadyQueuePaginationCancellationAndActiveTenantAreEnforced()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        fixture.Context.Orders.Add(ReadyOrder(100, 1));
+        await fixture.Context.SaveChangesAsync();
+        var huge = new PaginationFilter(int.MaxValue, int.MaxValue);
+        var page = await fixture.Manager.GetMyReadyOrdersAsync(1, huge);
+        Assert.Equal(100, huge.PageSize);
+        Assert.Equal(1, page.TotalCount);
+        Assert.Empty(page.Items);
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            fixture.Manager.GetMyReadyOrdersAsync(1, new PaginationFilter(), cancellation.Token));
+        ((ClaimsIdentity)fixture.Http.User.Identity!).AddClaim(new Claim("restaurantIds", "1,2"));
+        fixture.Http.Request.Headers["X-Active-Restaurant-Id"] = "2";
+        await Assert.ThrowsAsync<ForbiddenException>(() => fixture.Manager.GetMyReadyOrdersAsync(1, new PaginationFilter()));
+    }
+
+    /// <summary>Hazır növbə üçün həqiqi mətbəx tarixləri və müsbət miqdarlı məhsul nüsxəsi olan sifariş qurur.</summary>
+    private static Order ReadyOrder(int id, int sessionId, int minuteOffset = 0)
+    {
+        var readyAt = new DateTime(2026, 10, 23, 8, 0, 0, DateTimeKind.Utc).AddMinutes(minuteOffset);
+        return new Order
+        {
+            Id = id, RestaurantId = sessionId == 3 ? 2 : 1, TableId = sessionId == 3 ? 2 : 1,
+            TableSessionId = sessionId, StatusId = StatusIds.Build(StatusType.Order, (int)OrderStatus.Ready),
+            OpenedAt = readyAt.AddMinutes(-20), SentToKitchenAt = readyAt.AddMinutes(-15), ReadyAt = readyAt,
+            OrderItems = [new OrderItem { Id = id, ItemId = id, NameSnapshot = "Tea", Quantity = 2, UnitPriceSnapshot = 1, LineTotal = 2 }]
+        };
+    }
+
+    [Fact]
     public void ControllerHasPermissionGuardRouteOnlyIdsAndDocumentedReadEndpoints()
     {
         var controller = typeof(TableSessionController);
@@ -279,7 +410,11 @@ public sealed class WaiterTableSessionTests
         Assert.Null(query.ParameterType.GetProperty("RestaurantId"));
         Assert.Contains("TableSession.GetMyOpenSessions", EcafeSwaggerMetadata.Endpoints.Keys);
         Assert.Contains("TableSession.GetMyOpenSession", EcafeSwaggerMetadata.Endpoints.Keys);
-        Assert.Equal(3, controller.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly).Length);
+        var ready = controller.GetMethod(nameof(TableSessionController.GetMyReadyOrders))!;
+        Assert.Equal($"Permission:{(int)PermissionCode.ManageOrders}", ready.GetCustomAttribute<HasPermissionAttribute>()!.Policy);
+        Assert.Equal(ECafe.Application.Routes.Routes.TableSession.GetMyReadyOrders, ready.GetCustomAttribute<HttpGetAttribute>()!.Template);
+        Assert.Contains("TableSession.GetMyReadyOrders", EcafeSwaggerMetadata.Endpoints.Keys);
+        Assert.Equal(4, controller.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly).Length);
     }
 
     private sealed class TranslationVerifiedException : Exception;

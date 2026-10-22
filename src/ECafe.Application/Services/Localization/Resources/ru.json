@@ -1834,5 +1834,21 @@
   "ui.adminStatus.occupied": "Занято",
   "ui.adminStatus.hidden": "Скрыто",
   "ui.adminStatus.onSale": "В продаже",
-  "ui.adminStatus.temporarilyUnavailable": "Временно недоступно"
+  "ui.adminStatus.temporarilyUnavailable": "Временно недоступно",
+  "ui.waiter.arrivals": "Прибытие гостей",
+  "ui.waiter.tables": "Столы",
+  "ui.waiter.readyOrders": "Готовые заказы",
+  "ui.waiter.noReadyOrders": "Нет готовых к подаче заказов.",
+  "ui.waiter.readyCount": "Готово: {{count}}",
+  "ui.waiter.unsentCount": "Не отправлено: {{count}}",
+  "ui.waiter.orderServed": "Заказ №{{id}} подан.",
+  "ui.waiter.orderChanged": "Статус заказа изменился. Обновите список.",
+  "ui.waiter.orderUnavailable": "Этот заказ или сессия стола больше вам недоступны.",
+  "ui.waiter.serveUnknown": "Результат подачи заказа №{{id}} неизвестен. Проверьте тот же заказ ещё раз.",
+  "ui.waiter.checkServeResult": "Проверить результат",
+  "ui.waiter.serve": "Подать",
+  "ui.waiter.workspaceTabs": "Разделы стола",
+  "ui.waiter.bill": "Счёт",
+  "ui.waiter.openTable": "Открыть стол",
+  "ui.waiter.draftUnavailable": "Черновик заказа не сохранён. Проверьте хранилище браузера."
 }
