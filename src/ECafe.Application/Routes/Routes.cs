@@ -2,6 +2,13 @@ namespace ECafe.Application.Routes;
 
 public static class Routes
 {
+    public static class Dashboard
+    {
+        public const string Platform = Base + "/dashboard/platform";
+        public const string Owner = Base + "/dashboard/owner";
+        public const string Manager = Base + "/dashboard/manager";
+    }
+
     public static class Localization
     {
         public const string Languages = Base + "/localization/languages";

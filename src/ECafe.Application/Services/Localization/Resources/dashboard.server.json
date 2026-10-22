@@ -1,0 +1,7 @@
+{
+  "api.error.DashboardFilterInvalid": {
+    "az": "Dashboard filtri düzgün deyil. Tarix aralığı 1–92 gün, ödəniş rejimi real və ya test olmalıdır.",
+    "en": "Invalid dashboard filter. The date range must be 1–92 days and the payment mode must be real or test.",
+    "ru": "Неверный фильтр панели. Период должен составлять от 1 до 92 дней, режим платежей — real или test."
+  }
+}
