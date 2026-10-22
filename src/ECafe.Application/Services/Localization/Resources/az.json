@@ -1834,5 +1834,21 @@
   "ui.adminStatus.occupied": "Məşğuldur",
   "ui.adminStatus.hidden": "Gizlidir",
   "ui.adminStatus.onSale": "Satışdadır",
-  "ui.adminStatus.temporarilyUnavailable": "Müvəqqəti yoxdur"
+  "ui.adminStatus.temporarilyUnavailable": "Müvəqqəti yoxdur",
+  "ui.waiter.arrivals": "Müştəri gəlişi",
+  "ui.waiter.tables": "Masalar",
+  "ui.waiter.readyOrders": "Hazır sifarişlər",
+  "ui.waiter.noReadyOrders": "Hazır sifariş yoxdur.",
+  "ui.waiter.readyCount": "Hazır: {{count}}",
+  "ui.waiter.unsentCount": "Göndərilməyib: {{count}}",
+  "ui.waiter.orderServed": "Sifariş #{{id}} təqdim edildi.",
+  "ui.waiter.orderChanged": "Sifarişin vəziyyəti dəyişib. Siyahını yeniləyin.",
+  "ui.waiter.orderUnavailable": "Bu sifariş və ya masa sessiyası artıq sizə əlçatan deyil.",
+  "ui.waiter.serveUnknown": "Sifariş #{{id}} üçün təqdimetmənin nəticəsi bilinmir. Eyni sifarişin nəticəsini yenidən yoxlayın.",
+  "ui.waiter.checkServeResult": "Nəticəni yoxla",
+  "ui.waiter.serve": "Təqdim et",
+  "ui.waiter.workspaceTabs": "Masa bölmələri",
+  "ui.waiter.bill": "Hesab",
+  "ui.waiter.openTable": "Masanı aç",
+  "ui.waiter.draftUnavailable": "Qaralama sifariş saxlanmadı. Brauzer yaddaşını yoxlayın."
 }

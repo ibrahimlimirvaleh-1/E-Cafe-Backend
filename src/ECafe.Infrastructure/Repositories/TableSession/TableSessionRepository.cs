@@ -5,6 +5,8 @@ using ECafe.Domain.Enums;
 using ECafe.Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
 using ECafe.Application.Services.TableSessions.Concrete;
+using ECafe.Application.Mappings;
+using ECafe.Domain.Policies;
 
 namespace ECafe.Infrastructure.Repositories.TableSession
 {
@@ -50,6 +52,33 @@ namespace ECafe.Infrastructure.Repositories.TableSession
             => ProjectServiceView(QueryOpenForWaiter(restaurantId, waiterUserId)
                 .Where(session => session.Id == tableSessionId), _clock.GetUtcNow().UtcDateTime).SingleOrDefaultAsync(cancellationToken);
 
+        /// <summary>Cari ofisiantın açıq masalarındakı təqdim edilə bilən sifarişləri köhnə hazır vaxtına görə səhifələyir; başqa sessiya və maliyyə əlaqələrini yükləmir.</summary>
+        public async Task<PaginatedList<WaiterReadyOrderResponse>> GetReadyForWaiterAsync(
+            int restaurantId, int waiterUserId, PaginationFilter pagination,
+            CancellationToken cancellationToken = default)
+        {
+            var sessions = QueryOpenForWaiter(restaurantId, waiterUserId);
+            var query = QueryReadyOrders().Where(order => sessions.Any(session =>
+                session.Id == order.TableSessionId && session.RestaurantId == order.RestaurantId && session.TableId == order.TableId));
+            var count = await query.CountAsync(cancellationToken);
+            var skip = (long)(pagination.PageNumber - 1) * pagination.PageSize;
+            var orders = skip >= count
+                ? new List<Domain.Entities.Order>()
+                : await query.OrderBy(order => order.ReadyAt).ThenBy(order => order.Id)
+                    .Skip((int)skip).Take(pagination.PageSize)
+                    .Include(order => order.OrderItems)
+                    .Include(order => order.TableSession).ThenInclude(session => session!.Table)
+                    .Include(order => order.TableSession).ThenInclude(session => session!.Restaurant)
+                    .ToListAsync(cancellationToken);
+
+            return new PaginatedList<WaiterReadyOrderResponse>(orders.Select(WaiterReadyOrderMapper.Map).ToList(),
+                count, pagination.PageNumber, pagination.PageSize);
+        }
+
+        /// <summary>Növbə və masa sayları təqdim etmə əməliyyatı ilə eyni domain qaydasını SQL-də işlədir.</summary>
+        private IQueryable<Domain.Entities.Order> QueryReadyOrders()
+            => Context.Orders.AsNoTracking().Where(OrderServingPolicy.ReadyToServe);
+
         /// <summary>
         /// Siyahı və detal üçün restoran, ofisiant və açıq sessiya sərhədlərini eyni tracking-siz sorğuda tətbiq edir.
         /// Tarixi keçmiş, amma hələ bağlanmamış sessiyanı gizlətmir; deaktiv masa da davam edən xidməti gizlətmir.
@@ -60,11 +89,18 @@ namespace ECafe.Infrastructure.Repositories.TableSession
                 session.Restaurant.IsActive && session.Table.RestaurantId == restaurantId &&
                 (session.Reservation == null || session.Reservation.RestaurantId == restaurantId));
 
-        /// <summary>İş saatları ilə bağlanma yoxlamasını hesablayır və yalnız xidmət sahələrini qaytarır; API görünüşünə maliyyə və əlaqə məlumatı daxil etmir.</summary>
-        private static IQueryable<WaiterTableSessionResponse> ProjectServiceView(IQueryable<Domain.Entities.TableSession> query, DateTime nowUtc)
-            => query.Include(session => session.Table).Include(session => session.CustomerUser)
+        /// <summary>İş saatları və sifariş saylarını hesablayır; sifariş kolleksiyasını yükləmədən korrelyasiyalı SQL sayları ilə N+1 sorğularından yayınır.</summary>
+        private IQueryable<WaiterTableSessionResponse> ProjectServiceView(IQueryable<Domain.Entities.TableSession> query, DateTime nowUtc)
+        {
+            var readyOrders = QueryReadyOrders();
+            var createdStatusId = StatusIds.Build(StatusType.Order, (int)OrderStatus.Created);
+            return query.Include(session => session.Table).Include(session => session.CustomerUser)
                 .Include(session => session.Reservation).Include(session => session.Restaurant).ThenInclude(restaurant => restaurant.WorkingHours)
-                .Select(session => TableSessionViewMapper.Map(session, nowUtc));
+                .Select(session => TableSessionViewMapper.Map(session, nowUtc,
+                    readyOrders.Count(order => order.TableSessionId == session.Id && order.RestaurantId == session.RestaurantId && order.TableId == session.TableId),
+                    session.Orders.Count(order => !order.IsDeleted && order.RestaurantId == session.RestaurantId && order.TableId == session.TableId &&
+                        order.StatusId == createdStatusId && order.SentToKitchenAt == null && order.ClosedAt == null && order.ServedAt == null)));
+        }
 
         public async Task<Dictionary<int, int>> GetOpenSessionCountsByWaitersAsync(
             int restaurantId,

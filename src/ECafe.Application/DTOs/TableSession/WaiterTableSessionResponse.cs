@@ -19,4 +19,6 @@ public sealed class WaiterTableSessionResponse
     public bool RequiresCloseReview { get; init; }
     public DateTimeOffset? CloseReviewDueAt { get; init; }
     public DateTimeOffset? CloseReviewConfirmedAt { get; init; }
+    public int ReadyOrderCount { get; init; }
+    public int UnsentOrderCount { get; init; }
 }

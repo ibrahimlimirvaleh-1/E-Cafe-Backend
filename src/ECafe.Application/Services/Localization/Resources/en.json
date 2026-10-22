@@ -1834,5 +1834,21 @@
   "ui.adminStatus.occupied": "Occupied",
   "ui.adminStatus.hidden": "Hidden",
   "ui.adminStatus.onSale": "On sale",
-  "ui.adminStatus.temporarilyUnavailable": "Temporarily unavailable"
+  "ui.adminStatus.temporarilyUnavailable": "Temporarily unavailable",
+  "ui.waiter.arrivals": "Guest arrivals",
+  "ui.waiter.tables": "Tables",
+  "ui.waiter.readyOrders": "Ready orders",
+  "ui.waiter.noReadyOrders": "No orders are ready to serve.",
+  "ui.waiter.readyCount": "Ready: {{count}}",
+  "ui.waiter.unsentCount": "Not sent: {{count}}",
+  "ui.waiter.orderServed": "Order #{{id}} was served.",
+  "ui.waiter.orderChanged": "The order has changed. Refresh the list.",
+  "ui.waiter.orderUnavailable": "This order or table session is no longer available to you.",
+  "ui.waiter.serveUnknown": "The result of serving order #{{id}} is unknown. Check the same order again.",
+  "ui.waiter.checkServeResult": "Check result",
+  "ui.waiter.serve": "Serve",
+  "ui.waiter.workspaceTabs": "Table sections",
+  "ui.waiter.bill": "Bill",
+  "ui.waiter.openTable": "Open table",
+  "ui.waiter.draftUnavailable": "Order draft could not be saved. Check browser storage."
 }
