@@ -10,6 +10,7 @@ public sealed class ErrorMessageProvider(ITextLocalizer? localizer = null) : IEr
     private static readonly IReadOnlyDictionary<ErrorCode, string> Messages = new Dictionary<ErrorCode, string>
     {
         [ErrorCode.BusinessRuleViolation] = "Business rule violation.",
+        [ErrorCode.DashboardFilterInvalid] = "Dashboard filtri düzgün deyil. Tarix aralığı 1–92 gün, ödəniş rejimi real və ya test olmalıdır.",
         [ErrorCode.LocalizationInvalidLanguage] = "Yalnız Azərbaycan, ingilis və rus dilləri dəstəklənir.",
         [ErrorCode.LocalizationInvalidEntry] = "Tərcümə açarı və ya mətnləri düzgün deyil.",
         [ErrorCode.LocalizationPlaceholderMismatch] = "Bütün dillərdə mətn dəyişənləri eyni olmalıdır.",

@@ -45,6 +45,7 @@ public enum ErrorCode
     PasswordResetNewPasswordMustBeDifferent = 1132,
     SessionInvalid = 1133,
     OwnerRoleCannotBeChanged = 1134,
+    DashboardFilterInvalid = 1135,
 
     RestaurantNotFound = 2000,
     UnitNotFound = 2001,
