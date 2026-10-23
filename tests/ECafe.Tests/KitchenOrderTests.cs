@@ -10,6 +10,7 @@ using ECafe.Application.Common.Errors;
 using ECafe.Application.Common.Exceptions;
 using ECafe.Application.DTOs.Notification;
 using ECafe.Application.DTOs.Order;
+using ECafe.Application.Features.Queries.Order;
 using ECafe.Application.Repositories.Table;
 using ECafe.Application.Repository;
 using ECafe.Application.Services.AuditLog.Abstract;
@@ -190,6 +191,97 @@ public sealed class KitchenOrderTests
     }
 
     [Theory]
+    [InlineData(2001, 13)]
+    [InlineData(2002, 9)]
+    [InlineData(2003, 10)]
+    [InlineData(2004, 11)]
+    public async Task QueueFiltersEachKitchenStageWithoutChangingOrdersOrExposingOtherStates(int statusId, int expectedId)
+    {
+        await using var f = await Fixture.CreateAsync();
+        f.LoginKitchen();
+        var result = await f.Service.GetQueueAsync(1, new PaginationFilter(1, 20), statusId);
+        Assert.Equal(1, result.TotalCount);
+        Assert.Equal(expectedId, Assert.Single(result.Items).Id);
+        Assert.All(result.Items, order => Assert.Equal(statusId, order.StatusId));
+        Assert.Empty(f.Sent);
+        Assert.Empty(await f.Db.InventoryMovements.ToListAsync());
+        Assert.Empty(await f.Db.Payments.ToListAsync());
+        f.Audit.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task StageFilterAppliesBeforeCountAndPaginationAndRetainsFifo()
+    {
+        await using var f = await Fixture.CreateAsync();
+        var original = await f.Db.Orders.SingleAsync(order => order.Id == 11);
+        var later = new Order
+        {
+            Id = 100, RestaurantId = 1, TableId = 1, TableSessionId = 1,
+            WaiterUserId = 1, SourceId = (int)OrderSource.Waiter,
+            OpenedAt = original.OpenedAt, SentToKitchenAt = original.SentToKitchenAt!.Value.AddMinutes(1),
+            StatusId = 2004
+        };
+        f.Db.Orders.Add(later);
+        await f.Db.SaveChangesAsync();
+        f.LoginKitchen();
+        var first = await f.Service.GetQueueAsync(1, new PaginationFilter(1, 1), 2004);
+        var second = await f.Service.GetQueueAsync(1, new PaginationFilter(2, 1), 2004);
+        Assert.Equal(2, first.TotalCount);
+        Assert.Equal(2, second.TotalCount);
+        Assert.Equal(11, Assert.Single(first.Items).Id);
+        Assert.Equal(100, Assert.Single(second.Items).Id);
+        Assert.Empty((await f.Service.GetQueueAsync(1, new PaginationFilter(3, 1), 2004)).Items);
+        Assert.Equal(5, (await f.Service.GetQueueAsync(1, new PaginationFilter())).TotalCount);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    [InlineData(1)]
+    [InlineData(2005)]
+    [InlineData(2006)]
+    [InlineData(2007)]
+    [InlineData(2008)]
+    [InlineData(9999)]
+    public async Task UnsupportedQueueStageIsRejectedInsteadOfReturningAllOrders(int statusId)
+    {
+        await using var f = await Fixture.CreateAsync();
+        f.LoginKitchen();
+        var error = await Assert.ThrowsAsync<BadRequestException>(() =>
+            f.Service.GetQueueAsync(1, new PaginationFilter(), statusId));
+        Assert.Equal(ErrorCode.InvalidOrderRequest, error.Code);
+    }
+
+    [Fact]
+    public async Task FilteredQueueStillRequiresLiveRoleAndRestaurantScopeAndHonorsCancellation()
+    {
+        await using var f = await Fixture.CreateAsync();
+        f.LoginKitchen();
+        await Assert.ThrowsAsync<ForbiddenException>(() => f.Service.GetQueueAsync(2, new PaginationFilter(), 2004));
+        using var source = new CancellationTokenSource();
+        source.Cancel();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            f.Service.GetQueueAsync(1, new PaginationFilter(), 2004, source.Token));
+        (await f.Db.UserRestaurants.SingleAsync(a => a.Id == 2)).RoleId = (int)RoleCode.Waiter;
+        await f.Db.SaveChangesAsync();
+        await Assert.ThrowsAsync<ForbiddenException>(() => f.Service.GetQueueAsync(1, new PaginationFilter(), 2004));
+    }
+
+    [Fact]
+    public async Task QueueQueryForwardsStagePaginationAndCancellation()
+    {
+        var service = new Mock<IKitchenOrderService>();
+        var pagination = new PaginationFilter(2, 10);
+        using var source = new CancellationTokenSource();
+        var expected = new PaginatedList<KitchenOrderResponse>([], 0, 2, 10);
+        service.Setup(s => s.GetQueueAsync(1, pagination, 2003, source.Token)).ReturnsAsync(expected);
+        var result = await new GetKitchenOrdersQueryHandler(service.Object)
+            .Handle(new GetKitchenOrdersQuery(1, pagination, 2003), source.Token);
+        Assert.Same(expected, result);
+        service.Verify(s => s.GetQueueAsync(1, pagination, 2003, source.Token), Times.Once);
+    }
+
+    [Theory]
     [InlineData(RoleCode.Waiter)]
     [InlineData(RoleCode.Manager)]
     [InlineData(RoleCode.Owner)]
@@ -243,8 +335,13 @@ public sealed class KitchenOrderTests
         Assert.Empty(f.Sent);
     }
 
-    [Fact]
-    public async Task QueueTranslatesForPostgresAndHasAnIndexForRestaurantAndFifo()
+    [Theory]
+    [InlineData(null)]
+    [InlineData(2001)]
+    [InlineData(2002)]
+    [InlineData(2003)]
+    [InlineData(2004)]
+    public async Task QueueTranslatesForPostgresAndHasAnIndexForRestaurantAndFifo(int? statusId)
     {
         await using var db = new ECafeDbContext(new DbContextOptionsBuilder<ECafeDbContext>()
             .UseNpgsql("Host=localhost;Database=translation_only").AddInterceptors(new TranslationProbe()).Options);
@@ -254,7 +351,7 @@ public sealed class KitchenOrderTests
             new OrderRepository(db), Mock.Of<ECafe.Application.Services.TableSessions.Abstract.ITableSessionService>(),
             Mock.Of<ITableRepository>(), roles.Object, Mock.Of<IApplicationDbTransactionFactory>(),
             Mock.Of<INotificationService>(), Mock.Of<IAuditLogService>(), TimeProvider.System, Mock.Of<IOrderStockService>());
-        await Assert.ThrowsAsync<TranslationVerifiedException>(() => service.GetQueueAsync(1, new PaginationFilter()));
+        await Assert.ThrowsAsync<TranslationVerifiedException>(() => service.GetQueueAsync(1, new PaginationFilter(), statusId));
         var index = db.Model.FindEntityType(typeof(Order))!.GetIndexes().Single(i => i.GetDatabaseName() == "orders_kitchen_queue_idx");
         Assert.Equal(new[] { "RestaurantId", "SentToKitchenAt", "Id" }, index.Properties.Select(p => p.Name));
         Assert.Contains("sent_to_kitchen_at IS NOT NULL", index.GetFilter());

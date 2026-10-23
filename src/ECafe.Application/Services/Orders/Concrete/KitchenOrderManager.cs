@@ -67,11 +67,17 @@ public sealed partial class KitchenOrderManager(IHttpContextAccessor accessor, I
         return OrderResponseMapper.Map(order);
     }
 
-    /// <summary>Aktiv mətbəx işçisinə göndərilmiş açıq sifarişləri FIFO ilə qaytarır; qiymət, müştəri və ödəniş məlumatı çıxarmır.</summary>
-    public async Task<PaginatedList<KitchenOrderResponse>> GetQueueAsync(int restaurantId, PaginationFilter pagination,
+    /// <summary>Aktiv mətbəx işçisinə göndərilmiş açıq sifarişləri mərhələyə görə səhifələmədən əvvəl süzür və FIFO ilə qaytarır; maliyyə və müştəri məlumatı çıxarmır.</summary>
+    public async Task<PaginatedList<KitchenOrderResponse>> GetQueueAsync(int restaurantId, PaginationFilter pagination, int? statusId = null,
         CancellationToken cancellationToken = default)
     {
         await RequireKitchenAsync(restaurantId);
+        if (statusId.HasValue &&
+            statusId != StatusIds.Build(StatusType.Order, (int)OrderStatus.Created) &&
+            statusId != StatusIds.Build(StatusType.Order, (int)OrderStatus.Accepted) &&
+            statusId != StatusIds.Build(StatusType.Order, (int)OrderStatus.Preparing) &&
+            statusId != StatusIds.Build(StatusType.Order, (int)OrderStatus.Ready))
+            throw new BadRequestException(ErrorCode.InvalidOrderRequest);
         pagination = PaginationFilterNormalizer.Normalize(pagination);
         var query = orders.Query(order => order.RestaurantId == restaurantId && order.Restaurant.IsActive &&
             order.Table.RestaurantId == restaurantId &&
@@ -80,6 +86,7 @@ public sealed partial class KitchenOrderManager(IHttpContextAccessor accessor, I
              order.StatusId == StatusIds.Build(StatusType.Order, (int)OrderStatus.Accepted) ||
              order.StatusId == StatusIds.Build(StatusType.Order, (int)OrderStatus.Preparing) ||
              order.StatusId == StatusIds.Build(StatusType.Order, (int)OrderStatus.Ready)));
+        if (statusId.HasValue) query = query.Where(order => order.StatusId == statusId.Value);
         var count = await query.CountAsync(cancellationToken);
         var skip = (long)(pagination.PageNumber - 1) * pagination.PageSize;
         // Sessiyanın bağlanması artıq mətbəxə çatmış sifarişi səssiz gizlətməməlidir.

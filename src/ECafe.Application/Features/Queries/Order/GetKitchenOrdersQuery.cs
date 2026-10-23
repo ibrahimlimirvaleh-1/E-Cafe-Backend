@@ -5,7 +5,7 @@ using MediatR;
 
 namespace ECafe.Application.Features.Queries.Order;
 
-public sealed record GetKitchenOrdersQuery(int RestaurantId, PaginationFilter Pagination)
+public sealed record GetKitchenOrdersQuery(int RestaurantId, PaginationFilter Pagination, int? StatusId = null)
     : IRequest<PaginatedList<KitchenOrderResponse>>;
 
 public sealed class GetKitchenOrdersQueryHandler(IKitchenOrderService service)
@@ -13,5 +13,5 @@ public sealed class GetKitchenOrdersQueryHandler(IKitchenOrderService service)
 {
     /// <summary>Restoranın mətbəx növbəsini səlahiyyət və səhifələmə yoxlamalarından keçirərək oxuyur.</summary>
     public Task<PaginatedList<KitchenOrderResponse>> Handle(GetKitchenOrdersQuery request, CancellationToken cancellationToken)
-        => service.GetQueueAsync(request.RestaurantId, request.Pagination, cancellationToken);
+        => service.GetQueueAsync(request.RestaurantId, request.Pagination, request.StatusId, cancellationToken);
 }
