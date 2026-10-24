@@ -87,12 +87,14 @@ public static class Routes
         public const string GetSession = Collection + "/{tableSessionId:int}";
         public const string GetOrders = GetSession + "/orders";
         public const string GetOrder = GetOrders + "/{orderId:int}";
+        public const string Cancel = GetOrder + "/cancel";
     }
 
     public static class OrderFlow
     {
         public const string SendToKitchen = Order.GetById + "/send-to-kitchen";
         public const string MarkServed = Order.GetById + "/serve";
+        public const string Cancel = Order.GetById + "/cancel";
     }
 
     public static class Kitchen

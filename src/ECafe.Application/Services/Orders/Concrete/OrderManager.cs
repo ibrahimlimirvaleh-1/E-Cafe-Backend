@@ -18,6 +18,7 @@ using ECafe.Application.Services.AuditLog.Abstract;
 using ECafe.Application.Services.TableSessions.Abstract;
 using ECafe.Domain.Enums;
 using ECafe.Domain.Exceptions;
+using ECafe.Domain.Policies;
 using ECafe.Shared.DTOs;
 using FluentValidation;
 using Microsoft.AspNetCore.Http;
@@ -95,7 +96,8 @@ public sealed partial class OrderManager : BaseManager, IOrderService
             if (existing.IsDeleted || existing.CreationRequestHash != hash)
                 throw new BusinessRuleException(ErrorCode.OrderRequestKeyConflict);
             await transaction.CommitAsync(cancellationToken);
-            return new CreateOrderResult(OrderResponseMapper.Map(existing), true);
+            return new CreateOrderResult(OrderResponseMapper.Map(existing,
+                await CanCancelAsync(existing.Id, cancellationToken)), true);
         }
 
         var session = await _sessions.Query(session => session.Id == tableSessionId &&
@@ -123,7 +125,8 @@ public sealed partial class OrderManager : BaseManager, IOrderService
             new { orderId = order.Id, tableSessionId, tableId = order.TableId, lineCount = lines.Count },
             AuditEntityTypes.Order, order.Id);
         await transaction.CommitAsync(cancellationToken);
-        return new CreateOrderResult(OrderResponseMapper.Map(order), false);
+        return new CreateOrderResult(OrderResponseMapper.Map(order,
+            await CanCancelAsync(order.Id, cancellationToken)), false);
     }
 
     public async Task<PaginatedList<SessionOrderResponse>> GetForSessionAsync(int restaurantId, int tableSessionId,
@@ -137,7 +140,10 @@ public sealed partial class OrderManager : BaseManager, IOrderService
         var orders = skip >= count ? [] : await query.OrderByDescending(order => order.OpenedAt)
             .ThenByDescending(order => order.Id).Skip((int)skip).Take(pagination.PageSize)
             .Include(order => order.OrderItems).ToListAsync(cancellationToken);
-        return new PaginatedList<SessionOrderResponse>(orders.Select(OrderResponseMapper.Map).ToList(),
+        var ids = orders.Select(order => order.Id).ToArray();
+        var cancellableIds = await query.Where(OrderCancellationPolicy.Cancellable).Where(order => ids.Contains(order.Id))
+            .Select(order => order.Id).ToListAsync(cancellationToken);
+        return new PaginatedList<SessionOrderResponse>(orders.Select(order => OrderResponseMapper.Map(order, cancellableIds.Contains(order.Id))).ToList(),
             count, pagination.PageNumber, pagination.PageSize);
     }
 
@@ -150,7 +156,9 @@ public sealed partial class OrderManager : BaseManager, IOrderService
         var order = await QuerySessionOrders(restaurantId, tableSessionId).Include(order => order.OrderItems)
             .SingleOrDefaultAsync(order => order.Id == orderId, cancellationToken)
             ?? throw new NotFoundException(ErrorCode.OrderNotFound);
-        return OrderResponseMapper.Map(order);
+        var canCancel = await QuerySessionOrders(restaurantId, tableSessionId).Where(OrderCancellationPolicy.Cancellable)
+            .AnyAsync(candidate => candidate.Id == orderId, cancellationToken);
+        return OrderResponseMapper.Map(order, canCancel);
     }
 
     /// <summary>Sifariş oxunuşunu cari ofisiantın açıq sessiyasına bağlayır; ilkin girişdən sonrakı aidiyyət və bağlanma dəyişikliklərini də filtrdə qoruyur.</summary>
@@ -162,6 +170,10 @@ public sealed partial class OrderManager : BaseManager, IOrderService
             order.TableSession.WaiterUserId == waiterId && order.TableSession.ClosedAt == null &&
             order.TableSession.StatusId == StatusIds.TableSession(TableSessionStatus.Open));
     }
+
+    /// <summary>Yaratma cavabında da serverin ortaq SQL qaydası ilə ləğv düyməsinin mümkünlüyünü hesablayır.</summary>
+    private Task<bool> CanCancelAsync(int orderId, CancellationToken token)
+        => _orders.Query(order => order.Id == orderId).Where(OrderCancellationPolicy.Cancellable).AnyAsync(token);
 
     /// <summary>Eyni məhsul, qeyd və gözlənilən qiymət sətirlərini birləşdirir; sıralama fərqinin təkrar sorğunun hash-ini dəyişməsinin qarşısını alır.</summary>
     private NormalizedRequest NormalizeRequest(CreateWaiterOrderRequest request)

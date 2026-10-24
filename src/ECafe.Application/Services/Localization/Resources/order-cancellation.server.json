@@ -1,0 +1,27 @@
+{
+  "api.error.OrderCannotCancel": {
+    "az": "Sifariş artıq birbaşa ləğv edilə bilməz. Siyahını yeniləyin və ofisiantla əlaqə saxlayın.",
+    "en": "This order can no longer be cancelled directly. Refresh the list and contact your waiter.",
+    "ru": "Этот заказ больше нельзя отменить напрямую. Обновите список и обратитесь к официанту."
+  },
+  "api.error.OrderCancellationReasonInvalid": {
+    "az": "Ləğv səbəbi 3 ilə 500 simvol arasında olmalıdır.",
+    "en": "The cancellation reason must contain between 3 and 500 characters.",
+    "ru": "Причина отмены должна содержать от 3 до 500 символов."
+  },
+  "api.error.OrderCancellationStockConflict": {
+    "az": "Sifariş üçün stok sərfiyyatı qeydə alınıb. Birbaşa ləğv dayandırıldı; restoran məsulu vəziyyəti yoxlamalıdır.",
+    "en": "Stock consumption has been recorded for this order. Direct cancellation was blocked; ask the restaurant manager to review it.",
+    "ru": "По заказу уже зафиксирован расход продуктов. Прямая отмена заблокирована; обратитесь к менеджеру."
+  },
+  "notification.orderCancelled.title": {
+    "az": "Sifariş ləğv edildi",
+    "en": "Order cancelled",
+    "ru": "Заказ отменён"
+  },
+  "notification.orderCancelled.message": {
+    "az": "{tableName} üçün #{orderId} sifarişi ləğv edildi.",
+    "en": "Order #{orderId} for {tableName} was cancelled.",
+    "ru": "Заказ №{orderId} для {tableName} отменён."
+  }
+}

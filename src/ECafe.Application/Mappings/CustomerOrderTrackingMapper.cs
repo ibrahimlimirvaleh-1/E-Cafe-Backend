@@ -1,4 +1,5 @@
 using ECafe.Application.DTOs.Order;
+using ECafe.Domain.Policies;
 using static ECafe.Application.Mappings.OrderMappingValues;
 
 namespace ECafe.Application.Mappings;
@@ -13,12 +14,26 @@ public static class CustomerOrderTrackingMapper
 
     /// <summary>Menyu dəyişsə də saxlanılmış məhsul/qiymət nüsxələrini və faktiki mərhələ vaxtlarını göstərir; daxili qeydləri və əməkdaş məlumatlarını çıxarmır.</summary>
     public static IQueryable<CustomerSessionOrderResponse> ProjectOrders(IQueryable<Domain.Entities.Order> query)
-        => query.Select(order => new CustomerSessionOrderResponse(order.Id, order.RestaurantId, order.TableId,
+    {
+        var cancellable = query.Where(OrderCancellationPolicy.Cancellable);
+        return query.Select(order => new CustomerSessionOrderResponse(order.Id, order.RestaurantId, order.TableId,
             order.TableSessionId!.Value, order.ReservationId, order.StatusId, AsUtc(order.OpenedAt),
             AsNullableUtc(order.SentToKitchenAt), AsNullableUtc(order.AcceptedAt), AsNullableUtc(order.PreparingAt),
             AsNullableUtc(order.ReadyAt), AsNullableUtc(order.ServedAt), AsNullableUtc(order.ClosedAt),
             order.OrderItems.Where(line => !line.IsDeleted).Sum(line => line.LineTotal),
             order.OrderItems.Where(line => !line.IsDeleted).OrderBy(line => line.Id)
                 .Select(line => new CustomerOrderLineResponse(line.Id, line.ItemId, line.NameSnapshot,
-                    line.Quantity, line.UnitPriceSnapshot, line.LineTotal)).ToList()));
+                    line.Quantity, line.UnitPriceSnapshot, line.LineTotal)).ToList(),
+            cancellable.Any(candidate => candidate.Id == order.Id), AsNullableUtc(order.CancelledAt), order.CancellationReason));
+    }
+
+    /// <summary>Ləğvdən sonra yalnız icazəsi yoxlanmış müştəri cavabını yaradır; daxili qeyd və əməkdaş ID-si çıxarmır.</summary>
+    public static CustomerSessionOrderResponse Map(Domain.Entities.Order order)
+        => new(order.Id, order.RestaurantId, order.TableId, order.TableSessionId!.Value, order.ReservationId,
+            order.StatusId, AsUtc(order.OpenedAt), AsNullableUtc(order.SentToKitchenAt), AsNullableUtc(order.AcceptedAt),
+            AsNullableUtc(order.PreparingAt), AsNullableUtc(order.ReadyAt), AsNullableUtc(order.ServedAt),
+            AsNullableUtc(order.ClosedAt), order.OrderItems.Where(line => !line.IsDeleted).Sum(line => line.LineTotal),
+            order.OrderItems.Where(line => !line.IsDeleted).OrderBy(line => line.Id).Select(line =>
+                new CustomerOrderLineResponse(line.Id, line.ItemId, line.NameSnapshot, line.Quantity,
+                    line.UnitPriceSnapshot, line.LineTotal)).ToList(), false, AsNullableUtc(order.CancelledAt), order.CancellationReason);
 }

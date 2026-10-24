@@ -290,15 +290,18 @@ public sealed class CustomerOrderTrackingTests
     }
 
     [Fact]
-    public void ApiIsCustomerOnlyReadOnlyNoStoreAndDocumented()
+    public void TrackingReadsRemainCustomerOnlyNoStoreAndCancellationIsAnExplicitPost()
     {
         var type = typeof(CustomerOrderController);
         Assert.Equal("5", type.GetCustomAttribute<AuthorizeAttribute>()!.Roles);
         Assert.True(type.GetCustomAttribute<ResponseCacheAttribute>()!.NoStore);
         Assert.Contains("CustomerOrder", EcafeSwaggerMetadata.Tags.Keys);
         var methods = type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
-        Assert.Equal(4, methods.Length);
-        Assert.All(methods, method => Assert.NotNull(method.GetCustomAttribute<HttpGetAttribute>()));
+        Assert.Equal(5, methods.Length);
+        Assert.Equal(4, methods.Count(method => method.GetCustomAttribute<HttpGetAttribute>() != null));
+        var cancel = Assert.Single(methods, method => method.GetCustomAttribute<HttpPostAttribute>() != null);
+        Assert.Equal(nameof(CustomerOrderController.Cancel), cancel.Name);
+        Assert.Equal(ECafe.Application.Routes.Routes.CustomerOrder.Cancel, cancel.GetCustomAttribute<HttpPostAttribute>()!.Template);
         Assert.All(methods, method => Assert.DoesNotContain(method.GetParameters(), p => p.Name is "userId" or "customerUserId" or "restaurantId"));
     }
 
