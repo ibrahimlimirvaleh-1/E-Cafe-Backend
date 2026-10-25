@@ -10,8 +10,22 @@ namespace ECafe.Api.Controllers;
 
 [Authorize]
 [HasPermission(PermissionCode.ManageKitchenOrders)]
+[ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 public sealed class KitchenFlowController : BaseController
 {
+    /// <summary>Mətbəx öz restoranındakı ləğv sorğusunun son nəticəsini, sifariş növbədən çıxsa da yoxlaya bilər.</summary>
+    [HttpGet(ApiRoutes.KitchenFlow.CancellationRequest)]
+    [ProducesResponseType(typeof(KitchenOrderResponse), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetCancellationRequest([FromRoute] int restaurantId, [FromRoute] int orderId, CancellationToken token)
+        => Ok(await Mediator.Send(new KitchenCancellationQuery(restaurantId, orderId), token));
+
+    /// <summary>Mətbəx ötürülmüş ləğv sorğusunu səbəb ilə təsdiqləyir və ya rədd edir; stok geri artırılmır, ödəniş/refund icra edilmir.</summary>
+    [HttpPost(ApiRoutes.KitchenFlow.DecideCancellation)]
+    [ProducesResponseType(typeof(KitchenOrderResponse), StatusCodes.Status200OK)]
+    public async Task<IActionResult> DecideCancellation([FromRoute] int restaurantId, [FromRoute] int orderId,
+        [FromBody] DecideOrderCancellationRequest request, CancellationToken token)
+        => Ok(await Mediator.Send(new DecideCancellationCommand(restaurantId, orderId, request), token));
+
     /// <summary>Göndərilmiş sifarişi mətbəx tərəfindən qəbul edir və qəbul edən əməkdaşı saxlayır.</summary>
     /// <remarks>Body yoxdur. Yalnız həmin restoranın aktiv Kitchen əməkdaşı üçün. Eyni addımın ilk əməkdaş tərəfindən təkrarı 200, başqa əməkdaşın eyni addımı və yanlış ardıcıllıq 409 qaytarır. Göndərilməmiş sifariş qəbul olunmur. Bir neçə masanın sifarişi ayrıca qəbul edilə bilər.</remarks>
     [HttpPost(ApiRoutes.KitchenFlow.Accept)]

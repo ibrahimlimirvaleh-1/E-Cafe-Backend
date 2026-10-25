@@ -88,6 +88,7 @@ public static class Routes
         public const string GetOrders = GetSession + "/orders";
         public const string GetOrder = GetOrders + "/{orderId:int}";
         public const string Cancel = GetOrder + "/cancel";
+        public const string RequestCancellation = GetOrder + "/cancellation-request";
     }
 
     public static class OrderFlow
@@ -95,6 +96,8 @@ public static class Routes
         public const string SendToKitchen = Order.GetById + "/send-to-kitchen";
         public const string MarkServed = Order.GetById + "/serve";
         public const string Cancel = Order.GetById + "/cancel";
+        public const string RequestCancellation = Order.GetById + "/cancellation-request";
+        public const string ForwardCancellation = RequestCancellation + "/forward";
     }
 
     public static class Kitchen
@@ -108,6 +111,8 @@ public static class Routes
         public const string Accept = Order + "/accept";
         public const string StartPreparing = Order + "/start";
         public const string MarkReady = Order + "/ready";
+        public const string CancellationRequest = Order + "/cancellation-request";
+        public const string DecideCancellation = CancellationRequest + "/decision";
     }
 
     public static class AuditLog

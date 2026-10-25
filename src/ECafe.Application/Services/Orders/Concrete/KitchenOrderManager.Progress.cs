@@ -43,7 +43,8 @@ public sealed partial class KitchenOrderManager
         var order = await orders.QueryTracked(order => order.Id == orderId && order.RestaurantId == restaurantId &&
                 order.Table.RestaurantId == restaurantId)
             .Include(order => order.OrderItems).Include(order => order.Table).Include(order => order.Restaurant)
-            .Include(order => order.TableSession).SingleOrDefaultAsync(cancellationToken)
+            .Include(order => order.CancellationRequest).Include(order => order.Payments)
+            .Include(order => order.TableSession).ThenInclude(session => session!.Payments).SingleOrDefaultAsync(cancellationToken)
             ?? throw new NotFoundException(ErrorCode.KitchenOrderNotFound);
         if (order.TableId != tableId) throw new BusinessRuleException(ErrorCode.OrderSessionChanged);
 
@@ -53,6 +54,13 @@ public sealed partial class KitchenOrderManager
         // PostgreSQL mikrosaniyə saxlayır; ilk cavabın vaxtı təkrar sorğudakı DB vaxtı ilə eyni dəqiqlikdə qalır.
         var nowUtc = clock.GetUtcNow().UtcDateTime;
         var storedUtc = new DateTime(nowUtc.Ticks - nowUtc.Ticks % TimeSpan.TicksPerMicrosecond, DateTimeKind.Utc);
+        if (target == OrderStatus.Ready && KitchenOrderProgressPolicy.CanApply(order, target) &&
+            OrderCancellationRequestPolicy.ExpireAwaitingWaiter(order, storedUtc, OrderCancellationRequestTexts.ExpiredReason))
+        {
+            await audit.RecordRestaurantActionAsync(restaurantId, AuditActions.OrderCancellationExpired,
+                new { orderId, requestId = order.CancellationRequest!.Id }, AuditEntityTypes.Order, orderId);
+            await NotifyExpiredCancellationAsync(order, cancellationToken);
+        }
         if (KitchenOrderProgressPolicy.Apply(order, target, GetCurrentUserId(), storedUtc))
         {
             await orders.SaveChangesAsync();
@@ -82,6 +90,23 @@ public sealed partial class KitchenOrderManager
             RelatedEntityType = AuditEntityTypes.Order, RelatedEntityId = order.Id,
             PayloadJson = JsonSerializer.Serialize(new { restaurantId = order.RestaurantId, orderId = order.Id,
                 tableSessionId = order.TableSessionId, section = KitchenOrderTexts.ReadySection })
+        });
+    }
+
+    /// <summary>Mətbəxə çatmamış müştəri sorğusunun hazır mərhələsində köhnəldiyini eyni transaction-da bildirir.</summary>
+    private async Task NotifyExpiredCancellationAsync(Order order, CancellationToken token)
+    {
+        if (order.TableSession?.CustomerUserId is not int customerId) return;
+        token.ThrowIfCancellationRequested();
+        await notifications.CreateAsync(new CreateNotificationRequest
+        {
+            UserId = customerId, RestaurantId = order.RestaurantId,
+            TypeId = (int)NotificationType.OrderCancellationRequestUpdated, ChannelId = (int)NotificationChannel.InApp,
+            Title = OrderCancellationRequestTexts.Title,
+            Message = OrderCancellationRequestTexts.Message(order.Id, OrderCancellationRequestStatus.Expired),
+            RelatedEntityType = AuditEntityTypes.Order, RelatedEntityId = order.Id,
+            PayloadJson = JsonSerializer.Serialize(new { orderId = order.Id, restaurantId = order.RestaurantId,
+                tableSessionId = order.TableSessionId, section = OrderCancellationRequestTexts.Section })
         });
     }
 

@@ -16,6 +16,7 @@ public static class CustomerOrderTrackingMapper
     public static IQueryable<CustomerSessionOrderResponse> ProjectOrders(IQueryable<Domain.Entities.Order> query)
     {
         var cancellable = query.Where(OrderCancellationPolicy.Cancellable);
+        var requestable = query.Where(OrderCancellationRequestPolicy.Eligible).Where(order => order.CancellationRequest == null);
         return query.Select(order => new CustomerSessionOrderResponse(order.Id, order.RestaurantId, order.TableId,
             order.TableSessionId!.Value, order.ReservationId, order.StatusId, AsUtc(order.OpenedAt),
             AsNullableUtc(order.SentToKitchenAt), AsNullableUtc(order.AcceptedAt), AsNullableUtc(order.PreparingAt),
@@ -24,7 +25,12 @@ public static class CustomerOrderTrackingMapper
             order.OrderItems.Where(line => !line.IsDeleted).OrderBy(line => line.Id)
                 .Select(line => new CustomerOrderLineResponse(line.Id, line.ItemId, line.NameSnapshot,
                     line.Quantity, line.UnitPriceSnapshot, line.LineTotal)).ToList(),
-            cancellable.Any(candidate => candidate.Id == order.Id), AsNullableUtc(order.CancelledAt), order.CancellationReason));
+            cancellable.Any(candidate => candidate.Id == order.Id), AsNullableUtc(order.CancelledAt), order.CancellationReason,
+            requestable.Any(candidate => candidate.Id == order.Id), order.CancellationRequest == null ? null :
+                new OrderCancellationRequestResponse(order.CancellationRequest.Id, (int)order.CancellationRequest.StatusId,
+                    order.CancellationRequest.Reason, AsUtc(order.CancellationRequest.RequestedAt),
+                    AsNullableUtc(order.CancellationRequest.ForwardedAt), AsNullableUtc(order.CancellationRequest.ResolvedAt),
+                    order.CancellationRequest.StatusId == Domain.Enums.OrderCancellationRequestStatus.Expired ? null : order.CancellationRequest.DecisionReason)));
     }
 
     /// <summary>Ləğvdən sonra yalnız icazəsi yoxlanmış müştəri cavabını yaradır; daxili qeyd və əməkdaş ID-si çıxarmır.</summary>
@@ -35,5 +41,6 @@ public static class CustomerOrderTrackingMapper
             AsNullableUtc(order.ClosedAt), order.OrderItems.Where(line => !line.IsDeleted).Sum(line => line.LineTotal),
             order.OrderItems.Where(line => !line.IsDeleted).OrderBy(line => line.Id).Select(line =>
                 new CustomerOrderLineResponse(line.Id, line.ItemId, line.NameSnapshot, line.Quantity,
-                    line.UnitPriceSnapshot, line.LineTotal)).ToList(), false, AsNullableUtc(order.CancelledAt), order.CancellationReason);
+                    line.UnitPriceSnapshot, line.LineTotal)).ToList(), false, AsNullableUtc(order.CancelledAt), order.CancellationReason,
+            OrderCancellationRequestPolicy.CanRequest(order), OrderCancellationRequestMapper.Map(order.CancellationRequest));
 }

@@ -95,8 +95,12 @@ public sealed partial class KitchenOrderManager(IHttpContextAccessor accessor, I
         // Sessiyanın bağlanması artıq mətbəxə çatmış sifarişi səssiz gizlətməməlidir.
         var page = skip >= count ? [] : await query.OrderBy(order => order.SentToKitchenAt).ThenBy(order => order.Id)
             .Skip((int)skip).Take(pagination.PageSize).Include(order => order.Table)
-            .Include(order => order.OrderItems).Include(order => order.Restaurant).ToListAsync(cancellationToken);
-        return new(page.Select(KitchenOrderResponseMapper.Map).ToList(), count, pagination.PageNumber, pagination.PageSize);
+            .Include(order => order.OrderItems).Include(order => order.Restaurant).Include(order => order.CancellationRequest).ToListAsync(cancellationToken);
+        var ids = page.Select(order => order.Id).ToArray();
+        var eligibleIds = await orders.Query(order => ids.Contains(order.Id)).Where(OrderCancellationRequestPolicy.Eligible)
+            .Select(order => order.Id).ToListAsync(cancellationToken);
+        return new(page.Select(order => KitchenOrderResponseMapper.Map(order, eligibleIds.Contains(order.Id) &&
+            order.CancellationRequest?.StatusId == OrderCancellationRequestStatus.PendingKitchen)).ToList(), count, pagination.PageNumber, pagination.PageSize);
     }
 
     /// <summary>Token kontekstindən əlavə bazadakı aktiv mətbəx təyinatını yoxlayır; başqa rol və restoranın növbəsini açmır.</summary>

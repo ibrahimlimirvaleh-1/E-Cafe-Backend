@@ -21,6 +21,7 @@ public sealed record SessionOrderResponse(int Id, int RestaurantId, int TableId,
     int? ReservationId, int? WaiterUserId, int SourceId, int StatusId, DateTimeOffset OpenedAt,
     DateTimeOffset? SentToKitchenAt, string? Note, decimal Subtotal, IReadOnlyList<OrderLineResponse> Items,
     DateTimeOffset? ServedAt = null, bool CanMarkServed = false, bool CanCancel = false,
-    DateTimeOffset? CancelledAt = null, string? CancellationReason = null);
+    DateTimeOffset? CancelledAt = null, string? CancellationReason = null, bool CanRequestCancellation = false,
+    bool CanForwardCancellationRequest = false, OrderCancellationRequestResponse? CancellationRequest = null);
 
 public sealed record CreateOrderResult(SessionOrderResponse Order, bool IsReplay);

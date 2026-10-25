@@ -12,6 +12,20 @@ namespace ECafe.Api.Controllers;
 [HasPermission(PermissionCode.ManageOrders)]
 public sealed class OrderFlowController : BaseController
 {
+    /// <summary>Hazırlanan sifariş üçün məsul ofisiantın səbəbli ləğv sorğusunu mətbəxə göndərir; hələ sifarişi ləğv etmir.</summary>
+    [HttpPost(ApiRoutes.OrderFlow.RequestCancellation)]
+    [ProducesResponseType(typeof(SessionOrderResponse), StatusCodes.Status200OK)]
+    public async Task<IActionResult> RequestCancellation([FromRoute] int restaurantId, [FromRoute] int tableSessionId,
+        [FromRoute] int orderId, [FromBody] CancelOrderRequest request, CancellationToken token)
+        => Ok(await Mediator.Send(new RequestWaiterCancellationCommand(restaurantId, tableSessionId, orderId, request), token));
+
+    /// <summary>Müştərinin ləğv istəyini cari məsul ofisiant dəyişməz səbəb ilə mətbəxə ötürür.</summary>
+    [HttpPost(ApiRoutes.OrderFlow.ForwardCancellation)]
+    [ProducesResponseType(typeof(SessionOrderResponse), StatusCodes.Status200OK)]
+    public async Task<IActionResult> ForwardCancellation([FromRoute] int restaurantId, [FromRoute] int tableSessionId,
+        [FromRoute] int orderId, CancellationToken token)
+        => Ok(await Mediator.Send(new ForwardCancellationCommand(restaurantId, tableSessionId, orderId), token));
+
     /// <summary>Cari məsul ofisiantın açıq sessiyasındakı hazırlanmamış sifarişi səbəb ilə ləğv edir.</summary>
     /// <remarks>Yalnız Created/Accepted və faktiki hazırlama vaxtı olmayan sifariş. Body: reason (3-500 simvol). Təkrar eyni orderId ilk ləğv vaxtını/səbəbini qaytarır. Hazırlama, stok sərfiyyatı və aktiv ödəniş olduqda 409. Stok, depozit, rezervasiya və sessiya dəyişmir. Mövcud xidmət müqavilə bitdikdən sonra da təhlükəsiz ləğv edilə bilər.</remarks>
     [HttpPost(ApiRoutes.OrderFlow.Cancel)]

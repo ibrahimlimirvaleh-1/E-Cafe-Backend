@@ -7,4 +7,5 @@ public sealed record KitchenOrderResponse(int Id, int RestaurantId, int TableId,
     DateTimeOffset SentToKitchenAt, string? Note, IReadOnlyList<KitchenOrderLineResponse> Items, string TimeZone,
     DateTimeOffset? AcceptedAt, DateTimeOffset? PreparingAt, DateTimeOffset? ReadyAt,
     int? AcceptedByUserId, int? PreparingByUserId, int? ReadyByUserId,
-    bool CanAccept, bool CanStartPreparing, bool CanMarkReady);
+    bool CanAccept, bool CanStartPreparing, bool CanMarkReady, bool CanDecideCancellationRequest = false,
+    OrderCancellationRequestResponse? CancellationRequest = null);

@@ -70,6 +70,8 @@ public partial class Order : AuditableSoftDeletableEntity<int>
 
     public virtual TableSession? TableSession { get; set; }
 
+    public virtual OrderCancellationRequest? CancellationRequest { get; set; }
+
     public virtual User? WaiterUser { get; set; }
 
 }

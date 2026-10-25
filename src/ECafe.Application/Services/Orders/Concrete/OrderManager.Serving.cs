@@ -25,7 +25,7 @@ public sealed partial class OrderManager
         // İlkin sorğudan sonra sessiya/ofisiant dəyişibsə sifariş həmin ID ilə açıla bilməz; ilkin yaradan ofisianta bağlanmır.
         var order = await QuerySessionOrders(restaurantId, tableSessionId).AsTracking()
             .Where(order => order.Id == orderId && order.TableId == current.TableId && order.Table.RestaurantId == restaurantId)
-            .Include(order => order.OrderItems).SingleOrDefaultAsync(cancellationToken)
+            .Include(order => order.OrderItems).Include(order => order.CancellationRequest).SingleOrDefaultAsync(cancellationToken)
             ?? throw new NotFoundException(ErrorCode.OrderNotFound);
         var fromStatusId = order.StatusId;
         if (OrderServingPolicy.Apply(order, _clock.GetUtcNow().UtcDateTime))
