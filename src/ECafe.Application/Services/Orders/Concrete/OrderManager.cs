@@ -139,11 +139,15 @@ public sealed partial class OrderManager : BaseManager, IOrderService
         var skip = (long)(pagination.PageNumber - 1) * pagination.PageSize;
         var orders = skip >= count ? [] : await query.OrderByDescending(order => order.OpenedAt)
             .ThenByDescending(order => order.Id).Skip((int)skip).Take(pagination.PageSize)
-            .Include(order => order.OrderItems).ToListAsync(cancellationToken);
+            .Include(order => order.OrderItems).Include(order => order.CancellationRequest).ToListAsync(cancellationToken);
         var ids = orders.Select(order => order.Id).ToArray();
         var cancellableIds = await query.Where(OrderCancellationPolicy.Cancellable).Where(order => ids.Contains(order.Id))
             .Select(order => order.Id).ToListAsync(cancellationToken);
-        return new PaginatedList<SessionOrderResponse>(orders.Select(order => OrderResponseMapper.Map(order, cancellableIds.Contains(order.Id))).ToList(),
+        var eligibleIds = await query.Where(OrderCancellationRequestPolicy.Eligible).Where(order => ids.Contains(order.Id))
+            .Select(order => order.Id).ToListAsync(cancellationToken);
+        return new PaginatedList<SessionOrderResponse>(orders.Select(order => OrderResponseMapper.Map(order, cancellableIds.Contains(order.Id),
+                eligibleIds.Contains(order.Id) && order.CancellationRequest == null,
+                eligibleIds.Contains(order.Id) && order.CancellationRequest?.StatusId == OrderCancellationRequestStatus.AwaitingWaiter)).ToList(),
             count, pagination.PageNumber, pagination.PageSize);
     }
 
@@ -153,12 +157,15 @@ public sealed partial class OrderManager : BaseManager, IOrderService
         await _sessionAccess.GetMyOpenSessionAsync(restaurantId, tableSessionId, cancellationToken);
         if (orderId <= 0)
             throw new BadRequestException(ErrorCode.InvalidOrderId);
-        var order = await QuerySessionOrders(restaurantId, tableSessionId).Include(order => order.OrderItems)
+        var order = await QuerySessionOrders(restaurantId, tableSessionId).Include(order => order.OrderItems).Include(order => order.CancellationRequest)
             .SingleOrDefaultAsync(order => order.Id == orderId, cancellationToken)
             ?? throw new NotFoundException(ErrorCode.OrderNotFound);
         var canCancel = await QuerySessionOrders(restaurantId, tableSessionId).Where(OrderCancellationPolicy.Cancellable)
             .AnyAsync(candidate => candidate.Id == orderId, cancellationToken);
-        return OrderResponseMapper.Map(order, canCancel);
+        var eligible = await QuerySessionOrders(restaurantId, tableSessionId).Where(OrderCancellationRequestPolicy.Eligible)
+            .AnyAsync(candidate => candidate.Id == orderId, cancellationToken);
+        return OrderResponseMapper.Map(order, canCancel, eligible && order.CancellationRequest == null,
+            eligible && order.CancellationRequest?.StatusId == OrderCancellationRequestStatus.AwaitingWaiter);
     }
 
     /// <summary>Sifariş oxunuşunu cari ofisiantın açıq sessiyasına bağlayır; ilkin girişdən sonrakı aidiyyət və bağlanma dəyişikliklərini də filtrdə qoruyur.</summary>

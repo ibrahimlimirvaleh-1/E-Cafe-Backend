@@ -33,6 +33,7 @@
         ReservationReceptionReviewRequired = 29,
         TableSessionCloseReviewRequired = 30,
         TableSessionPaid = 31,
-        OrderCancelled = 32
+        OrderCancelled = 32,
+        OrderCancellationRequestUpdated = 33
     }
 }

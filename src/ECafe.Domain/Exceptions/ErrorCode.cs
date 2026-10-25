@@ -214,5 +214,10 @@ public enum ErrorCode
     InventoryStockQuantityInvalid = 5109,
     OrderCannotCancel = 5110,
     OrderCancellationReasonInvalid = 5111,
-    OrderCancellationStockConflict = 5112
+    OrderCancellationStockConflict = 5112,
+    OrderCancellationRequestNotAllowed = 5113,
+    OrderCancellationRequestConflict = 5114,
+    OrderCancellationRequestPending = 5115,
+    OrderCancellationWaiterUnavailable = 5116,
+    OrderCancellationRequestNotFound = 5117
 }

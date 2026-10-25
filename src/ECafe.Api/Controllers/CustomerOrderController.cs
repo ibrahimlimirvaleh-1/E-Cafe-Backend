@@ -12,6 +12,13 @@ namespace ECafe.Api.Controllers;
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 public sealed class CustomerOrderController : BaseController
 {
+    /// <summary>Müştərinin hazırlanan sifarişi üçün cari ofisianta ləğv istəyi yaradır; başqa şəxsin sessiyasını qəbul etmir.</summary>
+    [HttpPost(ApiRoutes.CustomerOrder.RequestCancellation)]
+    [ProducesResponseType(typeof(CustomerSessionOrderResponse), StatusCodes.Status200OK)]
+    public async Task<IActionResult> RequestCancellation([FromRoute] int tableSessionId, [FromRoute] int orderId,
+        [FromBody] CancelOrderRequest request, CancellationToken token)
+        => Ok(await Mediator.Send(new RequestCustomerCancellationCommand(tableSessionId, orderId, request), token));
+
     /// <summary>Müştəri öz sessiyasında hələ hazırlanmağa başlanmamış sifarişi birbaşa ləğv edir.</summary>
     /// <remarks>Body: reason (3-500 simvol); yeni Idempotency-Key lazım deyil. Yalnız Created/Accepted. Eyni orderId təkrarı ilk nəticəni qaytarır. Yad sessiya/sifariş üçün 404, hazırlama və ödəniş konflikti üçün 409. Stok, depozit və rezervasiya dəyişmir.</remarks>
     [HttpPost(ApiRoutes.CustomerOrder.Cancel)]

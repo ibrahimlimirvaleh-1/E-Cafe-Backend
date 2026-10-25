@@ -1550,6 +1550,61 @@ namespace ECafe.Infrastructure.Migrations
                     b.ToTable("orders", "ops");
                 });
 
+            modelBuilder.Entity("ECafe.Domain.Entities.OrderCancellationRequest", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("DecisionReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("ForwardedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("ForwardedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("OrderId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime>("RequestedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("RequestedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("ResolvedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("ResolvedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("StatusId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ForwardedByUserId");
+
+                    b.HasIndex("OrderId")
+                        .IsUnique();
+
+                    b.HasIndex("RequestedByUserId");
+
+                    b.HasIndex("ResolvedByUserId");
+
+                    b.ToTable("order_cancellation_requests", "ops");
+                });
+
             modelBuilder.Entity("ECafe.Domain.Entities.OrderItem", b =>
                 {
                     b.Property<int>("Id")
@@ -7198,6 +7253,33 @@ namespace ECafe.Infrastructure.Migrations
                     b.Navigation("WaiterUser");
                 });
 
+            modelBuilder.Entity("ECafe.Domain.Entities.OrderCancellationRequest", b =>
+                {
+                    b.HasOne("ECafe.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("ForwardedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("ECafe.Domain.Entities.Order", "Order")
+                        .WithOne("CancellationRequest")
+                        .HasForeignKey("ECafe.Domain.Entities.OrderCancellationRequest", "OrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ECafe.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("RequestedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ECafe.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("ResolvedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Order");
+                });
+
             modelBuilder.Entity("ECafe.Domain.Entities.OrderItem", b =>
                 {
                     b.HasOne("ECafe.Domain.Entities.Item", "Item")
@@ -8179,6 +8261,8 @@ namespace ECafe.Infrastructure.Migrations
 
             modelBuilder.Entity("ECafe.Domain.Entities.Order", b =>
                 {
+                    b.Navigation("CancellationRequest");
+
                     b.Navigation("OrderItems");
 
                     b.Navigation("Payments");

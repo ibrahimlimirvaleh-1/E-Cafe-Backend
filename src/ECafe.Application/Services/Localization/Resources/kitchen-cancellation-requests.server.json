@@ -1,0 +1,43 @@
+{
+  "api.error.OrderCancellationRequestNotAllowed": {
+    "az": "Bu sifariş üçün artıq ləğv sorğusu göndərmək və ya təsdiqləmək mümkün deyil.",
+    "en": "A cancellation request can no longer be submitted or approved for this order.",
+    "ru": "По этому заказу больше нельзя отправить или подтвердить запрос на отмену."
+  },
+  "api.error.OrderCancellationRequestConflict": {
+    "az": "Ləğv sorğusu artıq başqa qərarla həll edilib və ya bu əməliyyata hazır deyil. Son vəziyyəti yoxlayın.",
+    "en": "This request has a different final decision or is not ready for this action. Check its current status.",
+    "ru": "По запросу уже принято другое решение или действие пока недоступно. Проверьте текущий статус."
+  },
+  "api.error.OrderCancellationRequestPending": {
+    "az": "Əvvəl ləğv sorğusunu təsdiqləyin və ya rədd edin, sonra sifarişi hazır qeyd edin.",
+    "en": "Approve or reject the cancellation request before marking the order ready.",
+    "ru": "Подтвердите или отклоните запрос на отмену, прежде чем отмечать заказ готовым."
+  },
+  "api.error.OrderCancellationWaiterUnavailable": {
+    "az": "Sorğunu qəbul edəcək aktiv məsul ofisiant tapılmadı. Restoranla əlaqə saxlayın.",
+    "en": "No active assigned waiter is available to receive this request. Contact the restaurant.",
+    "ru": "Нет активного ответственного официанта для получения запроса. Свяжитесь с рестораном."
+  },
+  "api.error.OrderCancellationRequestNotFound": {
+    "az": "Sifariş üçün ləğv sorğusu tapılmadı.",
+    "en": "No cancellation request was found for this order.",
+    "ru": "Запрос на отмену этого заказа не найден."
+  },
+  "notification.orderCancellationRequest.title": { "az": "Sifarişin ləğv sorğusu", "en": "Order cancellation request", "ru": "Запрос на отмену заказа" },
+  "notification.orderCancellationRequest.awaiting": {
+    "az": "#{orderId} sifarişi üçün müştəri ləğv sorğusu göndərdi.", "en": "The customer requested cancellation of order #{orderId}.", "ru": "Клиент запросил отмену заказа №{orderId}."
+  },
+  "notification.orderCancellationRequest.forwarded": {
+    "az": "#{orderId} sifarişinin ləğvi mətbəx qərarını gözləyir.", "en": "Cancellation of order #{orderId} is awaiting a kitchen decision.", "ru": "Отмена заказа №{orderId} ожидает решения кухни."
+  },
+  "notification.orderCancellationRequest.approved": {
+    "az": "Mətbəx #{orderId} sifarişinin ləğvini təsdiqlədi.", "en": "The kitchen approved cancellation of order #{orderId}.", "ru": "Кухня подтвердила отмену заказа №{orderId}."
+  },
+  "notification.orderCancellationRequest.rejected": {
+    "az": "Mətbəx #{orderId} sifarişinin ləğvini rədd etdi.", "en": "The kitchen rejected cancellation of order #{orderId}.", "ru": "Кухня отклонила отмену заказа №{orderId}."
+  },
+  "notification.orderCancellationRequest.expired": {
+    "az": "#{orderId} sifarişinin ləğv sorğusu artıq aktual deyil.", "en": "The cancellation request for order #{orderId} is no longer applicable.", "ru": "Запрос на отмену заказа №{orderId} больше не актуален."
+  }
+}

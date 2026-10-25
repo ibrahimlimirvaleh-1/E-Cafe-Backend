@@ -58,6 +58,11 @@ namespace ECafe.Application.Common.Audit
         public const string OrderMarkedReady = "OrderMarkedReady";
         public const string OrderServed = "OrderServed";
         public const string OrderCancelled = "OrderCancelled";
+        public const string OrderCancellationRequested = "OrderCancellationRequested";
+        public const string OrderCancellationForwarded = "OrderCancellationForwarded";
+        public const string OrderCancellationApproved = "OrderCancellationApproved";
+        public const string OrderCancellationRejected = "OrderCancellationRejected";
+        public const string OrderCancellationExpired = "OrderCancellationExpired";
         public const string ProviderPaymentAuthorized = "ProviderPaymentAuthorized";
         public const string ProviderPaymentUpdated = "ProviderPaymentUpdated";
         public const string ProviderRefundUpdated = "ProviderRefundUpdated";
@@ -136,7 +141,12 @@ namespace ECafe.Application.Common.Audit
             new(78, ProviderCheckoutCreated, "Ödəniş sessiyası yaradıldı"),
             new(79, SessionBillCheckoutCreated, "Yekun hesab üçün ödəniş sessiyası yaradıldı"),
             new(80, SessionBillPaymentUpdated, "Yekun hesab ödənişi yeniləndi"),
-            new(81, OrderCancelled, "Hazırlanmamış sifariş ləğv edildi")
+            new(81, OrderCancelled, "Hazırlanmamış sifariş ləğv edildi"),
+            new(82, OrderCancellationRequested, "Sifariş üçün ləğv sorğusu yaradıldı"),
+            new(83, OrderCancellationForwarded, "Ləğv sorğusu mətbəxə ötürüldü"),
+            new(84, OrderCancellationApproved, "Mətbəx sifarişin ləğvini təsdiqlədi"),
+            new(85, OrderCancellationRejected, "Mətbəx sifarişin ləğvini rədd etdi"),
+            new(86, OrderCancellationExpired, "Sifarişin ləğv sorğusu aktuallığını itirdi")
         ];
 
         public static string GetDisplayName(string? action)

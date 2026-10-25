@@ -27,6 +27,7 @@ public partial class ECafeDbContext : DbContext
     public virtual DbSet<Domain.Entities.File> Files { get; set; } = null!;
     public virtual DbSet<FileType> FileTypes { get; set; } = null!;
     public virtual DbSet<Order> Orders { get; set; } = null!;
+    public DbSet<OrderCancellationRequest> OrderCancellationRequests { get; set; } = null!;
     public virtual DbSet<OrderItem> OrderItems { get; set; } = null!;
     public virtual DbSet<Payment> Payments { get; set; } = null!;
     public virtual DbSet<Permission> Permissions { get; set; } = null!;

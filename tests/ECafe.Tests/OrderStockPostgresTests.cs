@@ -48,6 +48,150 @@ public sealed class StockPostgresFactAttribute : FactAttribute
 public sealed class OrderStockPostgresTests
 {
     [StockPostgresFact]
+    public async Task PreparedOrderParallelRequestsCreateOneRowAndOneAuditWithoutRestoringConsumption()
+    {
+        await using var f = await Database.CreateAsync(1);
+        await AddCancellationSessionAsync(f);
+        await using (var db = f.Context()) await Service(db).StartPreparingAsync(1001, 1001);
+        await using var a = f.Context();
+        await using var b = f.Context();
+        var audit = new Mock<IAuditLogService>();
+        var results = await Task.WhenAll(RequestService(a, false, audit).RequestForWaiterAsync(1001, 1001, 1001, new("Plan dəyişdi")),
+            RequestService(b, false, audit).RequestForWaiterAsync(1001, 1001, 1001, new("Başqa səbəb"))).WaitAsync(TimeSpan.FromSeconds(20));
+        Assert.Equal(results[0].CancellationRequest, results[1].CancellationRequest);
+        Assert.Single(audit.Invocations, call => Equals(call.Arguments[1], AuditActions.OrderCancellationRequested));
+        await using var read = f.Context();
+        Assert.Single(await read.OrderCancellationRequests.ToListAsync());
+        Assert.Equal(0.5m, (await read.InventoryItems.SingleAsync()).QuantityOnHand);
+        Assert.Single(await read.InventoryMovements.ToListAsync());
+    }
+
+    [StockPostgresFact]
+    public async Task OpposingKitchenDecisionsHaveOneWinnerAndNeverReverseConsumedStock()
+    {
+        await using var f = await Database.CreateAsync(1);
+        await AddCancellationSessionAsync(f);
+        await using (var db = f.Context()) await Service(db).StartPreparingAsync(1001, 1001);
+        await using (var db = f.Context()) await RequestService(db, false).RequestForWaiterAsync(1001, 1001, 1001, new("Plan dəyişdi"));
+        await using var a = f.Context();
+        await using var b = f.Context();
+        var results = await Task.WhenAll(TryDecideRequestAsync(RequestService(a, true), true),
+            TryDecideRequestAsync(RequestService(b, true), false)).WaitAsync(TimeSpan.FromSeconds(20));
+        Assert.Single(results, result => result == null);
+        Assert.Equal(ErrorCode.OrderCancellationRequestConflict, Assert.Single(results.OfType<BusinessRuleException>()).Code);
+        await using var read = f.Context();
+        var request = await read.OrderCancellationRequests.SingleAsync();
+        var order = await read.Orders.SingleAsync(order => order.Id == 1001);
+        Assert.Equal(request.StatusId == OrderCancellationRequestStatus.Approved ? 2007 : 2003, order.StatusId);
+        Assert.Equal(0.5m, (await read.InventoryItems.SingleAsync()).QuantityOnHand);
+        Assert.Single(await read.InventoryMovements.ToListAsync());
+        Assert.Empty(await read.Payments.ToListAsync());
+        var final = await RequestService(read, true).GetForKitchenAsync(1001, 1001);
+        Assert.Equal((int)request.StatusId, final.CancellationRequest!.StatusId);
+        Assert.False(final.CanDecideCancellationRequest);
+    }
+
+    [StockPostgresFact]
+    public async Task RequestAndReadyRaceCannotLeavePendingKitchenRequestOnReadyOrder()
+    {
+        await using var f = await Database.CreateAsync(1);
+        await AddCancellationSessionAsync(f);
+        await using (var db = f.Context()) await Service(db).StartPreparingAsync(1001, 1001);
+        await using var a = f.Context();
+        await using var b = f.Context();
+        var results = await Task.WhenAll(TryRequestAsync(RequestService(a, false)), TryReadyAsync(Service(b))).WaitAsync(TimeSpan.FromSeconds(20));
+        Assert.Single(results, result => result == null);
+        Assert.Single(results.OfType<BusinessRuleException>());
+        await using var read = f.Context();
+        var order = await read.Orders.Include(order => order.CancellationRequest).SingleAsync(order => order.Id == 1001);
+        if (order.StatusId == 2004) Assert.Null(order.CancellationRequest);
+        else Assert.Equal(OrderCancellationRequestStatus.PendingKitchen, order.CancellationRequest!.StatusId);
+        Assert.Equal(0.5m, (await read.InventoryItems.SingleAsync()).QuantityOnHand);
+    }
+
+    [StockPostgresFact]
+    public async Task FailedKitchenDecisionRollsBackRequestAndOrderButLeavesEarlierConsumptionUntouched()
+    {
+        await using var f = await Database.CreateAsync(1);
+        await AddCancellationSessionAsync(f);
+        await using (var db = f.Context()) await Service(db).StartPreparingAsync(1001, 1001);
+        await using (var db = f.Context()) await RequestService(db, false).RequestForWaiterAsync(1001, 1001, 1001, new("Plan dəyişdi"));
+        await using (var db = f.Context())
+        {
+            var audit = new Mock<IAuditLogService>();
+            audit.Setup(service => service.RecordRestaurantActionAsync(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<object>(),
+                It.IsAny<string>(), It.IsAny<long?>(), It.IsAny<string?>())).ThrowsAsync(new InvalidOperationException("test"));
+            await Assert.ThrowsAsync<InvalidOperationException>(() => RequestService(db, true, audit).DecideAsync(1001, 1001, new(true, "Razıyam")));
+        }
+        await using var read = f.Context();
+        Assert.Equal(OrderCancellationRequestStatus.PendingKitchen, (await read.OrderCancellationRequests.SingleAsync()).StatusId);
+        var order = await read.Orders.SingleAsync(order => order.Id == 1001);
+        Assert.Equal(2003, order.StatusId);
+        Assert.Null(order.CancelledAt);
+        Assert.Null(order.CancellationReason);
+        Assert.Equal(0.5m, (await read.InventoryItems.SingleAsync()).QuantityOnHand);
+    }
+
+    [StockPostgresFact]
+    public async Task KitchenReadyExpiresUnforwardedCustomerRequestAndReturnsItsHistoryWithoutSystemTextLeak()
+    {
+        await using var f = await Database.CreateAsync(1);
+        await AddCancellationSessionAsync(f);
+        await using (var db = f.Context())
+        {
+            db.Users.Add(new User { Id = 1003, Name = "Customer", Surname = "Test", Email = "stockcustomer@example.test", Phone = "1003",
+                Password = "test", IsActive = true, RoleId = 5 });
+            (await db.TableSessions.SingleAsync()).CustomerUserId = 1003;
+            await db.SaveChangesAsync();
+            await Service(db).StartPreparingAsync(1001, 1001);
+        }
+        await using (var db = f.Context())
+            await RequestService(db, false, customer: true).RequestForCustomerAsync(1001, 1001, new("Plan dəyişdi"));
+        await using (var db = f.Context()) await Service(db).MarkReadyAsync(1001, 1001);
+        await using var read = f.Context();
+        Assert.Equal(OrderCancellationRequestStatus.Expired, (await read.OrderCancellationRequests.SingleAsync()).StatusId);
+        var view = await RequestService(read, true).GetForKitchenAsync(1001, 1001);
+        Assert.Equal(2004, view.StatusId);
+        Assert.Equal(5, view.CancellationRequest!.StatusId);
+        Assert.Null(view.CancellationRequest.DecisionReason);
+        Assert.False(view.CanDecideCancellationRequest);
+        Assert.Equal(0.5m, (await read.InventoryItems.SingleAsync()).QuantityOnHand);
+    }
+
+    /// <summary>İstehsal table lock/transaction/repository-lərini cari ofisiant və ya mətbəx kontekstində istifadə edir.</summary>
+    private static OrderCancellationRequestManager RequestService(ECafeDbContext db, bool kitchen, Mock<IAuditLogService>? audit = null, bool customer = false)
+    {
+        var http = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity(
+            [new Claim("userId", customer ? "1003" : kitchen ? "1002" : "1001"), new Claim("restaurantId", "1001"),
+                new Claim(ClaimTypes.Role, customer ? "5" : kitchen ? "6" : "4")], "test")) };
+        return new OrderCancellationRequestManager(Mock.Of<IHttpContextAccessor>(accessor => accessor.HttpContext == http), Mock.Of<IMapper>(),
+            new ConfigurationBuilder().Build(), new OrderRepository(db), new TableSessionRepository(db), new TableRepository(db),
+            new ECafe.Infrastructure.Repositories.User.UserRepository(db), new UserRestaurantRepository(db), new Transactions(db),
+            audit?.Object ?? Mock.Of<IAuditLogService>(), Mock.Of<INotificationService>(), TimeProvider.System);
+    }
+
+    /// <summary>Əks qərar yarışında biznes konfliktini nəticə kimi saxlayır.</summary>
+    private static async Task<Exception?> TryDecideRequestAsync(OrderCancellationRequestManager service, bool approved)
+    {
+        try { await service.DecideAsync(1001, 1001, new(approved, "Mətbəx qərarı")); return null; }
+        catch (BusinessRuleException error) { return error; }
+    }
+
+    /// <summary>Hazır mərhələsi ilə yarışan yeni sorğunun biznes nəticəsini saxlayır.</summary>
+    private static async Task<Exception?> TryRequestAsync(OrderCancellationRequestManager service)
+    {
+        try { await service.RequestForWaiterAsync(1001, 1001, 1001, new("Plan dəyişdi")); return null; }
+        catch (BusinessRuleException error) { return error; }
+    }
+
+    /// <summary>Ləğv sorğusu ilə yarışan hazır keçidinin biznes nəticəsini saxlayır.</summary>
+    private static async Task<Exception?> TryReadyAsync(KitchenOrderManager service)
+    {
+        try { await service.MarkReadyAsync(1001, 1001); return null; }
+        catch (BusinessRuleException error) { return error; }
+    }
+
+    [StockPostgresFact]
     public async Task CancellationAndPreparationHaveOnlyOneWinnerAndNeverRestoreConsumedStock()
     {
         await using var f = await Database.CreateAsync(1);
