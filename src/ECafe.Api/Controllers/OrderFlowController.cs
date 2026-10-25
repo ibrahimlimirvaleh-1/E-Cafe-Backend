@@ -12,6 +12,14 @@ namespace ECafe.Api.Controllers;
 [HasPermission(PermissionCode.ManageOrders)]
 public sealed class OrderFlowController : BaseController
 {
+    /// <summary>Cari məsul ofisiantın açıq sessiyasındakı hazırlanmamış sifarişi səbəb ilə ləğv edir.</summary>
+    /// <remarks>Yalnız Created/Accepted və faktiki hazırlama vaxtı olmayan sifariş. Body: reason (3-500 simvol). Təkrar eyni orderId ilk ləğv vaxtını/səbəbini qaytarır. Hazırlama, stok sərfiyyatı və aktiv ödəniş olduqda 409. Stok, depozit, rezervasiya və sessiya dəyişmir. Mövcud xidmət müqavilə bitdikdən sonra da təhlükəsiz ləğv edilə bilər.</remarks>
+    [HttpPost(ApiRoutes.OrderFlow.Cancel)]
+    [ProducesResponseType(typeof(SessionOrderResponse), StatusCodes.Status200OK)]
+    public async Task<IActionResult> Cancel([FromRoute] int restaurantId, [FromRoute] int tableSessionId,
+        [FromRoute] int orderId, [FromBody] CancelOrderRequest request, CancellationToken cancellationToken)
+        => Ok(await Mediator.Send(new CancelWaiterOrderCommand(restaurantId, tableSessionId, orderId, request), cancellationToken));
+
     /// <summary>Ofisiant öz xidmət etdiyi masanın hazır sifarişini müştəriyə təqdim edilmiş kimi qeyd edir.</summary>
     /// <remarks>POST, body və yeni Idempotency-Key yoxdur. Yalnız bazada aktiv ofisiant və öz açıq sessiyası üçün Ready(2004) → Served(2005). ServedAt UTC ilə bir dəfə yazılır, əməkdaş auditdə saxlanılır. Eyni orderId təkrarı 200 və ilk vaxtı qaytarır; ikinci audit yaratmır. Sifarişin ilkin yaradıcısı başqa ofisiant ola bilər. Başqa restoran/sessiya/sifariş 404, uyğun olmayan status 409. Mövcud xidmət müqavilə bitdikdə də tamamlana bilər. Stok, ödəniş, rezervasiya və masa sessiyası dəyişmir; Served ödənilib demək deyil.</remarks>
     [HttpPost(ApiRoutes.OrderFlow.MarkServed)]

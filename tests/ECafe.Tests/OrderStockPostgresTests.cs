@@ -22,6 +22,7 @@ using ECafe.Infrastructure.Repositories.InventoryMovementType;
 using ECafe.Infrastructure.Repositories.Order;
 using ECafe.Infrastructure.Repositories.Recipe;
 using ECafe.Infrastructure.Repositories.Table;
+using ECafe.Infrastructure.Repositories.TableSession;
 using ECafe.Infrastructure.Repositories.Unit;
 using ECafe.Infrastructure.Repositories.UserRestaurant;
 using Microsoft.AspNetCore.Http;
@@ -46,6 +47,98 @@ public sealed class StockPostgresFactAttribute : FactAttribute
 
 public sealed class OrderStockPostgresTests
 {
+    [StockPostgresFact]
+    public async Task CancellationAndPreparationHaveOnlyOneWinnerAndNeverRestoreConsumedStock()
+    {
+        await using var f = await Database.CreateAsync(1);
+        await AddCancellationSessionAsync(f);
+        await using var a = f.Context();
+        await using var b = f.Context();
+        var outcomes = await Task.WhenAll(TryCancelAsync(CancellationService(a)), TryStartAsync(Service(b), 1001))
+            .WaitAsync(TimeSpan.FromSeconds(20));
+        Assert.Single(outcomes, error => error == null);
+        Assert.Single(outcomes.OfType<BusinessRuleException>());
+        await using var read = f.Context();
+        var order = await read.Orders.SingleAsync(o => o.Id == 1001);
+        var cancelled = order.StatusId == 2007;
+        Assert.True(cancelled || order.StatusId == 2003);
+        Assert.Equal(cancelled ? 1m : 0.5m, (await read.InventoryItems.SingleAsync()).QuantityOnHand);
+        Assert.Equal(cancelled ? 0 : 1, await read.InventoryMovements.CountAsync());
+        Assert.Equal(cancelled, order.CancelledAt.HasValue);
+        Assert.Equal(!cancelled, order.PreparingAt.HasValue);
+    }
+
+    [StockPostgresFact]
+    public async Task ConcurrentCancellationHasOneAuditAndNotificationAndPreservesFirstTimestamp()
+    {
+        await using var f = await Database.CreateAsync(1);
+        await AddCancellationSessionAsync(f);
+        await using var a = f.Context();
+        await using var b = f.Context();
+        var audit = new Mock<IAuditLogService>();
+        var notifications = new Mock<INotificationService>();
+        var results = await Task.WhenAll(CancellationService(a, audit, notifications).CancelForWaiterAsync(1001, 1001, 1001, new("Səhv sifariş")),
+            CancellationService(b, audit, notifications).CancelForWaiterAsync(1001, 1001, 1001, new("Səhv sifariş")))
+            .WaitAsync(TimeSpan.FromSeconds(20));
+        Assert.Equal(results[0].CancelledAt, results[1].CancelledAt);
+        Assert.Single(audit.Invocations, call => Equals(call.Arguments[1], AuditActions.OrderCancelled));
+        Assert.Single(notifications.Invocations);
+        await using var read = f.Context();
+        Assert.Equal(1m, (await read.InventoryItems.SingleAsync()).QuantityOnHand);
+        Assert.Empty(await read.InventoryMovements.ToListAsync());
+    }
+
+    [StockPostgresFact]
+    public async Task CancellationNotificationFailureRollsBackItsStatusTimestampAndReason()
+    {
+        await using var f = await Database.CreateAsync(1);
+        await AddCancellationSessionAsync(f);
+        await using (var db = f.Context())
+        {
+            var notifications = new Mock<INotificationService>();
+            notifications.Setup(n => n.CreateAsync(It.IsAny<ECafe.Application.DTOs.Notification.CreateNotificationRequest>()))
+                .ThrowsAsync(new InvalidOperationException("test"));
+            await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                CancellationService(db, notifications: notifications).CancelForWaiterAsync(1001, 1001, 1001, new("Səhv sifariş")));
+        }
+        await using var read = f.Context();
+        var order = await read.Orders.SingleAsync(o => o.Id == 1001);
+        Assert.Equal(2002, order.StatusId);
+        Assert.Null(order.CancelledAt);
+        Assert.Null(order.CancellationReason);
+        Assert.Equal(1m, (await read.InventoryItems.SingleAsync()).QuantityOnHand);
+    }
+
+    /// <summary>Hazır stok fixture-ində mövcud sifarişi açıq masa sessiyasına bağlayır; başqa axınların seed-lərini dəyişmir.</summary>
+    private static async Task AddCancellationSessionAsync(Database f)
+    {
+        await using var db = f.Context();
+        db.TableSessions.Add(new TableSession { Id = 1001, RestaurantId = 1001, TableId = 1001,
+            WaiterUserId = 1001, StatusId = 7001, OpenedAt = DateTime.UtcNow });
+        (await db.Orders.SingleAsync(o => o.Id == 1001)).TableSessionId = 1001;
+        await db.SaveChangesAsync();
+    }
+
+    /// <summary>İstehsaldakı masa kilidini və həqiqi transaction-ı ləğv sınağında da istifadə edir.</summary>
+    private static OrderCancellationManager CancellationService(ECafeDbContext db, Mock<IAuditLogService>? audit = null,
+        Mock<INotificationService>? notifications = null)
+    {
+        var http = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity(
+            [new Claim("userId", "1001"), new Claim("restaurantId", "1001"), new Claim(ClaimTypes.Role, "4")], "test")) };
+        return new OrderCancellationManager(Mock.Of<IHttpContextAccessor>(a => a.HttpContext == http), Mock.Of<IMapper>(),
+            new ConfigurationBuilder().Build(), new OrderRepository(db), new TableSessionRepository(db), new TableRepository(db),
+            new ECafe.Infrastructure.Repositories.User.UserRepository(db), new UserRestaurantRepository(db),
+            new InventoryMovementRepository(db), new Transactions(db), audit?.Object ?? Mock.Of<IAuditLogService>(),
+            notifications?.Object ?? Mock.Of<INotificationService>(), TimeProvider.System);
+    }
+
+    /// <summary>Paralel testdə ləğvin biznes konfliktini hazırlama nəticəsi ilə müqayisə etmək üçün saxlayır.</summary>
+    private static async Task<Exception?> TryCancelAsync(OrderCancellationManager service)
+    {
+        try { await service.CancelForWaiterAsync(1001, 1001, 1001, new("Səhv sifariş")); return null; }
+        catch (BusinessRuleException error) { return error; }
+    }
+
     [StockPostgresFact]
     public async Task PreparingConsumesRecipeOnceAndReadyOrRetryNeverConsumesAgain()
     {

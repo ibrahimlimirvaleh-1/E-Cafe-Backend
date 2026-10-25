@@ -17,6 +17,7 @@ using ECafe.Application.Services.Notification.Abstract;
 using ECafe.Application.Services.TableSessions.Abstract;
 using ECafe.Domain.Enums;
 using ECafe.Domain.Exceptions;
+using ECafe.Domain.Policies;
 using ECafe.Shared.DTOs;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
@@ -52,7 +53,8 @@ public sealed partial class KitchenOrderManager(IHttpContextAccessor accessor, I
         if (order.SentToKitchenAt.HasValue)
         {
             await transaction.CommitAsync(cancellationToken);
-            return OrderResponseMapper.Map(order);
+            return OrderResponseMapper.Map(order, await orders.Query(candidate => candidate.Id == order.Id)
+                .Where(OrderCancellationPolicy.Cancellable).AnyAsync(cancellationToken));
         }
         if (order.ClosedAt != null || order.StatusId != StatusIds.Build(StatusType.Order, (int)OrderStatus.Created) ||
             !order.OrderItems.Any(line => !line.IsDeleted) || order.OrderItems.Any(line => !line.IsDeleted && line.Quantity <= 0))
@@ -64,7 +66,8 @@ public sealed partial class KitchenOrderManager(IHttpContextAccessor accessor, I
         await audit.RecordRestaurantActionAsync(restaurantId, AuditActions.OrderSentToKitchen,
             new { orderId, tableSessionId, tableId = order.TableId }, AuditEntityTypes.Order, orderId);
         await transaction.CommitAsync(cancellationToken);
-        return OrderResponseMapper.Map(order);
+        return OrderResponseMapper.Map(order, await orders.Query(candidate => candidate.Id == order.Id)
+            .Where(OrderCancellationPolicy.Cancellable).AnyAsync(cancellationToken));
     }
 
     /// <summary>Aktiv mətbəx işçisinə göndərilmiş açıq sifarişləri mərhələyə görə səhifələmədən əvvəl süzür və FIFO ilə qaytarır; maliyyə və müştəri məlumatı çıxarmır.</summary>

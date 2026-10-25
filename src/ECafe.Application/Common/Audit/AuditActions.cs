@@ -57,6 +57,7 @@ namespace ECafe.Application.Common.Audit
         public const string OrderPreparationStarted = "OrderPreparationStarted";
         public const string OrderMarkedReady = "OrderMarkedReady";
         public const string OrderServed = "OrderServed";
+        public const string OrderCancelled = "OrderCancelled";
         public const string ProviderPaymentAuthorized = "ProviderPaymentAuthorized";
         public const string ProviderPaymentUpdated = "ProviderPaymentUpdated";
         public const string ProviderRefundUpdated = "ProviderRefundUpdated";
@@ -134,7 +135,8 @@ namespace ECafe.Application.Common.Audit
             new(77, ProviderRefundUpdated, "Provayder geri ödənişi yeniləndi"),
             new(78, ProviderCheckoutCreated, "Ödəniş sessiyası yaradıldı"),
             new(79, SessionBillCheckoutCreated, "Yekun hesab üçün ödəniş sessiyası yaradıldı"),
-            new(80, SessionBillPaymentUpdated, "Yekun hesab ödənişi yeniləndi")
+            new(80, SessionBillPaymentUpdated, "Yekun hesab ödənişi yeniləndi"),
+            new(81, OrderCancelled, "Hazırlanmamış sifariş ləğv edildi")
         ];
 
         public static string GetDisplayName(string? action)

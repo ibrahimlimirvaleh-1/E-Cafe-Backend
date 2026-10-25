@@ -16,6 +16,9 @@ namespace ECafe.Infrastructure.Configurations.Concrete
             builder.Property(e => e.AcceptedAt).HasColumnName("accepted_at");
             builder.Property(e => e.AcceptedByUserId).HasColumnName("accepted_by_user_id");
             builder.Property(e => e.ClosedAt).HasColumnName("closed_at");
+            builder.Property(e => e.CancelledAt).HasColumnName("cancelled_at");
+            builder.Property(e => e.CancelledByUserId).HasColumnName("cancelled_by_user_id");
+            builder.Property(e => e.CancellationReason).HasMaxLength(500).HasColumnName("cancellation_reason");
             builder.Property(e => e.CustomerUserId).HasColumnName("customer_user_id");
             builder.Property(e => e.Note).HasColumnName("note");
             builder.Property(e => e.CreationRequestId).HasColumnName("creation_request_id");
@@ -58,6 +61,8 @@ namespace ECafe.Infrastructure.Configurations.Concrete
                 .OnDelete(DeleteBehavior.SetNull).HasConstraintName("orders_preparing_by_user_id_fkey");
             builder.HasOne<User>().WithMany().HasForeignKey(e => e.ReadyByUserId)
                 .OnDelete(DeleteBehavior.SetNull).HasConstraintName("orders_ready_by_user_id_fkey");
+            builder.HasOne<User>().WithMany().HasForeignKey(e => e.CancelledByUserId)
+                .OnDelete(DeleteBehavior.SetNull).HasConstraintName("orders_cancelled_by_user_id_fkey");
 
             builder.HasOne(d => d.Reservation).WithMany(p => p.Orders)
                 .HasForeignKey(d => d.ReservationId)

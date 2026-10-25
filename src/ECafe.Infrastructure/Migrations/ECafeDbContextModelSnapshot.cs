@@ -1396,6 +1396,19 @@ namespace ECafe.Infrastructure.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("accepted_by_user_id");
 
+                    b.Property<string>("CancellationReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("cancellation_reason");
+
+                    b.Property<DateTime?>("CancelledAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("cancelled_at");
+
+                    b.Property<int?>("CancelledByUserId")
+                        .HasColumnType("integer")
+                        .HasColumnName("cancelled_by_user_id");
+
                     b.Property<DateTime?>("ClosedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("closed_at");
@@ -1507,6 +1520,8 @@ namespace ECafe.Infrastructure.Migrations
                         .HasName("orders_pkey");
 
                     b.HasIndex("AcceptedByUserId");
+
+                    b.HasIndex("CancelledByUserId");
 
                     b.HasIndex("CustomerUserId");
 
@@ -7104,6 +7119,12 @@ namespace ECafe.Infrastructure.Migrations
                         .HasForeignKey("AcceptedByUserId")
                         .OnDelete(DeleteBehavior.SetNull)
                         .HasConstraintName("orders_accepted_by_user_id_fkey");
+
+                    b.HasOne("ECafe.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("CancelledByUserId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("orders_cancelled_by_user_id_fkey");
 
                     b.HasOne("ECafe.Domain.Entities.User", "CustomerUser")
                         .WithMany()

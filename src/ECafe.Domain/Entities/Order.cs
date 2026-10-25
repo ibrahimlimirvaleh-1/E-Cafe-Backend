@@ -40,6 +40,12 @@ public partial class Order : AuditableSoftDeletableEntity<int>
 
     public DateTime? ClosedAt { get; set; }
 
+    public DateTime? CancelledAt { get; set; }
+
+    public int? CancelledByUserId { get; set; }
+
+    public string? CancellationReason { get; set; }
+
     public int SourceId { get; set; }
 
     public string? Note { get; set; }

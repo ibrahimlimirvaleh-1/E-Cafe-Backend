@@ -11,4 +11,5 @@ public sealed record CustomerSessionOrderResponse(int Id, int RestaurantId, int 
     int? ReservationId, int StatusId, DateTimeOffset OpenedAt, DateTimeOffset? SentToKitchenAt,
     DateTimeOffset? AcceptedAt, DateTimeOffset? PreparingAt, DateTimeOffset? ReadyAt,
     DateTimeOffset? ServedAt, DateTimeOffset? ClosedAt, decimal Subtotal,
-    IReadOnlyList<CustomerOrderLineResponse> Items);
+    IReadOnlyList<CustomerOrderLineResponse> Items, bool CanCancel = false,
+    DateTimeOffset? CancelledAt = null, string? CancellationReason = null);

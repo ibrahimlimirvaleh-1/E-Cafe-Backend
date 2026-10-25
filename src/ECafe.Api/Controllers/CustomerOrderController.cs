@@ -1,5 +1,6 @@
 using ECafe.Application.DTOs.Order;
 using ECafe.Application.Features.Queries.Order;
+using ECafe.Application.Features.Commands.Order;
 using ECafe.Shared.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -11,6 +12,14 @@ namespace ECafe.Api.Controllers;
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 public sealed class CustomerOrderController : BaseController
 {
+    /// <summary>Müştəri öz sessiyasında hələ hazırlanmağa başlanmamış sifarişi birbaşa ləğv edir.</summary>
+    /// <remarks>Body: reason (3-500 simvol); yeni Idempotency-Key lazım deyil. Yalnız Created/Accepted. Eyni orderId təkrarı ilk nəticəni qaytarır. Yad sessiya/sifariş üçün 404, hazırlama və ödəniş konflikti üçün 409. Stok, depozit və rezervasiya dəyişmir.</remarks>
+    [HttpPost(ApiRoutes.CustomerOrder.Cancel)]
+    [ProducesResponseType(typeof(CustomerSessionOrderResponse), StatusCodes.Status200OK)]
+    public async Task<IActionResult> Cancel([FromRoute] int tableSessionId, [FromRoute] int orderId,
+        [FromBody] CancelOrderRequest request, CancellationToken cancellationToken)
+        => Ok(await Mediator.Send(new CancelCustomerOrderCommand(tableSessionId, orderId, request), cancellationToken));
+
     /// <summary>Müştərinin öz açıq və bağlanmış masa sessiyalarını ən yenidən köhnəyə qaytarır.</summary>
     /// <remarks>Yalnız giriş etmiş aktiv müştəri üçün. PageNumber=1, PageSize=20, maksimum 100. Müştəri/restoran ID-si sorğudan alınmır; başqa müştəriyə aid sessiyalar görünmür. Tarixçə müqavilənin və restoranın aktivliyindən asılı deyil.</remarks>
     [HttpGet(ApiRoutes.CustomerOrder.GetMySessions)]

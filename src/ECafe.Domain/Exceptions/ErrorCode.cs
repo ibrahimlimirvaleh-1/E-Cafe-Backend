@@ -211,5 +211,8 @@ public enum ErrorCode
     KitchenOrderRecipeInvalid = 5106,
     KitchenOrderStockInsufficient = 5107,
     KitchenOrderStockStateInvalid = 5108,
-    InventoryStockQuantityInvalid = 5109
+    InventoryStockQuantityInvalid = 5109,
+    OrderCannotCancel = 5110,
+    OrderCancellationReasonInvalid = 5111,
+    OrderCancellationStockConflict = 5112
 }
