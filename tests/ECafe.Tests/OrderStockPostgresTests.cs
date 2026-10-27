@@ -48,6 +48,38 @@ public sealed class StockPostgresFactAttribute : FactAttribute
 public sealed class OrderStockPostgresTests
 {
     [StockPostgresFact]
+    public async Task HistoryProjectsConsumptionAndReturnContextInPostgresWithoutChangingTheLedger()
+    {
+        await using var f = await PreparedCancellationAsync();
+        await using (var write = f.Context())
+            await RequestService(write, true).DecideAsync(1001, 1001, new(true, "Ərzaq istifadə olunmayıb", true));
+        await using var read = f.Context();
+        var restaurants = new Mock<ECafe.Application.Repositories.Restaurant.IRestaurantRepository>();
+        restaurants.Setup(repository => repository.GetByIdAsync(1001)).ReturnsAsync(await read.Restaurants.SingleAsync());
+        var mapper = new MapperConfiguration(config => config.AddProfile<ECafe.Application.Mappings.InventoryMovementProfile>(),
+            Microsoft.Extensions.Logging.Abstractions.NullLoggerFactory.Instance).CreateMapper();
+        var manager = new InventoryMovementManager(Accessor(), mapper, new ConfigurationBuilder().Build(),
+            new InventoryMovementRepository(read), restaurants.Object, new InventoryItemRepository(read),
+            new InventoryMovementTypeRepository(read), new UnitRepository(read), Mock.Of<IInventoryLowStockNotifier>(), new Transactions(read));
+        var page = await manager.HistoryAsync(1001, 1001, new ECafe.Shared.DTOs.PaginationFilter(1, 10));
+        Assert.Equal(2, page.TotalCount);
+        var consumption = Assert.Single(page.Items, row => row.MovementTypeId == 4);
+        var returned = Assert.Single(page.Items, row => row.MovementTypeId == 6);
+        Assert.Equal("1001", consumption.RelatedOrderId);
+        Assert.Equal("Meal", consumption.OrderItemName);
+        Assert.Equal(2, consumption.OrderItemQuantity);
+        Assert.Equal(1, consumption.TableNo);
+        Assert.False(string.IsNullOrWhiteSpace(consumption.UnitCode));
+        Assert.False(string.IsNullOrWhiteSpace(consumption.MovementTypeCode));
+        Assert.Equal("Asia/Baku", consumption.TimeZone);
+        Assert.Equal(consumption.Id, returned.ReversedMovementId);
+        Assert.Equal(-consumption.QuantityChange, returned.QuantityChange);
+        Assert.Equal(consumption.OrderItemName, returned.OrderItemName);
+        Assert.Equal(1m, (await read.InventoryItems.SingleAsync()).QuantityOnHand);
+        Assert.Equal(2, await read.InventoryMovements.CountAsync());
+    }
+
+    [StockPostgresFact]
     public async Task UnusedIngredientsReturnOriginalConsumptionEvenAfterRecipeChangesAndKeepHistory()
     {
         await using var f = await PreparedCancellationAsync();

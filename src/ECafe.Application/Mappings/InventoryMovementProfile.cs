@@ -41,8 +41,24 @@ namespace ECafe.Application.Mappings
                 .ForMember(dest => dest.QuantityChange, opt => opt.MapFrom(src => src.QuantityChange))
                 .ForMember(dest => dest.UnitId, opt => opt.MapFrom(src => src.UnitId))
                 .ForMember(dest => dest.UnitName, opt => opt.MapFrom(src => src.Unit.Name))
+                .ForMember(dest => dest.UnitCode, opt => opt.MapFrom(src => src.Unit.Code))
                 .ForMember(dest => dest.MovementTypeId, opt => opt.MapFrom(src => src.MovementTypeId))
                 .ForMember(dest => dest.MovementType, opt => opt.MapFrom(src => src.MovementType.Name))
+                .ForMember(dest => dest.MovementTypeCode, opt => opt.MapFrom(src => src.MovementType.Code))
+                .ForMember(dest => dest.TimeZone, opt => opt.MapFrom(src => src.InventoryItem.Restaurant.TimeZone))
+                .ForMember(dest => dest.OrderItemName, opt => opt.MapFrom(src =>
+                    src.RelatedOrderItem != null && src.RelatedOrderItem.OrderId == src.RelatedOrderId &&
+                    src.RelatedOrderItem.Order.RestaurantId == src.RestaurantId
+                        ? src.RelatedOrderItem.NameSnapshot : null))
+                .ForMember(dest => dest.OrderItemQuantity, opt => opt.MapFrom(src =>
+                    src.RelatedOrderItem != null && src.RelatedOrderItem.OrderId == src.RelatedOrderId &&
+                    src.RelatedOrderItem.Order.RestaurantId == src.RestaurantId
+                        ? (int?)src.RelatedOrderItem.Quantity : null))
+                .ForMember(dest => dest.TableNo, opt => opt.MapFrom(src =>
+                    src.RelatedOrderItem != null && src.RelatedOrderItem.OrderId == src.RelatedOrderId &&
+                    src.RelatedOrderItem.Order.RestaurantId == src.RestaurantId &&
+                    src.RelatedOrderItem.Order.Table.RestaurantId == src.RestaurantId
+                        ? (int?)src.RelatedOrderItem.Order.Table.TableNo : null))
                 .ForMember(dest => dest.Reason, opt => opt.MapFrom(src => src.Reason))
                 .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => src.CreatedAt));
 
