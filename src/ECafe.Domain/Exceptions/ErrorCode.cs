@@ -219,5 +219,6 @@ public enum ErrorCode
     OrderCancellationRequestConflict = 5114,
     OrderCancellationRequestPending = 5115,
     OrderCancellationWaiterUnavailable = 5116,
-    OrderCancellationRequestNotFound = 5117
+    OrderCancellationRequestNotFound = 5117,
+    OrderStockReturnInvalid = 5118
 }

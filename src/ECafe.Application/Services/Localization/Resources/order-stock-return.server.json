@@ -1,0 +1,7 @@
+{
+  "api.error.OrderStockReturnInvalid": {
+    "az": "İlkin stok sərfiyyatı və ya anbar vahidi uyğun deyil, yaxud stok artıq qaytarılıb. Ləğv təsdiqlənmədi; restoran məsulu uçotu yoxlamalıdır.",
+    "en": "The original stock consumption or inventory unit is inconsistent, or stock has already been returned. Cancellation was not approved; ask the restaurant manager to review the inventory records.",
+    "ru": "Исходный расход или единица складского учёта не совпадает, либо продукты уже возвращены. Отмена не подтверждена; обратитесь к менеджеру для проверки учёта."
+  }
+}

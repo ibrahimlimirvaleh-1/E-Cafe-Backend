@@ -225,6 +225,31 @@ public sealed class OrderCancellationRequestTests
     }
 
     [Fact]
+    public async Task RejectionCannotAskForIngredientReturn()
+    {
+        await using var f = await Fixture.CreateAsync();
+        await f.Request();
+        f.Actor(4, RoleCode.Kitchen);
+        await Assert.ThrowsAsync<BadRequestException>(() => f.Service.DecideAsync(1, f.Id, new(false, "Hazırlıq gedir", true)));
+        Assert.Null((await f.Order()).CancellationRequest!.ResolvedAt);
+    }
+
+    [Fact]
+    public async Task LegacyApprovalCannotLaterBeReinterpretedAsUnusedIngredients()
+    {
+        await using var f = await Fixture.CreateAsync();
+        await f.Request();
+        f.Actor(4, RoleCode.Kitchen);
+        await f.Service.DecideAsync(1, f.Id, new(true, "İlkin qərar"));
+        var request = (await f.Order()).CancellationRequest!;
+        request.IngredientsUnused = null;
+        await f.Base.Context.SaveChangesAsync();
+        Assert.Equal(ErrorCode.OrderCancellationRequestConflict, (await Assert.ThrowsAsync<BusinessRuleException>(() =>
+            f.Service.DecideAsync(1, f.Id, new(true, "Başqa qərar", true)))).Code);
+        Assert.Null(request.StockReturnedAt);
+    }
+
+    [Fact]
     public async Task CustomerRequestRequiresCurrentActiveWaiter()
     {
         await using var f = await Fixture.CreateAsync();
@@ -272,7 +297,7 @@ public sealed class OrderCancellationRequestTests
             Service = new OrderCancellationRequestManager(Mock.Of<IHttpContextAccessor>(accessor => accessor.HttpContext == source.Http),
                 Mock.Of<IMapper>(), new ConfigurationBuilder().Build(), new OrderRepository(source.Context), new TableSessionRepository(source.Context),
                 tables.Object, new UserRepository(source.Context), new UserRestaurantRepository(source.Context), transactions.Object,
-                source.Audit.Object, notifications.Object, TimeProvider.System);
+                source.Audit.Object, notifications.Object, TimeProvider.System, Mock.Of<ECafe.Application.Services.Orders.Abstract.IOrderStockReturnService>());
         }
 
         /// <summary>Hazırlanan sifariş, öz müştərisi, cari ofisiantı və aktiv mətbəxi olan təcrid edilmiş baza qurur.</summary>

@@ -26,7 +26,7 @@ namespace ECafe.Application.Services.Orders.Concrete;
 public sealed partial class OrderCancellationRequestManager(IHttpContextAccessor accessor, IMapper mapper, IConfiguration configuration,
     IOrderRepository orders, ITableSessionRepository sessions, ITableRepository tables, IUserRepository users,
     IUserRestaurantRepository assignments, IApplicationDbTransactionFactory transactions, IAuditLogService audit,
-    INotificationService notifications, TimeProvider clock)
+    INotificationService notifications, TimeProvider clock, IOrderStockReturnService stockReturn)
     : BaseManager(accessor, mapper, configuration), IOrderCancellationRequestService
 {
     /// <summary>Ofisiantın hazırlanan sifariş üçün yaratdığı sorğunu dərhal mətbəx qərarına təqdim edir.</summary>
@@ -53,13 +53,14 @@ public sealed partial class OrderCancellationRequestManager(IHttpContextAccessor
         return KitchenOrderResponseMapper.Map(order);
     }
 
-    /// <summary>Mətbəx qərarını hazırlama və hesablaşma ilə ortaq masa kilidində tətbiq edir; stok və ödənişə toxunmur.</summary>
+    /// <summary>Mətbəx qərarını ortaq masa kilidində tətbiq edir; istifadə olunmamış ərzaq ilkin uçotdan atomik qaytarılır, ödənişə toxunmur.</summary>
     public async Task<KitchenOrderResponse> DecideAsync(int restaurantId, int orderId, DecideOrderCancellationRequest request,
         CancellationToken token = default)
     {
         await RequireKitchenAsync(restaurantId, token);
         if (request == null) throw new BadRequestException(ErrorCode.RequestCannotBeNull);
         if (request.Approved is not bool approved) throw new BadRequestException(ErrorCode.InvalidOrderRequest);
+        if (!approved && request.IngredientsUnused == true) throw new BadRequestException(ErrorCode.InvalidOrderRequest);
         var reason = OrderCancellationPolicy.NormalizeReason(request.Reason);
         var tableId = await KitchenOrderQuery(restaurantId, orderId, false).Select(order => order.TableId).SingleOrDefaultAsync(token);
         if (tableId <= 0) throw new NotFoundException(ErrorCode.KitchenOrderNotFound);
@@ -69,7 +70,12 @@ public sealed partial class OrderCancellationRequestManager(IHttpContextAccessor
         var order = await KitchenOrderQuery(restaurantId, orderId, true).SingleOrDefaultAsync(token)
             ?? throw new NotFoundException(ErrorCode.KitchenOrderNotFound);
         if (order.TableId != tableId) throw new BusinessRuleException(ErrorCode.OrderSessionChanged);
-        var changed = OrderCancellationRequestPolicy.Decide(order, approved, GetCurrentUserId(), UtcNow(), reason);
+        var changed = OrderCancellationRequestPolicy.Decide(order, approved, GetCurrentUserId(), UtcNow(), reason, request.IngredientsUnused ?? false);
+        if (changed && approved && request.IngredientsUnused == true)
+        {
+            await stockReturn.RestoreAsync(order, token);
+            order.CancellationRequest!.StockReturnedAt = order.CancellationRequest.ResolvedAt;
+        }
         if (changed) await SaveDecisionAsync(order, approved ? AuditActions.OrderCancellationApproved : AuditActions.OrderCancellationRejected, token);
         await transaction.CommitAsync(token);
         return KitchenOrderResponseMapper.Map(order);
@@ -114,7 +120,7 @@ public sealed partial class OrderCancellationRequestManager(IHttpContextAccessor
         await audit.RecordRestaurantActionAsync(order.RestaurantId, action,
             new { orderId = order.Id, tableSessionId = order.TableSessionId, requestId = request.Id,
                 request.StatusId, request.Reason, request.RequestedAt, request.ForwardedAt, request.ResolvedAt,
-                request.DecisionReason, actorId = GetCurrentUserId() }, AuditEntityTypes.Order, order.Id);
+                request.DecisionReason, request.IngredientsUnused, request.StockReturnedAt, actorId = GetCurrentUserId() }, AuditEntityTypes.Order, order.Id);
         await NotifyAsync(order, token);
     }
 
