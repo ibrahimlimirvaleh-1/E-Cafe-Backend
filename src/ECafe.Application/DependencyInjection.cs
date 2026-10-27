@@ -116,6 +116,7 @@ namespace ECafe.Application
             services.AddScoped<IOrderService, OrderManager>();
             services.AddScoped<IOrderCancellationService, OrderCancellationManager>();
         services.AddScoped<IOrderCancellationRequestService, OrderCancellationRequestManager>();
+        services.AddScoped<IOrderStockReturnService, OrderStockReturnManager>();
             services.AddScoped<Services.Dashboard.Abstract.IDashboardService, Services.Dashboard.Concrete.DashboardManager>();
             services.AddOptions<PaymentOptions>()
                 .Configure<IConfiguration>((options, configuration) => configuration.GetSection(PaymentOptions.SectionName).Bind(options))

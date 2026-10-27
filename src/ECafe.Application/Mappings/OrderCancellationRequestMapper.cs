@@ -10,5 +10,6 @@ public static class OrderCancellationRequestMapper
     public static OrderCancellationRequestResponse? Map(OrderCancellationRequest? request)
         => request == null ? null : new(request.Id, (int)request.StatusId, request.Reason, AsUtc(request.RequestedAt),
             AsNullableUtc(request.ForwardedAt), AsNullableUtc(request.ResolvedAt),
-            request.StatusId == Domain.Enums.OrderCancellationRequestStatus.Expired ? null : request.DecisionReason);
+            request.StatusId == Domain.Enums.OrderCancellationRequestStatus.Expired ? null : request.DecisionReason,
+            request.IngredientsUnused, AsNullableUtc(request.StockReturnedAt));
 }

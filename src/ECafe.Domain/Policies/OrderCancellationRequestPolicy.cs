@@ -74,12 +74,17 @@ public static class OrderCancellationRequestPolicy
         return true;
     }
 
-    /// <summary>Mətbəxin ilk qərarını bir dəfə saxlayır; təsdiq stoku geri yazmadan sifarişi ləğv edir, əks təkrar qərarı rədd edir.</summary>
-    public static bool Decide(Order order, bool approved, int actorId, DateTime nowUtc, string reason)
+    /// <summary>İlk qərar və ərzaq seçimini saxlayır; təsdiq sifarişi ləğv edir, fərqli təkrar qərarı rədd edir; stok xidmətdə eyni transaction-da qaytarılır.</summary>
+    public static bool Decide(Order order, bool approved, int actorId, DateTime nowUtc, string reason, bool ingredientsUnused = false)
     {
         var request = order.CancellationRequest ?? throw new BusinessRuleException(ErrorCode.OrderCancellationRequestNotFound);
         var target = approved ? OrderCancellationRequestStatus.Approved : OrderCancellationRequestStatus.Rejected;
-        if (request.StatusId == target && request.ResolvedAt.HasValue) return false;
+        if (request.StatusId == target && request.ResolvedAt.HasValue)
+        {
+            if (approved && (request.IngredientsUnused ?? false) != ingredientsUnused)
+                throw new BusinessRuleException(ErrorCode.OrderCancellationRequestConflict);
+            return false;
+        }
         if (request.ResolvedAt.HasValue) throw new BusinessRuleException(ErrorCode.OrderCancellationRequestConflict);
         EnsureEligible(order);
         if (!CanDecide(order)) throw new BusinessRuleException(ErrorCode.OrderCancellationRequestConflict);
@@ -87,6 +92,7 @@ public static class OrderCancellationRequestPolicy
         request.StatusId = target;
         request.ResolvedAt = nowUtc;
         request.ResolvedByUserId = actorId;
+        request.IngredientsUnused = approved ? ingredientsUnused : null;
         if (approved)
         {
             order.StatusId = StatusIds.Build(StatusType.Order, (int)OrderStatus.Cancelled);

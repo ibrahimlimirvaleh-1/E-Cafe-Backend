@@ -650,6 +650,10 @@ namespace ECafe.Infrastructure.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("restaurant_id");
 
+                    b.Property<int?>("ReversedMovementId")
+                        .HasColumnType("integer")
+                        .HasColumnName("reversed_movement_id");
+
                     b.Property<int>("UnitId")
                         .HasColumnType("integer")
                         .HasColumnName("unit_id");
@@ -667,6 +671,10 @@ namespace ECafe.Infrastructure.Migrations
 
                     b.HasIndex("UnitId");
 
+                    b.HasIndex(new[] { "ReversedMovementId" }, "inventory_movement_reversal_once_idx")
+                        .IsUnique()
+                        .HasFilter("reversed_movement_id IS NOT NULL");
+
                     b.HasIndex(new[] { "MovementTypeId" }, "inventory_movements_movement_type_id_idx");
 
                     b.HasIndex(new[] { "RelatedOrderId" }, "inventory_movements_related_order_id_idx");
@@ -679,7 +687,10 @@ namespace ECafe.Infrastructure.Migrations
                         .IsUnique()
                         .HasFilter("movement_type_id = 4 AND related_order_item_id IS NOT NULL");
 
-                    b.ToTable("inventory_movements", "inventory");
+                    b.ToTable("inventory_movements", "inventory", t =>
+                        {
+                            t.HasCheckConstraint("inventory_movement_reversal_valid_ck", "reversed_movement_id IS NULL OR (movement_type_id = 6 AND quantity_change > 0 AND related_order_id IS NOT NULL AND related_order_item_id IS NOT NULL)");
+                        });
                 });
 
             modelBuilder.Entity("ECafe.Domain.Entities.InventoryMovementType", b =>
@@ -1568,6 +1579,9 @@ namespace ECafe.Infrastructure.Migrations
                     b.Property<int?>("ForwardedByUserId")
                         .HasColumnType("integer");
 
+                    b.Property<bool?>("IngredientsUnused")
+                        .HasColumnType("boolean");
+
                     b.Property<int>("OrderId")
                         .HasColumnType("integer");
 
@@ -1590,6 +1604,9 @@ namespace ECafe.Infrastructure.Migrations
 
                     b.Property<int>("StatusId")
                         .HasColumnType("integer");
+
+                    b.Property<DateTime?>("StockReturnedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
 
@@ -7029,6 +7046,12 @@ namespace ECafe.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("inventory_movements_restaurant_id_fkey");
+
+                    b.HasOne("ECafe.Domain.Entities.InventoryMovement", null)
+                        .WithMany()
+                        .HasForeignKey("ReversedMovementId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("inventory_movement_reversal_source_fkey");
 
                     b.HasOne("ECafe.Domain.Entities.Unit", "Unit")
                         .WithMany()

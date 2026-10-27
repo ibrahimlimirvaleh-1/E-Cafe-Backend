@@ -12,6 +12,7 @@ namespace ECafe.Domain.Entities
         public string? Reason { get; set; }
         public int? RelatedOrderId { get; set; }
         public int? RelatedOrderItemId { get; set; }
+        public int? ReversedMovementId { get; set; }
 
         public InventoryItem InventoryItem { get; set; } = null!;
         public Unit Unit { get; set; } = null!;

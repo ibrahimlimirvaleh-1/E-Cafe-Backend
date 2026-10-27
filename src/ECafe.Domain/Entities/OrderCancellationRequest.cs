@@ -15,5 +15,7 @@ public sealed class OrderCancellationRequest
     public DateTime? ResolvedAt { get; set; }
     public int? ResolvedByUserId { get; set; }
     public string? DecisionReason { get; set; }
+    public bool? IngredientsUnused { get; set; }
+    public DateTime? StockReturnedAt { get; set; }
     public Order Order { get; set; } = null!;
 }
