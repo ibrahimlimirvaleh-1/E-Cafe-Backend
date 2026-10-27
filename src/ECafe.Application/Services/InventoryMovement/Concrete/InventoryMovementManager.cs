@@ -109,6 +109,7 @@ namespace ECafe.Application.Services.InventoryMovement.Concrete
 
 
 
+        /// <summary>Yalnız aidiyyəti təsdiqlənmiş stokun tarixçəsini sabit tarix/ID sırası ilə oxuyur; tarixi qalıq hesablamır və stok uçotuna toxunmur.</summary>
         public async Task<PaginatedList<InventoryMovementHistoryResponse>> HistoryAsync(
             int inventoryItemId,
             int restaurantId,
@@ -139,6 +140,7 @@ namespace ECafe.Application.Services.InventoryMovement.Concrete
             var movements = _inventoryMovementRepository
                 .Query(x => x.RestaurantId == restaurantId && x.InventoryItemId == inventoryItemId)
                 .OrderByDescending(x => x.CreatedAt)
+                .ThenByDescending(x => x.Id)
                 .ProjectTo<InventoryMovementHistoryResponse>(Mapper.ConfigurationProvider);
 
             return await PaginatedList<InventoryMovementHistoryResponse>.CreateAsync(
