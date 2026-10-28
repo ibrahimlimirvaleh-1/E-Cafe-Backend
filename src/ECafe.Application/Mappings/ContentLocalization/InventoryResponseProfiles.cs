@@ -1,6 +1,7 @@
 using ECafe.Application.DTOs.InventoryItem;
 using ECafe.Application.DTOs.InventoryMovement;
 using ECafe.Application.DTOs.Lookup;
+using ECafe.Application.DTOs.Order;
 using ECafe.Application.DTOs.Recipe;
 using ECafe.Application.Repositories.ContentLocalization;
 using ECafe.Domain.Enums;
@@ -22,6 +23,9 @@ internal static class InventoryResponseProfiles
             new ContentResponseField<InventoryMovementResponse>(ContentEntityType.Unit, (r, _) => r.UnitId, r => r.UnitName, v => v.Name)),
         new ContentResponseProfile<InventoryMovementHistoryResponse>(
             new ContentResponseField<InventoryMovementHistoryResponse>(ContentEntityType.Unit, (r, _) => r.UnitId, r => r.UnitName, v => v.Name)),
+        new ContentResponseProfile<KitchenStockReturnIngredientResponse>(
+            new(ContentEntityType.InventoryItem, (r, _) => r.InventoryItemId, r => r.Name, v => v.Name),
+            new(ContentEntityType.Unit, (r, _) => r.UnitId, r => r.UnitName, v => v.Name)),
         new ContentResponseProfile<LookupItemResponse>(
             new ContentResponseField<LookupItemResponse>(ContentEntityType.Unit, (r, c) => c.UnitLookup ? r.Id : null, r => r.Name, v => v.Name))
     ];

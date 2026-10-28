@@ -1605,6 +1605,9 @@ namespace ECafe.Infrastructure.Migrations
                     b.Property<int>("StatusId")
                         .HasColumnType("integer");
 
+                    b.Property<int?>("StockReturnMode")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime?>("StockReturnedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -1619,7 +1622,50 @@ namespace ECafe.Infrastructure.Migrations
 
                     b.HasIndex("ResolvedByUserId");
 
-                    b.ToTable("order_cancellation_requests", "ops");
+                    b.ToTable("order_cancellation_requests", "ops", t =>
+                        {
+                            t.HasCheckConstraint("cancellation_stock_return_mode_ck", "\"StockReturnMode\" IS NULL OR \"StockReturnMode\" IN (1, 2, 3)");
+                        });
+                });
+
+            modelBuilder.Entity("ECafe.Domain.Entities.OrderCancellationStockReturnLine", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CancellationRequestId")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("ConsumedQuantity")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("numeric(18,6)");
+
+                    b.Property<int>("InventoryItemId")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("ReturnQuantity")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("numeric(18,6)");
+
+                    b.Property<int>("UnitId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InventoryItemId");
+
+                    b.HasIndex("UnitId");
+
+                    b.HasIndex("CancellationRequestId", "InventoryItemId")
+                        .IsUnique();
+
+                    b.ToTable("order_cancellation_stock_return_lines", "ops", t =>
+                        {
+                            t.HasCheckConstraint("cancellation_stock_return_quantity_ck", "\"ConsumedQuantity\" > 0 AND \"ReturnQuantity\" >= 0 AND \"ReturnQuantity\" <= \"ConsumedQuantity\"");
+                        });
                 });
 
             modelBuilder.Entity("ECafe.Domain.Entities.OrderItem", b =>
@@ -7303,6 +7349,29 @@ namespace ECafe.Infrastructure.Migrations
                     b.Navigation("Order");
                 });
 
+            modelBuilder.Entity("ECafe.Domain.Entities.OrderCancellationStockReturnLine", b =>
+                {
+                    b.HasOne("ECafe.Domain.Entities.OrderCancellationRequest", "CancellationRequest")
+                        .WithMany("StockReturnLines")
+                        .HasForeignKey("CancellationRequestId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ECafe.Domain.Entities.InventoryItem", null)
+                        .WithMany()
+                        .HasForeignKey("InventoryItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ECafe.Domain.Entities.Unit", null)
+                        .WithMany()
+                        .HasForeignKey("UnitId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("CancellationRequest");
+                });
+
             modelBuilder.Entity("ECafe.Domain.Entities.OrderItem", b =>
                 {
                     b.HasOne("ECafe.Domain.Entities.Item", "Item")
@@ -8289,6 +8358,11 @@ namespace ECafe.Infrastructure.Migrations
                     b.Navigation("OrderItems");
 
                     b.Navigation("Payments");
+                });
+
+            modelBuilder.Entity("ECafe.Domain.Entities.OrderCancellationRequest", b =>
+                {
+                    b.Navigation("StockReturnLines");
                 });
 
             modelBuilder.Entity("ECafe.Domain.Entities.Permission", b =>

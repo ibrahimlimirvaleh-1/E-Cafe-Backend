@@ -65,7 +65,8 @@ public sealed partial class OrderCancellationRequestManager
                 order.TableSession.RestaurantId == restaurantId && order.TableSession.TableId == order.TableId &&
                 (!order.ReservationId.HasValue || order.ReservationId == order.TableSession.ReservationId))
             .Include(order => order.TableSession).ThenInclude(session => session!.Payments)
-            .Include(order => order.Payments).Include(order => order.CancellationRequest).Include(order => order.OrderItems)
+            .Include(order => order.Payments).Include(order => order.CancellationRequest).ThenInclude(request => request!.StockReturnLines)
+            .Include(order => order.OrderItems)
             .Include(order => order.Table).Include(order => order.Restaurant);
     }
 

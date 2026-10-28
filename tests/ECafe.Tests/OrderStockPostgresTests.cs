@@ -45,7 +45,7 @@ public sealed class StockPostgresFactAttribute : FactAttribute
     }
 }
 
-public sealed class OrderStockPostgresTests
+public sealed partial class OrderStockPostgresTests
 {
     [StockPostgresFact]
     public async Task HistoryProjectsConsumptionAndReturnContextInPostgresWithoutChangingTheLedger()

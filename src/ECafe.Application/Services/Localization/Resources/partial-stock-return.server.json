@@ -1,0 +1,7 @@
+{
+  "server.error.OrderStockReturnQuantitiesInvalid": {
+    "az": "Hər ərzaq üçün geri qaytarılacaq miqdarı 0 ilə ilkin sərfiyyat arasında, ən çox 6 onluq rəqəmlə daxil edin. Ərzaq siyahısı tam və təkrarsız olmalıdır.",
+    "en": "Enter a return quantity between zero and the original consumption for every ingredient, with up to six decimal places. Include every ingredient exactly once.",
+    "ru": "Укажите возвращаемое количество каждого ингредиента от нуля до исходного расхода, не более шести знаков после запятой. Каждый ингредиент должен быть указан ровно один раз."
+  }
+}

@@ -186,6 +186,7 @@ public sealed class ErrorMessageProvider(ITextLocalizer? localizer = null) : IEr
         [ErrorCode.OrderCancellationWaiterUnavailable] = "Sorğunu qəbul edəcək aktiv məsul ofisiant tapılmadı. Restoranla əlaqə saxlayın.",
         [ErrorCode.OrderCancellationRequestNotFound] = "Sifariş üçün ləğv sorğusu tapılmadı.",
         [ErrorCode.OrderStockReturnInvalid] = "İlkin stok sərfiyyatı və ya anbar vahidi uyğun deyil, yaxud stok artıq qaytarılıb. Ləğv təsdiqlənmədi; restoran məsulu uçotu yoxlamalıdır.",
+        [ErrorCode.OrderStockReturnQuantitiesInvalid] = "Hər ərzaq üçün geri qaytarılacaq miqdarı 0 ilə ilkin sərfiyyat arasında, ən çox 6 onluq rəqəmlə daxil edin. Ərzaq siyahısı tam və təkrarsız olmalıdır.",
         [ErrorCode.PaymentsUnavailable] = "Onlayn ödəniş hazırda aktiv deyil. Restoranla əlaqə saxlayın.",
         [ErrorCode.PaymentSimulationUnavailable] = "Test ödənişi bu mühitdə aktiv deyil.",
         [ErrorCode.ManualPaymentRetired] = "Kart və hesab rekvizitləri, yaxud ödəniş çeki bu sistemə göndərilmir. Onlayn ödəniş axınından istifadə edin.",

@@ -8,4 +8,4 @@ public sealed record KitchenOrderResponse(int Id, int RestaurantId, int TableId,
     DateTimeOffset? AcceptedAt, DateTimeOffset? PreparingAt, DateTimeOffset? ReadyAt,
     int? AcceptedByUserId, int? PreparingByUserId, int? ReadyByUserId,
     bool CanAccept, bool CanStartPreparing, bool CanMarkReady, bool CanDecideCancellationRequest = false,
-    OrderCancellationRequestResponse? CancellationRequest = null);
+    OrderCancellationRequestResponse? CancellationRequest = null, IReadOnlyList<OrderStockReturnQuantityResponse>? StockReturns = null);
