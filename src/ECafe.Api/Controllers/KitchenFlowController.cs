@@ -19,7 +19,13 @@ public sealed class KitchenFlowController : BaseController
     public async Task<IActionResult> GetCancellationRequest([FromRoute] int restaurantId, [FromRoute] int orderId, CancellationToken token)
         => Ok(await Mediator.Send(new KitchenCancellationQuery(restaurantId, orderId), token));
 
-    /// <summary>Mətbəx səbəb ilə qərar verir; təsdiqdə ingredientsUnused=true ilkin sərfiyyatı bir dəfə stoka qaytarır, ödəniş/refund icra edilmir.</summary>
+    /// <summary>Mətbəx yalnız ilkin sərfiyyatdan hazırlanmış, öz restoranına aid ərzaq seçimini oxuyur.</summary>
+    [HttpGet(ApiRoutes.KitchenFlow.StockReturnPreview)]
+    [ProducesResponseType(typeof(KitchenStockReturnPreviewResponse), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetStockReturnPreview([FromRoute] int restaurantId, [FromRoute] int orderId, CancellationToken token)
+        => Ok(await Mediator.Send(new KitchenStockReturnPreviewQuery(restaurantId, orderId), token));
+
+    /// <summary>Mətbəx səbəb ilə qərar verir; tam və ya ərzaq üzrə geri qaytarma bir dəfə icra olunur, ödəniş/refund dəyişmir.</summary>
     [HttpPost(ApiRoutes.KitchenFlow.DecideCancellation)]
     [ProducesResponseType(typeof(KitchenOrderResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> DecideCancellation([FromRoute] int restaurantId, [FromRoute] int orderId,

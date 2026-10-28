@@ -17,5 +17,7 @@ public sealed class OrderCancellationRequest
     public string? DecisionReason { get; set; }
     public bool? IngredientsUnused { get; set; }
     public DateTime? StockReturnedAt { get; set; }
+    public OrderStockReturnMode? StockReturnMode { get; set; }
+    public ICollection<OrderCancellationStockReturnLine> StockReturnLines { get; set; } = new List<OrderCancellationStockReturnLine>();
     public Order Order { get; set; } = null!;
 }

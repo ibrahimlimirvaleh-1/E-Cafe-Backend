@@ -17,6 +17,7 @@ using ECafe.Domain.Entities;
 using ECafe.Domain.Enums;
 using ECafe.Domain.Exceptions;
 using ECafe.Domain.Policies;
+using ECafe.Domain.ValueObjects;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -53,6 +54,17 @@ public sealed partial class OrderCancellationRequestManager(IHttpContextAccessor
         return KitchenOrderResponseMapper.Map(order);
     }
 
+    /// <summary>Yalnız qərar verə bilən aktiv mətbəx işçisinə ilkin sərfiyyat üzrə seçim göstərir; qiymət və müştəri məlumatı çıxarmır.</summary>
+    public async Task<KitchenStockReturnPreviewResponse> GetStockReturnPreviewAsync(int restaurantId, int orderId, CancellationToken token = default)
+    {
+        await RequireKitchenAsync(restaurantId, token);
+        var order = await KitchenOrderQuery(restaurantId, orderId, false).SingleOrDefaultAsync(token)
+            ?? throw new NotFoundException(ErrorCode.KitchenOrderNotFound);
+        OrderCancellationRequestPolicy.EnsureEligible(order);
+        if (!OrderCancellationRequestPolicy.CanDecide(order)) throw new BusinessRuleException(ErrorCode.OrderCancellationRequestNotAllowed);
+        return await stockReturn.PreviewAsync(order, token);
+    }
+
     /// <summary>Mətbəx qərarını ortaq masa kilidində tətbiq edir; istifadə olunmamış ərzaq ilkin uçotdan atomik qaytarılır, ödənişə toxunmur.</summary>
     public async Task<KitchenOrderResponse> DecideAsync(int restaurantId, int orderId, DecideOrderCancellationRequest request,
         CancellationToken token = default)
@@ -61,6 +73,9 @@ public sealed partial class OrderCancellationRequestManager(IHttpContextAccessor
         if (request == null) throw new BadRequestException(ErrorCode.RequestCannotBeNull);
         if (request.Approved is not bool approved) throw new BadRequestException(ErrorCode.InvalidOrderRequest);
         if (!approved && request.IngredientsUnused == true) throw new BadRequestException(ErrorCode.InvalidOrderRequest);
+        if (request.StockReturns?.Any(line => line == null) == true) throw new BadRequestException(ErrorCode.InvalidOrderRequest);
+        var decision = OrderStockReturnDecisionPolicy.Normalize(approved, request.IngredientsUnused, request.StockReturnMode,
+            request.StockReturns?.Select(line => new OrderStockReturnQuantity(line.InventoryItemId, line.ReturnQuantity)).ToArray());
         var reason = OrderCancellationPolicy.NormalizeReason(request.Reason);
         var tableId = await KitchenOrderQuery(restaurantId, orderId, false).Select(order => order.TableId).SingleOrDefaultAsync(token);
         if (tableId <= 0) throw new NotFoundException(ErrorCode.KitchenOrderNotFound);
@@ -70,11 +85,23 @@ public sealed partial class OrderCancellationRequestManager(IHttpContextAccessor
         var order = await KitchenOrderQuery(restaurantId, orderId, true).SingleOrDefaultAsync(token)
             ?? throw new NotFoundException(ErrorCode.KitchenOrderNotFound);
         if (order.TableId != tableId) throw new BusinessRuleException(ErrorCode.OrderSessionChanged);
-        var changed = OrderCancellationRequestPolicy.Decide(order, approved, GetCurrentUserId(), UtcNow(), reason, request.IngredientsUnused ?? false);
-        if (changed && approved && request.IngredientsUnused == true)
+        if (approved) OrderStockReturnDecisionPolicy.EnsureReplayMatches(order.CancellationRequest, decision);
+        var changed = OrderCancellationRequestPolicy.Decide(order, approved, GetCurrentUserId(), UtcNow(), reason,
+            decision.Mode == OrderStockReturnMode.Unused);
+        if (changed && approved)
         {
-            await stockReturn.RestoreAsync(order, token);
-            order.CancellationRequest!.StockReturnedAt = order.CancellationRequest.ResolvedAt;
+            var cancellation = order.CancellationRequest!;
+            cancellation.StockReturnMode = decision.Mode;
+            if (decision.Mode == OrderStockReturnMode.Unused)
+            {
+                await stockReturn.RestoreAsync(order, token);
+                cancellation.StockReturnedAt = cancellation.ResolvedAt;
+            }
+            else if (decision.Mode == OrderStockReturnMode.ByIngredient)
+            {
+                cancellation.IngredientsUnused = null;
+                if (await stockReturn.RestorePartialAsync(order, decision.Returns, token)) cancellation.StockReturnedAt = cancellation.ResolvedAt;
+            }
         }
         if (changed) await SaveDecisionAsync(order, approved ? AuditActions.OrderCancellationApproved : AuditActions.OrderCancellationRejected, token);
         await transaction.CommitAsync(token);
@@ -120,7 +147,9 @@ public sealed partial class OrderCancellationRequestManager(IHttpContextAccessor
         await audit.RecordRestaurantActionAsync(order.RestaurantId, action,
             new { orderId = order.Id, tableSessionId = order.TableSessionId, requestId = request.Id,
                 request.StatusId, request.Reason, request.RequestedAt, request.ForwardedAt, request.ResolvedAt,
-                request.DecisionReason, request.IngredientsUnused, request.StockReturnedAt, actorId = GetCurrentUserId() }, AuditEntityTypes.Order, order.Id);
+                request.DecisionReason, request.IngredientsUnused, request.StockReturnedAt, request.StockReturnMode,
+                stockReturns = request.StockReturnLines.OrderBy(line => line.InventoryItemId).Select(line => new { line.InventoryItemId, line.UnitId,
+                    line.ConsumedQuantity, line.ReturnQuantity }).ToArray(), actorId = GetCurrentUserId() }, AuditEntityTypes.Order, order.Id);
         await NotifyAsync(order, token);
     }
 

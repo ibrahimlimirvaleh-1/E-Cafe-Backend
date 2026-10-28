@@ -113,6 +113,7 @@ public static class Routes
         public const string MarkReady = Order + "/ready";
         public const string CancellationRequest = Order + "/cancellation-request";
         public const string DecideCancellation = CancellationRequest + "/decision";
+        public const string StockReturnPreview = CancellationRequest + "/stock-return";
     }
 
     public static class AuditLog

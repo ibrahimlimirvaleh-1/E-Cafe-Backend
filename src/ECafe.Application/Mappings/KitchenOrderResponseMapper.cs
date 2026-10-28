@@ -18,5 +18,6 @@ public static class KitchenOrderResponseMapper
             KitchenOrderProgressPolicy.CanApply(order, OrderStatus.Accepted),
             KitchenOrderProgressPolicy.CanApply(order, OrderStatus.Preparing),
             KitchenOrderProgressPolicy.CanApply(order, OrderStatus.Ready), canDecideCancellationRequest ?? OrderCancellationRequestPolicy.CanDecide(order),
-            OrderCancellationRequestMapper.Map(order.CancellationRequest));
+            OrderCancellationRequestMapper.Map(order.CancellationRequest), order.CancellationRequest?.StockReturnLines
+                .OrderBy(line => line.InventoryItemId).Select(line => new OrderStockReturnQuantityResponse(line.InventoryItemId, line.ReturnQuantity)).ToArray() ?? []);
 }

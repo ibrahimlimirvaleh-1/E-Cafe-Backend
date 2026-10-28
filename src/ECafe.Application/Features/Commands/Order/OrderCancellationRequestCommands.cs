@@ -8,6 +8,7 @@ public sealed record RequestWaiterCancellationCommand(int RestaurantId, int Sess
 public sealed record RequestCustomerCancellationCommand(int SessionId, int OrderId, CancelOrderRequest Body) : IRequest<CustomerSessionOrderResponse>;
 public sealed record ForwardCancellationCommand(int RestaurantId, int SessionId, int OrderId) : IRequest<SessionOrderResponse>;
 public sealed record KitchenCancellationQuery(int RestaurantId, int OrderId) : IRequest<KitchenOrderResponse>;
+public sealed record KitchenStockReturnPreviewQuery(int RestaurantId, int OrderId) : IRequest<KitchenStockReturnPreviewResponse>;
 public sealed record DecideCancellationCommand(int RestaurantId, int OrderId, DecideOrderCancellationRequest Body) : IRequest<KitchenOrderResponse>;
 
 public sealed class OrderCancellationRequestHandler(IOrderCancellationRequestService service) :
@@ -15,6 +16,7 @@ public sealed class OrderCancellationRequestHandler(IOrderCancellationRequestSer
     IRequestHandler<RequestCustomerCancellationCommand, CustomerSessionOrderResponse>,
     IRequestHandler<ForwardCancellationCommand, SessionOrderResponse>,
     IRequestHandler<KitchenCancellationQuery, KitchenOrderResponse>,
+    IRequestHandler<KitchenStockReturnPreviewQuery, KitchenStockReturnPreviewResponse>,
     IRequestHandler<DecideCancellationCommand, KitchenOrderResponse>
 {
     /// <summary>Ofisiantın sorğusunu rol və sessiya qorumalı xidmətə ötürür.</summary>
@@ -29,6 +31,9 @@ public sealed class OrderCancellationRequestHandler(IOrderCancellationRequestSer
     /// <summary>Mətbəxə qeyri-müəyyən qərar nəticəsini öz restoranında yoxlamağa imkan verir.</summary>
     public Task<KitchenOrderResponse> Handle(KitchenCancellationQuery request, CancellationToken token)
         => service.GetForKitchenAsync(request.RestaurantId, request.OrderId, token);
+    /// <summary>Ərzaq seçimini yalnız canlı rol və ilkin sərfiyyat qorumalı mətbəx xidmətindən oxuyur.</summary>
+    public Task<KitchenStockReturnPreviewResponse> Handle(KitchenStockReturnPreviewQuery request, CancellationToken token)
+        => service.GetStockReturnPreviewAsync(request.RestaurantId, request.OrderId, token);
     /// <summary>Qərarı canlı mətbəx rolu və ortaq masa kilidində icra edən xidmətə ötürür.</summary>
     public Task<KitchenOrderResponse> Handle(DecideCancellationCommand request, CancellationToken token)
         => service.DecideAsync(request.RestaurantId, request.OrderId, request.Body, token);

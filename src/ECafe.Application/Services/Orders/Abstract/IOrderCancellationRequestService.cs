@@ -8,5 +8,6 @@ public interface IOrderCancellationRequestService
     Task<CustomerSessionOrderResponse> RequestForCustomerAsync(int sessionId, int orderId, CancelOrderRequest request, CancellationToken token = default);
     Task<SessionOrderResponse> ForwardAsync(int restaurantId, int sessionId, int orderId, CancellationToken token = default);
     Task<KitchenOrderResponse> GetForKitchenAsync(int restaurantId, int orderId, CancellationToken token = default);
+    Task<KitchenStockReturnPreviewResponse> GetStockReturnPreviewAsync(int restaurantId, int orderId, CancellationToken token = default);
     Task<KitchenOrderResponse> DecideAsync(int restaurantId, int orderId, DecideOrderCancellationRequest request, CancellationToken token = default);
 }

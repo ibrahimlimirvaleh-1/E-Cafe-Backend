@@ -31,7 +31,7 @@ public static class CustomerOrderTrackingMapper
                     order.CancellationRequest.Reason, AsUtc(order.CancellationRequest.RequestedAt),
                     AsNullableUtc(order.CancellationRequest.ForwardedAt), AsNullableUtc(order.CancellationRequest.ResolvedAt),
                     order.CancellationRequest.StatusId == Domain.Enums.OrderCancellationRequestStatus.Expired ? null : order.CancellationRequest.DecisionReason,
-                    order.CancellationRequest.IngredientsUnused, AsNullableUtc(order.CancellationRequest.StockReturnedAt))));
+                    order.CancellationRequest.IngredientsUnused, AsNullableUtc(order.CancellationRequest.StockReturnedAt), order.CancellationRequest.StockReturnMode)));
     }
 
     /// <summary>Ləğvdən sonra yalnız icazəsi yoxlanmış müştəri cavabını yaradır; daxili qeyd və əməkdaş ID-si çıxarmır.</summary>

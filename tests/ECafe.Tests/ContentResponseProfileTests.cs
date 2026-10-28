@@ -27,6 +27,19 @@ namespace ECafe.Tests
     public sealed class ContentResponseProfileTests
     {
         [Fact]
+        public void KitchenStockPreviewLocalizesNamesWithoutChangingOriginalQuantitiesOrUnitCodes()
+        {
+            var ingredient = new KitchenStockReturnIngredientResponse(71, "Süd", 2, "Millilitr", "ml", 400.123456m);
+            var bindings = ContentTranslationReadMapper.Collect(new KitchenStockReturnPreviewResponse(25, [ingredient]));
+            Assert.Equal(2, bindings.Count);
+            foreach (var binding in bindings) ContentTranslationReadMapper.Apply(binding, new("Translated"));
+            Assert.Equal("Translated", ingredient.Name);
+            Assert.Equal("Translated", ingredient.UnitName);
+            Assert.Equal("ml", ingredient.UnitCode);
+            Assert.Equal(400.123456m, ingredient.ConsumedQuantity);
+        }
+
+        [Fact]
         public void AdditionalDtoProfileExtendsCollectionWithoutTraversalChanges()
         {
             var response = new AdditionalContentDto { Id = 12, Label = "Esas", PersonalName = "Ali" };

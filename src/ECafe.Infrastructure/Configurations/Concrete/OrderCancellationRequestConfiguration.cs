@@ -8,7 +8,8 @@ public sealed class OrderCancellationRequestConfiguration : IEntityTypeConfigura
 {
     public void Configure(EntityTypeBuilder<OrderCancellationRequest> builder)
     {
-        builder.ToTable("order_cancellation_requests", "ops");
+        builder.ToTable("order_cancellation_requests", "ops", table => table.HasCheckConstraint(
+            "cancellation_stock_return_mode_ck", "\"StockReturnMode\" IS NULL OR \"StockReturnMode\" IN (1, 2, 3)"));
         builder.HasKey(request => request.Id);
         builder.Property(request => request.Reason).HasMaxLength(500).IsRequired();
         builder.Property(request => request.DecisionReason).HasMaxLength(500);
