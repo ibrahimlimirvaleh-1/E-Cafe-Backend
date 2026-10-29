@@ -102,11 +102,11 @@ public sealed class ReservationTimingPolicyTests
     }
 
     [Fact]
-    public void NoNextReservation_DoesNotInventTableVacateTime()
+    public void NoNextReservation_UsesRealClosingAsServiceEnd()
     {
         var reservation = CreateReservation();
         var window = ReservationArrivalPolicy.GetWindow(reservation, null, new())!;
-        Assert.Null(window.MustVacateAt);
+        Assert.Equal(new DateTime(2026, 10, 1, 19, 0, 0, DateTimeKind.Utc), window.MustVacateAt);
         Assert.Equal(Start.AddMinutes(45), window.MaximumDeadlineAt);
         Assert.Equal(Start, reservation.ReservedAt);
     }
@@ -129,7 +129,9 @@ public sealed class ReservationTimingPolicyTests
         reservation.Restaurant.WorkingHours.Single().ClosesAt = new TimeOnly(3, 0);
         reservation.Restaurant.WorkingHours.Single().CloseDayOffset = 1;
         var window = ReservationArrivalPolicy.GetWindow(reservation, null, new())!;
+        Assert.Equal(new DateTime(2026, 10, 1, 23, 0, 0, DateTimeKind.Utc), window.MustVacateAt);
         Assert.Equal(new DateTime(2026, 10, 1, 23, 0, 0, DateTimeKind.Utc), window.MaximumDeadlineAt);
+        Assert.NotEmpty(ReservationArrivalPolicy.GetChoices(reservation, reservation.ReservedAt, window, new()));
     }
 
     [Fact]

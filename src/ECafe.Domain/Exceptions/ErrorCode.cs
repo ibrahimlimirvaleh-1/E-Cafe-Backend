@@ -221,5 +221,7 @@ public enum ErrorCode
     OrderCancellationWaiterUnavailable = 5116,
     OrderCancellationRequestNotFound = 5117,
     OrderStockReturnInvalid = 5118,
-    OrderStockReturnQuantitiesInvalid = 5119
+    OrderStockReturnQuantitiesInvalid = 5119,
+    RestaurantReservationArrivalCutoffInvalid = 5120,
+    ReservationArrivalCutoffPassed = 5121
 }

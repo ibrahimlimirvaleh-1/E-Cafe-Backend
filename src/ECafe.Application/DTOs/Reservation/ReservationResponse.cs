@@ -6,6 +6,7 @@ public sealed class ReservationResponse
     public int RestaurantId { get; init; }
     public int TableId { get; init; }
     public DateTimeOffset ReservedAt { get; init; }
+    public DateTimeOffset? ReservationArrivalCutoffAt { get; init; }
     public string? TimeZone { get; init; }
     public DateTimeOffset NoShowDeadlineAt { get; init; }
     public DateTimeOffset? ArrivedAt { get; init; }

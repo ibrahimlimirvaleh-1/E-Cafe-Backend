@@ -10,6 +10,10 @@ public class RestaurantWorkingHourDto
 
     public int? CloseDayOffset { get; set; }
 
+    public TimeOnly? LastReservationArrivalAt { get; set; }
+
+    public int? LastReservationArrivalDayOffset { get; set; }
+
     public bool IsClosed { get; set; }
 }
 

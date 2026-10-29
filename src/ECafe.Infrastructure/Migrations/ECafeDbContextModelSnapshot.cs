@@ -2530,6 +2530,10 @@ namespace ECafe.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("rejected_at");
 
+                    b.Property<DateTime?>("ReservationArrivalCutoffAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("reservation_arrival_cutoff_at");
+
                     b.Property<DateTime>("ReservedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("reserved_at");
@@ -2595,7 +2599,10 @@ namespace ECafe.Infrastructure.Migrations
 
                     b.HasIndex(new[] { "StatusId", "ArrivedAt", "WaitingEscalatedAt" }, "reservations_waiting_lookup_idx");
 
-                    b.ToTable("reservations", "ops");
+                    b.ToTable("reservations", "ops", t =>
+                        {
+                            t.HasCheckConstraint("ck_reservations_arrival_cutoff", "reservation_arrival_cutoff_at IS NULL OR reservation_arrival_cutoff_at >= reserved_at");
+                        });
                 });
 
             modelBuilder.Entity("ECafe.Domain.Entities.ReservationArrivalAdjustment", b =>
@@ -3823,6 +3830,14 @@ namespace ECafe.Infrastructure.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
+                    b.Property<TimeOnly?>("LastReservationArrivalAt")
+                        .HasColumnType("time without time zone")
+                        .HasColumnName("last_reservation_arrival_at");
+
+                    b.Property<int?>("LastReservationArrivalDayOffset")
+                        .HasColumnType("integer")
+                        .HasColumnName("last_reservation_arrival_day_offset");
+
                     b.Property<TimeOnly>("OpensAt")
                         .HasColumnType("time without time zone")
                         .HasColumnName("opens_at");
@@ -3846,6 +3861,8 @@ namespace ECafe.Infrastructure.Migrations
 
                     b.ToTable("restaurant_working_hours", "core", t =>
                         {
+                            t.HasCheckConstraint("ck_restaurant_working_hours_arrival_cutoff", "(last_reservation_arrival_at IS NULL AND last_reservation_arrival_day_offset IS NULL) OR (last_reservation_arrival_at IS NOT NULL AND last_reservation_arrival_day_offset IS NOT NULL AND is_closed = false AND last_reservation_arrival_day_offset BETWEEN 0 AND 1 AND EXTRACT(EPOCH FROM last_reservation_arrival_at) + last_reservation_arrival_day_offset * 86400 >= EXTRACT(EPOCH FROM opens_at) AND EXTRACT(EPOCH FROM last_reservation_arrival_at) + last_reservation_arrival_day_offset * 86400 < EXTRACT(EPOCH FROM closes_at) + close_day_offset * 86400)");
+
                             t.HasCheckConstraint("ck_restaurant_working_hours_close_day_offset", "close_day_offset >= 0 AND close_day_offset <= 1");
 
                             t.HasCheckConstraint("ck_restaurant_working_hours_day_of_week_range", "day_of_week >= 0 AND day_of_week <= 6");

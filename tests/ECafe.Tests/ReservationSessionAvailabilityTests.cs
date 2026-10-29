@@ -7,7 +7,7 @@ using Xunit;
 
 namespace ECafe.Tests;
 
-public sealed class ReservationSessionAvailabilityTests
+public sealed partial class ReservationSessionAvailabilityTests
 {
     [Fact]
     public async Task PreviousServiceSession_DoesNotHideFutureTable_InListOrSingleLookup()

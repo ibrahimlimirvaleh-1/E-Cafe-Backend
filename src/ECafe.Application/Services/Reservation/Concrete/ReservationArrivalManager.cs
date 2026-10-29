@@ -16,6 +16,7 @@ using ECafe.Application.Services.Reservation.Abstract;
 using ECafe.Domain.Entities;
 using ECafe.Domain.Enums;
 using ECafe.Domain.Exceptions;
+using ECafe.Domain.Policies;
 using ECafe.Domain.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
@@ -51,7 +52,8 @@ public sealed class ReservationArrivalManager(
             : Array.Empty<DateTimeOffset>();
         var adjustment = reservation.ArrivalAdjustment;
         var offer = adjustment != null && (adjustment.AcceptedAt.HasValue ||
-            reservation.StatusId == StatusIds.Reservation(ReservationStatus.Confirmed) && adjustment.DecisionExpiresAt > now)
+            reservation.StatusId == StatusIds.Reservation(ReservationStatus.Confirmed) && adjustment.DecisionExpiresAt > now &&
+            ReservationArrivalPolicy.OfferMatchesWindow(reservation, adjustment, window, now))
             ? MapOffer(reservation, adjustment, now)
             : null;
         return new(canRequest && choices.Count > 0, choices, offer, reservation.Restaurant.TimeZone);
@@ -83,6 +85,8 @@ public sealed class ReservationArrivalManager(
         var requestedAt = arrivalAt.UtcDateTime;
         if (requestedAt <= now || requestedAt <= reservation.ReservedAt || requestedAt >= window.MaximumDeadlineAt)
             throw new BusinessRuleException(ErrorCode.ReservationArrivalTimeInvalid);
+        if (!RestaurantReservationArrivalPolicy.Allows(requestedAt, window.ReservationArrivalCutoffAt))
+            throw new BusinessRuleException(ErrorCode.ReservationArrivalCutoffPassed);
         var decisionDeadline = ReservationArrivalPolicy.GetDecisionDeadline(reservation, now, window, _options);
         if (decisionDeadline <= now)
             throw new BusinessRuleException(ErrorCode.ReservationArrivalOfferExpired);
@@ -136,10 +140,7 @@ public sealed class ReservationArrivalManager(
         var next = await tables.GetNextReservationAtAsync(reservation.RestaurantId, reservation.TableId,
             reservation.Id, reservation.ReservedAt, cancellationToken);
         var window = ReservationArrivalPolicy.GetWindow(reservation, next, _options);
-        if (window == null || adjustment.RequestedArrivalAt >= window.MaximumDeadlineAt ||
-            adjustment.ProposedNoShowDeadlineAt <= now ||
-            adjustment.MustVacateAt != window.MustVacateAt ||
-            adjustment.ProposedNoShowDeadlineAt != ReservationArrivalPolicy.GetProposedDeadline(reservation, adjustment.RequestedArrivalAt, window))
+        if (!ReservationArrivalPolicy.OfferMatchesWindow(reservation, adjustment, window, now))
             throw new BusinessRuleException(ErrorCode.ReservationArrivalTermsChanged);
 
         adjustment.AcceptedAt = now;

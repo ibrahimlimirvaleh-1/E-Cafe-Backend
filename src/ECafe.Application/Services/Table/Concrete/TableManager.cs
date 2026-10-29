@@ -278,7 +278,16 @@ namespace ECafe.Application.Services.Table.Concrete
                     [],
                     false,
                     "RestaurantClosed",
-                    "Seçilmiş gəliş vaxtında restoran bağlıdır.");
+                    "Seçilmiş gəliş vaxtında restoran bağlıdır.",
+                    isReservationArrivalAllowed: false);
+
+            var cutoff = await _restaurantRepository.GetReservationArrivalCutoffAsync(restaurantId, reservedAt);
+            var cutoffOffset = cutoff.HasValue ? new DateTimeOffset(cutoff.Value) : (DateTimeOffset?)null;
+            if (!RestaurantReservationArrivalPolicy.Allows(reservedAt.UtcDateTime, cutoff))
+                return BuildTableAvailabilityResponse(reservedAt, reservationPreBlockMinutes, tableTurnoverBufferMinutes,
+                    depositAmount, restaurant.TimeZone, [], true, nameof(ErrorCode.ReservationArrivalCutoffPassed),
+                    ECafe.Application.Common.Errors.ErrorMessageProvider.DefaultMessages[ErrorCode.ReservationArrivalCutoffPassed],
+                    cutoffOffset, false);
 
             var availableTables = await _tableRepository.GetReservationTableAvailabilityAsync(restaurantId, reservedAt);
 
@@ -293,7 +302,7 @@ namespace ECafe.Application.Services.Table.Concrete
                 availableTables.Count > 0 ? "ReservationSlotAvailable" : "NoTableForReservationSlot",
                 availableTables.Count > 0
                     ? "Uyğun masalar tapıldı. Məhdud vaxtlı masalar seçildikdə çıxış vaxtı ayrıca göstəriləcək."
-                    : "Bu vaxt üçün uyğun masa yoxdur.");
+                    : "Bu vaxt üçün uyğun masa yoxdur.", cutoffOffset);
         }
 
         public async Task<List<TableResponse>> GetAvailableForReservationAsync(int restaurantId, DateTimeOffset reservedAt)
@@ -321,6 +330,7 @@ namespace ECafe.Application.Services.Table.Concrete
                 throw new BadRequestException("Restoranın aktiv müqaviləsi yoxdur.");
         }
 
+        /// <summary>Masa əlçatanlığını iş saatı və son rezervasiya gəlişindən ayrı göstərir; limit keçəndə açıq restoranı bağlı adlandırmır.</summary>
         private static TableAvailabilityResponse BuildTableAvailabilityResponse(
             DateTimeOffset reservedAt,
             int reservationPreBlockMinutes,
@@ -330,7 +340,9 @@ namespace ECafe.Application.Services.Table.Concrete
             IReadOnlyCollection<ReservationTableAvailability> availableTables,
             bool isRestaurantOpen,
             string messageCode,
-            string message)
+            string message,
+            DateTimeOffset? reservationArrivalCutoffAt = null,
+            bool isReservationArrivalAllowed = true)
         {
             var tables = availableTables
                 .Select(availability =>
@@ -351,6 +363,8 @@ namespace ECafe.Application.Services.Table.Concrete
                 DepositAmount = depositAmount,
                 RestaurantTimeZone = restaurantTimeZone,
                 IsRestaurantOpen = isRestaurantOpen,
+                ReservationArrivalCutoffAt = reservationArrivalCutoffAt,
+                IsReservationArrivalAllowed = isReservationArrivalAllowed,
                 HasAvailableTable = tables.Count > 0,
                 AvailableCount = tables.Count,
                 Tables = tables,

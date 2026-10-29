@@ -23,7 +23,7 @@ using Xunit;
 
 namespace ECafe.Tests;
 
-public sealed class RestaurantScheduleTests
+public sealed partial class RestaurantScheduleTests
 {
     private static readonly DateTime Now = new(2026, 10, 2, 6, 0, 0, DateTimeKind.Utc);
     private static readonly DateTime Arrival = new(2026, 10, 3, 15, 0, 0, DateTimeKind.Utc); // 19:00 in Baku.

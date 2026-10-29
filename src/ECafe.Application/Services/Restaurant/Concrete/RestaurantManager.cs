@@ -835,6 +835,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             response.TodayWorkingHours = openState.TodayWorkingHours;
         }
 
+        /// <summary>Faktiki açıq/bağlı vəziyyəti son rezervasiya gəlişindən ayırır və göstərilən iş gününün limitini cavaba əlavə edir.</summary>
         private static RestaurantOpenStateDto BuildOpenState(Domain.Entities.Restaurant restaurant)
         {
             var localNow = GetRestaurantLocalNow(restaurant.TimeZone);
@@ -865,6 +866,8 @@ namespace ECafe.Application.Services.Restaurant.Concrete
                         OpensAt = displayHours.OpensAt,
                         ClosesAt = displayHours.ClosesAt,
                         CloseDayOffset = displayHours.CloseDayOffset,
+                        LastReservationArrivalAt = displayHours.LastReservationArrivalAt,
+                        LastReservationArrivalDayOffset = displayHours.LastReservationArrivalDayOffset,
                         IsClosed = displayHours.IsClosed
                     }
             };
@@ -956,6 +959,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             IEnumerable<RestaurantWorkingHourDto>? workingHours)
             => ScheduleTerms.NormalizeComplete(workingHours);
 
+        /// <summary>Son gəliş limiti daxil iş saatlarının audit nüsxəsini sabit gün sırası ilə hazırlayır.</summary>
         private static object BuildWorkingHoursAuditPayload(IEnumerable<Domain.Entities.RestaurantWorkingHour> workingHours)
             => workingHours
                 .OrderBy(hour => hour.DayOfWeek)
@@ -965,6 +969,8 @@ namespace ECafe.Application.Services.Restaurant.Concrete
                     hour.OpensAt,
                     hour.ClosesAt,
                     hour.CloseDayOffset,
+                    hour.LastReservationArrivalAt,
+                    hour.LastReservationArrivalDayOffset,
                     hour.IsClosed
                 })
                 .ToList();

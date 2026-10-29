@@ -18,5 +18,7 @@ namespace ECafe.Application.Repositories.Restaurant
         Task<bool> HasRestaurantActiveContractAsync(int id);
 
         Task<bool> IsRestaurantOpenAsync(int restaurantId, DateTimeOffset reservedAt);
+        Task<DateTime?> GetReservationArrivalCutoffAsync(int restaurantId, DateTimeOffset reservedAt,
+            CancellationToken cancellationToken = default);
     }
 }
