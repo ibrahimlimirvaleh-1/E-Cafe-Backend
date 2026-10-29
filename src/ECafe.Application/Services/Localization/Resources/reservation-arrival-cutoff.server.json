@@ -1,0 +1,12 @@
+{
+  "api.error.RestaurantReservationArrivalCutoffInvalid": {
+    "az": "Son rezervasiya gəlişi açılış vaxtından tez, bağlanış vaxtında və ya ondan sonra ola bilməz. Gün seçimini də yoxlayın.",
+    "en": "The last reservation arrival must be within opening hours and before closing. Check the selected day as well.",
+    "ru": "Последнее время прибытия должно быть в пределах рабочего времени и раньше закрытия. Проверьте также выбранный день."
+  },
+  "api.error.ReservationArrivalCutoffPassed": {
+    "az": "Restoranın həmin gün üçün təyin etdiyi son rezervasiya gəlişi keçilib. Başqa vaxt seçin.",
+    "en": "The restaurant's last reservation arrival for this day has passed. Choose another time.",
+    "ru": "Последнее время прибытия по бронированию на этот день уже прошло. Выберите другое время."
+  }
+}

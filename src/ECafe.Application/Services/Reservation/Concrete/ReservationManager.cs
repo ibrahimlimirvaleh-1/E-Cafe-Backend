@@ -145,6 +145,9 @@ public sealed partial class ReservationManager : BaseManager, IReservationServic
         await _restaurantRepository.AcquireScheduleLockAsync(restaurantId, cancellationToken);
         var restaurant = await GetReservableRestaurantAsync(restaurantId);
         await EnsureRestaurantIsOpenAsync(restaurantId, request.ReservedAt);
+        var arrivalCutoff = await _restaurantRepository.GetReservationArrivalCutoffAsync(restaurantId, request.ReservedAt, cancellationToken);
+        if (!RestaurantReservationArrivalPolicy.Allows(request.ReservedAt.UtcDateTime, arrivalCutoff))
+            throw new BusinessRuleException(ErrorCode.ReservationArrivalCutoffPassed);
         var (dayStartUtc, dayEndUtc) = RestaurantTimeZoneConverter.GetUtcDayRange(
             request.ReservedAt,
             restaurant.TimeZone);
@@ -189,7 +192,8 @@ public sealed partial class ReservationManager : BaseManager, IReservationServic
             restaurant,
             request,
             tableAvailability.MustVacateAt,
-            depositAmount);
+            depositAmount,
+            arrivalCutoff);
         reservation.StatusHistory.Add(new ReservationStatusHistory
         {
             ToStatusId = reservation.StatusId,
@@ -1140,13 +1144,15 @@ public sealed partial class ReservationManager : BaseManager, IReservationServic
         return availability;
     }
 
+    /// <summary>Rezervasiyanın ilkin şərtlərini, o cümlədən həmin günün son gəliş limitini saxlayır; gələcək ayar dəyişikliyi bu nüsxəni dəyişmir.</summary>
     private Domain.Entities.Reservation BuildReservation(
         int restaurantId,
         int userId,
         Domain.Entities.Restaurant restaurant,
         CreateReservationRequest request,
         DateTime? mustVacateAt,
-        decimal depositAmount)
+        decimal depositAmount,
+        DateTime? reservationArrivalCutoffAt)
     {
         var cancellationWindowMinutes = Math.Max(restaurant.CancellationWindowMinutes, 0);
         var noShowGraceMinutes = Math.Max(restaurant.NoShowGraceMinutes, 0);
@@ -1166,6 +1172,7 @@ public sealed partial class ReservationManager : BaseManager, IReservationServic
             CancellationWindowMinutes = cancellationWindowMinutes,
             CancellationDeadline = reservedAtUtc.AddMinutes(-cancellationWindowMinutes),
             ReservedAt = reservedAtUtc,
+            ReservationArrivalCutoffAt = reservationArrivalCutoffAt,
             NoShowDeadlineAt = reservedAtUtc.AddMinutes(noShowGraceMinutes),
             MustVacateAt = mustVacateAt,
             HoldExpiresAt = null,
@@ -1409,6 +1416,7 @@ public sealed partial class ReservationManager : BaseManager, IReservationServic
             RestaurantId = reservation.RestaurantId,
             TableId = reservation.TableId,
             ReservedAt = ToUtcOffset(reservation.ReservedAt)!.Value,
+            ReservationArrivalCutoffAt = ToUtcOffset(reservation.ReservationArrivalCutoffAt),
             NoShowDeadlineAt = ToUtcOffset(reservation.NoShowDeadlineAt)!.Value,
             ArrivedAt = ToUtcOffset(reservation.ArrivedAt),
             SeatedAt = ToUtcOffset(reservation.SeatedAt),

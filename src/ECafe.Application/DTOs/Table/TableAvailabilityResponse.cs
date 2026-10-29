@@ -18,6 +18,10 @@ namespace ECafe.Application.DTOs.Table
 
         public bool IsRestaurantOpen { get; set; }
 
+        public DateTimeOffset? ReservationArrivalCutoffAt { get; set; }
+
+        public bool IsReservationArrivalAllowed { get; set; } = true;
+
         public bool HasAvailableTable { get; set; }
 
         public int AvailableCount { get; set; }

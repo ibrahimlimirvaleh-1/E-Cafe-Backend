@@ -1,13 +1,17 @@
 using ECafe.Domain.Entities;
 using ECafe.Domain.Enums;
 using ECafe.Domain.Exceptions;
+using ECafe.Domain.Policies;
 using ECafe.Domain.Services;
 using ECafe.Shared.Extensions;
 using ReservationEntity = ECafe.Domain.Entities.Reservation;
 
 namespace ECafe.Application.Services.Reservation.Concrete;
 
-public sealed record ReservationArrivalWindow(DateTime MaximumDeadlineAt, DateTime? MustVacateAt);
+public sealed record ReservationArrivalWindow(DateTime MaximumDeadlineAt, DateTime? MustVacateAt)
+{
+    public DateTime? ReservationArrivalCutoffAt { get; init; }
+}
 
 public static class ReservationArrivalPolicy
 {
@@ -41,6 +45,7 @@ public static class ReservationArrivalPolicy
            (reservation.NoShowDeadlineAt > nowUtc ||
             reservation.ArrivalAdjustment?.DecisionExpiresAt > nowUtc);
 
+    /// <summary>İlkin iş intervalında gözləmə və təhvil sərhədlərini saxlayır; son gəliş üçün rezervasiya yaradılarkən qorunan limitdən istifadə edir.</summary>
     public static ReservationArrivalWindow? GetWindow(ReservationEntity reservation, DateTime? nextReservationAt,
         ReservationTimingOptions options)
     {
@@ -51,20 +56,22 @@ public static class ReservationArrivalPolicy
 
         var cap = reservation.ArrivalAdjustment?.MaximumNoShowDeadlineAt
                   ?? reservation.ReservedAt.AddMinutes(options.MaximumLateArrivalMinutes);
-        cap = Min(cap, interval.EndsAt.UtcDateTime);
-        var mustVacateAt = reservation.MustVacateAt;
-        if (nextReservationAt.HasValue)
-        {
-            var nextDeadline = nextReservationAt.Value.AddMinutes(-reservation.Restaurant.TableTurnoverBufferMinutes);
-            mustVacateAt = mustVacateAt.HasValue ? Min(mustVacateAt.Value, nextDeadline) : nextDeadline;
-        }
-        if (mustVacateAt.HasValue)
-            cap = Min(cap, mustVacateAt.Value);
-        return new(cap, mustVacateAt);
+        var mustVacateAt = ReservationServiceWindowPolicy.GetServiceEnd(interval.EndsAt.UtcDateTime,
+            reservation.MustVacateAt, nextReservationAt, reservation.Restaurant.TableTurnoverBufferMinutes);
+        cap = Min(cap, mustVacateAt);
+        return new(cap, mustVacateAt) { ReservationArrivalCutoffAt = reservation.ReservationArrivalCutoffAt };
     }
 
     public static DateTime GetProposedDeadline(ReservationEntity reservation, DateTime arrivalAt, ReservationArrivalWindow window)
         => Min(arrivalAt.AddMinutes(reservation.Restaurant.NoShowGraceMinutes), window.MaximumDeadlineAt);
+
+    /// <summary>Gözləyən təklifin qorunmuş son gəliş limitinə, cari iş saatına və masa təhvil şərtlərinə uyğunluğunu yoxlayır.</summary>
+    public static bool OfferMatchesWindow(ReservationEntity reservation, ReservationArrivalAdjustment adjustment,
+        ReservationArrivalWindow? window, DateTime nowUtc)
+        => window != null && adjustment.RequestedArrivalAt < window.MaximumDeadlineAt &&
+           RestaurantReservationArrivalPolicy.Allows(adjustment.RequestedArrivalAt, window.ReservationArrivalCutoffAt) &&
+           adjustment.ProposedNoShowDeadlineAt > nowUtc && adjustment.MustVacateAt == window.MustVacateAt &&
+           adjustment.ProposedNoShowDeadlineAt == GetProposedDeadline(reservation, adjustment.RequestedArrivalAt, window);
 
     public static DateTime GetDecisionDeadline(ReservationEntity reservation, DateTime nowUtc,
         ReservationArrivalWindow window, ReservationTimingOptions options)
@@ -81,10 +88,11 @@ public static class ReservationArrivalPolicy
         var start = nowUtc > reservation.ReservedAt ? nowUtc : reservation.ReservedAt;
         var next = new DateTime(((start.Ticks / step) + 1) * step, DateTimeKind.Utc);
         var choices = new List<DateTimeOffset>();
-        for (; next < window.MaximumDeadlineAt; next = next.AddTicks(step))
+        for (; next < window.MaximumDeadlineAt && RestaurantReservationArrivalPolicy.Allows(next, window.ReservationArrivalCutoffAt); next = next.AddTicks(step))
             choices.Add(new DateTimeOffset(next));
         return choices;
     }
 
+    /// <summary>Gözləmə və razılıq müddətlərinin daha erkən sərhədini seçir.</summary>
     private static DateTime Min(DateTime first, DateTime second) => first < second ? first : second;
 }

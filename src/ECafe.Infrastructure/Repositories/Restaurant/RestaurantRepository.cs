@@ -4,6 +4,7 @@ using ECafe.Domain.Services;
 using ECafe.Application.Services.Restaurant.Schedule;
 using ECafe.Domain.Entities;
 using ECafe.Domain.Exceptions;
+using ECafe.Domain.Policies;
 using ECafe.Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
 
@@ -131,6 +132,15 @@ namespace ECafe.Infrastructure.Repositories.Restaurant
                 restaurant.WorkingHours,
                 restaurantLocalTime,
                 out _);
+        }
+
+        /// <summary>Rezervasiya kilidindən sonra iş saatlarını izləməsiz yenidən oxuyur; ümumi Find keşindəki boş və ya köhnə naviqasiyaya etibar etmir.</summary>
+        public async Task<DateTime?> GetReservationArrivalCutoffAsync(int restaurantId, DateTimeOffset reservedAt,
+            CancellationToken cancellationToken = default)
+        {
+            var restaurant = await Query(item => item.Id == restaurantId && item.IsActive)
+                .Include(item => item.WorkingHours).SingleOrDefaultAsync(cancellationToken);
+            return restaurant == null ? null : RestaurantReservationArrivalPolicy.GetCutoffAt(restaurant, reservedAt);
         }
     }
 }

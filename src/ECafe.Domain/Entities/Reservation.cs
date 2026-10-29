@@ -29,6 +29,8 @@ public partial class Reservation : AuditableSoftDeletableEntity<int>
 
     public DateTime ReservedAt { get; set; }
 
+    public DateTime? ReservationArrivalCutoffAt { get; set; }
+
     public DateTime NoShowDeadlineAt { get; set; }
 
     // Set only when this reservation is accepted before another reservation on the same table.

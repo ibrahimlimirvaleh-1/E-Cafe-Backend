@@ -76,7 +76,7 @@ public sealed class ReservationArrivalServiceTests
         Assert.True(accepted.Accepted);
         Assert.Equal(originalStart, f.Reservation.ReservedAt);
         Assert.Equal(originalStart.AddMinutes(45), f.Reservation.NoShowDeadlineAt);
-        Assert.Null(f.Reservation.MustVacateAt);
+        Assert.Equal(new DateTime(2026, 10, 1, 19, 0, 0, DateTimeKind.Utc), f.Reservation.MustVacateAt);
         Assert.Single(f.Reservation.StatusHistory);
         await f.Service.AcceptAsync(1, offer.ConsentToken, default);
         f.Notifications.Verify(n => n.CreateAsync(It.IsAny<CreateNotificationRequest>()), Times.Exactly(3));
@@ -175,5 +175,138 @@ public sealed class ReservationArrivalServiceTests
         var error = await Assert.ThrowsAsync<BusinessRuleException>(() => f.Service.AcceptAsync(1, offer.ConsentToken, default));
         Assert.Equal(ErrorCode.ReservationArrivalNotAvailable, error.Code);
         Assert.Null(f.Reservation.ArrivalAdjustment!.AcceptedAt);
+    }
+
+    [Fact]
+    public async Task Screenshot_NoOptionsAndDirect2355OfferIsRejectedBeforeMidnightClosing()
+    {
+        var f = BeforeMidnight(39);
+        var originalDeadline = f.Reservation.NoShowDeadlineAt;
+        var options = await f.Service.GetOptionsAsync(1, default);
+        Assert.False(options.CanRequest);
+        Assert.Empty(options.ArrivalChoices);
+        Assert.Null(options.Offer);
+        var error = await Assert.ThrowsAsync<BusinessRuleException>(() => f.Service.OfferAsync(1,
+            new DateTimeOffset(new DateTime(2026, 10, 1, 19, 55, 0, DateTimeKind.Utc)), default));
+        Assert.Equal(ErrorCode.ReservationArrivalCutoffPassed, error.Code);
+        Assert.Null(f.Reservation.ArrivalAdjustment);
+        Assert.Equal(originalDeadline, f.Reservation.NoShowDeadlineAt);
+        Assert.Empty(f.Reservation.StatusHistory);
+        f.Reservations.Verify(repository => repository.SaveChangesAsync(), Times.Never);
+        f.Notifications.Verify(service => service.CreateAsync(It.IsAny<CreateNotificationRequest>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ValidLateArrival_PreservesGraceAndConsentsToActualClosingTime()
+    {
+        var f = BeforeMidnight(0);
+        var arrival = f.Reservation.ReservedAt.AddMinutes(25);
+        var offer = await f.Service.OfferAsync(1, new DateTimeOffset(arrival), default);
+        Assert.Equal(new DateTime(2026, 10, 1, 19, 40, 0, DateTimeKind.Utc), offer.NoShowDeadlineAt.UtcDateTime);
+        Assert.Equal(new DateTime(2026, 10, 1, 20, 0, 0, DateTimeKind.Utc), offer.MustVacateAt!.Value.UtcDateTime);
+        Assert.Equal(offer.ConsentToken, (await f.Service.GetOptionsAsync(1, default)).Offer!.ConsentToken);
+        await f.Service.AcceptAsync(1, offer.ConsentToken, default);
+        Assert.Equal(arrival, f.Reservation.ArrivalAdjustment!.RequestedArrivalAt);
+        Assert.Equal(offer.MustVacateAt.Value.UtcDateTime, f.Reservation.MustVacateAt);
+        Assert.Equal(new DateTime(2026, 10, 1, 19, 0, 0, DateTimeKind.Utc), f.Reservation.ReservedAt);
+    }
+
+    [Fact]
+    public async Task LegacyUnsafePendingOffer_CannotBeDisplayedOrAccepted()
+    {
+        var f = BeforeMidnight(39);
+        var originalDeadline = f.Reservation.NoShowDeadlineAt;
+        var token = Guid.NewGuid();
+        f.Reservation.ArrivalAdjustment = new()
+        {
+            ConsentToken = token, RequestedArrivalAt = f.Reservation.ReservedAt.AddMinutes(16),
+            ProposedNoShowDeadlineAt = new DateTime(2026, 10, 1, 20, 0, 0, DateTimeKind.Utc),
+            OriginalNoShowDeadlineAt = originalDeadline,
+            MaximumNoShowDeadlineAt = new DateTime(2026, 10, 1, 20, 0, 0, DateTimeKind.Utc),
+            DecisionExpiresAt = f.Clock.Now.AddMinutes(3)
+        };
+        Assert.Null((await f.Service.GetOptionsAsync(1, default)).Offer);
+        var error = await Assert.ThrowsAsync<BusinessRuleException>(() => f.Service.AcceptAsync(1, token, default));
+        Assert.Equal(ErrorCode.ReservationArrivalTermsChanged, error.Code);
+        Assert.Null(f.Reservation.ArrivalAdjustment.AcceptedAt);
+        Assert.Equal(originalDeadline, f.Reservation.NoShowDeadlineAt);
+        f.Reservations.Verify(repository => repository.SaveChangesAsync(), Times.Never);
+    }
+
+    [Fact]
+    public async Task ClosingChangesWhileOfferIsOpen_RequiresFreshConsentWithoutMutation()
+    {
+        var f = BeforeMidnight(0);
+        var offer = await f.Service.OfferAsync(1, new DateTimeOffset(f.Reservation.ReservedAt.AddMinutes(25)), default);
+        f.Reservation.Restaurant.WorkingHours.Single().ClosesAt = new TimeOnly(23, 45);
+        f.Reservation.Restaurant.WorkingHours.Single().CloseDayOffset = 0;
+        var error = await Assert.ThrowsAsync<BusinessRuleException>(() => f.Service.AcceptAsync(1, offer.ConsentToken, default));
+        Assert.Equal(ErrorCode.ReservationArrivalTermsChanged, error.Code);
+        Assert.Null(f.Reservation.ArrivalAdjustment!.AcceptedAt);
+        Assert.Null((await f.Service.GetOptionsAsync(1, default)).Offer);
+        Assert.Empty(f.Reservation.StatusHistory);
+    }
+
+    [Fact]
+    public async Task TableLimitMovesEarlierAfterOffer_RejectsOldConsent()
+    {
+        var f = BeforeMidnight(0);
+        var offer = await f.Service.OfferAsync(1, new DateTimeOffset(f.Reservation.ReservedAt.AddMinutes(25)), default);
+        f.Tables.Setup(repository => repository.GetNextReservationAtAsync(2, 3, 1, f.Reservation.ReservedAt, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(f.Reservation.ReservedAt.AddMinutes(65));
+        var error = await Assert.ThrowsAsync<BusinessRuleException>(() => f.Service.AcceptAsync(1, offer.ConsentToken, default));
+        Assert.Equal(ErrorCode.ReservationArrivalTermsChanged, error.Code);
+        Assert.Null(f.Reservation.ArrivalAdjustment!.AcceptedAt);
+        var fresh = await f.Service.GetOptionsAsync(1, default);
+        Assert.True(fresh.CanRequest);
+        Assert.All(fresh.ArrivalChoices, choice => Assert.True(choice.UtcDateTime <= f.Reservation.ReservedAt.AddMinutes(30)));
+    }
+
+    [Fact]
+    public async Task ClosingTimeIsReadAgainAfterWaitingForReservationLock()
+    {
+        var f = BeforeMidnight(0);
+        var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        f.Tables.Setup(repository => repository.AcquireReservationLockAsync(2, 3, It.IsAny<CancellationToken>())).Returns(gate.Task);
+        var pending = f.Service.OfferAsync(1, new DateTimeOffset(f.Reservation.ReservedAt.AddMinutes(25)), default);
+        f.Reservation.Restaurant.WorkingHours.Single().ClosesAt = new TimeOnly(23, 20);
+        f.Reservation.Restaurant.WorkingHours.Single().LastReservationArrivalAt = new TimeOnly(23, 15);
+        f.Reservation.Restaurant.WorkingHours.Single().CloseDayOffset = 0;
+        gate.SetResult();
+        var error = await Assert.ThrowsAsync<BusinessRuleException>(() => pending);
+        Assert.Equal(ErrorCode.ReservationArrivalTimeInvalid, error.Code);
+        Assert.Null(f.Reservation.ArrivalAdjustment);
+    }
+
+    [Fact]
+    public async Task AcceptedTermsRemainIdempotentAfterClosing_WithoutRetroactiveCancellation()
+    {
+        var f = BeforeMidnight(0);
+        var offer = await f.Service.OfferAsync(1, new DateTimeOffset(f.Reservation.ReservedAt.AddMinutes(25)), default);
+        await f.Service.AcceptAsync(1, offer.ConsentToken, default);
+        var acceptedAt = f.Reservation.ArrivalAdjustment!.AcceptedAt;
+        f.Clock.Now = offer.MustVacateAt!.Value.UtcDateTime.AddMinutes(5);
+        var replay = await f.Service.AcceptAsync(1, offer.ConsentToken, default);
+        Assert.True(replay.Accepted);
+        Assert.Equal(acceptedAt, f.Reservation.ArrivalAdjustment.AcceptedAt);
+        Assert.Equal(StatusIds.Reservation(ReservationStatus.Confirmed), f.Reservation.StatusId);
+        Assert.Single(f.Reservation.StatusHistory);
+        Assert.True((await f.Service.GetOptionsAsync(1, default)).Offer!.Accepted);
+        f.Notifications.Verify(service => service.CreateAsync(It.IsAny<CreateNotificationRequest>()), Times.Exactly(3));
+    }
+
+    /// <summary>Gecəyarısı bağlanan restoranı və qərar verilən əvvəlki anı hazırlayır; real bazaya toxunmur.</summary>
+    private static Fixture BeforeMidnight(int minute)
+    {
+        var fixture = new Fixture();
+        fixture.Reservation.ReservedAt = new DateTime(2026, 10, 1, 19, minute, 0, DateTimeKind.Utc);
+        fixture.Reservation.NoShowDeadlineAt = fixture.Reservation.ReservedAt.AddMinutes(15);
+        fixture.Reservation.Restaurant.WorkingHours.Single().ClosesAt = TimeOnly.MinValue;
+        fixture.Reservation.Restaurant.WorkingHours.Single().CloseDayOffset = 1;
+        fixture.Reservation.Restaurant.WorkingHours.Single().LastReservationArrivalAt = new TimeOnly(23, Math.Max(minute, 30));
+        fixture.Reservation.Restaurant.WorkingHours.Single().LastReservationArrivalDayOffset = 0;
+        fixture.Reservation.ReservationArrivalCutoffAt = new DateTime(2026, 10, 1, 19, Math.Max(minute, 30), 0, DateTimeKind.Utc);
+        fixture.Clock.Now = fixture.Reservation.ReservedAt.AddMinutes(-12);
+        return fixture;
     }
 }

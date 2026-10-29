@@ -1,10 +1,14 @@
 using ECafe.Domain.Entities;
+using ECafe.Domain.Policies;
 
 namespace ECafe.Domain.Services;
 
 public readonly record struct WorkingHourInterval(
     DateTimeOffset StartsAt,
-    DateTimeOffset EndsAt);
+    DateTimeOffset EndsAt)
+{
+    public DateTimeOffset? ReservationArrivalCutoffAt { get; init; }
+}
 
 public static class RestaurantWorkingHoursCalculator
 {
@@ -31,6 +35,7 @@ public static class RestaurantWorkingHoursCalculator
         return true;
     }
 
+    /// <summary>Cari və əvvəlki iş günündən namizəd interval qurur; bağlanış və son rezervasiya gəlişinin ayrıca gün ofsetlərini saxlayır.</summary>
     private static IEnumerable<WorkingHourInterval> BuildCandidateIntervals(
         RestaurantWorkingHour workingHour,
         DateTimeOffset localDateTime)
@@ -57,7 +62,10 @@ public static class RestaurantWorkingHoursCalculator
             var end = new DateTimeOffset(endDate.ToDateTime(workingHour.ClosesAt), localDateTime.Offset);
 
             if (end > start)
-                yield return new WorkingHourInterval(start, end);
+                yield return new WorkingHourInterval(start, end)
+                {
+                    ReservationArrivalCutoffAt = RestaurantReservationArrivalPolicy.ResolveCutoff(workingHour, startDate, localDateTime.Offset)
+                };
         }
     }
 }

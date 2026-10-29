@@ -44,6 +44,7 @@ public sealed class RestaurantScheduleManager(
         Validate(request);
         await using var transaction = await transactions.BeginTransactionAsync(IsolationLevel.ReadCommitted, ct);
         await repository.AcquireLocksAsync(restaurantId, ct);
+        await AuthorizeManagerAsync(restaurantId);
         var restaurant = await repository.GetRestaurantAsync(restaurantId, ct)
             ?? throw new NotFoundException(ErrorCode.RestaurantNotFound);
         if (await repository.GetPendingAsync(restaurantId, ct) != null)
@@ -71,6 +72,7 @@ public sealed class RestaurantScheduleManager(
         await AuthorizeManagerAsync(restaurantId);
         await using var transaction = await transactions.BeginTransactionAsync(IsolationLevel.ReadCommitted, ct);
         await repository.AcquireLocksAsync(restaurantId, ct);
+        await AuthorizeManagerAsync(restaurantId);
         var change = await RequirePendingAsync(restaurantId, request.Token, ct);
         var active = await RefreshAsync(change, ct);
         // Preserve any new blockers in the response; do not apply partially.
@@ -112,6 +114,7 @@ public sealed class RestaurantScheduleManager(
         await AuthorizeManagerAsync(restaurantId);
         await using var transaction = await transactions.BeginTransactionAsync(IsolationLevel.ReadCommitted, ct);
         await repository.AcquireLocksAsync(restaurantId, ct);
+        await AuthorizeManagerAsync(restaurantId);
         var change = await RequirePendingAsync(restaurantId, request.Token, ct);
         change.State = ScheduleChangeState.Withdrawn;
         await repository.SaveAsync(ct);
@@ -189,6 +192,7 @@ public sealed class RestaurantScheduleManager(
     {
         if (ScheduleTerms.Equivalent(restaurant.WorkingHours, hours) && restaurant.TimeZone == timeZone) return;
         await repository.AcquireLocksAsync(restaurant.Id, ct);
+        if (!ScheduleTerms.CutoffsEquivalent(restaurant.WorkingHours, hours)) await AuthorizeManagerAsync(restaurant.Id);
         if (await repository.GetPendingAsync(restaurant.Id, ct) != null)
             throw new BusinessRuleException(ErrorCode.ScheduleChangeAlreadyPending);
         var reservations = await repository.GetActiveReservationsAsync(restaurant.Id, Now, ct);

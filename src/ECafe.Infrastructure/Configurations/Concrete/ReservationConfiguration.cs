@@ -10,7 +10,8 @@ namespace ECafe.Infrastructure.Configurations.Concrete
         {
             builder.HasKey(e => e.Id).HasName("reservations_pkey");
 
-            builder.ToTable("reservations", "ops");
+            builder.ToTable("reservations", "ops", table => table.HasCheckConstraint("ck_reservations_arrival_cutoff",
+                "reservation_arrival_cutoff_at IS NULL OR reservation_arrival_cutoff_at >= reserved_at"));
 
             builder.Property(e => e.Id).HasColumnName("id");
             builder.Property(e => e.CompletedAt).HasColumnName("completed_at");
@@ -48,6 +49,7 @@ namespace ECafe.Infrastructure.Configurations.Concrete
                 .HasColumnName("reject_reason");
             builder.Property(e => e.RefundEligible).HasColumnName("refund_eligible");
             builder.Property(e => e.ReservedAt).HasColumnName("reserved_at");
+            builder.Property(e => e.ReservationArrivalCutoffAt).HasColumnName("reservation_arrival_cutoff_at");
             builder.Property(e => e.NoShowDeadlineAt).HasColumnName("no_show_deadline_at");
             builder.Property(e => e.MustVacateAt).HasColumnName("must_vacate_at");
             builder.Property(e => e.RestaurantId).HasColumnName("restaurant_id");

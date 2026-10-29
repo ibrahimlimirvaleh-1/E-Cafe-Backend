@@ -21,6 +21,12 @@ public class RestaurantWorkingHourConfiguration : DbEntityConfig<RestaurantWorki
             t.HasCheckConstraint(
                 "ck_restaurant_working_hours_close_day_offset",
                 "close_day_offset >= 0 AND close_day_offset <= 1");
+            t.HasCheckConstraint("ck_restaurant_working_hours_arrival_cutoff",
+                "(last_reservation_arrival_at IS NULL AND last_reservation_arrival_day_offset IS NULL) OR " +
+                "(last_reservation_arrival_at IS NOT NULL AND last_reservation_arrival_day_offset IS NOT NULL AND is_closed = false AND " +
+                "last_reservation_arrival_day_offset BETWEEN 0 AND 1 AND " +
+                "EXTRACT(EPOCH FROM last_reservation_arrival_at) + last_reservation_arrival_day_offset * 86400 >= EXTRACT(EPOCH FROM opens_at) AND " +
+                "EXTRACT(EPOCH FROM last_reservation_arrival_at) + last_reservation_arrival_day_offset * 86400 < EXTRACT(EPOCH FROM closes_at) + close_day_offset * 86400)");
         });
 
         builder.HasIndex(e => new { e.RestaurantId, e.DayOfWeek }, "ux_restaurant_working_hours_restaurant_day")
@@ -41,6 +47,11 @@ public class RestaurantWorkingHourConfiguration : DbEntityConfig<RestaurantWorki
         builder.Property(e => e.CloseDayOffset)
             .HasDefaultValue(0)
             .HasColumnName("close_day_offset");
+        builder.Property(e => e.LastReservationArrivalAt)
+            .HasColumnType("time without time zone")
+            .HasColumnName("last_reservation_arrival_at");
+        builder.Property(e => e.LastReservationArrivalDayOffset)
+            .HasColumnName("last_reservation_arrival_day_offset");
         builder.Property(e => e.IsClosed)
             .HasDefaultValue(false)
             .HasColumnName("is_closed");

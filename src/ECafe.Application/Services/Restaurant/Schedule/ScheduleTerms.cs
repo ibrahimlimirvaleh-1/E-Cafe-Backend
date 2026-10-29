@@ -1,6 +1,7 @@
 using System.Text.Json;
 using ECafe.Application.DTOs.Restaurant;
 using ECafe.Domain.Entities;
+using ECafe.Domain.Policies;
 using ECafe.Domain.Services;
 
 namespace ECafe.Application.Services.Restaurant.Schedule;
@@ -30,24 +31,35 @@ public static class ScheduleTerms
             target.OpensAt = source.OpensAt;
             target.ClosesAt = source.ClosesAt;
             target.CloseDayOffset = source.CloseDayOffset;
+            target.LastReservationArrivalAt = source.LastReservationArrivalAt;
+            target.LastReservationArrivalDayOffset = source.LastReservationArrivalDayOffset;
             target.IsClosed = source.IsClosed;
         }
     }
 
+    /// <summary>İş saatı və son rezervasiya gəlişini eyni gün ofseti qaydaları ilə normallaşdırır; səhv limit saxlanılmır.</summary>
     public static List<RestaurantWorkingHour> Normalize(IEnumerable<RestaurantWorkingHourDto> hours)
-        => hours.OrderBy(h => h.DayOfWeek).Select(h => new RestaurantWorkingHour
+        => hours.OrderBy(h => h.DayOfWeek).Select(h =>
         {
-            DayOfWeek = h.DayOfWeek, OpensAt = h.OpensAt, ClosesAt = h.ClosesAt,
-            CloseDayOffset = h.ClosesAt == TimeOnly.MinValue && h.OpensAt > h.ClosesAt
-                ? 1 : h.CloseDayOffset ?? (h.OpensAt > h.ClosesAt ? 1 : 0),
-            IsClosed = h.IsClosed
+            var hour = new RestaurantWorkingHour
+            {
+                DayOfWeek = h.DayOfWeek, OpensAt = h.OpensAt, ClosesAt = h.ClosesAt,
+                CloseDayOffset = h.ClosesAt == TimeOnly.MinValue && h.OpensAt > h.ClosesAt
+                    ? 1 : h.CloseDayOffset ?? (h.OpensAt > h.ClosesAt ? 1 : 0),
+                IsClosed = h.IsClosed, LastReservationArrivalAt = h.LastReservationArrivalAt,
+                LastReservationArrivalDayOffset = h.LastReservationArrivalDayOffset
+            };
+            hour.LastReservationArrivalDayOffset = RestaurantReservationArrivalPolicy.NormalizeDayOffset(hour);
+            return hour;
         }).ToList();
 
     public static string Serialize(IEnumerable<RestaurantWorkingHour> hours)
         => JsonSerializer.Serialize(hours.OrderBy(h => h.DayOfWeek).Select(h => new RestaurantWorkingHourDto
         {
             DayOfWeek = h.DayOfWeek, OpensAt = h.OpensAt, ClosesAt = h.ClosesAt,
-            CloseDayOffset = h.CloseDayOffset, IsClosed = h.IsClosed
+            CloseDayOffset = h.CloseDayOffset, IsClosed = h.IsClosed,
+            LastReservationArrivalAt = h.LastReservationArrivalAt,
+            LastReservationArrivalDayOffset = h.LastReservationArrivalDayOffset
         }));
 
     public static List<RestaurantWorkingHour> Deserialize(string json)
@@ -55,6 +67,11 @@ public static class ScheduleTerms
 
     public static bool Equivalent(IEnumerable<RestaurantWorkingHour> first, IEnumerable<RestaurantWorkingHour> second)
         => Serialize(first) == Serialize(second);
+
+    /// <summary>Son gəliş limitinin dəyişməsini ayırır ki, həmin yazı ayrıca canlı menecer/sahibkar icazəsi tələb etsin.</summary>
+    public static bool CutoffsEquivalent(IEnumerable<RestaurantWorkingHour> first, IEnumerable<RestaurantWorkingHour> second)
+        => first.OrderBy(hour => hour.DayOfWeek).Select(hour => (hour.DayOfWeek, hour.LastReservationArrivalAt, hour.LastReservationArrivalDayOffset))
+            .SequenceEqual(second.OrderBy(hour => hour.DayOfWeek).Select(hour => (hour.DayOfWeek, hour.LastReservationArrivalAt, hour.LastReservationArrivalDayOffset)));
 
     // An earlier closing affects an unbounded stay even when the arrival still fits.
     public static bool IsAffected(IEnumerable<RestaurantWorkingHour> current, IEnumerable<RestaurantWorkingHour> proposed,

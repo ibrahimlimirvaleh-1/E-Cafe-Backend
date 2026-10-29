@@ -14,6 +14,10 @@ public class RestaurantWorkingHour : AuditableSoftDeletableEntity<int>
 
     public int CloseDayOffset { get; set; }
 
+    public TimeOnly? LastReservationArrivalAt { get; set; }
+
+    public int? LastReservationArrivalDayOffset { get; set; }
+
     public bool IsClosed { get; set; }
 
     public virtual Restaurant Restaurant { get; set; } = null!;

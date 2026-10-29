@@ -129,7 +129,7 @@ namespace ECafe.Infrastructure.Repositories.Table
             DateTimeOffset reservedAt,
             int? excludedReservationId = null)
         {
-            var policy = await GetReservationPolicyAsync(restaurantId, reservedAt);
+            var policy = await GetReservationPolicyAsync(restaurantId, reservedAt, enforceArrivalCutoff: !excludedReservationId.HasValue);
             if (policy is null)
                 return null;
 
@@ -170,7 +170,7 @@ namespace ECafe.Infrastructure.Repositories.Table
             int excludedReservationId, DateTime originalReservedAtUtc, CancellationToken cancellationToken = default)
         {
             var policy = await GetReservationPolicyAsync(restaurantId,
-                new DateTimeOffset(DateTime.SpecifyKind(originalReservedAtUtc, DateTimeKind.Utc)));
+                new DateTimeOffset(DateTime.SpecifyKind(originalReservedAtUtc, DateTimeKind.Utc)), enforceArrivalCutoff: false);
             if (policy is null)
                 return null;
 
@@ -234,9 +234,11 @@ namespace ECafe.Infrastructure.Repositories.Table
                   r.StatusId != pendingPaymentStatusId)));
         }
 
+        /// <summary>Yeni rezervasiyada son gəliş limitini yoxlayır; əvvəlki rezervasiyanın təsdiqində və növbəti masanı oxuyanda yeni limit köhnə şərtləri dəyişmir.</summary>
         private async Task<ReservationAvailabilityPolicy?> GetReservationPolicyAsync(
             int restaurantId,
-            DateTimeOffset reservedAt)
+            DateTimeOffset reservedAt,
+            bool enforceArrivalCutoff = true)
         {
             var restaurant = await Context.Restaurants
                 .AsNoTracking()
@@ -260,6 +262,9 @@ namespace ECafe.Infrastructure.Repositories.Table
                     localTime,
                     out var interval))
                 return null;
+
+            if (enforceArrivalCutoff && !ECafe.Domain.Policies.RestaurantReservationArrivalPolicy.Allows(
+                    reservedAt.UtcDateTime, interval.ReservationArrivalCutoffAt?.UtcDateTime)) return null;
 
             return new ReservationAvailabilityPolicy(
                 restaurant.ReservationPreBlockMinutes,
