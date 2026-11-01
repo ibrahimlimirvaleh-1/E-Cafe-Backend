@@ -38,7 +38,7 @@ using Xunit;
 
 namespace ECafe.Tests;
 
-public sealed class TableSessionCloseReviewTests
+public sealed partial class TableSessionCloseReviewTests
 {
     [Theory]
     [InlineData("2026-10-15T19:00:00Z", "2026-10-15T22:00:00Z", false)]
