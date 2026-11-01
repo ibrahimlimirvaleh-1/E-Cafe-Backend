@@ -2017,5 +2017,11 @@
   "ui.waiter.workspaceTabs": "Table sections",
   "ui.waiter.bill": "Bill",
   "ui.waiter.openTable": "Open table",
+  "ui.waiter.manageTable": "Go to orders",
+  "ui.waiter.billUnavailable": "The bill has not been verified yet. Check the Bill tab and refresh it if needed before placing a new order.",
+  "ui.sessionBill.depositApplied": "Covered by deposit",
+  "ui.sessionBill.additionalPaid": "Additional payments",
+  "ui.sessionBill.depositCovered": "The {{amount}} deposit fully covers this bill. No additional payment is needed.",
+  "ui.sessionClose.billSummary": "Bill: {{deposit}} covered by deposit, {{paid}} paid separately, {{remaining}} remaining.",
   "ui.waiter.draftUnavailable": "Order draft could not be saved. Check browser storage."
 }

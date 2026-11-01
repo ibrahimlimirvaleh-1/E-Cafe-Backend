@@ -2017,5 +2017,11 @@
   "ui.waiter.workspaceTabs": "Разделы стола",
   "ui.waiter.bill": "Счёт",
   "ui.waiter.openTable": "Открыть стол",
+  "ui.waiter.manageTable": "К заказам",
+  "ui.waiter.billUnavailable": "Счёт ещё не проверен. Перед новым заказом проверьте раздел «Счёт» и при необходимости обновите его.",
+  "ui.sessionBill.depositApplied": "Покрыто депозитом",
+  "ui.sessionBill.additionalPaid": "Дополнительно оплачено",
+  "ui.sessionBill.depositCovered": "Депозит {{amount}} полностью покрывает счёт. Дополнительная оплата не требуется.",
+  "ui.sessionClose.billSummary": "Счёт: депозит {{deposit}}, дополнительно оплачено {{paid}}, остаток {{remaining}}.",
   "ui.waiter.draftUnavailable": "Черновик заказа не сохранён. Проверьте хранилище браузера."
 }

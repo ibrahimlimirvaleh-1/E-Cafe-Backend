@@ -2017,5 +2017,11 @@
   "ui.waiter.workspaceTabs": "Masa bölmələri",
   "ui.waiter.bill": "Hesab",
   "ui.waiter.openTable": "Masanı aç",
+  "ui.waiter.manageTable": "Sifarişlərə keç",
+  "ui.waiter.billUnavailable": "Hesab hələ təsdiqlənməyib. Yeni sifariş üçün Hesab bölməsində vəziyyəti yoxlayın və lazım olsa hesabı yeniləyin.",
+  "ui.sessionBill.depositApplied": "Depozitdən qarşılanan",
+  "ui.sessionBill.additionalPaid": "Əlavə ödənilmiş",
+  "ui.sessionBill.depositCovered": "{{amount}} depozit hesabı tam qarşılayır. Əlavə ödəniş tələb olunmur.",
+  "ui.sessionClose.billSummary": "Hesab: depozitdən {{deposit}}, əlavə ödənilmiş {{paid}}, qalıq {{remaining}}.",
   "ui.waiter.draftUnavailable": "Qaralama sifariş saxlanmadı. Brauzer yaddaşını yoxlayın."
 }
