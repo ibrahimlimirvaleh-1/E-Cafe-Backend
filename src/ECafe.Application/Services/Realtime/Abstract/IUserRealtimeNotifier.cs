@@ -2,6 +2,9 @@ namespace ECafe.Application.Services.Realtime.Abstract;
 
 public interface IUserRealtimeNotifier
 {
+    Task NotifyOrderChangedAsync(IReadOnlyCollection<int> userIds, OrderChangedEvent change,
+        CancellationToken cancellationToken = default);
+
     Task NotifyNotificationsChangedAsync(int userId, CancellationToken cancellationToken = default);
 
     Task NotifyUserDeactivatedAsync(int userId, string message, CancellationToken cancellationToken = default);

@@ -2018,6 +2018,8 @@
   "ui.waiter.bill": "Счёт",
   "ui.waiter.openTable": "Открыть стол",
   "ui.waiter.manageTable": "К заказам",
+  "ui.realtime.reconnecting": "Восстанавливаем обновления в реальном времени. Данные обновятся автоматически.",
+  "ui.realtime.offline": "Обновления в реальном времени недоступны. Данные проверяются резервным обновлением.",
   "ui.waiter.billUnavailable": "Счёт ещё не проверен. Перед новым заказом проверьте раздел «Счёт» и при необходимости обновите его.",
   "ui.sessionBill.depositApplied": "Покрыто депозитом",
   "ui.sessionBill.additionalPaid": "Дополнительно оплачено",

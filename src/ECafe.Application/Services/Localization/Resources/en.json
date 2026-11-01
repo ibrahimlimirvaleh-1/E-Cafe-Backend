@@ -2018,6 +2018,8 @@
   "ui.waiter.bill": "Bill",
   "ui.waiter.openTable": "Open table",
   "ui.waiter.manageTable": "Go to orders",
+  "ui.realtime.reconnecting": "Reconnecting live updates. Data will refresh automatically.",
+  "ui.realtime.offline": "Live updates are unavailable. Data is checked by fallback refresh.",
   "ui.waiter.billUnavailable": "The bill has not been verified yet. Check the Bill tab and refresh it if needed before placing a new order.",
   "ui.sessionBill.depositApplied": "Covered by deposit",
   "ui.sessionBill.additionalPaid": "Additional payments",
