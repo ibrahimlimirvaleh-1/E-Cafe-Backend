@@ -1,5 +1,6 @@
 using ECafe.Api.Realtime;
 using ECafe.Application.Services.Realtime.Abstract;
+using ECafe.Application.Services.Realtime;
 using Microsoft.AspNetCore.SignalR;
 
 namespace ECafe.Api.Services.Realtime;
@@ -17,6 +18,12 @@ public sealed class UserRealtimeNotifier : IUserRealtimeNotifier
     {
         _hubContext = hubContext;
     }
+
+    /// <summary>Serverin hesabladığı aktiv auditoriyaya yalnız sifariş scope-unu göndərir; bütün restorana açıq yayım etmir.</summary>
+    public Task NotifyOrderChangedAsync(IReadOnlyCollection<int> userIds, OrderChangedEvent change,
+        CancellationToken cancellationToken = default)
+        => _hubContext.Clients.Users(userIds.Select(id => id.ToString()).ToArray())
+            .SendAsync("OrderChanged", change, cancellationToken);
 
     public Task NotifyNotificationsChangedAsync(int userId, CancellationToken cancellationToken = default)
         => SendUserEventAsync(userId, NotificationsChangedEvent, new

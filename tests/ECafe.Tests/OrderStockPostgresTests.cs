@@ -756,9 +756,13 @@ public sealed partial class OrderStockPostgresTests
             _connection = builder.ConnectionString;
         }
 
-        /// <summary>Hər oxunuş/yazı üçün müstəqil bağlantı ilə real yarış şəraiti yaradır.</summary>
-        public ECafeDbContext Context() => new(new DbContextOptionsBuilder<ECafeDbContext>()
-            .UseNpgsql(_connection, options => options.CommandTimeout(10)).Options);
+        /// <summary>Hər sorğuya ayrıca bağlantı verir; real vaxt testində istehsaldakı atomik outbox interceptor-unu da aktiv edir.</summary>
+        public ECafeDbContext Context(bool realtime = false)
+        {
+            var options = new DbContextOptionsBuilder<ECafeDbContext>().UseNpgsql(_connection, builder => builder.CommandTimeout(10));
+            if (realtime) options.AddInterceptors(new ECafe.Infrastructure.Services.Realtime.RealtimeOutboxInterceptor());
+            return new(options.Options);
+        }
 
         /// <summary>Yalnız bu testin yaratdığı unikal bazada model və reseptli iki ayrı masa sifarişi qurur.</summary>
         public static async Task<Database> CreateAsync(decimal quantity)

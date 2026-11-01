@@ -84,11 +84,15 @@ namespace ECafe.Infrastructure
                 throw new InvalidOperationException("Connection string 'ECafeDb' is missing.");
 
             services.AddScoped<PermissionCacheInvalidationInterceptor>();
+            services.AddSingleton<Services.Realtime.RealtimeOutboxInterceptor>();
+            services.AddScoped<Services.Realtime.OrderRealtimeRecipients>();
+            services.AddScoped<Services.Realtime.RealtimeOutboxProcessor>();
 
             services.AddDbContext<ECafeDbContext>((serviceProvider, options) =>
                 options
                     .UseNpgsql(connStr)
-                    .AddInterceptors(serviceProvider.GetRequiredService<PermissionCacheInvalidationInterceptor>()));
+                    .AddInterceptors(serviceProvider.GetRequiredService<PermissionCacheInvalidationInterceptor>(),
+                        serviceProvider.GetRequiredService<Services.Realtime.RealtimeOutboxInterceptor>()));
 
             services.AddScoped(typeof(IBaseRepository<>), typeof(BaseRepository<>));
             services.AddScoped<Application.Repositories.Localization.ITranslationRepository, Repositories.Localization.TranslationRepository>();

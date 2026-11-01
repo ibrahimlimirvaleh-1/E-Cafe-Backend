@@ -2018,6 +2018,8 @@
   "ui.waiter.bill": "Hesab",
   "ui.waiter.openTable": "Masanı aç",
   "ui.waiter.manageTable": "Sifarişlərə keç",
+  "ui.realtime.reconnecting": "Canlı bağlantı bərpa olunur. Məlumatlar avtomatik yenilənəcək.",
+  "ui.realtime.offline": "Canlı bağlantı yoxdur. Məlumatlar ehtiyat yenilənmə ilə yoxlanılır.",
   "ui.waiter.billUnavailable": "Hesab hələ təsdiqlənməyib. Yeni sifariş üçün Hesab bölməsində vəziyyəti yoxlayın və lazım olsa hesabı yeniləyin.",
   "ui.sessionBill.depositApplied": "Depozitdən qarşılanan",
   "ui.sessionBill.additionalPaid": "Əlavə ödənilmiş",

@@ -6,5 +6,7 @@ namespace ECafe.Application.Common.Outbox
         public const string EmailNotificationRequested = "EmailNotificationRequested";
         public const string SmsNotificationRequested = "SmsNotificationRequested";
         public const string MobilePushRequested = "MobilePushRequested";
+        public const string OrderRealtimeRequested = "OrderRealtimeRequested";
+        public const string NotificationRealtimeRequested = "NotificationRealtimeRequested";
     }
 }
