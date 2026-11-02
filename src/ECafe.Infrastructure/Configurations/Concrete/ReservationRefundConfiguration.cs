@@ -33,6 +33,8 @@ public sealed class ReservationRefundConfiguration : DbEntityConfig<ReservationR
 
         builder.HasIndex(e => e.ReservationId, "reservation_refunds_reservation_id_key").IsUnique();
         builder.HasIndex(e => new { e.StatusId, e.RequestedAt }, "reservation_refunds_status_requested_at_idx");
+        builder.HasIndex(e => new { e.RefundedAt, e.Id }, "refunds_dashboard_completed_idx")
+            .HasFilter("refunded_at IS NOT NULL AND \"IsDeleted\" = false");
 
         builder.HasOne(e => e.Reservation)
             .WithMany(e => e.Refunds)

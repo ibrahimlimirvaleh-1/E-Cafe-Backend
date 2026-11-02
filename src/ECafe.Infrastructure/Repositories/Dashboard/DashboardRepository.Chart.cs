@@ -21,8 +21,10 @@ public sealed partial class DashboardRepository
                     Part = reservation.ReservedAt.Minute / DashboardPeriodPolicy.ChartBucketMinutes })
                 .Select(group => new DashboardHour(group.Key.Date, group.Key.Hour, group.Count(), group.Key.Part * DashboardPeriodPolicy.ChartBucketMinutes)).ToListAsync(cancellationToken);
         var cancelled = StatusIds.Build(StatusType.Order, (int)OrderStatus.Cancelled);
+        var pending = StatusIds.Build(StatusType.Order, (int)OrderStatus.PendingWaiterConfirmation);
         return await db.Orders.AsNoTracking().Where(order => ids.Contains(order.RestaurantId) &&
-                order.OpenedAt >= period.StartUtc && order.OpenedAt < period.EndUtc && order.StatusId != cancelled)
+                order.OpenedAt >= period.StartUtc && order.OpenedAt < period.EndUtc && order.StatusId != cancelled &&
+                (scope.Role != RoleCode.Owner || order.StatusId != pending))
             .GroupBy(order => new { Date = order.OpenedAt.Date, Hour = order.OpenedAt.Hour,
                 Part = order.OpenedAt.Minute / DashboardPeriodPolicy.ChartBucketMinutes })
             .Select(group => new DashboardHour(group.Key.Date, group.Key.Hour, scope.Role == RoleCode.Owner

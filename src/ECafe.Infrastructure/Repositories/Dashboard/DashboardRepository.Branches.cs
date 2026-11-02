@@ -18,6 +18,7 @@ public sealed partial class DashboardRepository
         var receipts = Receipts(scope);
         var refunds = Refunds(scope);
         var cancelled = StatusIds.Build(StatusType.Order, (int)OrderStatus.Cancelled);
+        var pending = StatusIds.Build(StatusType.Order, (int)OrderStatus.PendingWaiterConfirmation);
         var activeContract = StatusIds.Contract(ContractStatus.Active);
         var page = restaurants
             .OrderBy(restaurant => restaurant.Name)
@@ -41,10 +42,10 @@ public sealed partial class DashboardRepository
                 row.Restaurant.Id, row.Restaurant.Name, row.Restaurant.BranchName, row.Restaurant.IsActive,
                 row.Restaurant.Reservations.Count(reservation =>
                     reservation.ReservedAt >= period.StartUtc && reservation.ReservedAt < period.EndUtc),
-                row.Restaurant.Orders.Count(order => order.StatusId != cancelled &&
+                row.Restaurant.Orders.Count(order => order.StatusId != cancelled && order.StatusId != pending &&
                     order.OpenedAt >= period.StartUtc && order.OpenedAt < period.EndUtc),
                 row.Restaurant.Orders
-                    .Where(order => order.StatusId != cancelled && order.OpenedAt >= period.StartUtc && order.OpenedAt < period.EndUtc)
+                    .Where(order => order.StatusId != cancelled && order.StatusId != pending && order.OpenedAt >= period.StartUtc && order.OpenedAt < period.EndUtc)
                     .SelectMany(order => order.OrderItems)
                     .Where(line => !line.IsDeleted)
                     .Sum(line => (decimal?)line.LineTotal) ?? 0,

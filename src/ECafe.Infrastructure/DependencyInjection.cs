@@ -136,6 +136,7 @@ namespace ECafe.Infrastructure
             services.AddScoped<ITableSessionRepository, TableSessionRepository>();
             services.AddScoped<IOrderRepository, OrderRepository>();
             services.AddScoped<Application.Repositories.Dashboard.IDashboardRepository, Repositories.Dashboard.DashboardRepository>();
+            services.AddScoped<Application.Repositories.Dashboard.IDashboardReportRepository, Repositories.Dashboard.DashboardRepository>();
             services.AddScoped<ICategoryRepository, CategoryRepository>();
             services.AddScoped<IItemRepository, ItemRepository>();
             services.AddScoped<IFileRepository, FileRepository>();

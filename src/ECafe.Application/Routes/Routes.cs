@@ -7,6 +7,12 @@ public static class Routes
         public const string Platform = Base + "/dashboard/platform";
         public const string Owner = Base + "/dashboard/owner";
         public const string Manager = Base + "/dashboard/manager";
+        public const string PlatformReports = Platform + "/reports";
+        public const string OwnerReports = Owner + "/reports";
+        public const string ManagerReports = Manager + "/reports";
+        public const string PlatformReportExport = PlatformReports + "/export";
+        public const string OwnerReportExport = OwnerReports + "/export";
+        public const string ManagerReportExport = ManagerReports + "/export";
     }
 
     public static class Localization

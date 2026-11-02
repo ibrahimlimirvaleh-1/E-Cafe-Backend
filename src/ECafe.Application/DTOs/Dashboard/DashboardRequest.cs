@@ -1,6 +1,6 @@
 namespace ECafe.Application.DTOs.Dashboard;
 
-public sealed class DashboardRequest
+public class DashboardRequest
 {
     public int? RestaurantId { get; set; }
     public string Period { get; set; } = "week";

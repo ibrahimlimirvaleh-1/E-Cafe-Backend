@@ -119,6 +119,7 @@ namespace ECafe.Application
         services.AddScoped<IOrderCancellationRequestService, OrderCancellationRequestManager>();
         services.AddScoped<IOrderStockReturnService, OrderStockReturnManager>();
             services.AddScoped<Services.Dashboard.Abstract.IDashboardService, Services.Dashboard.Concrete.DashboardManager>();
+            services.AddScoped<Services.Dashboard.Abstract.IDashboardReportService, Services.Dashboard.Concrete.DashboardReportManager>();
             services.AddOptions<PaymentOptions>()
                 .Configure<IConfiguration>((options, configuration) => configuration.GetSection(PaymentOptions.SectionName).Bind(options))
                 .Validate(options => options.Mode is "Disabled" or "Simulation", "Payments:Mode must be Disabled or Simulation.")

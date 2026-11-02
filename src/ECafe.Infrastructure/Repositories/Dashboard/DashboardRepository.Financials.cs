@@ -39,8 +39,9 @@ public sealed partial class DashboardRepository
     {
         var ids = Restaurants(scope).Select(restaurant => restaurant.Id);
         var cancelled = StatusIds.Build(StatusType.Order, (int)OrderStatus.Cancelled);
+        var pending = StatusIds.Build(StatusType.Order, (int)OrderStatus.PendingWaiterConfirmation);
         var orderQuery = db.Orders.AsNoTracking().Where(order => ids.Contains(order.RestaurantId) &&
-            order.OpenedAt >= startUtc && order.OpenedAt < endUtc && order.StatusId != cancelled);
+            order.OpenedAt >= startUtc && order.OpenedAt < endUtc && order.StatusId != cancelled && order.StatusId != pending);
         var orders = await orderQuery.GroupBy(_ => 1).Select(group => new
         {
             Count = group.Count(), Amount = group.Sum(order => order.OrderItems.Where(line => !line.IsDeleted).Sum(line => (decimal?)line.LineTotal) ?? 0)
