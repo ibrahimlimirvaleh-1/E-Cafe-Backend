@@ -16,7 +16,7 @@ public static class TableSessionBillingPolicy
     public const string Currency = "AZN";
     private const decimal MaximumAmount = 99999999.99m;
 
-    /// <summary>Saxlanmış sifariş qiymətlərini toplayır; ləğv edilmiş sətirləri, təsdiqlənməmiş və qaytarılmış ödənişləri borcdan çıxmır.</summary>
+    /// <summary>Təsdiqlənmiş sifariş qiymətlərini toplayır; gözləyən sifariş borc yaratmır, amma hesablaşmanı bloklayır. Yalnız təsdiqlənmiş, qaytarılmamış ödənişlər çıxılır.</summary>
     public static TableSessionBill Calculate(TableSession session)
     {
         var orders = session.Orders.Where(order => !order.IsDeleted &&
@@ -35,7 +35,7 @@ public static class TableSessionBillingPolicy
                     line.LineTotal != decimal.Round(line.Quantity * line.UnitPriceSnapshot, 2) ||
                     line.LineTotal != decimal.Round(line.LineTotal, 2))
                     throw new BusinessRuleException(ErrorCode.SessionBillInvalid);
-                total += line.LineTotal;
+                if (order.StatusId != OrderStatusId(OrderStatus.PendingWaiterConfirmation)) total += line.LineTotal;
                 signature.Append(order.Id).Append(':').Append(line.Id).Append(':').Append(line.Quantity)
                     .Append(':').Append(line.LineTotal.ToString("G29", CultureInfo.InvariantCulture)).Append('|');
             }

@@ -12,6 +12,20 @@ namespace ECafe.Api.Controllers;
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 public sealed class CustomerOrderController : BaseController
 {
+    /// <summary>Müştərinin öz açıq sessiyasında ofisiant təsdiqini gözləyən sifariş yaradır; mətbəx, stok və ödəniş dəyişmir.</summary>
+    /// <remarks>Idempotency-Key hər yeni sifariş üçün UUID-dir. Cavabı bilinməyən sorğunu eyni açar və məzmunla təkrarlayın. İlk cavab 201, təkrar 200, fərqli məzmunlu eyni açar 409 olur. Müştəri və restoran sorğudan qəbul edilmir; qiymətlər serverdə hesablanır.</remarks>
+    [HttpPost(ApiRoutes.CustomerOrder.Create)]
+    [ProducesResponseType(typeof(CustomerSessionOrderResponse), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(CustomerSessionOrderResponse), StatusCodes.Status200OK)]
+    public async Task<IActionResult> Create([FromRoute] int tableSessionId,
+        [FromHeader(Name = "Idempotency-Key")] Guid requestId, [FromBody] CreateCustomerOrderRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await Mediator.Send(new CreateCustomerOrderCommand(tableSessionId, requestId, request), cancellationToken);
+        return result.IsReplay ? Ok(result.Order) : CreatedAtAction(nameof(GetOrder),
+            new { tableSessionId, orderId = result.Order.Id }, result.Order);
+    }
+
     /// <summary>Müştərinin hazırlanan sifarişi üçün cari ofisianta ləğv istəyi yaradır; başqa şəxsin sessiyasını qəbul etmir.</summary>
     [HttpPost(ApiRoutes.CustomerOrder.RequestCancellation)]
     [ProducesResponseType(typeof(CustomerSessionOrderResponse), StatusCodes.Status200OK)]
@@ -20,7 +34,7 @@ public sealed class CustomerOrderController : BaseController
         => Ok(await Mediator.Send(new RequestCustomerCancellationCommand(tableSessionId, orderId, request), token));
 
     /// <summary>Müştəri öz sessiyasında hələ hazırlanmağa başlanmamış sifarişi birbaşa ləğv edir.</summary>
-    /// <remarks>Body: reason (3-500 simvol); yeni Idempotency-Key lazım deyil. Yalnız Created/Accepted. Eyni orderId təkrarı ilk nəticəni qaytarır. Yad sessiya/sifariş üçün 404, hazırlama və ödəniş konflikti üçün 409. Stok, depozit və rezervasiya dəyişmir.</remarks>
+    /// <remarks>Body: reason (3-500 simvol); yeni Idempotency-Key lazım deyil. Yalnız PendingWaiterConfirmation/Created/Accepted. Eyni orderId təkrarı ilk nəticəni qaytarır. Yad sessiya/sifariş üçün 404, hazırlama və ödəniş konflikti üçün 409. Stok, depozit və rezervasiya dəyişmir.</remarks>
     [HttpPost(ApiRoutes.CustomerOrder.Cancel)]
     [ProducesResponseType(typeof(CustomerSessionOrderResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> Cancel([FromRoute] int tableSessionId, [FromRoute] int orderId,

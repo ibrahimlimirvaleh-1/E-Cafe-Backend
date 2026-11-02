@@ -26,6 +26,9 @@ namespace ECafe.Domain.Enums
         Cancelled = 7,
 
         [Description("Sifariş planlaşdırılıb")]
-        Scheduled = 8
+        Scheduled = 8,
+
+        [Description("Ofisiant təsdiqini gözləyir")]
+        PendingWaiterConfirmation = 9
     }
 }

@@ -99,7 +99,9 @@ namespace ECafe.Infrastructure.Repositories.TableSession
                 .Select(session => TableSessionViewMapper.Map(session, nowUtc,
                     readyOrders.Count(order => order.TableSessionId == session.Id && order.RestaurantId == session.RestaurantId && order.TableId == session.TableId),
                     session.Orders.Count(order => !order.IsDeleted && order.RestaurantId == session.RestaurantId && order.TableId == session.TableId &&
-                        order.StatusId == createdStatusId && order.SentToKitchenAt == null && order.ClosedAt == null && order.ServedAt == null)));
+                        (order.StatusId == createdStatusId || order.StatusId == StatusIds.Build(StatusType.Order,
+                            (int)OrderStatus.PendingWaiterConfirmation) && order.SourceId == (int)OrderSource.Customer) &&
+                        order.SentToKitchenAt == null && order.ClosedAt == null && order.ServedAt == null)));
         }
 
         public async Task<Dictionary<int, int>> GetOpenSessionCountsByWaitersAsync(

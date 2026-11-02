@@ -114,6 +114,7 @@ namespace ECafe.Application
                 .Validate(options => options.MaxContinuationHours is > 0 and <= 24 && options.MaxReasonLength is > 0 and <= 500,
                     "Table session review limits are outside supported ranges.").ValidateOnStart();
             services.AddScoped<IOrderService, OrderManager>();
+            services.AddScoped<ICustomerOrderSubmissionService, OrderManager>();
             services.AddScoped<IOrderCancellationService, OrderCancellationManager>();
         services.AddScoped<IOrderCancellationRequestService, OrderCancellationRequestManager>();
         services.AddScoped<IOrderStockReturnService, OrderStockReturnManager>();

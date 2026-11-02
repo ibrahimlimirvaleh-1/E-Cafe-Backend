@@ -297,9 +297,9 @@ public sealed class CustomerOrderTrackingTests
         Assert.True(type.GetCustomAttribute<ResponseCacheAttribute>()!.NoStore);
         Assert.Contains("CustomerOrder", EcafeSwaggerMetadata.Tags.Keys);
         var methods = type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
-        Assert.Equal(6, methods.Length);
+        Assert.Equal(7, methods.Length);
         Assert.Equal(4, methods.Count(method => method.GetCustomAttribute<HttpGetAttribute>() != null));
-        Assert.Equal(2, methods.Count(method => method.GetCustomAttribute<HttpPostAttribute>() != null));
+        Assert.Equal(3, methods.Count(method => method.GetCustomAttribute<HttpPostAttribute>() != null));
         var cancel = Assert.Single(methods, method => method.Name == nameof(CustomerOrderController.Cancel));
         Assert.Equal(nameof(CustomerOrderController.Cancel), cancel.Name);
         Assert.Equal(ECafe.Application.Routes.Routes.CustomerOrder.Cancel, cancel.GetCustomAttribute<HttpPostAttribute>()!.Template);

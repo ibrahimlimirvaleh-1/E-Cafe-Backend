@@ -14,7 +14,9 @@ public static class OrderCancellationPolicy
     public static Expression<Func<Order, bool>> Cancellable { get; } = order =>
         !order.IsDeleted && order.CancelledAt == null && order.ClosedAt == null &&
         order.PreparingAt == null && order.ReadyAt == null && order.ServedAt == null &&
-        (order.StatusId == StatusIds.Build(StatusType.Order, (int)OrderStatus.Created) && order.AcceptedAt == null ||
+        (order.StatusId == StatusIds.Build(StatusType.Order, (int)OrderStatus.PendingWaiterConfirmation) &&
+         order.SourceId == (int)OrderSource.Customer && order.SentToKitchenAt == null && order.AcceptedAt == null ||
+         order.StatusId == StatusIds.Build(StatusType.Order, (int)OrderStatus.Created) && order.AcceptedAt == null ||
          order.StatusId == StatusIds.Build(StatusType.Order, (int)OrderStatus.Accepted) &&
          order.SentToKitchenAt != null && order.AcceptedAt != null) &&
         order.TableSession != null && !order.TableSession.IsDeleted && order.TableSession.ClosedAt == null &&

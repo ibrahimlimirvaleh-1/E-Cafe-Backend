@@ -8,9 +8,13 @@ public static class CustomerOrderTrackingMapper
 {
     /// <summary>Yalnız müştəriyə lazım olan sessiya sahələrini seçir; daxili qeydlər, işçi ID-ləri və maliyyə rekvizitləri yüklənmir.</summary>
     public static IQueryable<CustomerTableSessionResponse> ProjectSessions(IQueryable<Domain.Entities.TableSession> query)
-        => query.Select(session => new CustomerTableSessionResponse(session.Id, session.RestaurantId,
+    {
+        var available = query.Where(CustomerOrderSubmissionPolicy.AvailableAt(DateTime.UtcNow));
+        return query.Select(session => new CustomerTableSessionResponse(session.Id, session.RestaurantId,
             session.Restaurant.Name, session.TableId, TableName(session.Table), session.ReservationId,
-            session.StatusId, AsUtc(session.OpenedAt), AsNullableUtc(session.ClosedAt), session.Restaurant.TimeZone));
+            session.StatusId, AsUtc(session.OpenedAt), AsNullableUtc(session.ClosedAt), session.Restaurant.TimeZone,
+            available.Any(candidate => candidate.Id == session.Id)));
+    }
 
     /// <summary>Menyu dəyişsə də saxlanılmış məhsul/qiymət nüsxələrini və faktiki mərhələ vaxtlarını göstərir; daxili qeydləri və əməkdaş məlumatlarını çıxarmır.</summary>
     public static IQueryable<CustomerSessionOrderResponse> ProjectOrders(IQueryable<Domain.Entities.Order> query)
