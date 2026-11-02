@@ -5,8 +5,8 @@
     "ru": "Экспорт ограничен 5000 строками. Сократите период или выберите ресторан."
   },
   "api.error.DashboardFilterInvalid": {
-    "az": "Dashboard filtri düzgün deyil. Tarix aralığı 1–92 gün, ödəniş rejimi real və ya test olmalıdır.",
-    "en": "Invalid dashboard filter. The date range must be 1–92 days and the payment mode must be real or test.",
-    "ru": "Неверный фильтр панели. Период должен составлять от 1 до 92 дней, режим платежей — real или test."
+    "az": "Hesabat filtri düzgün deyil. Tarix aralığı 1–92 gün, günün başlanğıc saatı 0–12, ödəniş rejimi real və ya test olmalıdır.",
+    "en": "Invalid report filter. Use a 1–92 day range, a day start hour from 0 to 12, and real or test payment mode.",
+    "ru": "Неверный фильтр отчёта. Период: 1–92 дня, час начала дня: 0–12, режим платежей: real или test."
   }
 }

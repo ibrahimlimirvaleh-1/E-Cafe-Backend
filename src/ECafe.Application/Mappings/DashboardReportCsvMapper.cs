@@ -11,8 +11,8 @@ public static class DashboardReportCsvMapper
     {
         var csv = new StringBuilder();
         var context = new object?[] { report.Kind, report.TimeZone, report.From, report.To,
-            report.Kind == "payments" ? report.PaymentMode : "not_applicable" };
-        var headings = new[] { "report_kind", "time_zone", "period_from", "period_to", "payment_mode" };
+            report.Kind is "payments" or "settlements" or "branches" ? report.PaymentMode : "not_applicable", report.DayStartHour };
+        var headings = new[] { "report_kind", "time_zone", "period_from", "period_to", "payment_mode", "day_start_hour" };
         switch (report.Kind)
         {
             case "orders":
@@ -35,10 +35,14 @@ public static class DashboardReportCsvMapper
                         row.Amount, row.Purpose, row.ReservationId, row.TableSessionId, row.StatusId, row.IsTest]));
                 break;
             default:
-                throw new ArgumentException("Unsupported report kind.", nameof(report));
+                if (report.Detail == null) throw new ArgumentException("Unsupported report kind.", nameof(report));
+                Append(csv, headings.Concat(report.Detail.Columns.Select(column => column.Key)));
+                foreach (var row in report.Detail.Rows)
+                    Append(csv, context.Concat(row.Cells.Select(cell => cell.Number.HasValue ? (object)cell.Number.Value : cell.Utc.HasValue ? cell.Utc.Value : cell.Text)));
+                break;
         }
         var content = Encoding.UTF8.GetPreamble().Concat(Encoding.UTF8.GetBytes(csv.ToString())).ToArray();
-        var mode = report.Kind == "payments" ? "-" + report.PaymentMode : "";
+        var mode = report.Kind is "payments" or "settlements" or "branches" ? "-" + report.PaymentMode : "";
         return new(content, $"ecafe-{report.Kind}-{report.From:yyyy-MM-dd}-{report.To:yyyy-MM-dd}{mode}.csv");
     }
 

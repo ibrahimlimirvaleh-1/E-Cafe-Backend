@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ECafe.Infrastructure.Repositories.Dashboard;
 
-public sealed partial class DashboardRepository(ECafeDbContext db) : IDashboardRepository, IDashboardReportRepository
+public sealed partial class DashboardRepository(ECafeDbContext db, TimeProvider? clock = null) : IDashboardRepository, IDashboardReportRepository
 {
     /// <summary>Bütün oxuma sorğularına eyni restoran sərhədini subquery kimi tətbiq edir; seçilən ID hüquqları genişləndirmir.</summary>
     private IQueryable<Domain.Entities.Restaurant> Restaurants(DashboardScope scope)

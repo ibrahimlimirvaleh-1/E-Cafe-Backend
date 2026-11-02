@@ -17,9 +17,17 @@ public static class DashboardReportPolicy
             "orders" => DashboardReportKind.Orders,
             "reservations" => DashboardReportKind.Reservations,
             "payments" => DashboardReportKind.Payments,
+            "products" => DashboardReportKind.Products,
+            "kitchen" => DashboardReportKind.Kitchen,
+            "cancellations" => DashboardReportKind.Cancellations,
+            "reservation-outcomes" => DashboardReportKind.ReservationOutcomes,
+            "tables" => DashboardReportKind.Tables,
+            "settlements" => DashboardReportKind.Settlements,
+            "branches" => DashboardReportKind.Branches,
+            "stock" => DashboardReportKind.Stock,
             _ => throw new BadRequestException(ErrorCode.DashboardFilterInvalid)
         };
-        if (parsed == DashboardReportKind.Payments && role == RoleCode.Manager)
+        if (parsed is DashboardReportKind.Payments or DashboardReportKind.Settlements or DashboardReportKind.Branches && role == RoleCode.Manager)
             throw new ForbiddenException(ErrorCode.AccessDenied);
         if (paymentEvent is not ("all" or "receipt" or "refund") || parsed != DashboardReportKind.Payments && paymentEvent != "all")
             throw new BadRequestException(ErrorCode.DashboardFilterInvalid);
