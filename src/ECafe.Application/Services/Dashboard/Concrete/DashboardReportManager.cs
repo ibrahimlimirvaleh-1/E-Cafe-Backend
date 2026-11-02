@@ -34,7 +34,7 @@ public sealed class DashboardReportManager(IHttpContextAccessor accessor, IMappe
         var access = await accessRepository.ResolveAccessAsync(scope, cancellationToken)
             ?? throw new ForbiddenException(ErrorCode.AccessDenied);
         var now = clock.GetUtcNow();
-        var period = DashboardPeriodPolicy.Resolve(request.Period, request.From, request.To, access.TimeZone, now);
+        var period = DashboardReportPeriodPolicy.Resolve(request.Period, request.From, request.To, access.TimeZone, now, request.DayStartHour);
         var data = await reports.GetReportAsync(scope, period, kind, request.StatusId, request.PaymentEvent,
             request.PageIndex, export, cancellationToken);
         return DashboardReportResponseMapper.Map(role, request, period, now.UtcDateTime, kind, data, export);

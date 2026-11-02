@@ -24,6 +24,14 @@ public sealed partial class DashboardRepository
             DashboardReportKind.Orders => await ReadOrderReportAsync(scope, period, statusId, pageIndex, export, cancellationToken),
             DashboardReportKind.Reservations => await ReadReservationReportAsync(scope, period, statusId, pageIndex, export, cancellationToken),
             DashboardReportKind.Payments when scope.Role != RoleCode.Manager => await ReadPaymentReportAsync(scope, period, paymentEvent, pageIndex, export, cancellationToken),
+            DashboardReportKind.Products => await ReadProductReportAsync(scope, period, pageIndex, export, cancellationToken),
+            DashboardReportKind.Kitchen => await ReadKitchenReportAsync(scope, period, pageIndex, export, cancellationToken),
+            DashboardReportKind.Cancellations => await ReadCancellationReportAsync(scope, period, pageIndex, export, cancellationToken),
+            DashboardReportKind.ReservationOutcomes => await ReadReservationOutcomeReportAsync(scope, period, pageIndex, export, cancellationToken),
+            DashboardReportKind.Tables => await ReadTableUsageReportAsync(scope, period, pageIndex, export, cancellationToken),
+            DashboardReportKind.Settlements when scope.Role != RoleCode.Manager => await ReadSettlementReportAsync(scope, period, pageIndex, export, cancellationToken),
+            DashboardReportKind.Branches when scope.Role != RoleCode.Manager => await ReadBranchComparisonReportAsync(scope, period, pageIndex, export, cancellationToken),
+            DashboardReportKind.Stock => await ReadStockReportAsync(scope, period, pageIndex, export, cancellationToken),
             _ => throw new ForbiddenException(ErrorCode.AccessDenied)
         };
         if (transaction != null) await transaction.CommitAsync(cancellationToken);

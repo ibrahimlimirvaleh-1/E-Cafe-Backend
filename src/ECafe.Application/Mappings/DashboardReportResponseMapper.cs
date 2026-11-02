@@ -11,6 +11,7 @@ public static class DashboardReportResponseMapper
     public static DashboardReportResponse Map(RoleCode role, DashboardReportRequest request, DashboardPeriod period,
         DateTime nowUtc, DashboardReportKind kind, DashboardReportData data, bool export)
         => new(request.Kind, nowUtc, period.TimeZone, period.From, period.To, request.PaymentMode,
-            DashboardReportMetricMapper.Map(kind, role, data.Totals), data.Orders, data.Reservations, data.Payments,
-            export ? 1 : request.PageIndex, export ? DashboardReportPolicy.ExportLimit : DashboardReportPolicy.PageSize, data.Totals.RowCount);
+            data.OperationalMetrics ?? DashboardReportMetricMapper.Map(kind, role, data.Totals), data.Orders, data.Reservations, data.Payments,
+            export ? 1 : request.PageIndex, export ? DashboardReportPolicy.ExportLimit : DashboardReportPolicy.PageSize, data.Totals.RowCount,
+            data.Detail, request.DayStartHour);
 }
