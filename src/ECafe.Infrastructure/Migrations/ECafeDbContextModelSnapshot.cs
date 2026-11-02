@@ -4719,6 +4719,16 @@ namespace ECafe.Infrastructure.Migrations
                         },
                         new
                         {
+                            Id = 2009,
+                            BlocksTableAvailability = false,
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            CreatedBy = "",
+                            IsDeleted = false,
+                            Name = "Ofisiant təsdiqini gözləyir",
+                            StatusTypeId = 2
+                        },
+                        new
+                        {
                             Id = 1001,
                             BlocksTableAvailability = true,
                             CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),

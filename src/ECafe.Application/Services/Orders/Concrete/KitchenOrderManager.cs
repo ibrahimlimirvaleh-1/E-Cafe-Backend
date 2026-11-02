@@ -32,7 +32,7 @@ public sealed partial class KitchenOrderManager(IHttpContextAccessor accessor, I
     INotificationService notifications, IAuditLogService audit, TimeProvider clock, IOrderStockService stock)
     : BaseManager(accessor, mapper, configuration), IKitchenOrderService
 {
-    /// <summary>Ofisiantın sifarişini masa kilidində mətbəxə bir dəfə göndərir; qəbul statusu, stok və ödəniş dəyişmir.</summary>
+    /// <summary>Cari ofisiantın sifarişini masa kilidində bir dəfə göndərir; müştəri sifarişinin təsdiqini göndərmə ilə atomik saxlayır, stok və ödəniş dəyişmir.</summary>
     public async Task<SessionOrderResponse> SendAsync(int restaurantId, int tableSessionId, int orderId,
         CancellationToken cancellationToken = default)
     {
@@ -45,8 +45,11 @@ public sealed partial class KitchenOrderManager(IHttpContextAccessor accessor, I
 
         var order = await orders.QueryTracked(order => order.Id == orderId && order.RestaurantId == restaurantId &&
                 order.TableSessionId == tableSessionId && order.TableId == current.TableId &&
-                order.WaiterUserId == GetCurrentUserId() && order.SourceId == (int)OrderSource.Waiter)
-            .Include(order => order.OrderItems).Include(order => order.Table).SingleOrDefaultAsync(cancellationToken)
+                (order.WaiterUserId == GetCurrentUserId() && order.SourceId == (int)OrderSource.Waiter ||
+                 order.SourceId == (int)OrderSource.Customer && order.CustomerUserId.HasValue &&
+                 order.TableSession != null && order.CustomerUserId == order.TableSession.CustomerUserId))
+            .Include(order => order.OrderItems).Include(order => order.Table).Include(order => order.Payments)
+            .SingleOrDefaultAsync(cancellationToken)
             ?? throw new NotFoundException(ErrorCode.OrderNotFound);
 
         // Eyni sifarişin ID-si təbii təkrar sorğu açarıdır; tarix, audit və bildiriş ikinci dəfə yaradılmır.
@@ -56,11 +59,20 @@ public sealed partial class KitchenOrderManager(IHttpContextAccessor accessor, I
             return OrderResponseMapper.Map(order, await orders.Query(candidate => candidate.Id == order.Id)
                 .Where(OrderCancellationPolicy.Cancellable).AnyAsync(cancellationToken));
         }
+        if (order.SourceId == (int)OrderSource.Customer)
+        {
+            if (!CustomerOrderSubmissionPolicy.CanApprove(order) ||
+                !await CanApproveCustomerOrderAsync(order.Id, cancellationToken))
+                throw new BusinessRuleException(ErrorCode.OrderCannotSendToKitchen);
+            order.StatusId = StatusIds.Build(StatusType.Order, (int)OrderStatus.Created);
+            order.WaiterUserId = GetCurrentUserId();
+        }
         if (order.ClosedAt != null || order.StatusId != StatusIds.Build(StatusType.Order, (int)OrderStatus.Created) ||
             !order.OrderItems.Any(line => !line.IsDeleted) || order.OrderItems.Any(line => !line.IsDeleted && line.Quantity <= 0))
             throw new BusinessRuleException(ErrorCode.OrderCannotSendToKitchen);
 
-        order.SentToKitchenAt = clock.GetUtcNow().UtcDateTime;
+        var nowUtc = clock.GetUtcNow().UtcDateTime;
+        order.SentToKitchenAt = new DateTime(nowUtc.Ticks - nowUtc.Ticks % TimeSpan.TicksPerMicrosecond, DateTimeKind.Utc);
         await orders.SaveChangesAsync();
         await NotifyKitchenAsync(order, cancellationToken);
         await audit.RecordRestaurantActionAsync(restaurantId, AuditActions.OrderSentToKitchen,
@@ -69,6 +81,18 @@ public sealed partial class KitchenOrderManager(IHttpContextAccessor accessor, I
         return OrderResponseMapper.Map(order, await orders.Query(candidate => candidate.Id == order.Id)
             .Where(OrderCancellationPolicy.Cancellable).AnyAsync(cancellationToken));
     }
+
+    /// <summary>Müştəri sifarişinin təsdiqində sessiya/müqavilə/ödəniş və menyu mövcudluğunu yenidən SQL-də yoxlayır; qəbul edilmiş qiymət nüsxəsini dəyişmir.</summary>
+    private Task<bool> CanApproveCustomerOrderAsync(int orderId, CancellationToken cancellationToken)
+        => orders.Query(order => order.Id == orderId && order.TableSession != null &&
+                order.OrderItems.All(line => line.IsDeleted || !line.Item.IsDeleted && line.Item.IsActive &&
+                    line.Item.IsAvailable && line.Item.RestaurantId == order.RestaurantId &&
+                    line.Item.Category.IsActive && !line.Item.Category.IsDeleted &&
+                    line.Item.Category.RestaurantId == order.RestaurantId &&
+                    (line.Item.StatusId == StatusIds.Item(ItemStatus.Available) || line.Item.StatusId == StatusIds.Item(ItemStatus.Limited))))
+            .Select(order => order.TableSession!)
+            .Where(CustomerOrderSubmissionPolicy.AvailableAt(clock.GetUtcNow().UtcDateTime))
+            .AnyAsync(cancellationToken);
 
     /// <summary>Aktiv mətbəx işçisinə göndərilmiş açıq sifarişləri mərhələyə görə səhifələmədən əvvəl süzür və FIFO ilə qaytarır; maliyyə və müştəri məlumatı çıxarmır.</summary>
     public async Task<PaginatedList<KitchenOrderResponse>> GetQueueAsync(int restaurantId, PaginationFilter pagination, int? statusId = null,

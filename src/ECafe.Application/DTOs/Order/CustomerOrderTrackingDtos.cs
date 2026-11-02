@@ -2,7 +2,7 @@ namespace ECafe.Application.DTOs.Order;
 
 public sealed record CustomerTableSessionResponse(int Id, int RestaurantId, string RestaurantName,
     int TableId, string TableName, int? ReservationId, int StatusId, DateTimeOffset OpenedAt,
-    DateTimeOffset? ClosedAt, string TimeZone);
+    DateTimeOffset? ClosedAt, string TimeZone, bool CanCreateOrder = false);
 
 public sealed record CustomerOrderLineResponse(int Id, int ItemId, string Name, int Quantity,
     decimal UnitPrice, decimal LineTotal);

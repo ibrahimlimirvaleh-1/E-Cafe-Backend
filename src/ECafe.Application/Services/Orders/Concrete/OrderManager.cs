@@ -28,7 +28,7 @@ using Microsoft.Extensions.Options;
 
 namespace ECafe.Application.Services.Orders.Concrete;
 
-public sealed partial class OrderManager : BaseManager, IOrderService
+public sealed partial class OrderManager : BaseManager, IOrderService, ICustomerOrderSubmissionService
 {
     private const decimal MaxStoredAmount = 99999999.99m;
     private readonly IOrderRepository _orders;

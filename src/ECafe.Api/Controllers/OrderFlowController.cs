@@ -27,7 +27,7 @@ public sealed class OrderFlowController : BaseController
         => Ok(await Mediator.Send(new ForwardCancellationCommand(restaurantId, tableSessionId, orderId), token));
 
     /// <summary>Cari məsul ofisiantın açıq sessiyasındakı hazırlanmamış sifarişi səbəb ilə ləğv edir.</summary>
-    /// <remarks>Yalnız Created/Accepted və faktiki hazırlama vaxtı olmayan sifariş. Body: reason (3-500 simvol). Təkrar eyni orderId ilk ləğv vaxtını/səbəbini qaytarır. Hazırlama, stok sərfiyyatı və aktiv ödəniş olduqda 409. Stok, depozit, rezervasiya və sessiya dəyişmir. Mövcud xidmət müqavilə bitdikdən sonra da təhlükəsiz ləğv edilə bilər.</remarks>
+    /// <remarks>Yalnız PendingWaiterConfirmation/Created/Accepted və faktiki hazırlama vaxtı olmayan sifariş. Body: reason (3-500 simvol). Təkrar eyni orderId ilk ləğv vaxtını/səbəbini qaytarır. Hazırlama, stok sərfiyyatı və aktiv ödəniş olduqda 409. Stok, depozit, rezervasiya və sessiya dəyişmir. Mövcud xidmət müqavilə bitdikdən sonra da təhlükəsiz ləğv edilə bilər.</remarks>
     [HttpPost(ApiRoutes.OrderFlow.Cancel)]
     [ProducesResponseType(typeof(SessionOrderResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> Cancel([FromRoute] int restaurantId, [FromRoute] int tableSessionId,
@@ -43,7 +43,7 @@ public sealed class OrderFlowController : BaseController
         => Ok(await Mediator.Send(new MarkOrderServedCommand(restaurantId, tableSessionId, orderId), cancellationToken));
 
     /// <summary>Ofisiant öz açıq masa sessiyasındakı sifarişi mətbəx növbəsinə göndərir.</summary>
-    /// <remarks>Body və yeni Idempotency-Key lazım deyil. Eyni orderId-ni təkrar göndərmək ikinci göndəriş, audit və bildiriş yaratmır. SentToKitchenAt UTC ilə doldurulur, Created statusu mətbəxin qəbulunu gözləyir. Stok, ödəniş və rezervasiya dəyişmir. Başqa ofisiantın sifarişi 404, uyğun olmayan status 409 qaytarır.</remarks>
+    /// <remarks>Body və yeni Idempotency-Key lazım deyil. Müştərinin PendingWaiterConfirmation sifarişi cari məsul ofisiant tərəfindən atomik təsdiqlənib Created olur və göndərilir; SourceId dəyişmir. Ofisiantın yaratdığı Created sifarişin mövcud göndərmə axını saxlanılır. Eyni orderId ikinci göndəriş, audit və bildiriş yaratmır. SentToKitchenAt UTC ilə doldurulur. Stok, ödəniş və rezervasiya dəyişmir. Yad sessiya 404, uyğun olmayan status və ya əlçatmaz menyu 409 qaytarır.</remarks>
     [RequireActiveRestaurantContract]
     [HttpPost(ApiRoutes.OrderFlow.SendToKitchen)]
     [ProducesResponseType(typeof(SessionOrderResponse), StatusCodes.Status200OK)]

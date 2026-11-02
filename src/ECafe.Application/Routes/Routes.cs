@@ -86,6 +86,7 @@ public static class Routes
         public const string GetMySessions = Collection + "/my";
         public const string GetSession = Collection + "/{tableSessionId:int}";
         public const string GetOrders = GetSession + "/orders";
+        public const string Create = GetOrders;
         public const string GetOrder = GetOrders + "/{orderId:int}";
         public const string Cancel = GetOrder + "/cancel";
         public const string RequestCancellation = GetOrder + "/cancellation-request";
