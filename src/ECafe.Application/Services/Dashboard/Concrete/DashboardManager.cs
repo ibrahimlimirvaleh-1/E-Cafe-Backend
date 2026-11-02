@@ -33,15 +33,7 @@ public sealed class DashboardManager(IHttpContextAccessor accessor, IMapper mapp
     /// <summary>Sorğunun rol və filtr sərhədlərini yoxlayır; superadmin görünüşünü restoran rolundan tələb etməyə icazə vermir.</summary>
     private DashboardScope CreateScope(RoleCode role, DashboardRequest request)
     {
-        if (role is not (RoleCode.SuperAdmin or RoleCode.Owner or RoleCode.Manager))
-            throw new ForbiddenException(ErrorCode.AccessDenied);
-        if (role == RoleCode.SuperAdmin && !IsCurrentUserSuperAdmin())
-            throw new ForbiddenException(ErrorCode.AccessDenied);
-        if (request.RestaurantId is <= 0 || request.PageIndex is < 1 or > DashboardPeriodPolicy.MaximumPageIndex ||
-            request.PaymentMode is not ("real" or "test"))
-            throw new BadRequestException(ErrorCode.DashboardFilterInvalid);
-        if (role == RoleCode.Manager && !request.RestaurantId.HasValue)
-            throw new BadRequestException(ErrorCode.RestaurantContextRequired);
+        DashboardScopePolicy.Validate(role, IsCurrentUserSuperAdmin(), request.RestaurantId, request.PageIndex, request.PaymentMode);
 
         return new(GetCurrentUserId(), role, request.RestaurantId, request.PaymentMode == "test");
     }

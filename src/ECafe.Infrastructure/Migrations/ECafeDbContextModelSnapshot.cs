@@ -1548,6 +1548,9 @@ namespace ECafe.Infrastructure.Migrations
 
                     b.HasIndex("WaiterUserId");
 
+                    b.HasIndex(new[] { "RestaurantId", "OpenedAt", "Id" }, "orders_dashboard_period_idx")
+                        .HasFilter("\"IsDeleted\" = false");
+
                     b.HasIndex(new[] { "RestaurantId", "SentToKitchenAt", "Id" }, "orders_kitchen_queue_idx")
                         .HasFilter("sent_to_kitchen_at IS NOT NULL AND closed_at IS NULL AND \"IsDeleted\" = false");
 
@@ -2020,7 +2023,8 @@ namespace ECafe.Infrastructure.Migrations
                     b.HasIndex("ReservationId")
                         .HasDatabaseName("IX_payments_reservation_id");
 
-                    b.HasIndex("RestaurantId");
+                    b.HasIndex("RestaurantId")
+                        .HasDatabaseName("IX_payments_restaurant_id");
 
                     b.HasIndex("TableSessionId")
                         .HasDatabaseName("IX_payments_table_session_id");
@@ -2028,6 +2032,9 @@ namespace ECafe.Infrastructure.Migrations
                     b.HasIndex(new[] { "CreatedByUserId", "CheckoutKey" }, "payments_customer_checkout_key")
                         .IsUnique()
                         .HasFilter("checkout_key IS NOT NULL");
+
+                    b.HasIndex(new[] { "RestaurantId", "IsTest", "PaidAt", "Id" }, "payments_dashboard_receipts_idx")
+                        .HasFilter("paid_at IS NOT NULL AND \"IsDeleted\" = false");
 
                     b.HasIndex(new[] { "ReservationId" }, "payments_pending_reservation_key")
                         .IsUnique()
@@ -2593,6 +2600,9 @@ namespace ECafe.Infrastructure.Migrations
 
                     b.HasIndex(new[] { "RestaurantId", "TableId", "StatusId", "ReservedAt" }, "reservations_availability_lookup_idx");
 
+                    b.HasIndex(new[] { "RestaurantId", "ReservedAt", "Id" }, "reservations_dashboard_period_idx")
+                        .HasFilter("\"IsDeleted\" = false");
+
                     b.HasIndex(new[] { "HoldExpiresAt" }, "reservations_hold_expires_at_idx");
 
                     b.HasIndex(new[] { "RestaurantResponseExpiresAt" }, "reservations_restaurant_response_expires_at_idx");
@@ -2957,6 +2967,9 @@ namespace ECafe.Infrastructure.Migrations
                         .HasFilter("source_payment_id IS NOT NULL");
 
                     b.HasIndex("SourcePaymentProofId");
+
+                    b.HasIndex(new[] { "RefundedAt", "Id" }, "refunds_dashboard_completed_idx")
+                        .HasFilter("refunded_at IS NOT NULL AND \"IsDeleted\" = false");
 
                     b.HasIndex(new[] { "ReservationId" }, "reservation_refunds_reservation_id_key")
                         .IsUnique();

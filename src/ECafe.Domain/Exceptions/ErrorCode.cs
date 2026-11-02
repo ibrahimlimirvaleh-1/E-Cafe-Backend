@@ -223,5 +223,6 @@ public enum ErrorCode
     OrderStockReturnInvalid = 5118,
     OrderStockReturnQuantitiesInvalid = 5119,
     RestaurantReservationArrivalCutoffInvalid = 5120,
-    ReservationArrivalCutoffPassed = 5121
+    ReservationArrivalCutoffPassed = 5121,
+    DashboardExportLimitExceeded = 5122
 }

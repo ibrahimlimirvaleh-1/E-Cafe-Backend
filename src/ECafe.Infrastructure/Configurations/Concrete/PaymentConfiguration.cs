@@ -36,6 +36,8 @@ namespace ECafe.Infrastructure.Configurations.Concrete
             builder.Property(e => e.ProviderRef).HasColumnName("provider_ref");
             builder.Property(e => e.ProviderName).HasMaxLength(40).HasColumnName("provider_name");
             builder.Property(e => e.IsTest).HasColumnName("is_test");
+            builder.HasIndex(e => new { e.RestaurantId, e.IsTest, e.PaidAt, e.Id }, "payments_dashboard_receipts_idx")
+                .HasFilter("paid_at IS NOT NULL AND \"IsDeleted\" = false");
             builder.Property(e => e.CurrencyCode).HasMaxLength(3).HasDefaultValue("AZN").HasColumnName("currency_code");
             builder.Property(e => e.CheckoutKey).HasMaxLength(36).HasColumnName("checkout_key");
             builder.Property(e => e.CheckoutUrl).HasMaxLength(2048).HasColumnName("checkout_url");
@@ -52,6 +54,7 @@ namespace ECafe.Infrastructure.Configurations.Concrete
                 .IsUnique().HasFilter("reservation_id IS NOT NULL AND provider_name IS NOT NULL AND payment_status_id = 3001 AND NOT \"IsDeleted\"");
             builder.Property(e => e.ReservationId).HasColumnName("reservation_id");
             builder.Property(e => e.RestaurantId).HasColumnName("restaurant_id");
+            builder.HasIndex(e => e.RestaurantId).HasDatabaseName("IX_payments_restaurant_id");
 
             builder.HasOne(d => d.CreatedByUser).WithMany(p => p.Payments)
                 .HasForeignKey(d => d.CreatedByUserId)

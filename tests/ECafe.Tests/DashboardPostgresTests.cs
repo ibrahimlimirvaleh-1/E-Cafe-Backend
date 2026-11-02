@@ -21,7 +21,7 @@ public sealed class DashboardPostgresFactAttribute : FactAttribute
     }
 }
 
-public sealed class DashboardPostgresTests
+public sealed partial class DashboardPostgresTests
 {
     private static readonly DateTime Now = new(2026, 10, 22, 10, 0, 0, DateTimeKind.Utc);
 
@@ -161,8 +161,9 @@ public sealed class DashboardPostgresTests
         }
 
         /// <summary>Yalnız fixture-in yaratdığı unikal bazaya tracking-siz oxuma sınaqları üçün kontekst qurur.</summary>
-        public ECafeDbContext Context() => new(new DbContextOptionsBuilder<ECafeDbContext>()
-            .UseNpgsql(_connection, options => options.CommandTimeout(20)).Options);
+        public ECafeDbContext Context(params Microsoft.EntityFrameworkCore.Diagnostics.IInterceptor[] interceptors)
+            => new(new DbContextOptionsBuilder<ECafeDbContext>()
+                .UseNpgsql(_connection, options => options.CommandTimeout(20)).AddInterceptors(interceptors).Options);
 
         /// <summary>Real model, iki restoran, canlı rollar, depozit, yekun hesab və test/refund nümunələri yaradır.</summary>
         public static async Task<Database> CreateAsync()

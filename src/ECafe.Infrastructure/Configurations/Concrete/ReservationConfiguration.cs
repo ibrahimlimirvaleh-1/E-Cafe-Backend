@@ -60,6 +60,8 @@ namespace ECafe.Infrastructure.Configurations.Concrete
 
             builder.HasIndex(e => new { e.RestaurantId, e.TableId, e.StatusId, e.ReservedAt }, "reservations_availability_lookup_idx");
             builder.HasIndex(e => e.HoldExpiresAt, "reservations_hold_expires_at_idx");
+            builder.HasIndex(e => new { e.RestaurantId, e.ReservedAt, e.Id }, "reservations_dashboard_period_idx")
+                .HasFilter("\"IsDeleted\" = false");
             builder.HasIndex(e => e.RestaurantResponseExpiresAt, "reservations_restaurant_response_expires_at_idx");
 
             builder.HasOne(d => d.CustomerUser).WithMany(p => p.Reservations)
