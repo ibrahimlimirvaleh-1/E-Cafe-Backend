@@ -1,3 +1,4 @@
+using ECafe.Domain.Constants;
 using ECafe.Application.DTOs.Dashboard;
 using ECafe.Application.Repositories.Dashboard;
 using ECafe.Domain.Policies;
@@ -14,7 +15,7 @@ public sealed partial class DashboardRepository
         var receipts = Receipts(scope).Where(payment => payment.PaidAt >= period.StartUtc && payment.PaidAt < period.EndUtc)
             .Select(payment => new
             {
-                payment.Id, Event = "receipt", payment.RestaurantId, RestaurantName = payment.Restaurant.Name,
+                payment.Id, Event = DashboardFilterCodes.PaymentEvent.Receipt, payment.RestaurantId, RestaurantName = payment.Restaurant.Name,
                 OccurredAtUtc = payment.PaidAt!.Value, payment.Amount, Purpose = payment.ReservationId != null ? "deposit" :
                     payment.TableSessionId != null ? "session" : payment.OrderId != null ? "order" : "other",
                 payment.ReservationId, payment.TableSessionId, StatusId = payment.PaymentStatusId, payment.IsTest
@@ -22,18 +23,18 @@ public sealed partial class DashboardRepository
         var refunds = Refunds(scope).Where(refund => refund.RefundedAt >= period.StartUtc && refund.RefundedAt < period.EndUtc)
             .Select(refund => new
             {
-                refund.Id, Event = "refund", refund.Reservation.RestaurantId, RestaurantName = refund.Reservation.Restaurant.Name,
+                refund.Id, Event = DashboardFilterCodes.PaymentEvent.Refund, refund.Reservation.RestaurantId, RestaurantName = refund.Reservation.Restaurant.Name,
                 OccurredAtUtc = refund.RefundedAt!.Value, refund.Amount, Purpose = "deposit",
                 ReservationId = (int?)refund.ReservationId, refund.SourcePayment!.TableSessionId, refund.StatusId, refund.SourcePayment.IsTest
             });
         var query = receipts.Concat(refunds);
-        if (paymentEvent != "all") query = query.Where(row => row.Event == paymentEvent);
+        if (paymentEvent != DashboardFilterCodes.PaymentEvent.All) query = query.Where(row => row.Event == paymentEvent);
         var totals = await query.GroupBy(_ => 1).Select(group => new DashboardReportTotals
         {
-            RowCount = group.Count(), ReceiptCount = group.Count(row => row.Event == "receipt"),
-            RefundCount = group.Count(row => row.Event == "refund"),
-            CollectedAmount = group.Sum(row => row.Event == "receipt" ? row.Amount : 0),
-            RefundedAmount = group.Sum(row => row.Event == "refund" ? row.Amount : 0)
+            RowCount = group.Count(), ReceiptCount = group.Count(row => row.Event == DashboardFilterCodes.PaymentEvent.Receipt),
+            RefundCount = group.Count(row => row.Event == DashboardFilterCodes.PaymentEvent.Refund),
+            CollectedAmount = group.Sum(row => row.Event == DashboardFilterCodes.PaymentEvent.Receipt ? row.Amount : 0),
+            RefundedAmount = group.Sum(row => row.Event == DashboardFilterCodes.PaymentEvent.Refund ? row.Amount : 0)
         }).SingleOrDefaultAsync(cancellationToken) ?? new DashboardReportTotals();
         var page = ReportPage(totals.RowCount, pageIndex, export);
         var rows = await query.OrderByDescending(row => row.OccurredAtUtc).ThenBy(row => row.Event).ThenByDescending(row => row.Id)

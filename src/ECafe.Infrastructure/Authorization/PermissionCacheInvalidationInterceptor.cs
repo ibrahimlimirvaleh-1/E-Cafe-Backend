@@ -1,4 +1,5 @@
 using ECafe.Domain.Entities;
+using ECafe.Infrastructure.Redis;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -96,25 +97,26 @@ public sealed class PermissionCacheInvalidationInterceptor : SaveChangesIntercep
         }
     }
 
+    /// <summary>Uğurlu saxlamadan sonra dəyişən rolların oxuma xidməti ilə eyni keş açarlarını silir.</summary>
     private void InvalidateCapturedRoleIds()
     {
         foreach (var roleId in _pendingRoleIds)
         {
-            _cache.Remove(PermissionCacheKey(roleId));
+            _cache.Remove(PermissionCacheKeys.ForRole(roleId));
         }
 
         _pendingRoleIds.Clear();
     }
 
+    /// <summary>Asinxron saxlamada da versiyalı icazə keşini ləğv edir və ləğvetmə tokenini saxlayır.</summary>
     private async Task InvalidateCapturedRoleIdsAsync(CancellationToken cancellationToken)
     {
         foreach (var roleId in _pendingRoleIds)
         {
-            await _cache.RemoveAsync(PermissionCacheKey(roleId), cancellationToken);
+            await _cache.RemoveAsync(PermissionCacheKeys.ForRole(roleId), cancellationToken);
         }
 
         _pendingRoleIds.Clear();
     }
 
-    private static string PermissionCacheKey(int roleId) => $"role_permissions_{roleId}";
 }

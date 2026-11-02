@@ -1,3 +1,4 @@
+using ECafe.Domain.Constants;
 using ECafe.Application.DTOs.Dashboard;
 using ECafe.Application.Repositories.Dashboard;
 using ECafe.Domain.Enums;
@@ -29,7 +30,7 @@ public static class DashboardChartMapper
             }
         }
         return new(role == RoleCode.SuperAdmin ? "reservationCount" : role == RoleCode.Owner ? "orderAmount" : "orderCount",
-            role == RoleCode.Owner ? "AZN" : "count", singleDay ? "hour" : "day", points);
+            role == RoleCode.Owner ? CurrencyCodes.Azn : "count", singleDay ? "hour" : "day", points);
     }
 
     /// <summary>Hadisənin UTC hissəsini seçilmiş intervalın saatına və ya faktiki yerli günün başlanğıcına aid edir.</summary>

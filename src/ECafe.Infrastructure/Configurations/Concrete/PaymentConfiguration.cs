@@ -1,4 +1,5 @@
-﻿using ECafe.Domain.Entities;
+﻿using ECafe.Domain.Constants;
+using ECafe.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -38,7 +39,7 @@ namespace ECafe.Infrastructure.Configurations.Concrete
             builder.Property(e => e.IsTest).HasColumnName("is_test");
             builder.HasIndex(e => new { e.RestaurantId, e.IsTest, e.PaidAt, e.Id }, "payments_dashboard_receipts_idx")
                 .HasFilter("paid_at IS NOT NULL AND \"IsDeleted\" = false");
-            builder.Property(e => e.CurrencyCode).HasMaxLength(3).HasDefaultValue("AZN").HasColumnName("currency_code");
+            builder.Property(e => e.CurrencyCode).HasMaxLength(3).HasDefaultValue(CurrencyCodes.Azn).HasColumnName("currency_code");
             builder.Property(e => e.CheckoutKey).HasMaxLength(36).HasColumnName("checkout_key");
             builder.Property(e => e.CheckoutUrl).HasMaxLength(2048).HasColumnName("checkout_url");
             builder.Property(e => e.CheckoutExpiresAt).HasColumnName("checkout_expires_at");

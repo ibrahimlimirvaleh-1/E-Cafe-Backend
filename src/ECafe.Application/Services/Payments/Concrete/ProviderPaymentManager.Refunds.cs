@@ -1,3 +1,4 @@
+using ECafe.Domain.Constants;
 using System.Data;
 using ECafe.Application.Common.Audit;
 using ECafe.Application.Common.Exceptions;
@@ -109,7 +110,7 @@ public sealed partial class ProviderPaymentManager
         {
             ReservationId = reservation.Id, Reservation = reservation, SourcePaymentId = payment?.Id, SourcePayment = payment,
             SourcePaymentProofId = proof?.Id, ProviderName = payment?.ProviderName, Amount = payment?.Amount ?? proof!.Amount,
-            CurrencyCode = payment?.CurrencyCode ?? "AZN", RequestedAt = now, ApprovedAt = now, InitiatedByUserId = GetCurrentUserId(),
+            CurrencyCode = payment?.CurrencyCode ?? CurrencyCodes.Azn, RequestedAt = now, ApprovedAt = now, InitiatedByUserId = GetCurrentUserId(),
             StatusId = status, EligibilityReason = payment == null ? PaymentTexts.ManualReview : reason,
             CancellationReasonSnapshot = reservation.CancelReason,
             StatusHistory = [new ReservationRefundStatusHistory

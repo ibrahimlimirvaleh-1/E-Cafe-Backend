@@ -2,6 +2,11 @@ namespace ECafe.Application.Routes;
 
 public static class Routes
 {
+    public static class Realtime
+    {
+        public const string UserEvents = "/hubs/user-events";
+    }
+
     public static class Dashboard
     {
         public const string Platform = Base + "/dashboard/platform";
@@ -130,6 +135,8 @@ public static class Routes
 
     public static class Auth
     {
+        public const string CookiePath = "/" + Base + "/user";
+        public const string RefreshPath = "/" + Refresh;
         public const string Login = Base + "/user/login";
         public const string Register = Base + "/user/register";
         public const string SetPassword = Base + "/user/set-password";

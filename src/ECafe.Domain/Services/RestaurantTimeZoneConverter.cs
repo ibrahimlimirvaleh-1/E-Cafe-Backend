@@ -1,3 +1,5 @@
+using ECafe.Domain.Constants;
+
 namespace ECafe.Domain.Services;
 
 public static class RestaurantTimeZoneConverter
@@ -34,10 +36,11 @@ public static class RestaurantTimeZoneConverter
             TimeZoneInfo.ConvertTimeToUtc(localEnd, timeZone));
     }
 
+    /// <summary>Standart restoran zonasını və platformalararası IANA/Windows adlarını həll edir; mövcud UTC ehtiyat davranışını saxlayır.</summary>
     private static TimeZoneInfo FindTimeZone(string? timeZoneId)
     {
         var trimmedTimeZoneId = string.IsNullOrWhiteSpace(timeZoneId)
-            ? "Asia/Baku"
+            ? RestaurantDefaults.TimeZone
             : timeZoneId.Trim();
 
         try

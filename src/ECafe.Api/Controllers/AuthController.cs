@@ -145,6 +145,7 @@ namespace ECafe.Api.Controllers
             Response.Cookies.Delete(RefreshTokenCookieName, CreateRefreshTokenCookieDeleteOptions());
         }
 
+        /// <summary>Refresh kukisinin mövcud təhlükəsizlik atributlarını və mərkəzi göndərilmə yolunu saxlayır.</summary>
         private CookieOptions CreateRefreshTokenCookieOptions()
         {
             var lifetimeDays = _configuration.GetValue("Authentication:RefreshTokenCookieDays", 30);
@@ -154,11 +155,12 @@ namespace ECafe.Api.Controllers
                 HttpOnly = true,
                 Secure = ShouldUseSecureCookie(),
                 SameSite = SameSiteMode.Lax,
-                Path = "/api/v1/user",
+                Path = ApiRoutes.Auth.CookiePath,
                 Expires = DateTimeOffset.UtcNow.AddDays(lifetimeDays)
             };
         }
 
+        /// <summary>Kukini yaradıldığı eyni yolda silir ki, logout zamanı köhnə refresh kukisi qalmasın.</summary>
         private CookieOptions CreateRefreshTokenCookieDeleteOptions()
         {
             return new CookieOptions
@@ -166,7 +168,7 @@ namespace ECafe.Api.Controllers
                 HttpOnly = true,
                 Secure = ShouldUseSecureCookie(),
                 SameSite = SameSiteMode.Lax,
-                Path = "/api/v1/user"
+                Path = ApiRoutes.Auth.CookiePath
             };
         }
 

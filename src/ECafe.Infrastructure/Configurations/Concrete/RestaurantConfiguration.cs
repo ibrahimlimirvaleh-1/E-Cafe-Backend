@@ -1,3 +1,4 @@
+using ECafe.Domain.Constants;
 using ECafe.Domain.Entities;
 using ECafe.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
@@ -87,7 +88,7 @@ namespace ECafe.Infrastructure.Configurations.Concrete
 
             builder.Property(e => e.TimeZone)
                 .HasMaxLength(64)
-                .HasDefaultValue("Asia/Baku")
+                .HasDefaultValue(RestaurantDefaults.TimeZone)
                 .HasColumnName("time_zone");
 
             builder.HasOne(e => e.RestaurantGroup)

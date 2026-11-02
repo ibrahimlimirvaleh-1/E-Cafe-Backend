@@ -1,6 +1,7 @@
 using ECafe.Application.Common.Exceptions;
 using ECafe.Domain.Enums;
 using ECafe.Domain.Exceptions;
+using ECafe.Domain.Constants;
 
 namespace ECafe.Domain.Policies;
 
@@ -12,24 +13,12 @@ public static class DashboardReportPolicy
     /// <summary>Hesabat növünü və uyğun status filtrini yoxlayır; menecerə ümumi ödəniş hesabatı açmır.</summary>
     public static DashboardReportKind Resolve(RoleCode role, string kind, int? statusId, string paymentEvent)
     {
-        var parsed = kind switch
-        {
-            "orders" => DashboardReportKind.Orders,
-            "reservations" => DashboardReportKind.Reservations,
-            "payments" => DashboardReportKind.Payments,
-            "products" => DashboardReportKind.Products,
-            "kitchen" => DashboardReportKind.Kitchen,
-            "cancellations" => DashboardReportKind.Cancellations,
-            "reservation-outcomes" => DashboardReportKind.ReservationOutcomes,
-            "tables" => DashboardReportKind.Tables,
-            "settlements" => DashboardReportKind.Settlements,
-            "branches" => DashboardReportKind.Branches,
-            "stock" => DashboardReportKind.Stock,
-            _ => throw new BadRequestException(ErrorCode.DashboardFilterInvalid)
-        };
-        if (parsed is DashboardReportKind.Payments or DashboardReportKind.Settlements or DashboardReportKind.Branches && role == RoleCode.Manager)
+        if (!DashboardReportCatalog.TryGet(kind, out var definition)) throw new BadRequestException(ErrorCode.DashboardFilterInvalid);
+        var parsed = definition.Kind;
+        if (!definition.AllowsManager && role == RoleCode.Manager)
             throw new ForbiddenException(ErrorCode.AccessDenied);
-        if (paymentEvent is not ("all" or "receipt" or "refund") || parsed != DashboardReportKind.Payments && paymentEvent != "all")
+        if (paymentEvent is not (DashboardFilterCodes.PaymentEvent.All or DashboardFilterCodes.PaymentEvent.Receipt or DashboardFilterCodes.PaymentEvent.Refund) ||
+            parsed != DashboardReportKind.Payments && paymentEvent != DashboardFilterCodes.PaymentEvent.All)
             throw new BadRequestException(ErrorCode.DashboardFilterInvalid);
         if (statusId.HasValue)
         {

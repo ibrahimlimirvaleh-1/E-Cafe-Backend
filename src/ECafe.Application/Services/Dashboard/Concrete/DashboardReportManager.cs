@@ -5,6 +5,7 @@ using ECafe.Application.Mappings;
 using ECafe.Application.Repositories.Dashboard;
 using ECafe.Application.Services.Dashboard.Abstract;
 using ECafe.Domain.Enums;
+using ECafe.Domain.Constants;
 using ECafe.Domain.Exceptions;
 using ECafe.Domain.Policies;
 using Microsoft.AspNetCore.Http;
@@ -30,7 +31,7 @@ public sealed class DashboardReportManager(IHttpContextAccessor accessor, IMappe
     {
         DashboardScopePolicy.Validate(role, IsCurrentUserSuperAdmin(), request.RestaurantId, request.PageIndex, request.PaymentMode);
         var kind = DashboardReportPolicy.Resolve(role, request.Kind, request.StatusId, request.PaymentEvent);
-        var scope = new DashboardScope(GetCurrentUserId(), role, request.RestaurantId, request.PaymentMode == "test");
+        var scope = new DashboardScope(GetCurrentUserId(), role, request.RestaurantId, request.PaymentMode == DashboardFilterCodes.PaymentMode.Test);
         var access = await accessRepository.ResolveAccessAsync(scope, cancellationToken)
             ?? throw new ForbiddenException(ErrorCode.AccessDenied);
         var now = clock.GetUtcNow();

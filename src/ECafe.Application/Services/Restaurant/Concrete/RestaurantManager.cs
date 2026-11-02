@@ -1,3 +1,4 @@
+using ECafe.Domain.Constants;
 using AutoMapper;
 using ECafe.Application.Common.Audit;
 using ECafe.Application.Common.Exceptions;
@@ -944,6 +945,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
         private static DayOfWeek PreviousDay(DayOfWeek dayOfWeek)
             => dayOfWeek == DayOfWeek.Sunday ? DayOfWeek.Saturday : dayOfWeek - 1;
 
+        /// <summary>Sorğudakı zonanı saxlayır; boş olduqda mövcud konfiqurasiyanı və ortaq restoran standartını tətbiq edir.</summary>
         private string NormalizeTimeZone(string? timeZone)
         {
             var normalizedTimeZone = string.IsNullOrWhiteSpace(timeZone)
@@ -951,7 +953,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
                 : timeZone.Trim();
 
             return string.IsNullOrWhiteSpace(normalizedTimeZone)
-                ? "Asia/Baku"
+                ? RestaurantDefaults.TimeZone
                 : normalizedTimeZone.Trim();
         }
 

@@ -18,11 +18,9 @@ namespace ECafe.Infrastructure.Redis
             _context = context;
         }
 
-        private string Key(int roleId) => $"role_permissions_v3_{roleId}";
-
         public async Task<List<int>> GetPermissionsAsync(int roleId)
         {
-            var cacheKey = Key(roleId);
+            var cacheKey = PermissionCacheKeys.ForRole(roleId);
 
             var cached = await _cache.GetStringAsync(cacheKey);
 
@@ -49,7 +47,7 @@ namespace ECafe.Infrastructure.Redis
 
         public async Task InvalidateAsync(int roleId)
         {
-            await _cache.RemoveAsync(Key(roleId));
+            await _cache.RemoveAsync(PermissionCacheKeys.ForRole(roleId));
         }
     }
 }

@@ -6,6 +6,7 @@ using ECafe.Application.Repositories.Dashboard;
 using ECafe.Application.Services.Dashboard.Abstract;
 using ECafe.Application.Services.Dashboard.Models;
 using ECafe.Domain.Enums;
+using ECafe.Domain.Constants;
 using ECafe.Domain.Exceptions;
 using ECafe.Domain.Policies;
 using ECafe.Domain.Services;
@@ -35,7 +36,7 @@ public sealed class DashboardManager(IHttpContextAccessor accessor, IMapper mapp
     {
         DashboardScopePolicy.Validate(role, IsCurrentUserSuperAdmin(), request.RestaurantId, request.PageIndex, request.PaymentMode);
 
-        return new(GetCurrentUserId(), role, request.RestaurantId, request.PaymentMode == "test");
+        return new(GetCurrentUserId(), role, request.RestaurantId, request.PaymentMode == DashboardFilterCodes.PaymentMode.Test);
     }
 
     /// <summary>Bir DbContext-in sorğularını ardıcıl icra edir; menecer üçün istifadə olunmayan maliyyə hesabatını yükləmir.</summary>
