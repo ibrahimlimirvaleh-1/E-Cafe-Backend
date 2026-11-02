@@ -1,6 +1,9 @@
 using System.Globalization;
 using System.Text;
 using ECafe.Application.DTOs.Dashboard;
+using ECafe.Domain.Constants;
+using ECafe.Domain.Enums;
+using ECafe.Domain.Policies;
 
 namespace ECafe.Application.Mappings;
 
@@ -9,41 +12,66 @@ public static class DashboardReportCsvMapper
     /// <summary>Tiplənmiş hesabatdan UTF-8 BOM-lu CSV yaradır; daxili qeydlər və provayder rekvizitləri ixraca daxil edilmir.</summary>
     public static DashboardReportFile Map(DashboardReportResponse report)
     {
+        if (!DashboardReportCatalog.TryGet(report.Kind, out var definition))
+            throw new ArgumentException("Unsupported report kind.", nameof(report));
         var csv = new StringBuilder();
         var context = new object?[] { report.Kind, report.TimeZone, report.From, report.To,
-            report.Kind is "payments" or "settlements" or "branches" ? report.PaymentMode : "not_applicable", report.DayStartHour };
+            definition.UsesPaymentMode ? report.PaymentMode : DashboardFilterCodes.PaymentMode.NotApplicable, report.DayStartHour };
         var headings = new[] { "report_kind", "time_zone", "period_from", "period_to", "payment_mode", "day_start_hour" };
-        switch (report.Kind)
+        switch (definition.Kind)
         {
-            case "orders":
-                Append(csv, headings.Concat(["order_id", "restaurant_id", "restaurant", "table", "session_id", "source_id", "status_id", "opened_at_utc", "sent_to_kitchen_at_utc", "served_at_utc", "item_quantity", "item_subtotal_azn", "confirmed_amount_azn"]));
-                foreach (var row in report.Orders)
-                    Append(csv, context.Concat([row.Id, row.RestaurantId, row.RestaurantName, row.TableName, row.TableSessionId,
-                        row.SourceId, row.StatusId, row.OpenedAtUtc, row.SentToKitchenAtUtc, row.ServedAtUtc,
-                        row.ItemQuantity, row.ItemSubtotal, row.ConfirmedAmount]));
+            case DashboardReportKind.Orders:
+                WriteOrders(csv, headings, context, report.Orders);
                 break;
-            case "reservations":
-                Append(csv, headings.Concat(["reservation_id", "restaurant_id", "restaurant", "table", "status_id", "reserved_at_utc", "people_count", "requested_deposit_azn", "arrived_at_utc", "seated_at_utc"]));
-                foreach (var row in report.Reservations)
-                    Append(csv, context.Concat([row.Id, row.RestaurantId, row.RestaurantName, row.TableName, row.StatusId,
-                        row.ReservedAtUtc, row.PeopleCount, row.DepositAmount, row.ArrivedAtUtc, row.SeatedAtUtc]));
+            case DashboardReportKind.Reservations:
+                WriteReservations(csv, headings, context, report.Reservations);
                 break;
-            case "payments":
-                Append(csv, headings.Concat(["event_id", "event", "restaurant_id", "restaurant", "occurred_at_utc", "amount_azn", "purpose", "reservation_id", "session_id", "status_id", "is_test"]));
-                foreach (var row in report.Payments)
-                    Append(csv, context.Concat([row.Id, row.Event, row.RestaurantId, row.RestaurantName, row.OccurredAtUtc,
-                        row.Amount, row.Purpose, row.ReservationId, row.TableSessionId, row.StatusId, row.IsTest]));
+            case DashboardReportKind.Payments:
+                WritePayments(csv, headings, context, report.Payments);
                 break;
             default:
                 if (report.Detail == null) throw new ArgumentException("Unsupported report kind.", nameof(report));
-                Append(csv, headings.Concat(report.Detail.Columns.Select(column => column.Key)));
-                foreach (var row in report.Detail.Rows)
-                    Append(csv, context.Concat(row.Cells.Select(cell => cell.Number.HasValue ? (object)cell.Number.Value : cell.Utc.HasValue ? cell.Utc.Value : cell.Text)));
+                WriteDetail(csv, headings, context, report.Detail);
                 break;
         }
         var content = Encoding.UTF8.GetPreamble().Concat(Encoding.UTF8.GetBytes(csv.ToString())).ToArray();
-        var mode = report.Kind is "payments" or "settlements" or "branches" ? "-" + report.PaymentMode : "";
+        var mode = definition.UsesPaymentMode ? "-" + report.PaymentMode : "";
         return new(content, $"ecafe-{report.Kind}-{report.From:yyyy-MM-dd}-{report.To:yyyy-MM-dd}{mode}.csv");
+    }
+
+    /// <summary>Sifariş ixracının sabit sütun sırasını və snapshot qiymətlərini qoruyur; ümumi təhlükəsiz yazı funksiyasından istifadə edir.</summary>
+    private static void WriteOrders(StringBuilder csv, IEnumerable<string> headings, IEnumerable<object?> context, IEnumerable<DashboardOrderReportRow> rows)
+    {
+        Append(csv, headings.Concat(["order_id", "restaurant_id", "restaurant", "table", "session_id", "source_id", "status_id", "opened_at_utc", "sent_to_kitchen_at_utc", "served_at_utc", "item_quantity", "item_subtotal_azn", "confirmed_amount_azn"]));
+        foreach (var row in rows)
+            Append(csv, context.Concat([row.Id, row.RestaurantId, row.RestaurantName, row.TableName, row.TableSessionId,
+                row.SourceId, row.StatusId, row.OpenedAtUtc, row.SentToKitchenAtUtc, row.ServedAtUtc, row.ItemQuantity, row.ItemSubtotal, row.ConfirmedAmount]));
+    }
+
+    /// <summary>Rezervasiya ixracında tələb olunan depoziti faktiki pul daxilolması ilə qarışdırmadan saxlayır.</summary>
+    private static void WriteReservations(StringBuilder csv, IEnumerable<string> headings, IEnumerable<object?> context, IEnumerable<DashboardReservationReportRow> rows)
+    {
+        Append(csv, headings.Concat(["reservation_id", "restaurant_id", "restaurant", "table", "status_id", "reserved_at_utc", "people_count", "requested_deposit_azn", "arrived_at_utc", "seated_at_utc"]));
+        foreach (var row in rows)
+            Append(csv, context.Concat([row.Id, row.RestaurantId, row.RestaurantName, row.TableName, row.StatusId,
+                row.ReservedAtUtc, row.PeopleCount, row.DepositAmount, row.ArrivedAtUtc, row.SeatedAtUtc]));
+    }
+
+    /// <summary>Ödəniş və refund hadisələrinin mövcud CSV müqaviləsini həssas provayder rekvizitləri olmadan saxlayır.</summary>
+    private static void WritePayments(StringBuilder csv, IEnumerable<string> headings, IEnumerable<object?> context, IEnumerable<DashboardPaymentReportRow> rows)
+    {
+        Append(csv, headings.Concat(["event_id", "event", "restaurant_id", "restaurant", "occurred_at_utc", "amount_azn", "purpose", "reservation_id", "session_id", "status_id", "is_test"]));
+        foreach (var row in rows)
+            Append(csv, context.Concat([row.Id, row.Event, row.RestaurantId, row.RestaurantName, row.OccurredAtUtc,
+                row.Amount, row.Purpose, row.ReservationId, row.TableSessionId, row.StatusId, row.IsTest]));
+    }
+
+    /// <summary>Metadata əsaslı hesabatları eyni tipli hüceyrələrdən yazır; hər hesabat üçün yeni strategiya sinfi tələb etmir.</summary>
+    private static void WriteDetail(StringBuilder csv, IEnumerable<string> headings, IEnumerable<object?> context, DashboardReportDetail detail)
+    {
+        Append(csv, headings.Concat(detail.Columns.Select(column => column.Key)));
+        foreach (var row in detail.Rows)
+            Append(csv, context.Concat(row.Cells.Select(cell => cell.Number.HasValue ? (object)cell.Number.Value : cell.Utc.HasValue ? cell.Utc.Value : cell.Text)));
     }
 
     /// <summary>CSV sətrində hər xananı ayrıca qaçırır; vergül, dırnaq və yeni sətrin struktur pozmasına yol vermir.</summary>

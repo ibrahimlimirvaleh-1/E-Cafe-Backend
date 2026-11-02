@@ -1,3 +1,4 @@
+using ECafe.Domain.Constants;
 using ECafe.Application.DTOs.Dashboard;
 using ECafe.Application.Repositories.Dashboard;
 using ECafe.Domain.Enums;
@@ -23,13 +24,13 @@ public static class DashboardReportMetricMapper
             },
             _ => new List<DashboardMetric>
             {
-                Metric("collectedAmount", totals.CollectedAmount, "AZN"), Metric("refundedAmount", totals.RefundedAmount, "AZN"),
-                Metric("netCollectedAmount", totals.CollectedAmount - totals.RefundedAmount, "AZN"),
+                Metric("collectedAmount", totals.CollectedAmount, CurrencyCodes.Azn), Metric("refundedAmount", totals.RefundedAmount, CurrencyCodes.Azn),
+                Metric("netCollectedAmount", totals.CollectedAmount - totals.RefundedAmount, CurrencyCodes.Azn),
                 Metric("receiptCount", totals.ReceiptCount), Metric("refundCount", totals.RefundCount)
             }
         };
         if (kind == DashboardReportKind.Orders && role != RoleCode.Manager)
-            metrics.Add(Metric("confirmedAmount", totals.ConfirmedAmount, "AZN"));
+            metrics.Add(Metric("confirmedAmount", totals.ConfirmedAmount, CurrencyCodes.Azn));
         return metrics;
     }
 

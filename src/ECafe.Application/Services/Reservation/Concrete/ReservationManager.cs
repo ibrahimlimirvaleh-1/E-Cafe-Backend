@@ -47,7 +47,6 @@ namespace ECafe.Application.Services.Reservation.Concrete;
 
 public sealed partial class ReservationManager : BaseManager, IReservationService
 {
-    private const string SubmitPaymentProofActionCode = "submitPaymentProof";
     private static readonly Regex ProhibitedPaymentInstructionDetailsPattern = new(
         @"\b(cvv|cvc|pin)(?:\s*2)?\b",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
@@ -1048,7 +1047,7 @@ public sealed partial class ReservationManager : BaseManager, IReservationServic
         await _workflowActionService.EnsureCanExecuteAsync(
             ReservationFlowCode,
             reservation.StatusId,
-            SubmitPaymentProofActionCode,
+            WorkflowActionCode.Reservation.SubmitPaymentProof,
             reservation.RestaurantId,
             reservation.Id);
     }
@@ -1882,7 +1881,7 @@ public sealed partial class ReservationManager : BaseManager, IReservationServic
         await _workflowActionService.EnsureCanExecuteAsync(
             ReservationFlowCode,
             reservation.StatusId,
-            "cancel",
+            WorkflowActionCode.Reservation.Cancel,
             restaurantId,
             reservation.Id);
 

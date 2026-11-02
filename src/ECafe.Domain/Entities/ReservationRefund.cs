@@ -1,3 +1,4 @@
+using ECafe.Domain.Constants;
 using ECafe.Domain.Entities.Base;
 
 namespace ECafe.Domain.Entities;
@@ -17,7 +18,7 @@ public class ReservationRefund : AuditableSoftDeletableEntity<int>
 
     public decimal Amount { get; set; }
 
-    public string CurrencyCode { get; set; } = "AZN";
+    public string CurrencyCode { get; set; } = CurrencyCodes.Azn;
 
     public int? InitiatedByUserId { get; set; }
 

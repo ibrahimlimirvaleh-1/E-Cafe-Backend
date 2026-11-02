@@ -1,3 +1,4 @@
+using ECafe.Domain.Constants;
 using System.Globalization;
 using ECafe.Application.DTOs.Reservation;
 using ECafe.Domain.Enums;
@@ -49,6 +50,6 @@ public static class ReservationRefundRequestMapper
         var refundableAmount = payment?.Amount ?? proof!.Amount;
         var amount = refundableAmount.ToString("0.00", CultureInfo.InvariantCulture);
         var message = $"{amount} AZN geri ödəniş hüququnuz var. Geri ödəniş üçün müraciət edə bilərsiniz.";
-        return new(refundableAmount, "AZN", message);
+        return new(refundableAmount, CurrencyCodes.Azn, message);
     }
 }

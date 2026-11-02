@@ -1,3 +1,4 @@
+using ECafe.Domain.Constants;
 using ECafe.Application.DTOs.Dashboard;
 using ECafe.Application.Repositories.Dashboard;
 using ECafe.Domain.Enums;
@@ -13,10 +14,10 @@ public static class DashboardMetricMapper
         {
             RoleCode.SuperAdmin => [Metric("activeRestaurants", live.ActiveRestaurants), Metric("activeUsers", live.ActiveUsers),
                 Metric("reservationCount", current.ReservationCount, previous.ReservationCount), Metric("activeContracts", live.ActiveContracts)],
-            RoleCode.Owner => [Metric("orderAmount", current.OrderAmount, previous.OrderAmount, "AZN"),
-                Metric("collectedAmount", current.CollectedAmount, previous.CollectedAmount, "AZN"),
+            RoleCode.Owner => [Metric("orderAmount", current.OrderAmount, previous.OrderAmount, CurrencyCodes.Azn),
+                Metric("collectedAmount", current.CollectedAmount, previous.CollectedAmount, CurrencyCodes.Azn),
                 Metric("orderCount", current.OrderCount, previous.OrderCount),
-                Metric("averageOrder", Average(current), Average(previous), "AZN")],
+                Metric("averageOrder", Average(current), Average(previous), CurrencyCodes.Azn)],
             _ => [Metric("todayReservations", live.TodayReservations), Metric("openSessions", live.OpenSessions),
                 Metric("kitchenOrders", live.KitchenOrders), Metric("readyOrders", live.ReadyOrders)]
         };

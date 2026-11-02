@@ -1,3 +1,4 @@
+using ECafe.Domain.Constants;
 using System.Data;
 using System.Text.RegularExpressions;
 using ECafe.Application.Common.Audit;
@@ -234,7 +235,7 @@ public sealed class ReservationRefundManager : BaseManager, IReservationRefundSe
             SourcePaymentProofId = sourcePaymentProof.Id,
             StatusId = awaitingPayoutDetailsStatusId,
             Amount = sourcePaymentProof.Amount,
-            CurrencyCode = "AZN",
+            CurrencyCode = CurrencyCodes.Azn,
             InitiatedByUserId = userId,
             RequestedAt = now,
             EligibilityReason = BuildEligibilityReason(reservation),

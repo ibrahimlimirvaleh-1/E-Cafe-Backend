@@ -1,3 +1,4 @@
+using ECafe.Domain.Constants;
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
@@ -13,7 +14,7 @@ public sealed record TableSessionBill(decimal TotalAmount, decimal DepositCredit
 
 public static class TableSessionBillingPolicy
 {
-    public const string Currency = "AZN";
+    public const string Currency = CurrencyCodes.Azn;
     private const decimal MaximumAmount = 99999999.99m;
 
     /// <summary>Təsdiqlənmiş sifariş qiymətlərini toplayır; gözləyən sifariş borc yaratmır, amma hesablaşmanı bloklayır. Yalnız təsdiqlənmiş, qaytarılmamış ödənişlər çıxılır.</summary>

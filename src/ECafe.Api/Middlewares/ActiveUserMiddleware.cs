@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using ECafe.Application.Services.Auth.Abstract;
 using ECafe.Domain.Exceptions;
+using ApiRoutes = ECafe.Application.Routes.Routes;
 
 namespace ECafe.Api.Middlewares;
 
@@ -44,8 +45,9 @@ public sealed class ActiveUserMiddleware
         await _next(context);
     }
 
+    /// <summary>Yalnız mərkəzi refresh endpointini aktiv sessiya yoxlamasından ayırır; oxşar yol prefikslərini istisna etmir.</summary>
     private static bool ShouldSkipActiveUserCheck(HttpContext context)
-        => context.Request.Path.Equals("/api/v1/user/refresh", StringComparison.OrdinalIgnoreCase);
+        => context.Request.Path.Equals(ApiRoutes.Auth.RefreshPath, StringComparison.OrdinalIgnoreCase);
 
     private static int? GetUserId(ClaimsPrincipal principal)
     {

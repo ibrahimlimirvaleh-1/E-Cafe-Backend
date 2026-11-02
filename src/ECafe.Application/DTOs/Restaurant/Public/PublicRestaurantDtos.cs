@@ -1,3 +1,4 @@
+using ECafe.Domain.Constants;
 using ECafe.Application.DTOs.Restaurant;
 
 namespace ECafe.Application.DTOs.Restaurant.Public
@@ -22,7 +23,7 @@ namespace ECafe.Application.DTOs.Restaurant.Public
         public int PaymentHoldMinutes { get; set; }
         public int RestaurantResponseMinutes { get; set; }
         public decimal? DepositAmount { get; set; }
-        public string TimeZone { get; set; } = "Asia/Baku";
+        public string TimeZone { get; set; } = RestaurantDefaults.TimeZone;
         public List<RestaurantWorkingHourDto> WorkingHours { get; set; } = [];
         public bool IsOpen { get; set; }
         public string OpenStatus { get; set; } = "Closed";
@@ -57,7 +58,7 @@ namespace ECafe.Application.DTOs.Restaurant.Public
         public int TableTurnoverBufferMinutes { get; set; }
         public int PaymentHoldMinutes { get; set; }
         public int RestaurantResponseMinutes { get; set; }
-        public string TimeZone { get; set; } = "Asia/Baku";
+        public string TimeZone { get; set; } = RestaurantDefaults.TimeZone;
         public List<RestaurantWorkingHourDto> WorkingHours { get; set; } = [];
         public bool IsOpen { get; set; }
         public string OpenStatus { get; set; } = "Closed";

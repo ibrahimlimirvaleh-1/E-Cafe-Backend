@@ -1,3 +1,4 @@
+using ECafe.Domain.Constants;
 using ECafe.Domain.Exceptions;
 using ECafe.Application.Common.Exceptions;
 using ECafe.Domain.Services;
@@ -12,7 +13,7 @@ public sealed record DashboardPeriod(DateOnly From, DateOnly To, string TimeZone
 
 public static class DashboardPeriodPolicy
 {
-    public const string DefaultTimeZone = "Asia/Baku";
+    public const string DefaultTimeZone = RestaurantDefaults.TimeZone;
     public const int MaximumDays = 92;
     public const int PageSize = 10;
     public const int MaximumPageIndex = 100000;
@@ -27,13 +28,13 @@ public static class DashboardPeriodPolicy
         var today = DateOnly.FromDateTime(RestaurantTimeZoneConverter.ToRestaurantLocalTime(now, timeZone).DateTime);
         var first = period switch
         {
-            "today" => today,
-            "week" => today.AddDays(-6),
-            "month" => today.AddDays(-29),
-            "custom" when from.HasValue && to.HasValue => from.Value,
+            DashboardFilterCodes.Period.Today => today,
+            DashboardFilterCodes.Period.Week => today.AddDays(-6),
+            DashboardFilterCodes.Period.Month => today.AddDays(-29),
+            DashboardFilterCodes.Period.Custom when from.HasValue && to.HasValue => from.Value,
             _ => throw new BadRequestException(ErrorCode.DashboardFilterInvalid)
         };
-        var last = period == "custom" ? to!.Value : today;
+        var last = period == DashboardFilterCodes.Period.Custom ? to!.Value : today;
         var days = last.DayNumber - first.DayNumber + 1;
         if (days is < 1 or > MaximumDays || first.Year < 2000 || last.Year > 2100)
             throw new BadRequestException(ErrorCode.DashboardFilterInvalid);

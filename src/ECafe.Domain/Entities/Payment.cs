@@ -1,4 +1,5 @@
-﻿using ECafe.Domain.Entities.Base;
+﻿using ECafe.Domain.Constants;
+using ECafe.Domain.Entities.Base;
 
 namespace ECafe.Domain.Entities;
 
@@ -22,7 +23,7 @@ public partial class Payment : AuditableSoftDeletableEntity<int>
     public string? ProviderRef { get; set; }
     public string? ProviderName { get; set; }
     public bool IsTest { get; set; }
-    public string CurrencyCode { get; set; } = "AZN";
+    public string CurrencyCode { get; set; } = CurrencyCodes.Azn;
     public string? CheckoutKey { get; set; }
     public string? CheckoutUrl { get; set; }
     public DateTime? CheckoutExpiresAt { get; set; }

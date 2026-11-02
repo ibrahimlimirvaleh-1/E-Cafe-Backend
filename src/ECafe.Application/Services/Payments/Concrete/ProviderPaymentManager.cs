@@ -1,3 +1,4 @@
+using ECafe.Domain.Constants;
 using System.Data;
 using System.Text.Json;
 using AutoMapper;
@@ -114,7 +115,7 @@ public sealed partial class ProviderPaymentManager(IHttpContextAccessor accessor
         var payment = new Payment
         {
             RestaurantId = reservation.RestaurantId, ReservationId = reservationId, Reservation = reservation,
-            CreatedByUserId = userId, Amount = reservation.DepositAmount, CurrencyCode = "AZN", CheckoutKey = key,
+            CreatedByUserId = userId, Amount = reservation.DepositAmount, CurrencyCode = CurrencyCodes.Azn, CheckoutKey = key,
             PaymentMethodId = StatusIds.Build(StatusType.PaymentMethod, (int)PaymentMethod.Online),
             PaymentStatusId = StatusIds.Build(StatusType.PaymentStatus, (int)PaymentStatus.Pending),
             ProviderName = gateway.Name, IsTest = gateway.IsTest, CheckoutExpiresAt = reservation.HoldExpiresAt

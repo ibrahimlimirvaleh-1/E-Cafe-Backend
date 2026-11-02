@@ -28,6 +28,7 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Localization;
 using ECafe.Application.Services.Localization.Abstract;
+using ApiRoutes = ECafe.Application.Routes.Routes;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -243,7 +244,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 var accessToken = context.Request.Query["access_token"].ToString();
 
                 if (!string.IsNullOrWhiteSpace(accessToken)
-                    && context.HttpContext.Request.Path.StartsWithSegments("/hubs/user-events"))
+                    && context.HttpContext.Request.Path.StartsWithSegments(ApiRoutes.Realtime.UserEvents))
                 {
                     context.Token = accessToken;
                 }
@@ -336,7 +337,7 @@ app.UseRateLimiter();
 app.UseAuthorization();
 
 app.MapControllers();
-app.MapHub<UserEventsHub>("/hubs/user-events");
+app.MapHub<UserEventsHub>(ApiRoutes.Realtime.UserEvents);
 app.MapGet("/health/live", () => Results.Ok(new
 {
     status = "Healthy",

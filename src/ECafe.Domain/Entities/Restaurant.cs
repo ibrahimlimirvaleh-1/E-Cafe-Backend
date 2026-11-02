@@ -1,3 +1,4 @@
+using ECafe.Domain.Constants;
 using ECafe.Domain.Entities.Base;
 
 namespace ECafe.Domain.Entities;
@@ -40,7 +41,7 @@ public partial class Restaurant : AuditableSoftDeletableEntity<int>
 
     public int StaffSettlementPeriod { get; set; }
 
-    public string TimeZone { get; set; } = "Asia/Baku";
+    public string TimeZone { get; set; } = RestaurantDefaults.TimeZone;
 
 
     public bool IsActive { get; set; }

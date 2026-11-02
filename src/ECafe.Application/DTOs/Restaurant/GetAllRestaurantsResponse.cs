@@ -1,4 +1,6 @@
-﻿namespace ECafe.Application.DTOs.Restaurant
+﻿using ECafe.Domain.Constants;
+
+namespace ECafe.Application.DTOs.Restaurant
 {
     public class GetAllRestaurantsResponse
     {
@@ -39,7 +41,7 @@
 
         public decimal ServiceFeePercent { get; set; }
 
-        public string TimeZone { get; set; } = "Asia/Baku";
+        public string TimeZone { get; set; } = RestaurantDefaults.TimeZone;
 
         public List<RestaurantWorkingHourDto> WorkingHours { get; set; } = [];
 
