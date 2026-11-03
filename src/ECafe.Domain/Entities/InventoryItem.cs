@@ -10,6 +10,7 @@ namespace ECafe.Domain.Entities
         public string Name { get; set; } = null!;
         public int UnitId { get; set; }
         public decimal QuantityOnHand { get; set; }
+        public decimal? StockCostValue { get; set; }
         public decimal LowStockThreshold { get; set; }
         public DateTime? LastLowStockNotifiedAt { get; set; }
         public bool IsActive { get; set; }

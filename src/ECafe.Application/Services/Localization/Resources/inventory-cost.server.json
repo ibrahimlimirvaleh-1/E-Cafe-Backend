@@ -1,0 +1,7 @@
+{
+  "api.error.InventoryPurchasePriceInvalid": {
+    "az": "Alış qiyməti yalnız alış hərəkəti üçün və icazə verilən həddə daxil edilə bilər.",
+    "en": "Enter a valid purchase price only for a purchase movement.",
+    "ru": "Допустимая закупочная цена указывается только для операции закупки."
+  }
+}

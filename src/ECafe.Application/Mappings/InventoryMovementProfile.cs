@@ -10,6 +10,7 @@ namespace ECafe.Application.Mappings
         {
             CreateMap<CreateInventoryMovementRequest, Domain.Entities.InventoryMovement>()
                 .ForMember(dest => dest.QuantityChange, opt => opt.Ignore())
+                .ForMember(dest => dest.CostAmount, opt => opt.Ignore())
                 .ForMember(dest => dest.UnitId, opt => opt.MapFrom(src => src.UnitId))
                 .ForMember(dest => dest.MovementTypeId, opt => opt.MapFrom(src => src.MovementTypeId))
                 .ForMember(dest => dest.Reason, opt => opt.MapFrom(src => string.IsNullOrWhiteSpace(src.Reason) ? null : src.Reason.Trim()))

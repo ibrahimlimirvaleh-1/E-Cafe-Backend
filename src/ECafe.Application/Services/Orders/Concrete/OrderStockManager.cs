@@ -29,14 +29,21 @@ public sealed class OrderStockManager(IRecipeRepository recipes, IInventoryItemR
         var inventory = await stock.QueryTracked(item => item.RestaurantId == order.RestaurantId && ingredientIds.Contains(item.Id))
             .Include(item => item.Unit).ToDictionaryAsync(item => item.Id, cancellationToken);
         var plan = OrderStockPolicy.BuildPlan(order, rows, inventory);
+        var costByLine = order.OrderItems.Where(line => !line.IsDeleted).ToDictionary(line => line.Id, _ => (decimal?)0m);
         foreach (var group in plan.GroupBy(row => row.InventoryItemId).OrderBy(group => group.Key))
         {
             var item = inventory[group.Key];
             var before = item.QuantityOnHand;
-            InventoryStockPolicy.ApplyChange(item, -group.Sum(row => row.Quantity));
+            foreach (var row in group)
+            {
+                var cost = InventoryCostPolicy.Remove(item, row.Quantity);
+                costByLine[row.OrderItemId] += cost;
+                await movements.Add(OrderStockMovementMapper.Map(order, row, cost));
+            }
             await lowStock.NotifyAsync(item, item.Unit, before, cancellationToken);
         }
-        foreach (var row in plan) await movements.Add(OrderStockMovementMapper.Map(order, row));
+        foreach (var line in order.OrderItems.Where(line => !line.IsDeleted))
+            line.IngredientCostSnapshot = costByLine[line.Id];
         // Status, audit, bildiriş və stok vahid DbContext ilə çağıran xidmətdə saxlanılır və commit edilir.
     }
 }

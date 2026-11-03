@@ -51,11 +51,14 @@ public sealed class OrderStockReturnManager(IInventoryItemRepository stock, IInv
         var totals = OrderStockReturnPolicy.ConsumptionTotals(consumption);
         foreach (var pair in amounts.OrderBy(pair => pair.Key))
         {
-            if (pair.Value > 0) InventoryStockPolicy.ApplyChange(inventory[pair.Key], pair.Value);
             order.CancellationRequest!.StockReturnLines.Add(OrderCancellationStockReturnLineMapper.Map(inventory[pair.Key], totals[pair.Key], pair.Value));
         }
         foreach (var allocation in OrderStockReturnPolicy.Allocate(consumption, amounts))
-            await movements.Add(OrderStockReturnMovementMapper.Map(allocation.Source, allocation.Quantity));
+        {
+            var movement = OrderStockReturnMovementMapper.Map(allocation.Source, allocation.Quantity);
+            InventoryCostPolicy.Add(inventory[movement.InventoryItemId], movement.QuantityChange, movement.CostAmount);
+            await movements.Add(movement);
+        }
         return amounts.Values.Any(quantity => quantity > 0);
     }
 

@@ -35,10 +35,42 @@ public sealed partial class DashboardPostgresTests
         var product = await repository.GetReportAsync(scope, period, DashboardReportKind.Products, null, "all", 1, false, default);
         var sold = product.Detail!.Rows.Single(row => row.Cells[1].Text == "Meal");
         Assert.Equal(2, sold.Cells[2].Number); Assert.Equal(50, sold.Cells[4].Number);
+        Assert.Null(sold.Cells[6].Number);
+        Assert.Null(sold.Cells[7].Number);
+        Assert.Null(sold.Cells[8].Number);
         var kitchen = await repository.GetReportAsync(scope, period, DashboardReportKind.Kitchen, null, "all", 1, false, default);
         var ticket = Assert.Single(kitchen.Detail!.Rows);
         Assert.Equal(5, ticket.Cells[5].Number); Assert.Equal(12, ticket.Cells[6].Number); Assert.Equal(5, ticket.Cells[7].Number); Assert.Equal(25, ticket.Cells[8].Number);
         Assert.Empty(db.ChangeTracker.Entries());
+    }
+
+    /// <summary>Sahibkarın maya və qazancı satış snapshot-ından aldığını, başqa rollara isə bu sütunların çıxmadığını yoxlayır.</summary>
+    [DashboardPostgresFact]
+    public async Task ProductProfitIsCalculatedFromSavedCostsForOwnerOnly()
+    {
+        await using var fixture = await Database.CreateAsync();
+        await using var db = fixture.Context();
+        var order = await db.Orders.Include(row => row.OrderItems).SingleAsync(row => row.Id == 1001);
+        order.StatusId = 2005;
+        order.ServedAt = Now;
+        Assert.Single(order.OrderItems).IngredientCostSnapshot = .25m;
+        await db.SaveChangesAsync();
+        db.ChangeTracker.Clear();
+
+        var repository = new DashboardRepository(db);
+        var scope = new DashboardScope(1001, RoleCode.Owner, null, false);
+        var period = DashboardPeriodPolicy.Resolve("today", null, null, "Asia/Baku", new(Now));
+        var owner = await repository.GetReportAsync(scope, period, DashboardReportKind.Products, null, "all", 1, false, default);
+        var row = owner.Detail!.Rows.Single(result => result.Cells[1].Text == "Meal");
+        Assert.Equal(new[] { "ingredientCost", "grossProfit", "averageIngredientCost" }, owner.Detail.Columns.Skip(6).Select(column => column.Key));
+        Assert.Equal(50m, row.Cells[4].Number);
+        Assert.Equal(.25m, row.Cells[6].Number);
+        Assert.Equal(49.75m, row.Cells[7].Number);
+        Assert.Equal(.125m, row.Cells[8].Number);
+
+        var manager = await repository.GetReportAsync(new(1002, RoleCode.Manager, 1001, false), period,
+            DashboardReportKind.Products, null, "all", 1, true, default);
+        Assert.Equal(6, manager.Detail!.Columns.Count);
     }
 
     [DashboardPostgresFact]

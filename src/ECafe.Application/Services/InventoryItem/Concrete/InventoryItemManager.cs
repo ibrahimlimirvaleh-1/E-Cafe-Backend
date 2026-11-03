@@ -8,6 +8,7 @@ using System.Globalization;
 using ECafe.Application.Repositories.InventoryItem;
 using ECafe.Application.Repositories.Restaurant;
 using ECafe.Application.Repositories.Unit;
+using ECafe.Application.Repository;
 using ECafe.Application.Services.InventoryItem.Abstract;
 using ECafe.Domain.Exceptions;
 using ECafe.Shared.DTOs;
@@ -22,6 +23,7 @@ namespace ECafe.Application.Services.InventoryItem.Concrete
         private readonly IRestaurantRepository _restaurantRepository;
         private readonly IInventoryItemRepository _inventoryItemRepository;
         private readonly IUnitRepository _unitRepository;
+        private readonly IApplicationDbTransactionFactory _transactions;
 
         public InventoryItemManager(
             IHttpContextAccessor httpContextAccessor,
@@ -29,12 +31,14 @@ namespace ECafe.Application.Services.InventoryItem.Concrete
             IConfiguration configuration,
             IRestaurantRepository restaurantRepository,
             IInventoryItemRepository inventoryItemRepository,
-            IUnitRepository unitRepository)
+            IUnitRepository unitRepository,
+            IApplicationDbTransactionFactory transactions)
             : base(httpContextAccessor, mapper, configuration)
         {
             _restaurantRepository = restaurantRepository;
             _inventoryItemRepository = inventoryItemRepository;
             _unitRepository = unitRepository;
+            _transactions = transactions;
         }
 
         public async Task<InventoryItemDto> CreateAsync(int restaurantId, CreateInventoryItemRequest request)
@@ -147,6 +151,7 @@ namespace ECafe.Application.Services.InventoryItem.Concrete
                 : Mapper.Map<InventoryItemDto>(inventoryItem);
         }
 
+        /// <summary>Stok vahidi dəyişərsə əvvəlki qalıq mayasını etibarsız edir və bunu stok dəyişiklikləri ilə eyni kilid altında saxlayır.</summary>
         public async Task<InventoryItemDto> UpdateAsync(
             UpdateInventoryItemRequest request,
             int restaurantId,
@@ -167,6 +172,8 @@ namespace ECafe.Application.Services.InventoryItem.Concrete
 
             EnsureCurrentUserCanAccessRestaurant(restaurantId);
 
+            await using var transaction = await _transactions.BeginTransactionAsync(System.Data.IsolationLevel.ReadCommitted);
+            await _inventoryItemRepository.LockForStockChangeAsync(restaurantId, [inventoryItemId]);
             var inventoryItem = await _inventoryItemRepository
                 .QueryTracked(x => x.Id == inventoryItemId && x.RestaurantId == restaurantId)
                 .FirstOrDefaultAsync();
@@ -189,12 +196,14 @@ namespace ECafe.Application.Services.InventoryItem.Concrete
             if (inventoryItemExists)
                 throw new BusinessRuleException(ErrorCode.InventoryItemAlreadyExists, new { name = itemName });
 
+            if (inventoryItem.UnitId != request.UnitId) inventoryItem.StockCostValue = null;
             Mapper.Map(request, inventoryItem);
             ContentTranslationCollectionPolicy.Apply(inventoryItem.Translations,
                 ContentTranslationRequestMapper.MapInventoryItem(inventoryItem.Id, request.Translations),
                 ContentTranslationRequestMapper.Canonical(inventoryItem), ContentTranslationMapper.Copy);
 
             await _inventoryItemRepository.SaveChangesAsync();
+            await transaction.CommitAsync();
 
             inventoryItem.Unit = unit;
 

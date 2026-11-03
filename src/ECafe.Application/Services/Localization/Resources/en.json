@@ -1,4 +1,13 @@
 {
+  "ui.inventory.purchase.unitPrice": "Purchase price per unit (AZN)",
+  "ui.inventory.purchase.selectedUnit": "Purchase price for 1 {{unit}}.",
+  "ui.inventory.purchase.invalidUnitPrice": "Enter a price from 0 to 1,000,000 AZN with up to 6 decimal places.",
+  "ui.operationalReports.note.productProfit": "Served sales value is not cash received. Gross profit is served sales value minus ingredient cost, before operating expenses. Gross profit is not shown when ingredient cost for sold items is unknown.",
+  "ui.operationalReports.column.servedSalesAmount": "Served sales value",
+  "ui.operationalReports.column.ingredientCost": "Ingredient cost",
+  "ui.operationalReports.column.grossProfit": "Gross profit",
+  "ui.operationalReports.column.averageIngredientCost": "Average ingredient cost (AZN per unit)",
+  "ui.operationalReports.productCostUnknown": "Cost unknown",
   "ui.dashboardReports.orderStages": "Order stages",
   "ui.dashboardReports.ordersTotal": "Orders",
   "ui.dashboardReports.otherStages": "Other stages",

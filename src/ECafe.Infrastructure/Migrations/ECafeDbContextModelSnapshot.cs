@@ -549,6 +549,11 @@ namespace ECafe.Infrastructure.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("restaurant_id");
 
+                    b.Property<decimal?>("StockCostValue")
+                        .HasPrecision(26, 8)
+                        .HasColumnType("numeric(26,8)")
+                        .HasColumnName("stock_cost_value");
+
                     b.Property<int>("UnitId")
                         .HasColumnType("integer")
                         .HasColumnName("unit_id");
@@ -603,6 +608,11 @@ namespace ECafe.Infrastructure.Migrations
                         .HasColumnName("id");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal?>("CostAmount")
+                        .HasPrecision(26, 8)
+                        .HasColumnType("numeric(26,8)")
+                        .HasColumnName("cost_amount");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -1692,6 +1702,11 @@ namespace ECafe.Infrastructure.Migrations
 
                     b.Property<string>("DeletedBy")
                         .HasColumnType("text");
+
+                    b.Property<decimal?>("IngredientCostSnapshot")
+                        .HasPrecision(36, 8)
+                        .HasColumnType("numeric(36,8)")
+                        .HasColumnName("ingredient_cost_snapshot");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");

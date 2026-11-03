@@ -7,6 +7,7 @@ namespace ECafe.Domain.Entities
         public int RestaurantId { get; set; }
         public int InventoryItemId { get; set; }
         public decimal QuantityChange { get; set; }
+        public decimal? CostAmount { get; set; }
         public int UnitId { get; set; }
         public int MovementTypeId { get; set; }
         public string? Reason { get; set; }
