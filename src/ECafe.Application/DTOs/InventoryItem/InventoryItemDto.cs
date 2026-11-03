@@ -9,6 +9,7 @@
         public string UnitName { get; set; } = null!;
         public string UnitCode { get; set; } = null!;
         public decimal QuantityOnHand { get; set; }
+        public bool HasUnknownStockCost { get; set; }
         public decimal LowStockThreshold { get; set; }
         public bool IsLowStock { get; set; }
         public bool IsActive { get; set; }

@@ -2,6 +2,7 @@ using System.Security.Claims;
 using System.Text.Json;
 using AutoMapper;
 using AutoMapper.QueryableExtensions;
+using ECafe.Application.DTOs.InventoryItem;
 using ECafe.Application.Common.Exceptions;
 using ECafe.Application.DTOs.InventoryMovement;
 using ECafe.Application.Mappings;
@@ -10,6 +11,7 @@ using ECafe.Application.Repository;
 using ECafe.Application.Services.InventoryMovement.Abstract;
 using ECafe.Application.Services.InventoryMovement.Concrete;
 using ECafe.Domain.Entities;
+using ECafe.Domain.Enums;
 using ECafe.Domain.Exceptions;
 using ECafe.Infrastructure.Context;
 using ECafe.Infrastructure.Repositories.InventoryItem;
@@ -34,6 +36,7 @@ public sealed class InventoryMovementHistoryTests
         source.MovementTypeId = 6;
         source.MovementType = new InventoryMovementType { Id = 6, Code = "StockReturn", Name = "Stoka qaytarma" };
         source.QuantityChange = 90.000001m;
+        source.CostAmount = 2m;
         source.ReversedMovementId = 40;
         var result = new[] { source }.AsQueryable().ProjectTo<InventoryMovementHistoryResponse>(Mapper().ConfigurationProvider).Single();
         Assert.Equal("ml", result.UnitCode);
@@ -46,10 +49,45 @@ public sealed class InventoryMovementHistoryTests
         Assert.Equal("Asia/Baku", result.TimeZone);
         Assert.Equal(40, result.ReversedMovementId);
         Assert.Equal(90.000001m, result.QuantityChange);
+        Assert.Null(result.PurchaseCostAmount);
+        Assert.Null(result.PurchaseUnitPrice);
         var json = JsonSerializer.Serialize(result, new JsonSerializerOptions(JsonSerializerDefaults.Web));
         Assert.DoesNotContain("quantityAfterMovement", json);
         Assert.Contains("2026-10-27T14:05:00Z", json);
         Assert.Equal(8200, source.InventoryItem.QuantityOnHand);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData(0)]
+    [InlineData(5)]
+    public void PurchaseHistoryDistinguishesMissingFreeAndPricedPurchases(int? cost)
+    {
+        var source = Movement();
+        source.MovementTypeId = (int)InventoryMovementTypeCode.Purchase;
+        source.QuantityChange = 1000m;
+        source.CostAmount = cost;
+
+        var result = new[] { source }.AsQueryable()
+            .ProjectTo<InventoryMovementHistoryResponse>(Mapper().ConfigurationProvider, new { canViewPurchaseCosts = true }).Single();
+
+        Assert.Equal((decimal?)cost, result.PurchaseCostAmount);
+        Assert.Equal(cost / 1000m, result.PurchaseUnitPrice);
+        using var json = JsonDocument.Parse(JsonSerializer.Serialize(result, new JsonSerializerOptions(JsonSerializerDefaults.Web)));
+        var unitPrice = json.RootElement.GetProperty("purchaseUnitPrice");
+        if (cost.HasValue) Assert.Equal(cost.Value / 1000m, unitPrice.GetDecimal());
+        else Assert.Equal(JsonValueKind.Null, unitPrice.ValueKind);
+    }
+
+    [Theory]
+    [InlineData(1, null, true)]
+    [InlineData(1, 0, false)]
+    [InlineData(1, 5, false)]
+    [InlineData(0, null, false)]
+    public void UnknownStockCostRequiresPositiveBalanceWithoutValuation(int quantity, int? stockCost, bool expected)
+    {
+        var source = new InventoryItem { QuantityOnHand = quantity, StockCostValue = stockCost };
+        Assert.Equal(expected, Mapper().Map<InventoryItemDto>(source).HasUnknownStockCost);
     }
 
     [Theory]
@@ -119,7 +157,11 @@ public sealed class InventoryMovementHistoryTests
     }
 
     /// <summary>İstehsaldakı tarixçə proyeksiyasını test edir; cavab sahələri testdə ayrıca kopyalanmır.</summary>
-    private static IMapper Mapper() => new MapperConfiguration(config => config.AddProfile<InventoryMovementProfile>(),
+    private static IMapper Mapper() => new MapperConfiguration(config =>
+    {
+        config.AddProfile<InventoryMovementProfile>();
+        config.AddProfile<InventoryItemProfile>();
+    },
         Microsoft.Extensions.Logging.Abstractions.NullLoggerFactory.Instance).CreateMapper();
 
     /// <summary>Cari menyu adı dəyişsə də ilkin məhsul adının və UTC vaxtının qalmasını yoxlamaq üçün sərfiyyat nümunəsi yaradır.</summary>
