@@ -19,6 +19,8 @@ namespace ECafe.Application.Mappings
                 .ForMember(dest => dest.Movements, opt => opt.Ignore());
 
             CreateMap<Domain.Entities.InventoryItem, InventoryItemDto>()
+                .ForMember(dest => dest.HasUnknownStockCost, opt => opt.MapFrom(src =>
+                    src.QuantityOnHand > 0 && !src.StockCostValue.HasValue))
                 .ForMember(dest => dest.UnitName, opt => opt.MapFrom(src => src.Unit.Name))
                 .ForMember(dest => dest.UnitCode, opt => opt.MapFrom(src => src.Unit.Code))
                 .ForMember(dest => dest.IsLowStock, opt => opt.MapFrom(src => src.QuantityOnHand <= src.LowStockThreshold));

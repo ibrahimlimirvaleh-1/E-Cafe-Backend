@@ -118,6 +118,7 @@ namespace ECafe.Application.Services.InventoryMovement.Concrete
 
 
         /// <summary>Yalnız aidiyyəti təsdiqlənmiş stokun tarixçəsini sabit tarix/ID sırası ilə oxuyur; tarixi qalıq hesablamır və stok uçotuna toxunmur.</summary>
+        /// <summary>Restoranın stok tarixçəsini səhifələyir; alış qiymətini yalnız idarəetmə rolları üçün qaytarır.</summary>
         public async Task<PaginatedList<InventoryMovementHistoryResponse>> HistoryAsync(
             int inventoryItemId,
             int restaurantId,
@@ -145,11 +146,13 @@ namespace ECafe.Application.Services.InventoryMovement.Concrete
             if (!inventoryItemExists)
                 throw new NotFoundException(ErrorCode.InventoryItemNotFound);
 
+            var canViewPurchaseCosts = IsCurrentUserSuperAdmin() ||
+                GetCurrentRoleId(restaurantId) is (int)RoleCode.Owner or (int)RoleCode.Manager;
             var movements = _inventoryMovementRepository
                 .Query(x => x.RestaurantId == restaurantId && x.InventoryItemId == inventoryItemId)
                 .OrderByDescending(x => x.CreatedAt)
                 .ThenByDescending(x => x.Id)
-                .ProjectTo<InventoryMovementHistoryResponse>(Mapper.ConfigurationProvider);
+                .ProjectTo<InventoryMovementHistoryResponse>(Mapper.ConfigurationProvider, new { canViewPurchaseCosts });
 
             return await PaginatedList<InventoryMovementHistoryResponse>.CreateAsync(
                 movements,

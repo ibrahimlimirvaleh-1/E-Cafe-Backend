@@ -6,6 +6,11 @@
         public int RestaurantId { get; set; }
         public int InventoryItemId { get; set; }
         public decimal QuantityChange { get; set; }
+        public decimal? PurchaseCostAmount { get; set; }
+
+        /// <summary>Alışın vahid qiymətini tarixçə sətrindəki ölçü vahidinə görə göstərir.</summary>
+        public decimal? PurchaseUnitPrice => QuantityChange > 0 ? PurchaseCostAmount / QuantityChange : null;
+
         public int UnitId { get; set; }
         public string UnitName { get; set; } = null!;
         public string UnitCode { get; set; } = null!;

@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using ECafe.Application.DTOs.InventoryMovement;
+using ECafe.Domain.Enums;
 
 namespace ECafe.Application.Mappings
 {
@@ -35,6 +36,7 @@ namespace ECafe.Application.Mappings
                 .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => src.CreatedAt));
 
 
+            var canViewPurchaseCosts = false;
             CreateMap<Domain.Entities.InventoryMovement, InventoryMovementHistoryResponse>()
                 .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.Id))
                 .ForMember(dest => dest.RestaurantId, opt => opt.MapFrom(src => src.RestaurantId))
@@ -43,6 +45,9 @@ namespace ECafe.Application.Mappings
                 .ForMember(dest => dest.UnitId, opt => opt.MapFrom(src => src.UnitId))
                 .ForMember(dest => dest.UnitName, opt => opt.MapFrom(src => src.Unit.Name))
                 .ForMember(dest => dest.UnitCode, opt => opt.MapFrom(src => src.Unit.Code))
+                .ForMember(dest => dest.PurchaseCostAmount, opt => opt.MapFrom(src =>
+                    canViewPurchaseCosts && src.MovementTypeId == (int)InventoryMovementTypeCode.Purchase && src.QuantityChange > 0
+                        ? src.CostAmount : null))
                 .ForMember(dest => dest.MovementTypeId, opt => opt.MapFrom(src => src.MovementTypeId))
                 .ForMember(dest => dest.MovementType, opt => opt.MapFrom(src => src.MovementType.Name))
                 .ForMember(dest => dest.MovementTypeCode, opt => opt.MapFrom(src => src.MovementType.Code))

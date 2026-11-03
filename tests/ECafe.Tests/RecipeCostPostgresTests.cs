@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using AutoMapper;
 using ECafe.Application.DTOs.InventoryMovement;
 using ECafe.Application.Mappings;
@@ -70,15 +71,34 @@ public sealed partial class OrderStockPostgresTests
         Assert.Equal(.125m, (await read.OrderItems.SingleAsync(row => row.Id == 1001)).IngredientCostSnapshot);
         Assert.Equal(14.9m, (await read.InventoryItems.SingleAsync(row => row.Id == 1001)).StockCostValue);
         Assert.Equal(.475m, (await read.InventoryItems.SingleAsync(row => row.Id == 1002)).StockCostValue);
+
+        var history = await ReceiptManager(read, RoleCode.Manager).HistoryAsync(1002, 1001, new(1, 10));
+        var purchase = Assert.Single(history.Items, row => row.MovementTypeId == (int)InventoryMovementTypeCode.Purchase);
+        Assert.Equal("l", purchase.UnitCode);
+        Assert.Equal(1m, purchase.QuantityChange);
+        Assert.Equal(.5m, purchase.PurchaseCostAmount);
+        Assert.Equal(.5m, purchase.PurchaseUnitPrice);
+        Assert.Null(Assert.Single(history.Items, row => row.QuantityChange < 0).PurchaseCostAmount);
+
+        var kitchenHistory = await ReceiptManager(read).HistoryAsync(1002, 1001, new(1, 10));
+        var kitchenPurchase = Assert.Single(kitchenHistory.Items, row => row.Id == purchase.Id);
+        Assert.Equal(purchase.QuantityChange, kitchenPurchase.QuantityChange);
+        Assert.Null(kitchenPurchase.PurchaseCostAmount);
+        Assert.Null(kitchenPurchase.PurchaseUnitPrice);
     }
 
     /// <summary>Real repository və transaction-larla alış girişini test edir; yalnız restoran lookup və bildiriş saxtalaşdırılır.</summary>
-    private static InventoryMovementManager ReceiptManager(ECafeDbContext db)
+    private static InventoryMovementManager ReceiptManager(ECafeDbContext db, RoleCode role = RoleCode.Kitchen)
     {
         var restaurants = new Mock<ECafe.Application.Repositories.Restaurant.IRestaurantRepository>();
+        restaurants.Setup(repository => repository.GetByIdAsync(1001)).ReturnsAsync(new Restaurant { Id = 1001 });
         restaurants.Setup(repository => repository.GetRestaurantInfoAsync(1001)).ReturnsAsync(new Restaurant { Id = 1001 });
         var mapper = new MapperConfiguration(config => config.AddProfile<InventoryMovementProfile>(), NullLoggerFactory.Instance).CreateMapper();
-        return new(Accessor(), mapper, new ConfigurationBuilder().Build(), new InventoryMovementRepository(db),
+        var accessor = Accessor();
+        var identity = (ClaimsIdentity)accessor.HttpContext!.User.Identity!;
+        identity.RemoveClaim(identity.FindFirst(ClaimTypes.Role)!);
+        identity.AddClaim(new Claim(ClaimTypes.Role, ((int)role).ToString()));
+        return new(accessor, mapper, new ConfigurationBuilder().Build(), new InventoryMovementRepository(db),
             restaurants.Object, new InventoryItemRepository(db), new InventoryMovementTypeRepository(db), new UnitRepository(db),
             Mock.Of<IInventoryLowStockNotifier>(), new Transactions(db));
     }
