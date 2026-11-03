@@ -6,5 +6,6 @@
         public int UnitId { get; set; }
         public int MovementTypeId { get; set; }
         public string? Reason { get; set; }
+        public decimal? PurchaseUnitPrice { get; set; }
     }
 }

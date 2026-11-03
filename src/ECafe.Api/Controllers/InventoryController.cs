@@ -147,6 +147,7 @@ namespace ECafe.Api.Controllers
                 Quantity = request.Quantity,
                 UnitId = request.UnitId,
                 MovementTypeId = request.MovementTypeId,
+                PurchaseUnitPrice = request.PurchaseUnitPrice,
                 Reason = request.Reason
             };
 

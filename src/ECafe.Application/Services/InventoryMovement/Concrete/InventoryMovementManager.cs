@@ -87,10 +87,17 @@ namespace ECafe.Application.Services.InventoryMovement.Concrete
             var movementType = await GetMovementTypeAsync(request.MovementTypeId);
 
             var movementTypeCode = ResolveMovementTypeCode(movementType.Id);
-            var normalizedQuantity = InventoryStockPolicy.ConvertQuantity(request.Quantity, requestUnit, stockUnit);
+            if (request.PurchaseUnitPrice.HasValue && movementTypeCode != InventoryMovementTypeCode.Purchase)
+                throw new BusinessRuleException(ErrorCode.InventoryPurchasePriceInvalid);
+            var normalizedQuantity = decimal.Round(InventoryStockPolicy.ConvertQuantity(request.Quantity, requestUnit, stockUnit),
+                6, MidpointRounding.AwayFromZero);
+            if (normalizedQuantity <= 0) throw new BusinessRuleException(ErrorCode.InventoryStockQuantityInvalid);
             var quantityChange = ResolveQuantityChange(normalizedQuantity, movementTypeCode);
             var quantityBeforeMovement = inventoryItem.QuantityOnHand;
-            InventoryStockPolicy.ApplyChange(inventoryItem, quantityChange);
+            var costAmount = quantityChange > 0
+                ? InventoryCostPolicy.PurchaseAmount(request.Quantity, request.PurchaseUnitPrice)
+                : InventoryCostPolicy.Remove(inventoryItem, -quantityChange);
+            if (quantityChange > 0) InventoryCostPolicy.Add(inventoryItem, quantityChange, costAmount);
             var quantityAfterMovement = inventoryItem.QuantityOnHand;
 
             var movement = CreateMovement(
@@ -99,6 +106,7 @@ namespace ECafe.Application.Services.InventoryMovement.Concrete
                 inventoryItemId,
                 stockUnit.Id,
                 quantityChange);
+            movement.CostAmount = costAmount;
 
             await _inventoryMovementRepository.Add(movement);
             await _lowStock.NotifyAsync(inventoryItem, stockUnit, quantityBeforeMovement);

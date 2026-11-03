@@ -1,5 +1,6 @@
 ﻿using ECafe.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using ECafe.Domain.Policies;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace ECafe.Infrastructure.Configurations.Concrete
@@ -17,6 +18,8 @@ namespace ECafe.Infrastructure.Configurations.Concrete
             builder.Property(e => e.LineTotal)
                 .HasPrecision(10, 2)
                 .HasColumnName("line_total");
+            builder.Property(e => e.IngredientCostSnapshot).HasPrecision(36, InventoryCostPolicy.AmountScale)
+                .HasColumnName("ingredient_cost_snapshot");
             builder.Property(e => e.Note).HasColumnName("note");
             builder.Property(e => e.NameSnapshot)
                 .HasMaxLength(200)

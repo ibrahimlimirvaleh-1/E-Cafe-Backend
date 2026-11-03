@@ -1,4 +1,13 @@
 {
+  "ui.inventory.purchase.unitPrice": "Vahid alış qiyməti (AZN)",
+  "ui.inventory.purchase.selectedUnit": "1 {{unit}} üçün alış qiyməti.",
+  "ui.inventory.purchase.invalidUnitPrice": "0–1 000 000 AZN arasında, ən çox 6 onluq rəqəmi olan qiymət daxil edin.",
+  "ui.operationalReports.note.productProfit": "Təqdim edilmiş məhsulların satış məbləği faktiki alınan ödəniş deyil. Brüt mənfəət satış məbləğindən inqrediyentlərin maya dəyəri çıxıldıqdan sonra qalan məbləğdir; əməliyyat xərcləri nəzərə alınmır. Satılmış məhsulun maya dəyəri məlum deyilsə, mənfəət göstərilmir.",
+  "ui.operationalReports.column.servedSalesAmount": "Təqdim edilmiş satış məbləği",
+  "ui.operationalReports.column.ingredientCost": "İnqrediyentlərin maya dəyəri",
+  "ui.operationalReports.column.grossProfit": "Brüt mənfəət",
+  "ui.operationalReports.column.averageIngredientCost": "Vahid üzrə orta maya (AZN)",
+  "ui.operationalReports.productCostUnknown": "Maya məlum deyil",
   "ui.dashboardReports.orderStages": "Sifariş mərhələləri",
   "ui.dashboardReports.ordersTotal": "Sifariş",
   "ui.dashboardReports.otherStages": "Digər mərhələlər",

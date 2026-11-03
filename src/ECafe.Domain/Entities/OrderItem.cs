@@ -19,6 +19,7 @@ public partial class OrderItem : AuditableSoftDeletableEntity<int>
     public decimal UnitPriceSnapshot { get; set; }
 
     public decimal LineTotal { get; set; }
+    public decimal? IngredientCostSnapshot { get; set; }
 
     public string? Note { get; set; }
 

@@ -178,6 +178,7 @@ public sealed class ErrorMessageProvider(ITextLocalizer? localizer = null) : IEr
         [ErrorCode.KitchenOrderStockInsufficient] = "{Ingredient} üçün stok çatmır. Tələb olunur: {Required} {Unit}; mövcuddur: {Available} {Unit}. Hazırlama başlanmadı.",
         [ErrorCode.KitchenOrderStockStateInvalid] = "Sifarişin əvvəlki stok hərəkəti mövcuddur. Təkrar silinmə dayandırıldı; restoran məsulu vəziyyəti yoxlamalıdır.",
         [ErrorCode.InventoryStockQuantityInvalid] = "Stok miqdarı icazə verilən həddi aşır.",
+        [ErrorCode.InventoryPurchasePriceInvalid] = "Alış qiyməti yalnız alış hərəkəti üçün və icazə verilən həddə daxil edilə bilər.",
         [ErrorCode.OrderCannotMarkServed] = "Yalnız hazır sifariş təqdim edilmiş kimi qeyd oluna bilər. Sifariş siyahısını yeniləyin.",
         [ErrorCode.OrderCannotCancel] = "Sifariş artıq birbaşa ləğv edilə bilməz. Siyahını yeniləyin və ofisiantla əlaqə saxlayın.",
         [ErrorCode.OrderCancellationReasonInvalid] = "Ləğv səbəbi 3 ilə 500 simvol arasında olmalıdır.",

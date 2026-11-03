@@ -1,5 +1,6 @@
 using ECafe.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using ECafe.Domain.Policies;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace ECafe.Infrastructure.Configurations.Concrete
@@ -22,6 +23,8 @@ namespace ECafe.Infrastructure.Configurations.Concrete
                 .HasMaxLength(150)
                 .HasColumnName("name");
             builder.Property(e => e.UnitId).HasColumnName("unit_id");
+            builder.Property(e => e.StockCostValue).HasPrecision(InventoryCostPolicy.AmountPrecision, InventoryCostPolicy.AmountScale)
+                .HasColumnName("stock_cost_value");
             builder.Property(e => e.QuantityOnHand)
                 .HasPrecision(18, 6)
                 .HasDefaultValue(0m)

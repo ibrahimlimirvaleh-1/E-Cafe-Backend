@@ -8,6 +8,7 @@ namespace ECafe.Application.Mappings
         public InventoryItemProfile()
         {
             CreateMap<CreateInventoryItemRequest, Domain.Entities.InventoryItem>()
+                .ForMember(dest => dest.StockCostValue, opt => opt.Ignore())
                 .ForMember(dest => dest.Translations, opt => opt.Ignore())
                 .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Name.Trim()))
                 .ForMember(dest => dest.IsActive, opt => opt.MapFrom(_ => true))
@@ -25,6 +26,7 @@ namespace ECafe.Application.Mappings
             CreateMap<Domain.Entities.InventoryItem, DeleteOrDeactivateResponse>();
 
             CreateMap<UpdateInventoryItemRequest, Domain.Entities.InventoryItem>()
+                .ForMember(dest => dest.StockCostValue, opt => opt.Ignore())
                 .ForMember(dest => dest.Translations, opt => opt.Ignore())
                 .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Name.Trim()))
                 .ForMember(dest => dest.IsActive, opt => opt.MapFrom(src => src.IsActive))

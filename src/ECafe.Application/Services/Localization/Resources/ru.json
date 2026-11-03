@@ -1,4 +1,13 @@
 {
+  "ui.inventory.purchase.unitPrice": "Закупочная цена за единицу (AZN)",
+  "ui.inventory.purchase.selectedUnit": "Закупочная цена за 1 {{unit}}.",
+  "ui.inventory.purchase.invalidUnitPrice": "Введите цену от 0 до 1 000 000 AZN с точностью до 6 знаков после запятой.",
+  "ui.operationalReports.note.productProfit": "Стоимость поданных блюд не равна полученной оплате. Валовая прибыль равна стоимости поданных блюд за вычетом себестоимости ингредиентов, без учёта операционных расходов. Если себестоимость проданных блюд неизвестна, прибыль не показывается.",
+  "ui.operationalReports.column.servedSalesAmount": "Стоимость поданных блюд",
+  "ui.operationalReports.column.ingredientCost": "Себестоимость ингредиентов",
+  "ui.operationalReports.column.grossProfit": "Валовая прибыль",
+  "ui.operationalReports.column.averageIngredientCost": "Средняя себестоимость (AZN за единицу)",
+  "ui.operationalReports.productCostUnknown": "Себестоимость неизвестна",
   "ui.dashboardReports.orderStages": "Этапы заказов",
   "ui.dashboardReports.ordersTotal": "Заказов",
   "ui.dashboardReports.otherStages": "Другие этапы",

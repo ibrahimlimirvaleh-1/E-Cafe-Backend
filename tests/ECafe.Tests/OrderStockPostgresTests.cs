@@ -666,7 +666,7 @@ public sealed partial class OrderStockPostgresTests
         restaurants.Setup(repository => repository.GetRestaurantInfoAsync(1001)).ReturnsAsync(new Restaurant { Id = 1001 });
         var manager = new ECafe.Application.Services.InventoryItem.Concrete.InventoryItemManager(Accessor(),
             Mock.Of<IMapper>(), new ConfigurationBuilder().Build(), restaurants.Object,
-            new InventoryItemRepository(metadata), new UnitRepository(metadata));
+            new InventoryItemRepository(metadata), new UnitRepository(metadata), new Transactions(metadata));
         await manager.DeleteAsync(1001, 1001);
         await using var read = f.Context();
         var item = await read.InventoryItems.IgnoreQueryFilters().SingleAsync();
