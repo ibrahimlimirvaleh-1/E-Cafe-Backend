@@ -34,6 +34,11 @@
         TableSessionCloseReviewRequired = 30,
         TableSessionPaid = 31,
         OrderCancelled = 32,
-        OrderCancellationRequestUpdated = 33
+        OrderCancellationRequestUpdated = 33,
+        CustomerOrderAccepted = 34,
+        CustomerOrderPreparing = 35,
+        CustomerOrderReady = 36,
+        WaiterOrderAccepted = 37,
+        WaiterOrderPreparing = 38
     }
 }

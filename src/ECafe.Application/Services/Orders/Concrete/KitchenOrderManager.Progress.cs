@@ -23,7 +23,7 @@ public sealed partial class KitchenOrderManager
     public Task<KitchenOrderResponse> StartPreparingAsync(int restaurantId, int orderId, CancellationToken cancellationToken = default)
         => ProgressAsync(restaurantId, orderId, OrderStatus.Preparing, cancellationToken);
 
-    /// <summary>Hazırlanan sifarişi hazır edir və məsul ofisianta eyni transaction daxilində bir dəfə bildiriş yaradır.</summary>
+    /// <summary>Hazırlanan sifarişi hazır edir; məsul ofisiant və sifarişin müştərisi üçün eyni transaction daxilində bildiriş yaradır.</summary>
     public Task<KitchenOrderResponse> MarkReadyAsync(int restaurantId, int orderId, CancellationToken cancellationToken = default)
         => ProgressAsync(restaurantId, orderId, OrderStatus.Ready, cancellationToken);
 
@@ -64,7 +64,8 @@ public sealed partial class KitchenOrderManager
         if (KitchenOrderProgressPolicy.Apply(order, target, GetCurrentUserId(), storedUtc))
         {
             await orders.SaveChangesAsync();
-            if (target == OrderStatus.Ready) await NotifyResponsibleWaiterAsync(order, cancellationToken);
+            await NotifyResponsibleWaiterAsync(order, target, cancellationToken);
+            await NotifyCustomerProgressAsync(order, target, cancellationToken);
             await audit.RecordRestaurantActionAsync(restaurantId, ProgressAuditAction(target),
                 new { orderId, tableSessionId = order.TableSessionId, tableId, fromStatusId, toStatusId = order.StatusId },
                 AuditEntityTypes.Order, order.Id);
@@ -73,23 +74,59 @@ public sealed partial class KitchenOrderManager
         return KitchenOrderResponseMapper.Map(order);
     }
 
-    /// <summary>Hazır sifariş barədə yalnız sessiyanın cari aktiv ofisiantına xəbər verir; başqa işçi və müştəriyə göndərmir.</summary>
-    private async Task NotifyResponsibleWaiterAsync(Order order, CancellationToken cancellationToken)
+    /// <summary>Yalnız açıq sessiya ilə sifarişdə ortaq olan aktiv müştəriyə yeni mətbəx mərhələsini bildirir.</summary>
+    private async Task NotifyCustomerProgressAsync(Order order, OrderStatus target, CancellationToken cancellationToken)
+    {
+        if (order.CustomerUserId is not > 0 || order.TableSessionId is not > 0)
+            return;
+
+        var customerId = order.CustomerUserId.Value;
+        var isOwned = await orders.Query(candidate =>
+                candidate.Id == order.Id && candidate.RestaurantId == order.RestaurantId &&
+                candidate.CustomerUserId == customerId && candidate.CustomerUser != null &&
+                candidate.CustomerUser.IsActive && !candidate.CustomerUser.IsDeleted &&
+                candidate.CustomerUser.RoleId == (int)RoleCode.Customer &&
+                candidate.TableSession != null && !candidate.TableSession.IsDeleted &&
+                candidate.TableSession.ClosedAt == null && candidate.TableSession.CustomerUserId == customerId &&
+                candidate.TableSession.RestaurantId == candidate.RestaurantId && candidate.TableSession.TableId == candidate.TableId &&
+                (!candidate.ReservationId.HasValue || candidate.ReservationId == candidate.TableSession.ReservationId) &&
+                (!candidate.TableSession.ReservationId.HasValue ||
+                 candidate.TableSession.Reservation != null && !candidate.TableSession.Reservation.IsDeleted &&
+                 candidate.TableSession.Reservation.CustomerUserId == customerId &&
+                 candidate.TableSession.Reservation.RestaurantId == candidate.RestaurantId))
+            .AnyAsync(cancellationToken);
+        if (!isOwned) return;
+
+        var notice = KitchenOrderTexts.CustomerProgress(target, order.Id);
+        await notifications.CreateAsync(new CreateNotificationRequest
+        {
+            UserId = customerId, RestaurantId = order.RestaurantId, TypeId = (int)notice.Type,
+            ChannelId = (int)NotificationChannel.InApp, Title = notice.Title, Message = notice.Message,
+            RelatedEntityType = AuditEntityTypes.Order, RelatedEntityId = order.Id,
+            PayloadJson = JsonSerializer.Serialize(new { orderId = order.Id, restaurantId = order.RestaurantId,
+                tableSessionId = order.TableSessionId, section = KitchenOrderTexts.ProgressSection })
+        });
+    }
+
+    /// <summary>Mətbəx mərhələsini yalnız masanın cari aktiv ofisiantına bildirir; sessiyasız sifarişdə təyin edilmiş ofisiantı yoxlayır.</summary>
+    private async Task NotifyResponsibleWaiterAsync(Order order, OrderStatus target, CancellationToken cancellationToken)
     {
         var waiterId = order.TableSessionId.HasValue
-            ? order.TableSession?.RestaurantId == order.RestaurantId ? order.TableSession.WaiterUserId : null
+            ? order.TableSession is { IsDeleted: false } session &&
+                session.RestaurantId == order.RestaurantId && session.TableId == order.TableId ? session.WaiterUserId : null
             : order.WaiterUserId;
         if (!waiterId.HasValue || await assignments.GetActiveRoleIdAsync(waiterId.Value, order.RestaurantId) != (int)RoleCode.Waiter)
             return;
         cancellationToken.ThrowIfCancellationRequested();
+        var notice = KitchenOrderTexts.WaiterProgress(target, order.Id, OrderMappingValues.TableName(order.Table));
+        var section = target == OrderStatus.Ready ? KitchenOrderTexts.ReadySection : KitchenOrderTexts.ProgressSection;
         await notifications.CreateAsync(new CreateNotificationRequest
         {
-            UserId = waiterId.Value, RestaurantId = order.RestaurantId, TypeId = (int)NotificationType.OrderReady,
-            ChannelId = (int)NotificationChannel.InApp, Title = KitchenOrderTexts.ReadyTitle,
-            Message = KitchenOrderTexts.ReadyMessage(order.Id, OrderMappingValues.TableName(order.Table)),
+            UserId = waiterId.Value, RestaurantId = order.RestaurantId, TypeId = (int)notice.Type,
+            ChannelId = (int)NotificationChannel.InApp, Title = notice.Title, Message = notice.Message,
             RelatedEntityType = AuditEntityTypes.Order, RelatedEntityId = order.Id,
             PayloadJson = JsonSerializer.Serialize(new { restaurantId = order.RestaurantId, orderId = order.Id,
-                tableSessionId = order.TableSessionId, section = KitchenOrderTexts.ReadySection })
+                tableSessionId = order.TableSessionId, section })
         });
     }
 
