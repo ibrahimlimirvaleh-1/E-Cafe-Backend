@@ -131,12 +131,19 @@ namespace ECafe.Application.Services.Auth.Concrete
             }
         }
 
+        /// <summary>Tokeni istifadəçi kilidi altında təzədən oxuyub rotasiya edir; təkrar istifadənin sessiya ləğvini ayrıca commit edir.</summary>
         public async Task<AuthResponseDto> RefreshAsync(RefreshTokenRequestDto request)
         {
             if (request is null || string.IsNullOrWhiteSpace(request.RefreshToken))
                 throw new UnauthorizedException(ErrorCode.RefreshTokenInvalid);
 
             var refreshTokenHash = HashRefreshToken(request.RefreshToken);
+            var userId = await _refreshTokenRepository.GetUserIdByTokenHashAsync(refreshTokenHash);
+            if (!userId.HasValue)
+                throw new UnauthorizedException(ErrorCode.RefreshTokenInvalid);
+
+            await using var transaction = await _transactionFactory.BeginTransactionAsync();
+            await _refreshTokenRepository.AcquireUserLockAsync(userId.Value);
             var storedToken = await _refreshTokenRepository.GetByTokenHashTrackedAsync(refreshTokenHash);
 
             if (storedToken is null)
@@ -145,7 +152,12 @@ namespace ECafe.Application.Services.Auth.Concrete
             if (storedToken.RevokedAt is not null)
             {
                 if (!string.IsNullOrWhiteSpace(storedToken.ReplacedByTokenHash))
+                {
                     await HandleRefreshTokenReuseAsync(storedToken);
+                    await transaction.CommitAsync();
+                    await InvalidateRefreshSessionAsync(storedToken);
+                    throw new ForbiddenException(ErrorCode.RefreshTokenReuseDetected);
+                }
 
                 throw new UnauthorizedException(ErrorCode.RefreshTokenInvalid);
             }
@@ -156,7 +168,44 @@ namespace ECafe.Application.Services.Auth.Concrete
             if (!storedToken.User.IsActive)
                 throw new ForbiddenException("User account is inactive.");
 
-            return await RotateRefreshTokenAsync(storedToken);
+            var response = await RotateRefreshTokenAsync(storedToken);
+            await transaction.CommitAsync();
+            return response;
+        }
+
+        /// <summary>Body tokeni rotasiya olunmuş olsa belə həmin sessiyanın aktiv tokenlərini kilid altında bağlayır; digər cihazlara toxunmur.</summary>
+        public async Task LogoutSessionAsync(LogoutRequestDto request)
+        {
+            if (request is null || string.IsNullOrWhiteSpace(request.RefreshToken))
+                return;
+
+            var hash = HashRefreshToken(request.RefreshToken);
+            var userId = await _refreshTokenRepository.GetUserIdByTokenHashAsync(hash);
+            if (!userId.HasValue)
+                return;
+
+            await using var transaction = await _transactionFactory.BeginTransactionAsync();
+            await _refreshTokenRepository.AcquireUserLockAsync(userId.Value);
+            var token = await _refreshTokenRepository.GetByTokenHashTrackedAsync(hash);
+            if (token is null)
+                return;
+
+            var sessionId = token.SessionId;
+            if (string.IsNullOrWhiteSpace(sessionId) && !string.IsNullOrWhiteSpace(token.ReplacedByTokenHash))
+            {
+                var replacement = await _refreshTokenRepository.GetByTokenHashTrackedAsync(token.ReplacedByTokenHash);
+                if (replacement?.UserId == token.UserId)
+                    sessionId = replacement.SessionId;
+            }
+
+            RevokeRefreshToken(token);
+            if (!string.IsNullOrWhiteSpace(sessionId))
+                await RevokeActiveRefreshTokensForSessionAsync(token.UserId, sessionId);
+
+            await _refreshTokenRepository.SaveChangesAsync();
+            await transaction.CommitAsync();
+            if (!string.IsNullOrWhiteSpace(sessionId))
+                await _userSessionStateCache.InvalidateSessionAsync(token.UserId, sessionId);
         }
 
         public async Task LogoutAsync(LogoutRequestDto request)
@@ -305,6 +354,7 @@ namespace ECafe.Application.Services.Auth.Concrete
             await _refreshTokenRepository.Add(refreshToken);
         }
 
+        /// <summary>Təkrar istifadədə yalnız həmin sessiyanı ləğv edir; köhnə sessiyasız token üçün mövcud bütün-sessiyalar qaydasını saxlayır.</summary>
         private async Task HandleRefreshTokenReuseAsync(Domain.Entities.UserRefreshToken reusedToken)
         {
             await _criticalEventReporter.CaptureAsync(new CriticalEvent(
@@ -322,19 +372,21 @@ namespace ECafe.Application.Services.Auth.Concrete
             {
                 reusedToken.User.SessionVersion++;
                 await RevokeAllActiveRefreshTokensAsync(reusedToken.UserId);
-                await _userSessionStateCache.InvalidateAsync(reusedToken.UserId);
             }
             else
             {
                 await RevokeActiveRefreshTokensForSessionAsync(reusedToken.UserId, reusedToken.SessionId);
-                await _userSessionStateCache.InvalidateSessionAsync(reusedToken.UserId, reusedToken.SessionId);
             }
 
             await _refreshTokenRepository.SaveChangesAsync();
             await EnqueueRefreshTokenReuseEmailAsync(reusedToken.User);
-
-            throw new ForbiddenException(ErrorCode.RefreshTokenReuseDetected);
         }
+
+        /// <summary>Yalnız commitdən sonra ləğv olunmuş sessiyanın keşini silir ki, köhnə aktiv vəziyyət yenidən keşə düşməsin.</summary>
+        private Task InvalidateRefreshSessionAsync(Domain.Entities.UserRefreshToken token)
+            => string.IsNullOrWhiteSpace(token.SessionId)
+                ? _userSessionStateCache.InvalidateAsync(token.UserId)
+                : _userSessionStateCache.InvalidateSessionAsync(token.UserId, token.SessionId);
 
         private async Task RevokeAllActiveRefreshTokensAsync(int userId)
         {

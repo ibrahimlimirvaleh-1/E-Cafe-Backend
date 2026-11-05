@@ -5,6 +5,8 @@ namespace ECafe.Application.Repositories.UserRefreshToken
     public interface IUserRefreshTokenRepository : IBaseRepository<Domain.Entities.UserRefreshToken>
     {
         Task<Domain.Entities.UserRefreshToken?> GetByTokenHashTrackedAsync(string tokenHash);
+        Task<int?> GetUserIdByTokenHashAsync(string tokenHash);
+        Task AcquireUserLockAsync(int userId);
         Task<List<Domain.Entities.UserRefreshToken>> GetActiveByUserIdTrackedAsync(int userId, DateTime nowUtc);
         Task<List<Domain.Entities.UserRefreshToken>> GetActiveByUserIdAsync(int userId, DateTime nowUtc);
         Task<List<Domain.Entities.UserRefreshToken>> GetActiveByUserSessionTrackedAsync(int userId, string sessionId, DateTime nowUtc);

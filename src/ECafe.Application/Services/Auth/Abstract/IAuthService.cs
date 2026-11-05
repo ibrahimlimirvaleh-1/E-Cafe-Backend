@@ -12,6 +12,8 @@ namespace ECafe.Application.Services.Auth.Abstract
 
         public Task LogoutAsync(LogoutRequestDto request);
 
+        public Task LogoutSessionAsync(LogoutRequestDto request);
+
         public Task LogoutAllAsync();
 
     }

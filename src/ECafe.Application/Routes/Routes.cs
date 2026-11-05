@@ -133,6 +133,17 @@ public static class Routes
         public const string GetRestaurantTimeline = Base + "/restaurants/{restaurantId}/audit-logs";
     }
 
+    public static class MobileAuth
+    {
+        private const string Collection = Base + "/mobile/auth";
+        public const string Login = Collection + "/login";
+        public const string Refresh = Collection + "/refresh";
+        public const string Logout = Collection + "/logout";
+        public const string LoginPath = "/" + Login;
+        public const string RefreshPath = "/" + Refresh;
+        public const string LogoutPath = "/" + Logout;
+    }
+
     public static class Auth
     {
         public const string CookiePath = "/" + Base + "/user";

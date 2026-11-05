@@ -45,9 +45,12 @@ public sealed class ActiveUserMiddleware
         await _next(context);
     }
 
-    /// <summary>Yalnız mərkəzi refresh endpointini aktiv sessiya yoxlamasından ayırır; oxşar yol prefikslərini istisna etmir.</summary>
+    /// <summary>Web refresh və native auth yollarını köhnə access token yoxlamasından ayırır; yalnız dəqiq yolları istisna edir.</summary>
     private static bool ShouldSkipActiveUserCheck(HttpContext context)
-        => context.Request.Path.Equals(ApiRoutes.Auth.RefreshPath, StringComparison.OrdinalIgnoreCase);
+        => context.Request.Path.Equals(ApiRoutes.Auth.RefreshPath, StringComparison.OrdinalIgnoreCase) ||
+           context.Request.Path.Equals(ApiRoutes.MobileAuth.LoginPath, StringComparison.OrdinalIgnoreCase) ||
+           context.Request.Path.Equals(ApiRoutes.MobileAuth.RefreshPath, StringComparison.OrdinalIgnoreCase) ||
+           context.Request.Path.Equals(ApiRoutes.MobileAuth.LogoutPath, StringComparison.OrdinalIgnoreCase);
 
     private static int? GetUserId(ClaimsPrincipal principal)
     {
