@@ -11,6 +11,15 @@ namespace ECafe.Infrastructure.Repositories.UserRefreshToken
         {
         }
 
+        /// <summary>Tokenin sahibini tracking-siz müəyyən edir ki, kiliddən əvvəl köhnə token vəziyyəti kontekstdə qalmasın.</summary>
+        public Task<int?> GetUserIdByTokenHashAsync(string tokenHash)
+            => Query(t => t.TokenHash == tokenHash).Select(t => (int?)t.UserId).SingleOrDefaultAsync();
+
+        /// <summary>Refresh və native çıxışı eyni istifadəçi sətrinin transaction kilidi ilə ardıcıllaşdırır; schema dəyişmir.</summary>
+        public Task AcquireUserLockAsync(int userId)
+            => Context.Database.ExecuteSqlInterpolatedAsync(
+                $"SELECT id FROM auth.users WHERE id = {userId} FOR UPDATE");
+
         public Task<Domain.Entities.UserRefreshToken?> GetByTokenHashTrackedAsync(string tokenHash)
         {
             return QueryTracked()
