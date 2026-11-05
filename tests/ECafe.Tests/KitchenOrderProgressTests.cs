@@ -3,12 +3,15 @@ using ECafe.Api.Controllers;
 using ECafe.Application.Common.Audit;
 using ECafe.Application.Common.Exceptions;
 using ECafe.Application.DTOs.Notification;
+using ECafe.Application.Services.Localization;
+using ECafe.Application.Services.Localization.Concrete;
 using ECafe.Domain.Entities;
 using ECafe.Domain.Enums;
 using ECafe.Domain.Exceptions;
 using ECafe.Infrastructure.Authorization;
 using ECafe.Shared.DTOs;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Moq;
 using Xunit;
@@ -53,6 +56,65 @@ public sealed class KitchenOrderProgressTests
         Assert.Empty(await f.Db.InventoryMovements.ToListAsync());
         Assert.Null((await f.Db.TableSessions.SingleAsync(s => s.Id == 1)).ClosedAt);
         Assert.Contains((await f.Service.GetQueueAsync(1, new PaginationFilter())).Items, row => row.Id == 1 && row.ReadyAt != null);
+    }
+
+    [Fact]
+    public async Task OwnerGetsOneNotificationPerKitchenStageWithoutChangingWaiterReadyAlert()
+    {
+        await using var f = await SentFixtureAsync();
+        await AssignCustomerAsync(f);
+        await f.Service.AcceptAsync(1, 1);
+        await f.Service.AcceptAsync(1, 1);
+        await f.Service.StartPreparingAsync(1, 1);
+        await f.Service.StartPreparingAsync(1, 1);
+        await f.Service.MarkReadyAsync(1, 1);
+        await f.Service.MarkReadyAsync(1, 1);
+
+        Assert.Equal(4, f.Sent.Count);
+        var waiter = Assert.Single(f.Sent, notice => notice.UserId == 1);
+        Assert.Equal((int)NotificationType.OrderReady, waiter.TypeId);
+        var customer = f.Sent.Where(notice => notice.UserId == 7).ToArray();
+        Assert.Equal(new[] { NotificationType.CustomerOrderAccepted, NotificationType.CustomerOrderPreparing,
+            NotificationType.CustomerOrderReady }, customer.Select(notice => (NotificationType)notice.TypeId));
+        var localizer = new TextLocalizer(new HttpContextAccessor(), new TranslationBootstrap());
+        Assert.All(customer, notice =>
+        {
+            Assert.Equal(1, notice.RestaurantId);
+            Assert.Equal(1, notice.RelatedEntityId);
+            Assert.Equal(AuditEntityTypes.Order, notice.RelatedEntityType);
+            Assert.Equal((int)NotificationChannel.InApp, notice.ChannelId);
+            Assert.Contains("\"section\":\"order-progress\"", notice.PayloadJson);
+            Assert.NotNull(localizer.ResolveNotificationSource(notice.Title));
+            Assert.NotNull(localizer.ResolveNotificationSource(notice.Message));
+        });
+    }
+
+    [Theory]
+    [InlineData("missing-owner")]
+    [InlineData("different-owner")]
+    [InlineData("different-restaurant")]
+    [InlineData("closed-session")]
+    [InlineData("inactive")]
+    [InlineData("staff-role")]
+    public async Task DoesNotSendCustomerNotificationOutsideActiveOwnedSession(string reason)
+    {
+        await using var f = await SentFixtureAsync();
+        await AssignCustomerAsync(f);
+        var order = await f.Db.Orders.SingleAsync(o => o.Id == 1);
+        var session = await f.Db.TableSessions.SingleAsync(s => s.Id == 1);
+        var customer = await f.Db.Users.SingleAsync(u => u.Id == 7);
+        switch (reason)
+        {
+            case "missing-owner": order.CustomerUserId = null; break;
+            case "different-owner": session.CustomerUserId = 3; break;
+            case "different-restaurant": session.RestaurantId = 2; break;
+            case "closed-session": session.ClosedAt = DateTime.UtcNow; break;
+            case "inactive": customer.IsActive = false; break;
+            case "staff-role": customer.RoleId = (int)RoleCode.Waiter; break;
+        }
+        await f.Db.SaveChangesAsync();
+        Assert.Equal(2002, (await f.Service.AcceptAsync(1, 1)).StatusId);
+        Assert.Empty(f.Sent);
     }
 
     [Fact]
@@ -303,6 +365,17 @@ public sealed class KitchenOrderProgressTests
             Assert.Null(method.GetCustomAttribute<RequireActiveRestaurantContractAttribute>());
             Assert.DoesNotContain(method.GetParameters(), parameter => parameter.GetCustomAttribute<FromBodyAttribute>() != null);
         }
+    }
+
+    /// <summary>Eyni aktiv müştərini həm ofisiant sifarişinə, həm də onun masa sessiyasına bağlayır.</summary>
+    private static async Task AssignCustomerAsync(Fixture fixture)
+    {
+        fixture.Db.Roles.Add(new Role { Id = (int)RoleCode.Customer, Name = "Customer" });
+        fixture.Db.Users.Add(new User { Id = 7, RoleId = (int)RoleCode.Customer, IsActive = true,
+            Name = "Test", Surname = "Customer", Email = "customer@example.test", Phone = "7", Password = "test" });
+        (await fixture.Db.Orders.SingleAsync(o => o.Id == 1)).CustomerUserId = 7;
+        (await fixture.Db.TableSessions.SingleAsync(s => s.Id == 1)).CustomerUserId = 7;
+        await fixture.Db.SaveChangesAsync();
     }
 
     /// <summary>Əvvəl göndərişi yaradır, sonra ayrıca mətbəx sorğusu kimi tracking və müşahidələri təmizləyir.</summary>

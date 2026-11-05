@@ -693,14 +693,15 @@ public sealed partial class OrderStockPostgresTests
         catch (BusinessRuleException error) { return error; }
     }
 
-    /// <summary>Eyni real PostgreSQL kontekstini paylaşan repository və transaction-larla mətbəx xidmətini qurur.</summary>
-    private static KitchenOrderManager Service(ECafeDbContext db, Mock<IAuditLogService>? audit = null)
+    /// <summary>Real PostgreSQL transaction-ı və lazım olduqda eyni kontekstdə bildiriş yazarı ilə mətbəx xidmətini qurur.</summary>
+    private static KitchenOrderManager Service(ECafeDbContext db, Mock<IAuditLogService>? audit = null,
+        INotificationService? notifications = null)
     {
         var stock = new OrderStockManager(new RecipeRepository(db), new InventoryItemRepository(db),
             new InventoryMovementRepository(db), Mock.Of<IInventoryLowStockNotifier>());
         return new KitchenOrderManager(Accessor(), Mock.Of<IMapper>(), new ConfigurationBuilder().Build(), new OrderRepository(db),
             Mock.Of<ITableSessionService>(), new TableRepository(db), new UserRestaurantRepository(db), new Transactions(db),
-            Mock.Of<INotificationService>(), audit?.Object ?? Mock.Of<IAuditLogService>(), TimeProvider.System, stock);
+            notifications ?? Mock.Of<INotificationService>(), audit?.Object ?? Mock.Of<IAuditLogService>(), TimeProvider.System, stock);
     }
 
     /// <summary>Həmin restoranın aktiv mətbəx işçisinin sorğu kontekstini test üçün qurur.</summary>
