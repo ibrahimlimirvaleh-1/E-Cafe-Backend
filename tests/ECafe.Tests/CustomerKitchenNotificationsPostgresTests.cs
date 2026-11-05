@@ -22,7 +22,7 @@ namespace ECafe.Tests;
 public sealed partial class OrderStockPostgresTests
 {
     [StockPostgresFact]
-    public async Task KitchenStagesPersistCustomerInboxAndPushOutboxWithoutEmailOrDuplicates()
+    public async Task KitchenStagesPersistCustomerAndWaiterInboxAndPushOutboxWithoutDuplicates()
     {
         await using var fixture = await Database.CreateAsync(1m);
         await using (var setup = fixture.Context())
@@ -65,15 +65,17 @@ public sealed partial class OrderStockPostgresTests
 
         await using var read = fixture.Context();
         var persisted = await read.Notifications.OrderBy(n => n.Id).ToListAsync();
-        Assert.Equal(4, persisted.Count);
-        Assert.Equal((int)NotificationType.OrderReady, Assert.Single(persisted, n => n.UserId == 1001).TypeId);
+        Assert.Equal(6, persisted.Count);
+        Assert.Equal(new[] { NotificationType.WaiterOrderAccepted, NotificationType.WaiterOrderPreparing,
+            NotificationType.OrderReady }, persisted.Where(n => n.UserId == 1001).Select(n => (NotificationType)n.TypeId));
         Assert.Equal(new[] { NotificationType.CustomerOrderAccepted, NotificationType.CustomerOrderPreparing,
             NotificationType.CustomerOrderReady }, persisted.Where(n => n.UserId == 1003).Select(n => (NotificationType)n.TypeId));
         var outbox = await read.OutboxEvents.Where(e => e.AggregateType == AuditEntityTypes.Order && e.AggregateId == 1001).ToListAsync();
         var pushes = outbox.Where(e => e.EventType == OutboxEventTypes.MobilePushRequested)
             .Select(e => JsonSerializer.Deserialize<MobilePushOutboxPayload>(e.Payload)!).ToArray();
-        Assert.Equal(4, pushes.Length);
+        Assert.Equal(6, pushes.Length);
         Assert.Equal(3, pushes.Count(p => p.UserId == 1003 && p.RestaurantId == 1001 && p.RelatedEntityId == 1001));
+        Assert.Equal(3, pushes.Count(p => p.UserId == 1001 && p.RestaurantId == 1001 && p.RelatedEntityId == 1001));
         var email = Assert.Single(outbox, e => e.EventType == OutboxEventTypes.EmailNotificationRequested);
         Assert.DoesNotContain("customer@example.test", email.Payload);
     }

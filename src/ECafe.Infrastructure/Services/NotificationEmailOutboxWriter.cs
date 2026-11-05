@@ -10,12 +10,13 @@ namespace ECafe.Infrastructure.Services;
 
 public sealed class NotificationEmailOutboxWriter(ECafeDbContext context) : INotificationEmailOutboxWriter
 {
-    /// <summary>Bildirişi e-poçt növbəsinə yazır; tez-tez yenilənən müştəri mətbəx statusları yalnız tətbiqdaxili və push qalır.</summary>
+    /// <summary>Bildirişi e-poçt növbəsinə yazır; yeni mətbəx statusu bildirişləri yalnız tətbiqdaxili və push qalır.</summary>
     public async Task EnqueueAsync(Notification notification)
     {
         if (notification.ChannelId != (int)NotificationChannel.InApp ||
             (NotificationType)notification.TypeId is NotificationType.CustomerOrderAccepted
-                or NotificationType.CustomerOrderPreparing or NotificationType.CustomerOrderReady)
+                or NotificationType.CustomerOrderPreparing or NotificationType.CustomerOrderReady
+                or NotificationType.WaiterOrderAccepted or NotificationType.WaiterOrderPreparing)
             return;
 
         var recipient = await context.Users.AsNoTracking()

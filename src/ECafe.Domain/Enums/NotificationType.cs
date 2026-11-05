@@ -37,6 +37,8 @@
         OrderCancellationRequestUpdated = 33,
         CustomerOrderAccepted = 34,
         CustomerOrderPreparing = 35,
-        CustomerOrderReady = 36
+        CustomerOrderReady = 36,
+        WaiterOrderAccepted = 37,
+        WaiterOrderPreparing = 38
     }
 }

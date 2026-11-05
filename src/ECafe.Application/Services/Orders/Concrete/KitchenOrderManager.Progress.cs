@@ -64,7 +64,7 @@ public sealed partial class KitchenOrderManager
         if (KitchenOrderProgressPolicy.Apply(order, target, GetCurrentUserId(), storedUtc))
         {
             await orders.SaveChangesAsync();
-            if (target == OrderStatus.Ready) await NotifyResponsibleWaiterAsync(order, cancellationToken);
+            await NotifyResponsibleWaiterAsync(order, target, cancellationToken);
             await NotifyCustomerProgressAsync(order, target, cancellationToken);
             await audit.RecordRestaurantActionAsync(restaurantId, ProgressAuditAction(target),
                 new { orderId, tableSessionId = order.TableSessionId, tableId, fromStatusId, toStatusId = order.StatusId },
@@ -104,27 +104,29 @@ public sealed partial class KitchenOrderManager
             ChannelId = (int)NotificationChannel.InApp, Title = notice.Title, Message = notice.Message,
             RelatedEntityType = AuditEntityTypes.Order, RelatedEntityId = order.Id,
             PayloadJson = JsonSerializer.Serialize(new { orderId = order.Id, restaurantId = order.RestaurantId,
-                tableSessionId = order.TableSessionId, section = KitchenOrderTexts.CustomerProgressSection })
+                tableSessionId = order.TableSessionId, section = KitchenOrderTexts.ProgressSection })
         });
     }
 
-    /// <summary>Hazır sifariş barədə yalnız sessiyanın cari aktiv ofisiantına xəbər verir; başqa işçi və müştəriyə göndərmir.</summary>
-    private async Task NotifyResponsibleWaiterAsync(Order order, CancellationToken cancellationToken)
+    /// <summary>Mətbəx mərhələsini yalnız masanın cari aktiv ofisiantına bildirir; sessiyasız sifarişdə təyin edilmiş ofisiantı yoxlayır.</summary>
+    private async Task NotifyResponsibleWaiterAsync(Order order, OrderStatus target, CancellationToken cancellationToken)
     {
         var waiterId = order.TableSessionId.HasValue
-            ? order.TableSession?.RestaurantId == order.RestaurantId ? order.TableSession.WaiterUserId : null
+            ? order.TableSession is { IsDeleted: false } session &&
+                session.RestaurantId == order.RestaurantId && session.TableId == order.TableId ? session.WaiterUserId : null
             : order.WaiterUserId;
         if (!waiterId.HasValue || await assignments.GetActiveRoleIdAsync(waiterId.Value, order.RestaurantId) != (int)RoleCode.Waiter)
             return;
         cancellationToken.ThrowIfCancellationRequested();
+        var notice = KitchenOrderTexts.WaiterProgress(target, order.Id, OrderMappingValues.TableName(order.Table));
+        var section = target == OrderStatus.Ready ? KitchenOrderTexts.ReadySection : KitchenOrderTexts.ProgressSection;
         await notifications.CreateAsync(new CreateNotificationRequest
         {
-            UserId = waiterId.Value, RestaurantId = order.RestaurantId, TypeId = (int)NotificationType.OrderReady,
-            ChannelId = (int)NotificationChannel.InApp, Title = KitchenOrderTexts.ReadyTitle,
-            Message = KitchenOrderTexts.ReadyMessage(order.Id, OrderMappingValues.TableName(order.Table)),
+            UserId = waiterId.Value, RestaurantId = order.RestaurantId, TypeId = (int)notice.Type,
+            ChannelId = (int)NotificationChannel.InApp, Title = notice.Title, Message = notice.Message,
             RelatedEntityType = AuditEntityTypes.Order, RelatedEntityId = order.Id,
             PayloadJson = JsonSerializer.Serialize(new { restaurantId = order.RestaurantId, orderId = order.Id,
-                tableSessionId = order.TableSessionId, section = KitchenOrderTexts.ReadySection })
+                tableSessionId = order.TableSessionId, section })
         });
     }
 

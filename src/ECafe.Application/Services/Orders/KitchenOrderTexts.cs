@@ -8,7 +8,19 @@ internal static class KitchenOrderTexts
     internal const string Section = "kitchen";
     internal const string ReadySection = "order-ready";
     internal const string ReadyTitle = "Sifariş hazırdır";
-    internal const string CustomerProgressSection = "order-progress";
+    internal const string ProgressSection = "order-progress";
+
+    /// <summary>Ofisianta mərhələni masa və sifariş nömrəsi ilə bildirir; hazır bildirişinin mövcud mətnini saxlayır.</summary>
+    internal static (NotificationType Type, string Title, string Message) WaiterProgress(OrderStatus status, int orderId, string tableName)
+        => status switch
+        {
+            OrderStatus.Accepted => (NotificationType.WaiterOrderAccepted,
+                "Mətbəx sifarişi qəbul etdi", $"Mətbəx {tableName} üçün #{orderId} nömrəli sifarişi qəbul etdi."),
+            OrderStatus.Preparing => (NotificationType.WaiterOrderPreparing,
+                "Mətbəx hazırlamağa başladı", $"Mətbəx {tableName} üçün #{orderId} nömrəli sifarişi hazırlamağa başladı."),
+            OrderStatus.Ready => (NotificationType.OrderReady, ReadyTitle, ReadyMessage(orderId, tableName)),
+            _ => throw new ArgumentOutOfRangeException(nameof(status))
+        };
 
     /// <summary>Mətbəxin hər keçidi üçün müştəriyə uyğun, şəxsi məlumat daşımayan bildiriş mətnini seçir.</summary>
     internal static (NotificationType Type, string Title, string Message) CustomerProgress(OrderStatus status, int orderId)

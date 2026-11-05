@@ -22,7 +22,7 @@ namespace ECafe.Tests;
 public sealed class KitchenOrderProgressTests
 {
     [Fact]
-    public async Task FullProgressRecordsActorsTimesAuditAndExactlyOneResponsibleWaiterNotification()
+    public async Task FullProgressRecordsActorsTimesAuditAndNotifiesResponsibleWaiterForEachStage()
     {
         await using var f = await SentFixtureAsync();
         var accepted = await f.Service.AcceptAsync(1, 1);
@@ -43,8 +43,16 @@ public sealed class KitchenOrderProgressTests
         Assert.NotNull(ready.ReadyAt);
         Assert.True(ready.AcceptedAt <= ready.PreparingAt && ready.PreparingAt <= ready.ReadyAt);
         Assert.False(ready.CanAccept || ready.CanStartPreparing || ready.CanMarkReady);
-        var notice = Assert.Single(f.Sent);
-        Assert.Equal((int)NotificationType.OrderReady, notice.TypeId);
+        Assert.Equal(new[] { NotificationType.WaiterOrderAccepted, NotificationType.WaiterOrderPreparing,
+            NotificationType.OrderReady }, f.Sent.Select(notice => (NotificationType)notice.TypeId));
+        var localizer = new TextLocalizer(new HttpContextAccessor(), new TranslationBootstrap());
+        Assert.All(f.Sent, item =>
+        {
+            Assert.Equal(1, item.UserId);
+            Assert.NotNull(localizer.ResolveNotificationSource(item.Title));
+            Assert.NotNull(localizer.ResolveNotificationSource(item.Message));
+        });
+        var notice = f.Sent[2];
         Assert.Equal(1, notice.UserId);
         Assert.Equal(1, notice.RestaurantId);
         Assert.Equal("Order", notice.RelatedEntityType);
@@ -59,7 +67,7 @@ public sealed class KitchenOrderProgressTests
     }
 
     [Fact]
-    public async Task OwnerGetsOneNotificationPerKitchenStageWithoutChangingWaiterReadyAlert()
+    public async Task CustomerAndWaiterGetOneNotificationPerKitchenStageWithoutChangingReadyAlert()
     {
         await using var f = await SentFixtureAsync();
         await AssignCustomerAsync(f);
@@ -70,9 +78,9 @@ public sealed class KitchenOrderProgressTests
         await f.Service.MarkReadyAsync(1, 1);
         await f.Service.MarkReadyAsync(1, 1);
 
-        Assert.Equal(4, f.Sent.Count);
-        var waiter = Assert.Single(f.Sent, notice => notice.UserId == 1);
-        Assert.Equal((int)NotificationType.OrderReady, waiter.TypeId);
+        Assert.Equal(6, f.Sent.Count);
+        Assert.Equal(new[] { NotificationType.WaiterOrderAccepted, NotificationType.WaiterOrderPreparing,
+            NotificationType.OrderReady }, f.Sent.Where(notice => notice.UserId == 1).Select(notice => (NotificationType)notice.TypeId));
         var customer = f.Sent.Where(notice => notice.UserId == 7).ToArray();
         Assert.Equal(new[] { NotificationType.CustomerOrderAccepted, NotificationType.CustomerOrderPreparing,
             NotificationType.CustomerOrderReady }, customer.Select(notice => (NotificationType)notice.TypeId));
@@ -114,7 +122,12 @@ public sealed class KitchenOrderProgressTests
         }
         await f.Db.SaveChangesAsync();
         Assert.Equal(2002, (await f.Service.AcceptAsync(1, 1)).StatusId);
-        Assert.Empty(f.Sent);
+        Assert.Equal(reason == "different-restaurant" ? 0 : 1, f.Sent.Count);
+        Assert.All(f.Sent, notice =>
+        {
+            Assert.Equal(1, notice.UserId);
+            Assert.Equal((int)NotificationType.WaiterOrderAccepted, notice.TypeId);
+        });
     }
 
     [Fact]
@@ -129,7 +142,7 @@ public sealed class KitchenOrderProgressTests
         Assert.Equal(ready.ReadyAt, (await f.Service.MarkReadyAsync(1, 1)).ReadyAt);
         Assert.Equal(2004, (await f.Service.AcceptAsync(1, 1)).StatusId);
         Assert.Equal(2004, (await f.Service.StartPreparingAsync(1, 1)).StatusId);
-        Assert.Single(f.Sent);
+        Assert.Equal(3, f.Sent.Count);
         Assert.Equal(3, f.Audit.Invocations.Count);
     }
 
@@ -174,7 +187,7 @@ public sealed class KitchenOrderProgressTests
         await f.Db.SaveChangesAsync();
         await f.Service.AcceptAsync(1, 1);
         await Assert.ThrowsAsync<BusinessRuleException>(() => f.Service.MarkReadyAsync(1, 1));
-        Assert.Empty(f.Sent);
+        Assert.Equal((int)NotificationType.WaiterOrderAccepted, Assert.Single(f.Sent).TypeId);
     }
 
     [Theory]
@@ -263,6 +276,7 @@ public sealed class KitchenOrderProgressTests
         Assert.Equal(differentActors ? 1 : 2, results.Count(result => result == null));
         if (differentActors) Assert.IsType<BusinessRuleException>(Assert.Single(results, result => result != null));
         Assert.Equal(1, a.Audit.Invocations.Count + b.Audit.Invocations.Count);
+        Assert.Equal((int)NotificationType.WaiterOrderAccepted, Assert.Single(a.Sent.Concat(b.Sent)).TypeId);
         Assert.Equal(2002, (await a.Db.Orders.AsNoTracking().SingleAsync(o => o.Id == 1)).StatusId);
     }
 
@@ -275,6 +289,7 @@ public sealed class KitchenOrderProgressTests
         await a.Service.AcceptAsync(1, 1);
         await a.Service.StartPreparingAsync(1, 1);
         a.Audit.Invocations.Clear();
+        a.Sent.Clear();
         a.Db.ChangeTracker.Clear();
         await using var b = await Fixture.CreateAsync(store, gate);
         b.LoginKitchen();
@@ -301,7 +316,7 @@ public sealed class KitchenOrderProgressTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task ReadyUsesCurrentSessionWaiterAndDoesNotNotifyAnInactiveWaiter(bool inactive)
+    public async Task ProgressUsesCurrentSessionWaiterAndDoesNotNotifyAnInactiveWaiter(bool inactive)
     {
         await using var f = await SentFixtureAsync();
         (await f.Db.TableSessions.SingleAsync(s => s.Id == 1)).WaiterUserId = 3;
@@ -311,7 +326,11 @@ public sealed class KitchenOrderProgressTests
         await f.Service.StartPreparingAsync(1, 1);
         await f.Service.MarkReadyAsync(1, 1);
         if (inactive) Assert.Empty(f.Sent);
-        else Assert.Equal(3, Assert.Single(f.Sent).UserId);
+        else
+        {
+            Assert.Equal(3, f.Sent.Count);
+            Assert.All(f.Sent, notice => Assert.Equal(3, notice.UserId));
+        }
     }
 
     [Theory]
