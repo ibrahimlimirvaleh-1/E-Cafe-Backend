@@ -94,6 +94,8 @@ public enum ErrorCode
     UnsupportedFileType = 3007,
     FileExtensionMismatch = 3008,
     FileContentTypeMismatch = 3009,
+    ImageLimitsExceeded = 3010,
+    ImageProcessingBusy = 3011,
 
     OutboxMessageNotFound = 4000,
     OutboxMessageAlreadySent = 4001,

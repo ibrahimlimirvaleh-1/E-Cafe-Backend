@@ -116,6 +116,8 @@ public sealed class ErrorMessageProvider(ITextLocalizer? localizer = null) : IEr
         [ErrorCode.UnsupportedFileType] = "Bu fayl formatı dəstəklənmir.",
         [ErrorCode.FileExtensionMismatch] = "Faylın uzantısı seçilən fayl formatı ilə uyğun deyil.",
         [ErrorCode.FileContentTypeMismatch] = "Faylın məzmunu seçilən fayl formatı ilə uyğun deyil.",
+        [ErrorCode.ImageLimitsExceeded] = "Şəklin ölçüsü və ya kadr sayı təhlükəsiz emal limitini aşır. Daha kiçik şəkil seçin.",
+        [ErrorCode.ImageProcessingBusy] = "Şəkil emalı hazırda məşğuldur. Bir qədər sonra yenidən cəhd edin.",
 
         [ErrorCode.OutboxMessageNotFound] = "Outbox message not found.",
         [ErrorCode.OutboxMessageAlreadySent] = "Outbox message has already been sent.",

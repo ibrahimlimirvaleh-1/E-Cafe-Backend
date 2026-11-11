@@ -141,7 +141,7 @@ namespace ECafe.Application
             services.AddScoped<IItemService, ItemManager>();
             services.AddScoped<IFileAccessUrlService, FileAccessUrlService>();
             services.AddScoped<IFileAccessPolicy, FileAccessPolicy>();
-            services.AddScoped<IImageProcessingService, ImageProcessingManager>();
+            services.AddSingleton<IImageProcessingService, ImageProcessingManager>();
             services.AddScoped<IGeocodingService, GeoapifyGeocodingService>();
             services.AddScoped<IWorkflowActionService, WorkflowActionManager>();
             services.AddScoped<INotificationService, NotificationManager>();

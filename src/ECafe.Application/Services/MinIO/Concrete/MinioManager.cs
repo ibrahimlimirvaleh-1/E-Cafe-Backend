@@ -86,7 +86,7 @@ namespace ECafe.Infrastructure.Services.MinIO
                 request.File.FileName,
                 request.File.ContentType,
                 policy);
-            await ValidateFileSignatureAsync(request.File, contentType);
+            await FileUploadValidation.ValidateSignatureAsync(request.File, contentType);
 
             return await ExecuteMinioAsync("upload file", async () =>
             {
@@ -317,50 +317,5 @@ namespace ECafe.Infrastructure.Services.MinIO
             MaxSizeMb = 10
         };
 
-        private static async Task ValidateFileSignatureAsync(IFormFile file, string contentType)
-        {
-            var header = new byte[12];
-            await using var stream = file.OpenReadStream();
-            var read = await stream.ReadAsync(header);
-            var signature = header.AsSpan(0, read);
-
-            var isValid = contentType switch
-            {
-                "image/jpeg" => StartsWith(signature, [0xFF, 0xD8, 0xFF]),
-                "image/png" => StartsWith(signature, [0x89, 0x50, 0x4E, 0x47]),
-                "image/webp" => StartsWith(signature, [0x52, 0x49, 0x46, 0x46]) &&
-                                signature.Length >= 12 &&
-                                signature[8] == 0x57 &&
-                                signature[9] == 0x45 &&
-                                signature[10] == 0x42 &&
-                                signature[11] == 0x50,
-                "image/avif" => signature.Length >= 12 &&
-                                signature[4] == 0x66 &&
-                                signature[5] == 0x74 &&
-                                signature[6] == 0x79 &&
-                                signature[7] == 0x70 &&
-                                ((signature[8] == 0x61 &&
-                                  signature[9] == 0x76 &&
-                                  signature[10] == 0x69 &&
-                                  signature[11] == 0x66) ||
-                                 (signature[8] == 0x61 &&
-                                  signature[9] == 0x76 &&
-                                  signature[10] == 0x69 &&
-                                  signature[11] == 0x73)),
-                "application/pdf" => StartsWith(signature, [0x25, 0x50, 0x44, 0x46]),
-                "application/msword" => StartsWith(signature, [0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1]),
-                "application/vnd.openxmlformats-officedocument.wordprocessingml.document" =>
-                    StartsWith(signature, [0x50, 0x4B, 0x03, 0x04]) ||
-                    StartsWith(signature, [0x50, 0x4B, 0x05, 0x06]) ||
-                    StartsWith(signature, [0x50, 0x4B, 0x07, 0x08]),
-                _ => false
-            };
-
-            if (!isValid)
-                throw new BusinessRuleException(ErrorCode.FileContentTypeMismatch);
-        }
-
-        private static bool StartsWith(ReadOnlySpan<byte> source, ReadOnlySpan<byte> expected)
-            => source.Length >= expected.Length && source[..expected.Length].SequenceEqual(expected);
     }
 }

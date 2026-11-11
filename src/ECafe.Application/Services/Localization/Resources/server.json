@@ -87,6 +87,8 @@
   "api.error.UnsupportedFileType":{"az":"Bu fayl formatı dəstəklənmir.","en":"This file format is not supported.","ru":"Этот формат файла не поддерживается."},
   "api.error.FileExtensionMismatch":{"az":"Faylın uzantısı seçilmiş formata uyğun deyil.","en":"The file extension does not match the selected format.","ru":"Расширение файла не соответствует выбранному формату."},
   "api.error.FileContentTypeMismatch":{"az":"Faylın məzmunu seçilmiş formata uyğun deyil.","en":"The file content does not match the selected format.","ru":"Содержимое файла не соответствует выбранному формату."},
+  "api.error.ImageLimitsExceeded":{"az":"Şəklin ölçüsü və ya kadr sayı təhlükəsiz emal limitini aşır. Daha kiçik şəkil seçin.","en":"The image dimensions or frame count exceed the safe processing limit. Choose a smaller image.","ru":"Размеры или число кадров изображения превышают безопасный предел обработки. Выберите изображение меньшего размера."},
+  "api.error.ImageProcessingBusy":{"az":"Şəkil emalı hazırda məşğuldur. Bir qədər sonra yenidən cəhd edin.","en":"Image processing is busy. Please try again shortly.","ru":"Обработка изображений занята. Повторите попытку немного позже."},
   "api.error.OutboxMessageNotFound":{"az":"Göndəriş növbəsinin qeydi tapılmadı.","en":"Outbox message not found.","ru":"Сообщение в очереди отправки не найдено."},
   "api.error.OutboxMessageAlreadySent":{"az":"Bu bildiriş artıq göndərilib.","en":"This message has already been sent.","ru":"Это сообщение уже отправлено."},
   "api.error.OutboxMessageRetryNotAllowed":{"az":"Bu göndərişi təkrar etmək mümkün deyil.","en":"This message cannot be retried.","ru":"Повторная отправка этого сообщения недоступна."},
