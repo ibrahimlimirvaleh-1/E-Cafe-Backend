@@ -8,6 +8,16 @@ public sealed class ImageProcessingOptions
 
     public int MaxHeight { get; set; } = 1440;
 
+    public int MaxInputDimension { get; set; } = 12000;
+
+    public long MaxInputPixels { get; set; } = 24_000_000;
+
+    public int MaxInputFrames { get; set; } = 16;
+
+    public int MaxConcurrentOperations { get; set; } = 2;
+
+    public int QueueTimeoutSeconds { get; set; } = 5;
+
     public int WebpQuality { get; set; } = 82;
 
     public int AvifQuality { get; set; } = 74;
