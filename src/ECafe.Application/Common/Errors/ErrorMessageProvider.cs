@@ -10,6 +10,8 @@ public sealed class ErrorMessageProvider(ITextLocalizer? localizer = null) : IEr
     private static readonly IReadOnlyDictionary<ErrorCode, string> Messages = new Dictionary<ErrorCode, string>
     {
         [ErrorCode.BusinessRuleViolation] = "Business rule violation.",
+        [ErrorCode.RealtimeConnectionLimitExceeded] = "Bu hesab üçün canlı bağlantı limiti dolub. Digər tabı və ya cihazı bağlayıb yenidən cəhd edin.",
+        [ErrorCode.RealtimeTemporarilyUnavailable] = "Canlı bağlantı müvəqqəti əlçatan deyil. Bir qədər sonra yenidən cəhd edin.",
         [ErrorCode.DashboardFilterInvalid] = "Dashboard filtri düzgün deyil. Tarix aralığı 1–92 gün, ödəniş rejimi real və ya test olmalıdır.",
         [ErrorCode.LocalizationInvalidLanguage] = "Yalnız Azərbaycan, ingilis və rus dilləri dəstəklənir.",
         [ErrorCode.LocalizationInvalidEntry] = "Tərcümə açarı və ya mətnləri düzgün deyil.",

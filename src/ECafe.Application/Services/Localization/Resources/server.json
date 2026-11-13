@@ -1,4 +1,6 @@
 {
+  "api.error.RealtimeConnectionLimitExceeded":{"az":"Bu hesab üçün canlı bağlantı limiti dolub. Digər tabı və ya cihazı bağlayıb yenidən cəhd edin.","en":"The live connection limit for this account has been reached. Close another tab or device and try again.","ru":"Достигнут лимит подключений для этой учётной записи. Закройте другую вкладку или устройство и повторите попытку."},
+  "api.error.RealtimeTemporarilyUnavailable":{"az":"Canlı bağlantı müvəqqəti əlçatan deyil. Bir qədər sonra yenidən cəhd edin.","en":"Live connections are temporarily unavailable. Please try again shortly.","ru":"Подключение временно недоступно. Повторите попытку немного позже."},
   "api.auth.unauthorized":{"az":"Sessiya etibarsızdır və ya vaxtı bitib. Zəhmət olmasa yenidən daxil olun.","en":"Your session is invalid or has expired. Please sign in again.","ru":"Сеанс недействителен или истёк. Войдите снова."},
   "api.error.BusinessRuleViolation":{"az":"Əməliyyat biznes qaydalarına uyğun deyil.","en":"This action violates a business rule.","ru":"Действие не соответствует правилам системы."},
   "api.error.ValidationFailed":{"az":"Daxil edilmiş məlumatları yoxlayın.","en":"Please check the information you entered.","ru":"Проверьте введённые данные."},
