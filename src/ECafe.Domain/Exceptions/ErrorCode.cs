@@ -46,6 +46,8 @@ public enum ErrorCode
     SessionInvalid = 1133,
     OwnerRoleCannotBeChanged = 1134,
     DashboardFilterInvalid = 1135,
+    RealtimeConnectionLimitExceeded = 1136,
+    RealtimeTemporarilyUnavailable = 1137,
 
     RestaurantNotFound = 2000,
     UnitNotFound = 2001,

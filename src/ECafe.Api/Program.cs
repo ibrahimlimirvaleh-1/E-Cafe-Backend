@@ -196,8 +196,10 @@ builder.Services.AddCors(options =>
 builder.Services.AddApplication();
 builder.Services.AddSingleton<ICriticalEventReporter, SentryCriticalEventReporter>();
 builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddRealtimeConnectionLimits(builder.Configuration);
 var signalRBuilder = builder.Services.AddSignalR(options =>
 {
+    options.AddFilter<RealtimeConnectionLimitFilter>();
     options.EnableDetailedErrors = builder.Environment.IsDevelopment() || builder.Environment.IsEnvironment("Local");
     options.KeepAliveInterval = TimeSpan.FromSeconds(15);
     options.ClientTimeoutInterval = TimeSpan.FromSeconds(60);
