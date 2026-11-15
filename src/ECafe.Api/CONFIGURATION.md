@@ -36,7 +36,8 @@ $env:Cors__AllowedOrigins__1="https://ecafe.example"
 $env:AllowedHosts="api.ecafe.example"
 $env:ForwardedHeaders__KnownProxies__0="10.0.0.10"
 $env:SignalR__UseRedisBackplane="true"
-$env:SignalR__Redis__Connection="prod-redis:6379,password=...,ssl=True,abortConnect=False"
+$env:Redis__Connection="prod-redis:6379,user=ecafe_cache,password=...,ssl=True,abortConnect=False"
+$env:SignalR__Redis__Connection="prod-redis:6379,user=ecafe_realtime,password=...,ssl=True,abortConnect=False"
 ```
 
 Use `appsettings.Production.example.json` as a checklist only. Do not copy real
