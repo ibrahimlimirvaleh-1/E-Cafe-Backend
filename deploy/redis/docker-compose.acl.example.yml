@@ -1,0 +1,17 @@
+# Merge this Redis service fragment into the existing server Compose file.
+# Keep its existing image, data volume and private network. Do not add ports.
+services:
+  redis:
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --protected-mode
+      - "yes"
+      - --aclfile
+      - /etc/redis-acl/users.acl
+    volumes:
+      - type: bind
+        source: ./redis-acl
+        target: /etc/redis-acl
+        read_only: true

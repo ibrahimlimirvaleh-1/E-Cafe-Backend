@@ -40,6 +40,8 @@ set under `ecafe:realtime:connections:{userId}`. Redis server time controls expi
 The Redis ACL must permit EVAL, TIME, ZREMRANGEBYSCORE, ZSCORE, ZCARD, ZADD, PEXPIRE,
 ZREM and DEL for that namespace, in addition to existing backplane permissions.
 Keep this Redis instance private, authenticated and separated between environments.
+See [Redis Access Control](RedisAccessControl.md) for separate cache/backplane,
+read-only inspection and administration accounts, persistent ACLs and cutover tests.
 
 Each reservation has a server-generated identifier. Disconnect releases only that
 identifier; a delayed old disconnect cannot release a new connection's slot.

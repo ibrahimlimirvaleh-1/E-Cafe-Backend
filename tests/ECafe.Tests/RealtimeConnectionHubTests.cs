@@ -128,7 +128,7 @@ public sealed class RealtimeConnectionHubTests
     public async Task TwoRealApiInstancesShareTheLimitAndStillDeliverRedisBackplaneMessages()
     {
         var endpoint = Environment.GetEnvironmentVariable("ECAFE_TEST_REDIS")!;
-        var channel = "ecafe:test:" + Guid.NewGuid().ToString("N");
+        var channel = "ecafe:signalr:test:" + Guid.NewGuid().ToString("N");
         var userId = Random.Shared.Next(1000000, int.MaxValue - 1);
         await using var firstApi = await StartAsync(2, endpoint, channel);
         await using var secondApi = await StartAsync(2, endpoint, channel);
@@ -155,6 +155,46 @@ public sealed class RealtimeConnectionHubTests
         await Notifier(firstApi).NotifyNotificationsChangedAsync(userId);
         Assert.Equal("NotificationsChanged", (await restored.InvocationAsync()).GetProperty("target").GetString());
         Assert.Equal("NotificationsChanged", (await second.InvocationAsync()).GetProperty("target").GetString());
+    }
+
+    [RedisAclFact]
+    public async Task AuthenticatedBackplaneRecoversAfterItsRedisSocketsAreClosed()
+    {
+        var identifier = Guid.NewGuid().ToString("N");
+        var settings = RedisAclTests.Settings("REALTIME");
+        settings.ClientName = "acl-recovery-" + identifier;
+        settings.KeepAlive = 1;
+        var endpoint = settings.ToString(includePassword: true);
+        var channel = "ecafe:signalr:recovery-test:" + identifier;
+        var userId = Random.Shared.Next(1000000, int.MaxValue - 1);
+        await using var firstApi = await StartAsync(2, endpoint, channel);
+        await using var secondApi = await StartAsync(2, endpoint, channel);
+        await using var first = await Client.ConnectAsync(firstApi, userId);
+        await using var second = await Client.ConnectAsync(secondApi, userId);
+        Assert.True(first.Accepted);
+        Assert.True(second.Accepted);
+        await Notifier(firstApi).NotifyNotificationsChangedAsync(userId);
+        await first.InvocationAsync();
+        await second.InvocationAsync();
+        using var admin = await ConnectionMultiplexer.ConnectAsync(RedisAclTests.Settings("ADMIN"));
+        var clients = (await admin.GetDatabase().ExecuteAsync("CLIENT", "LIST")).ToString().Split('\n');
+        var ids = clients.Where(line => line.Split(' ').Contains("name=" + settings.ClientName))
+            .Select(line => long.Parse(line.Split(' ').Single(field => field.StartsWith("id="))[3..])).ToArray();
+        Assert.NotEmpty(ids);
+        foreach (var id in ids) await admin.GetDatabase().ExecuteAsync("CLIENT", "KILL", "ID", id);
+        var received = Task.WhenAll(first.InvocationAsync(timeoutSeconds: 40), second.InvocationAsync(timeoutSeconds: 40));
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(45));
+        while (!received.IsCompleted)
+        {
+            timeout.Token.ThrowIfCancellationRequested();
+            await first.KeepAliveAsync(timeout.Token);
+            await second.KeepAliveAsync(timeout.Token);
+            try { await Notifier(firstApi).NotifyNotificationsChangedAsync(userId); }
+            catch (RedisException) { }
+            await Task.Delay(100, timeout.Token);
+        }
+        foreach (var invocation in await received)
+            Assert.Equal("NotificationsChanged", invocation.GetProperty("target").GetString());
     }
 
     /// <summary>JWT, real hub filteri və istəyə görə real Redis backplane ilə yalnız lokal portda test API-si qaldırır.</summary>
@@ -264,11 +304,14 @@ public sealed class RealtimeConnectionHubTests
         private Task SendAsync(string message, CancellationToken token)
             => _socket.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(message + '\u001e')), WebSocketMessageType.Text, true, token);
 
-        /// <summary>Ping-ləri keçib yalnız notifier hadisəsini qaytarır.</summary>
-        public async Task<JsonElement> InvocationAsync(CancellationToken token = default)
+        /// <summary>Test müştərisinin Redis bərpasını gözləyərkən adi brauzer kimi transport ping-i göndərməsini təmin edir.</summary>
+        public Task KeepAliveAsync(CancellationToken token) => SendAsync("{\"type\":6}", token);
+
+        /// <summary>Ping-ləri keçib notifier hadisəsini məhdud vaxtda gözləyir; Redis bərpa sınağı daha uzun, yenə sonlu limit seçə bilər.</summary>
+        public async Task<JsonElement> InvocationAsync(CancellationToken token = default, int timeoutSeconds = 10)
         {
             using var timeout = CancellationTokenSource.CreateLinkedTokenSource(token);
-            timeout.CancelAfter(TimeSpan.FromSeconds(10));
+            timeout.CancelAfter(TimeSpan.FromSeconds(timeoutSeconds));
             while (await FrameAsync(timeout.Token) is { } frame)
                 if (frame.TryGetProperty("type", out var type) && type.GetInt32() == 1) return frame;
             throw new InvalidOperationException("Connection closed before the expected event.");
