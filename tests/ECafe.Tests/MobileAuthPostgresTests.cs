@@ -41,6 +41,58 @@ public sealed class MobileAuthPostgresTests
     private const string Session = "native-test-device";
 
     [StockPostgresFact]
+    public async Task RegistrationPersistsCustomerAndHashedTokensThenSupportsLoginAndRefresh()
+    {
+        await using var fixture = await Database.CreateAsync();
+        var request = new RegisterRequestDto
+        {
+            Name = " New ", Surname = " Customer ", Email = " NEW@example.test ",
+            Phone = "050 123 45 67", Password = "registration-test-password"
+        };
+        AuthResponseDto registered;
+        await using (var db = fixture.Context())
+            registered = await Service(db).RegisterAsync(request);
+
+        Assert.False(string.IsNullOrWhiteSpace(registered.AccessToken));
+        Assert.False(string.IsNullOrWhiteSpace(registered.RefreshToken));
+        await using (var db = fixture.Context())
+        {
+            var user = await db.Users.SingleAsync(u => u.Email == "new@example.test");
+            Assert.Equal("New", user.Name);
+            Assert.Equal("Customer", user.Surname);
+            Assert.Equal("+994501234567", user.Phone);
+            Assert.Equal((int)RoleCode.Customer, user.RoleId);
+            Assert.True(user.IsActive);
+            Assert.NotNull(user.PasswordSetAt);
+            Assert.True(BCrypt.Net.BCrypt.Verify(request.Password, user.Password));
+            var token = await db.UserRefreshTokens.SingleAsync(t => t.UserId == user.Id);
+            Assert.Equal(Hash(registered.RefreshToken), token.TokenHash);
+            Assert.NotEqual(registered.RefreshToken, token.TokenHash);
+            Assert.False(string.IsNullOrWhiteSpace(token.SessionId));
+        }
+        await using (var db = fixture.Context())
+        {
+            var login = await Service(db).LoginAsync(new() { Email = request.Email, Password = request.Password });
+            Assert.False(string.IsNullOrWhiteSpace(login.AccessToken));
+        }
+        await using (var db = fixture.Context())
+        {
+            var refreshed = await Service(db).RefreshAsync(new() { RefreshToken = registered.RefreshToken });
+            Assert.NotEqual(registered.RefreshToken, refreshed.RefreshToken);
+            Assert.False(string.IsNullOrWhiteSpace(refreshed.AccessToken));
+        }
+        await using (var db = fixture.Context())
+        {
+            var duplicateEmail = await Assert.ThrowsAsync<BusinessRuleException>(() => Service(db).RegisterAsync(request));
+            Assert.Equal(ErrorCode.UserEmailAlreadyExists, duplicateEmail.Code);
+            request.Email = "another@example.test";
+            var duplicatePhone = await Assert.ThrowsAsync<BusinessRuleException>(() => Service(db).RegisterAsync(request));
+            Assert.Equal(ErrorCode.UserPhoneAlreadyExists, duplicatePhone.Code);
+            Assert.Equal(2, await db.Users.CountAsync());
+        }
+    }
+
+    [StockPostgresFact]
     public async Task LoginPreservesAllActiveRolesAndRefreshKeepsSessionAndSevenDayLifetime()
     {
         await using var fixture = await Database.CreateAsync();
