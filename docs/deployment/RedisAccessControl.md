@@ -132,6 +132,57 @@ the application/admin credentials in the desktop GUI.
 
 ## Verification
 
+### Permission Cache Outages
+
+`PermissionCacheService` treats Redis as an optional read cache, not as the source
+of role permissions. A cache read failure causes the existing filtered
+`RolePermissions` database query to run. That request does not attempt another
+Redis write after the failed read, avoiding a second cache timeout. If the read
+worked but a subsequent write fails, the verified database result is still used.
+Invalid/null JSON cache payloads are rebuilt from the database. Valid empty lists
+remain empty; no default or administrator permission is invented.
+
+Only cache calls are inside the recovery boundary. Database query errors,
+cancellation, programming/configuration errors and memory exhaustion are not
+converted into permission success. Warnings include the role ID and exception
+type, not raw exception messages, connection strings or cached payloads. The
+existing `role_permissions_v3_*` keys, 30-minute lifetime, soft-delete query filters,
+restaurant-role resolution and session middleware are unchanged. No schema,
+Redis ACL, package or frontend change is needed.
+
+Explicit cache invalidation and the role-permission save interceptor retain their
+existing strict error behavior. This patch does not make permission mutations
+outage-tolerant or silently report a failed invalidation as success. In particular,
+a post-save invalidation error is not a promise that the database write rolled
+back: do not blindly retry a role mutation or assume a stale retained cache has
+been invalidated. Durable cross-instance revocation/revision handling is separate
+from this read fallback. Direct database permission edits remain outside the
+cache-invalidation contract.
+
+Recovery needs no application restart: a later successful cache miss writes the
+current database result back to Redis. An outage can still add the client's read
+timeout and database load. SignalR backplane availability and fail-closed connection
+limits are separate; this fallback does not claim Redis-independent realtime
+delivery or full-site availability.
+
+For a real stop/start test, set `ECAFE_TEST_PERMISSION_REDIS_LIFECYCLE=1` and, if
+needed, `ECAFE_TEST_DOCKER` to the local Docker executable. The test itself creates
+a uniquely named, labelled Redis container using the checked-in ACL template and
+a fixed-for-its-lifetime loopback-only port. It accepts no existing Redis endpoint
+or production credentials. It verifies permission fallback, active sessions,
+deactivated/revoked/version-mismatched session denial, cache rebuilding and normal
+permission revocation after recovery, then removes only its own container/files.
+The lifecycle test is skipped unless explicitly enabled; `redis:7-alpine` must
+already be available locally (the test does not pull images).
+
+```powershell
+$env:ECAFE_TEST_PERMISSION_REDIS_LIFECYCLE="1"
+$env:ECAFE_TEST_DOCKER="C:/Program Files/Docker/Docker/resources/bin/docker.exe"
+dotnet test tests/ECafe.Tests/ECafe.Tests.csproj --filter "FullyQualifiedName~PermissionCache" --results-directory "$env:TEMP/ecafe-permission-tests"
+```
+
+### ACL And Realtime Tests
+
 Run the renderer tests with Python's standard library:
 
 ```sh
