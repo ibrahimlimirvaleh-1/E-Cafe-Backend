@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
 namespace ECafe.Tests;
@@ -24,7 +25,7 @@ public sealed class PermissionCacheInvalidationTests
         var role = new Role { Id = 100001, Name = "Audit role" };
         var assignment = new RolePermission { Id = 100001, RoleId = role.Id, Role = role, PermissionId = permission.Id, Permission = permission };
         db.RolePermissions.Add(assignment); await db.SaveChangesAsync();
-        var service = new PermissionCacheService(cache, db);
+        var service = new PermissionCacheService(cache, db, NullLogger<PermissionCacheService>.Instance);
         Assert.Contains(permission.Id, await service.GetPermissionsAsync(role.Id));
         Assert.NotNull(await cache.GetStringAsync("role_permissions_v3_100001"));
         db.RolePermissions.Remove(assignment);
@@ -44,7 +45,7 @@ public sealed class PermissionCacheInvalidationTests
         var permission = new Permission { Id = 100001, Name = "Test permission" };
         var assignment = new RolePermission { Id = 100001, RoleId = first.Id, Role = first, PermissionId = permission.Id, Permission = permission };
         db.Roles.Add(second); db.RolePermissions.Add(assignment); await db.SaveChangesAsync();
-        var service = new PermissionCacheService(cache, db);
+        var service = new PermissionCacheService(cache, db, NullLogger<PermissionCacheService>.Instance);
         Assert.Contains(permission.Id, await service.GetPermissionsAsync(first.Id));
         Assert.Empty(await service.GetPermissionsAsync(second.Id));
         db.RolePermissions.Remove(assignment);
