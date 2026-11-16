@@ -34,6 +34,33 @@ normal deployment process. Do not only restart an existing image.
   AutoMapper and WebUtilities must not appear in the vulnerable package list.
   This does not mean that all other dependencies are free of vulnerabilities.
 
+## Unused Service Bus Removal
+
+Microsoft.Azure.ServiceBus 5.2.0 was referenced only in the Application project.
+A tracked-file search found no Service Bus clients, handlers, configuration,
+deployment settings or dynamic assembly-loading paths using it. Notification
+delivery remains on PostgreSQL outboxes, SignalR/Redis, Expo HTTP and SMTP.
+No notification or business implementation was changed.
+
+Removing this single reference reduces the API's resolved NuGet graph from
+219 to 127 packages with no additions or unrelated version upgrades. Removed
+dependencies include Azure AMQP, legacy Azure authentication, Newtonsoft.Json
+10.0.3, System.Net.Http 4.3.0 and System.Text.RegularExpressions 4.3.0. The last
+two are old standalone packages, not the HTTP/Regex implementations supplied
+by the current .NET shared framework.
+
+The dependency regression test checks ECafe.Api.deps.json, not the test runner
+manifest: Microsoft.NET.Test.Sdk legitimately uses Newtonsoft.Json 13.0.1.
+The Application, Infrastructure, API and migrator resolved package graphs no
+longer contain the retired dependency chain. Rebuild deployment images to
+remove previously copied binaries; restarting an old image is insufficient.
+
+On 2026-11-17, NuGet audit no longer reports the Newtonsoft.Json, System.Net.Http
+or System.Text.RegularExpressions advisories. System.Security.Cryptography.Pkcs
+8.0.1 remains a separate known issue brought in by MailKit/MimeKit and PDFsharp;
+it is deliberately not modified in this cleanup. No migration or environment
+configuration change is required.
+
 ## References
 
 - https://github.com/LuckyPennySoftware/AutoMapper/security/advisories/GHSA-gpwp-5797-mjff

@@ -1,5 +1,7 @@
 using System.Text;
+using System.Text.Json;
 using AutoMapper;
+using ECafe.Api.Controllers;
 using ECafe.Application.DTOs.Auth;
 using ECafe.Application.Mappings;
 using ECafe.Domain.Entities;
@@ -14,6 +16,25 @@ namespace ECafe.Tests;
 
 public sealed class DependencySecurityRegressionTests
 {
+    [Theory]
+    [InlineData("Microsoft.Azure.ServiceBus")]
+    [InlineData("Microsoft.Azure.Amqp")]
+    [InlineData("Microsoft.Azure.Services.AppAuthentication")]
+    [InlineData("Microsoft.IdentityModel.Clients.ActiveDirectory")]
+    [InlineData("Newtonsoft.Json")]
+    [InlineData("System.Net.Http")]
+    [InlineData("System.Text.RegularExpressions")]
+    public void RetiredServiceBusDependenciesAreNotInApiRuntimeGraph(string package)
+    {
+        var manifest = Path.Combine(AppContext.BaseDirectory,
+            typeof(AuthController).Assembly.GetName().Name + ".deps.json");
+        using var document = JsonDocument.Parse(System.IO.File.ReadAllText(manifest));
+        var packages = document.RootElement.GetProperty("libraries").EnumerateObject()
+            .Select(library => library.Name.Split('/')[0]);
+
+        Assert.DoesNotContain(packages, name => string.Equals(name, package, StringComparison.OrdinalIgnoreCase));
+    }
+
     [Fact]
     public void RegistrationMappingKeepsNormalizationPasswordHashAndCustomerRole()
     {
