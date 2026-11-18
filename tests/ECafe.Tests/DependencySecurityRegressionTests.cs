@@ -16,6 +16,18 @@ namespace ECafe.Tests;
 
 public sealed class DependencySecurityRegressionTests
 {
+    [Fact]
+    public void ApiRuntimeGraphPinsThePatchedPkcsVersion()
+    {
+        var manifest = Path.Combine(AppContext.BaseDirectory,
+            typeof(AuthController).Assembly.GetName().Name + ".deps.json");
+        using var document = JsonDocument.Parse(System.IO.File.ReadAllText(manifest));
+        var dependency = Assert.Single(document.RootElement.GetProperty("libraries").EnumerateObject(),
+            library => library.Name.StartsWith("System.Security.Cryptography.Pkcs/", StringComparison.Ordinal));
+
+        Assert.Equal("System.Security.Cryptography.Pkcs/9.0.23", dependency.Name);
+    }
+
     [Theory]
     [InlineData("Microsoft.Azure.ServiceBus")]
     [InlineData("Microsoft.Azure.Amqp")]
