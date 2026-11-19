@@ -26,7 +26,7 @@ public sealed class RelationalMultilingualModelTests
             Assert.Equal(2, entity.GetForeignKeys().Count());
             Assert.Contains(entity.GetForeignKeys(), foreignKey => foreignKey.PrincipalEntityType.ClrType == typeof(Language));
             Assert.True(entity.FindProperty("Revision")!.IsConcurrencyToken);
-            Assert.NotNull(entity.GetQueryFilter());
+            Assert.NotEmpty(entity.GetDeclaredQueryFilters());
         }
     }
 

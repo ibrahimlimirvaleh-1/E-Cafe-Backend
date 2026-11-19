@@ -1,5 +1,7 @@
 using System.Text;
 using System.Text.Json;
+using System.Security.Cryptography.Pkcs;
+using System.Reflection;
 using AutoMapper;
 using ECafe.Api.Controllers;
 using ECafe.Application.DTOs.Auth;
@@ -17,15 +19,21 @@ namespace ECafe.Tests;
 public sealed class DependencySecurityRegressionTests
 {
     [Fact]
-    public void ApiRuntimeGraphPinsThePatchedPkcsVersion()
+    public void ApiLoadsThePatchedPkcsImplementation()
     {
         var manifest = Path.Combine(AppContext.BaseDirectory,
             typeof(AuthController).Assembly.GetName().Name + ".deps.json");
         using var document = JsonDocument.Parse(System.IO.File.ReadAllText(manifest));
-        var dependency = Assert.Single(document.RootElement.GetProperty("libraries").EnumerateObject(),
-            library => library.Name.StartsWith("System.Security.Cryptography.Pkcs/", StringComparison.Ordinal));
+        var dependencies = document.RootElement.GetProperty("libraries").EnumerateObject()
+            .Where(library => library.Name.StartsWith("System.Security.Cryptography.Pkcs/", StringComparison.Ordinal)).ToArray();
+        Assert.All(dependencies, dependency =>
+            Assert.Equal("System.Security.Cryptography.Pkcs/10.0.15", dependency.Name));
 
-        Assert.Equal("System.Security.Cryptography.Pkcs/9.0.23", dependency.Name);
+        // .NET 10 shared framework bu assembly-ni verdikdə deps.json-da ayrıca paket olmur.
+        var version = typeof(SignedCms).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()!
+            .InformationalVersion.Split('+')[0];
+        Assert.True(Version.Parse(version) >= new Version(10, 0, 15));
+        Assert.Equal(10, typeof(SignedCms).Assembly.GetName().Version!.Major);
     }
 
     [Theory]
@@ -33,7 +41,6 @@ public sealed class DependencySecurityRegressionTests
     [InlineData("Microsoft.Azure.Amqp")]
     [InlineData("Microsoft.Azure.Services.AppAuthentication")]
     [InlineData("Microsoft.IdentityModel.Clients.ActiveDirectory")]
-    [InlineData("Newtonsoft.Json")]
     [InlineData("System.Net.Http")]
     [InlineData("System.Text.RegularExpressions")]
     public void RetiredServiceBusDependenciesAreNotInApiRuntimeGraph(string package)
@@ -45,6 +52,19 @@ public sealed class DependencySecurityRegressionTests
             .Select(library => library.Name.Split('/')[0]);
 
         Assert.DoesNotContain(packages, name => string.Equals(name, package, StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void Ef10ToolingUsesPatchedJsonWithoutReplacingTheApiJsonFormatter()
+    {
+        var manifest = Path.Combine(AppContext.BaseDirectory, "ECafe.Api.deps.json");
+        using var document = JsonDocument.Parse(System.IO.File.ReadAllText(manifest));
+        var packages = document.RootElement.GetProperty("libraries").EnumerateObject()
+            .Select(library => library.Name).ToArray();
+
+        Assert.Contains("Newtonsoft.Json/13.0.4", packages);
+        Assert.DoesNotContain(packages, name =>
+            name.StartsWith("Microsoft.AspNetCore.Mvc.NewtonsoftJson/", StringComparison.Ordinal));
     }
 
     [Fact]

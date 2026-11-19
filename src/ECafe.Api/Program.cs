@@ -144,7 +144,7 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 
     if (builder.Environment.IsDevelopment() || builder.Environment.IsEnvironment("Local"))
     {
-        options.KnownNetworks.Clear();
+        options.KnownIPNetworks.Clear();
         options.KnownProxies.Clear();
         return;
     }
