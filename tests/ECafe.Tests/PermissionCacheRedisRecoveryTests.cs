@@ -172,7 +172,7 @@ public sealed class PermissionCacheRedisRecoveryTests
                 var port = UnusedLoopbackPort();
                 fixture._containerId = (await fixture.DockerAsync("run", "--pull", "never", "-d", "--name", name,
                     "--label", OwnerLabel + "=true", "-p", "127.0.0.1:" + port.ToString(CultureInfo.InvariantCulture) + ":6379", "--mount",
-                    "type=bind,source=" + acl + ",target=/etc/redis/users.acl,readonly", "redis:7-alpine",
+                    "type=bind,source=" + acl + ",target=/etc/redis/users.acl,readonly", "redis:7.4-alpine",
                     "redis-server", "--aclfile", "/etc/redis/users.acl", "--appendonly", "no", "--save", "")).Trim();
                 using var document = JsonDocument.Parse(await fixture.DockerAsync("inspect", fixture._containerId));
                 var binding = document.RootElement[0].GetProperty("NetworkSettings").GetProperty("Ports").GetProperty("6379/tcp")[0];

@@ -26,7 +26,8 @@ concurrency:
 
 jobs:
   build:
-    name: Restore, audit, build and test backend
+    # Keep the required branch-protection check name stable.
+    name: Restore and build backend
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
