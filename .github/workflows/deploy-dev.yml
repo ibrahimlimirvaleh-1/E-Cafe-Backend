@@ -6,13 +6,21 @@ on:
       - dev
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 concurrency:
   group: ecafe-backend-dev
   cancel-in-progress: true
 
 jobs:
+  validate:
+    if: github.ref == 'refs/heads/dev'
+    uses: ./.github/workflows/ci.yml
   deploy:
     name: Deploy backend to Hetzner
+    if: github.ref == 'refs/heads/dev'
+    needs: validate
     runs-on: ubuntu-latest
     environment: dev
     timeout-minutes: 30
@@ -22,6 +30,8 @@ jobs:
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Package backend source
         run: |

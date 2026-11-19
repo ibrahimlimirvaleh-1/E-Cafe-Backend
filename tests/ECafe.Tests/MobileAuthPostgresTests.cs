@@ -34,7 +34,7 @@ using Xunit;
 
 namespace ECafe.Tests;
 
-public sealed class MobileAuthPostgresTests
+public sealed partial class MobileAuthPostgresTests
 {
     private const string OriginalToken = "native-auth-test-original-not-a-live-secret";
     private const string OtherDeviceToken = "native-auth-test-other-device-not-a-live-secret";
@@ -296,7 +296,7 @@ public sealed class MobileAuthPostgresTests
     }
 
     /// <summary>İstehsaldakı AuthManager, mapper, token repository və transaction sərhədini saxlayır; yalnız xarici xidmətləri saxtalaşdırır.</summary>
-    private static AuthManager Service(ECafeDbContext db, IUserSessionStateCache? cache = null)
+    private static AuthManager Service(ECafeDbContext db, IUserSessionStateCache? cache = null, DefaultHttpContext? httpContext = null)
     {
         var mapper = new MapperConfiguration(c => c.AddProfile<AuthProfile>(), NullLoggerFactory.Instance).CreateMapper();
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
@@ -306,7 +306,7 @@ public sealed class MobileAuthPostgresTests
             ["Jwt:Audience"] = "ecafe-native-auth-tests",
             ["Jwt:AccessTokenLifetimeMinutes"] = "15"
         }).Build();
-        var accessor = new HttpContextAccessor { HttpContext = new DefaultHttpContext() };
+        var accessor = new HttpContextAccessor { HttpContext = httpContext ?? new DefaultHttpContext() };
         var jwt = new JwtManager(accessor, mapper, configuration);
         return new(accessor, mapper, configuration, new UserRepository(db), new UserRefreshTokenRepository(db), jwt,
             Mock.Of<IMinioService>(), Mock.Of<IFileRepository>(), Mock.Of<ILoginAttemptService>(),

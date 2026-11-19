@@ -31,7 +31,7 @@ namespace ECafe.Application.Features.Queries.File
             if (file is null)
                 throw new BusinessRuleException(ErrorCode.FileNotFound);
 
-            _fileAccessPolicy.EnsureCurrentUserCanAccess(file);
+            await _fileAccessPolicy.EnsureCurrentUserCanAccessAsync(file);
 
             var urls = await _fileAccessUrlService.BuildUrlsAsync(file, cancellationToken);
 

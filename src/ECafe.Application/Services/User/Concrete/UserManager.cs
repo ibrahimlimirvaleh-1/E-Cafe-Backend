@@ -96,7 +96,7 @@ namespace ECafe.Application.Services.User.Concrete
             await EnsureRestaurantExistsAsync(request.RestaurantId);
             EnsureCurrentUserCanAccessRestaurant(request.RestaurantId);
             await EnsureRoleExistsAsync(request.RoleId);
-            EnsureOnlySuperAdminCanManageOwnerRole(request.RoleId);
+            EnsureOnlySuperAdminCanManagePrivilegedRole(request.RoleId);
             await EnsureRestaurantOwnerSlotAvailableAsync(request.RestaurantId, request.RoleId);
             await EnsureUserDoesNotExistAsync(request.Email, request.Phone);
 
@@ -130,6 +130,8 @@ namespace ECafe.Application.Services.User.Concrete
             if (userId <= 0)
                 throw new BusinessRuleException(ErrorCode.InvalidUserId);
 
+            await using var transaction = await _transactionFactory.BeginTransactionAsync();
+            await _refreshTokenRepository.AcquireUserLockAsync(userId);
             var userDetails = await _userRepository.GetProfileByIdAsync(userId);
 
             if (userDetails is null)
@@ -145,6 +147,7 @@ namespace ECafe.Application.Services.User.Concrete
             await RevokeActiveRefreshTokensAsync(userId);
             await _userRepository.Delete(user);
             await _userRepository.SaveChangesAsync();
+            await transaction.CommitAsync();
             await _userSessionStateCache.InvalidateAsync(userId);
             await InvalidateRestaurantAccessAsync(userDetails.UserRestaurants);
             await NotifyUserSessionTerminatedAsync(userId);
@@ -160,11 +163,15 @@ namespace ECafe.Application.Services.User.Concrete
 
             EnsureCurrentUserCanAccessRestaurant(restaurantId);
 
+            await using var transaction = await _transactionFactory.BeginTransactionAsync();
+            await _refreshTokenRepository.AcquireUserLockAsync(staffId);
             var staffAssignment = await _userRestaurantRepository.GetStaffAssignmentAsync(restaurantId, staffId);
             if (staffAssignment is null)
                 throw new BusinessRuleException(ErrorCode.StaffAssignmentNotFound);
 
-            EnsureOnlySuperAdminCanManageOwnerRole(staffAssignment.RoleId);
+            EnsureOnlySuperAdminCanManagePrivilegedRole(staffAssignment.RoleId);
+            if (staffAssignment.User.RoleId == (int)RoleCode.SuperAdmin)
+                EnsureOnlySuperAdminCanManagePrivilegedRole(staffAssignment.User.RoleId);
 
             await EnsureRestaurantOwnerSlotAvailableAsync(
                 restaurantId,
@@ -190,6 +197,7 @@ namespace ECafe.Application.Services.User.Concrete
                 $"{staffAssignment.User.Name} {staffAssignment.User.Surname}");
 
             await _userRestaurantRepository.SaveChangesAsync();
+            await transaction.CommitAsync();
             await _userSessionStateCache.InvalidateAsync(staffId);
             await _userRestaurantAccessCache.InvalidateAsync(staffId, restaurantId);
         }
@@ -207,11 +215,15 @@ namespace ECafe.Application.Services.User.Concrete
             if (staffId == GetCurrentUserId())
                 throw new BusinessRuleException(ErrorCode.CannotDeactivateOwnAccount);
 
+            await using var transaction = await _transactionFactory.BeginTransactionAsync();
+            await _refreshTokenRepository.AcquireUserLockAsync(staffId);
             var staffAssignment = await _userRestaurantRepository.GetActiveStaffAssignmentAsync(restaurantId, staffId);
             if (staffAssignment is null)
                 throw new BusinessRuleException(ErrorCode.ActiveStaffAssignmentNotFound);
 
-            EnsureOnlySuperAdminCanManageOwnerRole(staffAssignment.RoleId);
+            EnsureOnlySuperAdminCanManagePrivilegedRole(staffAssignment.RoleId);
+            if (staffAssignment.User.RoleId == (int)RoleCode.SuperAdmin)
+                EnsureOnlySuperAdminCanManagePrivilegedRole(staffAssignment.User.RoleId);
 
             staffAssignment.IsActive = false;
 
@@ -237,6 +249,7 @@ namespace ECafe.Application.Services.User.Concrete
                 $"{staffAssignment.User.Name} {staffAssignment.User.Surname}");
 
             await _userRestaurantRepository.SaveChangesAsync();
+            await transaction.CommitAsync();
             await _userSessionStateCache.InvalidateAsync(staffId);
             await _userRestaurantAccessCache.InvalidateAsync(staffId, restaurantId);
             await NotifyUserSessionTerminatedAsync(staffId);
@@ -255,13 +268,19 @@ namespace ECafe.Application.Services.User.Concrete
 
             EnsureCurrentUserCanAccessRestaurant(restaurantId);
 
+            await using var transaction = await _transactionFactory.BeginTransactionAsync();
+            await _refreshTokenRepository.AcquireUserLockAsync(staffId);
             var staffAssignment = await _userRestaurantRepository.GetActiveStaffAssignmentAsync(restaurantId, staffId);
             if (staffAssignment is null)
                 throw new BusinessRuleException(ErrorCode.ActiveStaffAssignmentNotFound);
 
-            EnsureOnlySuperAdminCanManageOwnerRole(staffAssignment.RoleId);
+            EnsureOnlySuperAdminCanManagePrivilegedRole(staffAssignment.RoleId);
+            if (staffAssignment.User.RoleId == (int)RoleCode.SuperAdmin)
+                EnsureOnlySuperAdminCanManagePrivilegedRole(staffAssignment.User.RoleId);
 
             var email = request.Email.Trim().ToLowerInvariant();
+            if (!IsCurrentUserSuperAdmin() && !string.Equals(email, staffAssignment.User.Email.Trim(), StringComparison.OrdinalIgnoreCase))
+                throw new ForbiddenException(ErrorCode.AccessDenied);
             var phone = PhoneNumberValidationExtensions.NormalizeAzerbaijanPhoneNumber(request.Phone);
             var conflict = await _userRepository.GetProfileConflictAsync(staffId, email, phone);
             if (conflict is not null)
@@ -278,7 +297,7 @@ namespace ECafe.Application.Services.User.Concrete
             if (!request.IsActive)
             {
                 staffAssignment.IsActive = false;
-                staffAssignment.User.IsActive = false;
+                staffAssignment.User.IsActive = await _userRestaurantRepository.HasAnyOtherActiveAssignmentAsync(staffId, staffAssignment.Id);
                 staffAssignment.User.SessionVersion++;
                 await RevokeActiveRefreshTokensAsync(staffId);
             }
@@ -299,6 +318,7 @@ namespace ECafe.Application.Services.User.Concrete
                 $"{staffAssignment.User.Name} {staffAssignment.User.Surname}");
 
             await _userRestaurantRepository.SaveChangesAsync();
+            await transaction.CommitAsync();
             await _userRestaurantAccessCache.InvalidateAsync(staffId, restaurantId);
 
             if (!request.IsActive)
@@ -324,6 +344,8 @@ namespace ECafe.Application.Services.User.Concrete
             if (roleId == (int)RoleCode.Customer)
                 throw new BusinessRuleException(ErrorCode.CustomerCannotBeStaff);
 
+            await using var transaction = await _transactionFactory.BeginTransactionAsync();
+            await _refreshTokenRepository.AcquireUserLockAsync(userId);
             var userDetails = await _userRepository.GetProfileByIdAsync(userId);
             if (userDetails is null)
                 throw new BusinessRuleException(ErrorCode.UserNotFound);
@@ -333,7 +355,7 @@ namespace ECafe.Application.Services.User.Concrete
                 throw new ForbiddenException(ErrorCode.AccessDenied);
 
             await EnsureRoleExistsAsync(roleId);
-            EnsureOnlySuperAdminCanManageOwnerRole(roleId);
+            EnsureOnlySuperAdminCanManagePrivilegedRole(roleId);
             var assignment = IsRestaurantScopedRole(roleId)
                 ? await GetRoleChangeAssignmentAsync(userDetails, restaurantId)
                 : null;
@@ -364,7 +386,24 @@ namespace ECafe.Application.Services.User.Concrete
 
             var roleName = GetRoleDescription(roleId);
 
+            AuthResponseDto? unchangedRoleResponse = null;
+            if (userId == GetCurrentUserId() && !roleChanged)
+            {
+                var principal = HttpContextAccessor.HttpContext?.User;
+                var sessionId = principal?.FindFirst("sessionId")?.Value;
+                if (!user.IsActive || !int.TryParse(principal?.FindFirst("sessionVersion")?.Value, out var version) ||
+                    version != user.SessionVersion ||
+                    (!string.IsNullOrWhiteSpace(sessionId) && !await _refreshTokenRepository.HasActiveUserSessionAsync(userId, sessionId, DateTime.UtcNow)))
+                    throw new UnauthorizedException(ErrorCode.SessionInvalid);
+
+                var tokenUser = await _userRepository.GetByIdWithAuthDetailsTrackedAsync(userId);
+                if (tokenUser is null)
+                    throw new BusinessRuleException(ErrorCode.UserNotFound);
+                unchangedRoleResponse = await CreateAndStoreTokenResponseAsync(tokenUser);
+            }
+
             await _userRepository.SaveChangesAsync();
+            await transaction.CommitAsync();
 
             if (roleChanged)
             {
@@ -387,20 +426,11 @@ namespace ECafe.Application.Services.User.Concrete
                 await NotifyUserRoleChangedAsync(userId, roleName);
             }
 
-            if (userId != GetCurrentUserId() || roleChanged)
+            return unchangedRoleResponse ?? Mapper.Map<AuthResponseDto>(new AuthTokenMapData
             {
-                return Mapper.Map<AuthResponseDto>(new AuthTokenMapData
-                {
-                    AccessToken = string.Empty,
-                    RefreshToken = string.Empty
-                });
-            }
-
-            var tokenUser = await _userRepository.GetByIdWithAuthDetailsTrackedAsync(userId);
-            if (tokenUser is null)
-                throw new BusinessRuleException(ErrorCode.UserNotFound);
-
-            return await CreateAndStoreTokenResponseAsync(tokenUser);
+                AccessToken = string.Empty,
+                RefreshToken = string.Empty
+            });
         }
 
         public Task<PaginatedList<GetAllUserResponseDto>> GetAllAsync(int? restaurantId, PaginationFilter filter)
@@ -516,13 +546,17 @@ namespace ECafe.Application.Services.User.Concrete
                 throw new BusinessRuleException(ErrorCode.RestaurantNotFound);
         }
 
+        /// <summary>Restoran səviyyəli idarəetmənin platforma admininə və qorunan sahibkar hesablarına təsir etməsinə icazə vermir.</summary>
         private void EnsureCanManageTargetUser(Domain.Entities.User user)
         {
             if (IsCurrentUserSuperAdmin())
                 return;
 
+            if (user.RoleId == (int)RoleCode.SuperAdmin)
+                throw new ForbiddenException(ErrorCode.AccessDenied);
+
             if (user.UserRestaurants.Any(userRestaurant => userRestaurant.RoleId == (int)RoleCode.Owner))
-                EnsureOnlySuperAdminCanManageOwnerRole((int)RoleCode.Owner);
+                EnsureOnlySuperAdminCanManagePrivilegedRole((int)RoleCode.Owner);
 
             var restaurantId = user.UserRestaurants
                 .Where(userRestaurant => userRestaurant.IsActive)
@@ -556,6 +590,7 @@ namespace ECafe.Application.Services.User.Concrete
                 throw new BusinessRuleException(ErrorCode.UserPhoneAlreadyExists);
         }
 
+        /// <summary>Profilə yalnız uyğun formatlı və sorğunu göndərənə aid sərbəst şəkli bağlayır; məxfi sənədi ictimailəşdirmir.</summary>
         private async Task<Domain.Entities.File?> GetAttachableFileAsync(int? fileId)
         {
             if (!fileId.HasValue)
@@ -565,6 +600,7 @@ namespace ECafe.Application.Services.User.Concrete
             if (file is null)
                 throw new BusinessRuleException(ErrorCode.FileNotFoundOrAlreadyAttached);
 
+            EnsureCurrentUserCanAttachImage(file);
             file.FileTypeId = (int)FileTypeCode.UserProfileImage;
 
             return file;
@@ -608,9 +644,16 @@ namespace ECafe.Application.Services.User.Concrete
                 (int)RoleCode.Waiter or
                 (int)RoleCode.Kitchen;
 
-        private void EnsureOnlySuperAdminCanManageOwnerRole(int roleId)
+        /// <summary>Personal yaratma və dəyişmə yollarında yüksək səlahiyyətli rol təyinatını yalnız platforma admininə saxlayır.</summary>
+        private void EnsureOnlySuperAdminCanManagePrivilegedRole(int roleId)
         {
-            if (roleId != (int)RoleCode.Owner || IsCurrentUserSuperAdmin())
+            if (IsCurrentUserSuperAdmin())
+                return;
+
+            if (roleId == (int)RoleCode.SuperAdmin)
+                throw new ForbiddenException(ErrorCode.AccessDenied);
+
+            if (roleId != (int)RoleCode.Owner)
                 return;
 
             throw new ForbiddenException("Only platform admin can manage restaurant owner accounts.");

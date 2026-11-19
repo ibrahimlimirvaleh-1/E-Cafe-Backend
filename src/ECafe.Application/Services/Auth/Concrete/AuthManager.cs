@@ -65,19 +65,30 @@ namespace ECafe.Application.Services.Auth.Concrete
                 throw new BusinessRuleException(ErrorCode.RequestCannotBeNull);
 
             var normalizedEmail = request.Email.Trim().ToLowerInvariant();
-            await _loginAttemptService.EnsureNotLockedOutAsync(normalizedEmail);
+                var userId = await _userRepository.GetUserIdByEmailAsync(normalizedEmail);
+            if (!userId.HasValue)
+            {
+                await _loginAttemptService.EnsureNotLockedOutAsync(normalizedEmail);
+                await _loginAttemptService.RecordFailureAsync(null, normalizedEmail, "InvalidCredentials");
+                throw new UnauthorizedException(ErrorCode.InvalidCredentials);
+            }
 
+            await using var transaction = await _transactionFactory.BeginTransactionAsync();
+            await _refreshTokenRepository.AcquireUserLockAsync(userId.Value);
+            await _loginAttemptService.EnsureNotLockedOutAsync(normalizedEmail);
             var user = await _userRepository.GetByEmailTrackedAsync(normalizedEmail);
 
             if (user is null)
             {
                 await _loginAttemptService.RecordFailureAsync(null, normalizedEmail, "InvalidCredentials");
+                await transaction.CommitAsync();
                 throw new UnauthorizedException(ErrorCode.InvalidCredentials);
             }
 
             if (user.PasswordSetAt is null || string.IsNullOrWhiteSpace(user.Password))
             {
                 await _loginAttemptService.RecordFailureAsync(user, normalizedEmail, "PasswordNotSet");
+                await transaction.CommitAsync();
                 throw new ForbiddenException("Password has not been set yet.");
             }
 
@@ -86,17 +97,21 @@ namespace ECafe.Application.Services.Auth.Concrete
             if (!isPasswordValid)
             {
                 await _loginAttemptService.RecordFailureAsync(user, normalizedEmail, "InvalidCredentials");
+                await transaction.CommitAsync();
                 throw new UnauthorizedException(ErrorCode.InvalidCredentials);
             }
 
             if (!user.IsActive)
             {
                 await _loginAttemptService.RecordFailureAsync(user, normalizedEmail, "InactiveAccount");
+                await transaction.CommitAsync();
                 throw new ForbiddenException("User account is inactive.");
             }
 
             await _loginAttemptService.RecordSuccessAsync(user, normalizedEmail);
-            return await CreateAndStoreTokenResponseAsync(user);
+            var response = await CreateAndStoreTokenResponseAsync(user);
+            await transaction.CommitAsync();
+            return response;
         }
 
         public async Task<AuthResponseDto> RegisterAsync(RegisterRequestDto request)
@@ -210,28 +225,14 @@ namespace ECafe.Application.Services.Auth.Concrete
 
         public async Task LogoutAsync(LogoutRequestDto request)
         {
-            if (request is null || string.IsNullOrWhiteSpace(request.RefreshToken))
-                return;
-
-            var refreshTokenHash = HashRefreshToken(request.RefreshToken);
-            var storedToken = await _refreshTokenRepository.GetByTokenHashTrackedAsync(refreshTokenHash);
-
-            if (storedToken is null)
-                return;
-
-            if (storedToken.RevokedAt is null)
-            {
-                RevokeRefreshToken(storedToken);
-                await _refreshTokenRepository.SaveChangesAsync();
-
-                if (!string.IsNullOrWhiteSpace(storedToken.SessionId))
-                    await _userSessionStateCache.InvalidateSessionAsync(storedToken.UserId, storedToken.SessionId);
-            }
+            await LogoutSessionAsync(request);
         }
 
         public async Task LogoutAllAsync()
         {
             var currentUserId = GetCurrentUserId();
+            await using var transaction = await _transactionFactory.BeginTransactionAsync();
+            await _refreshTokenRepository.AcquireUserLockAsync(currentUserId);
             var currentUser = await _userRepository.GetByIdAsync(currentUserId);
             if (currentUser is null)
                 throw new UnauthorizedException(ErrorCode.SessionInvalid);
@@ -245,6 +246,7 @@ namespace ECafe.Application.Services.Auth.Concrete
             }
 
             await _userRepository.SaveChangesAsync();
+            await transaction.CommitAsync();
             await _userSessionStateCache.InvalidateAsync(currentUserId);
         }
 
@@ -263,6 +265,7 @@ namespace ECafe.Application.Services.Auth.Concrete
                 throw new BusinessRuleException(ErrorCode.UserPhoneAlreadyExists);
         }
 
+        /// <summary>Qeydiyyata yalnız identifikasiyalı yükləyicinin uyğun sərbəst şəklini bağlayır.</summary>
         private async Task<Domain.Entities.File?> GetAttachableFileAsync(int? fileId)
         {
             if (!fileId.HasValue)
@@ -272,6 +275,7 @@ namespace ECafe.Application.Services.Auth.Concrete
             if (file is null)
                 throw new BusinessRuleException(ErrorCode.FileNotFoundOrAlreadyAttached);
 
+            EnsureCurrentUserCanAttachImage(file);
             file.FileTypeId = (int)FileTypeCode.UserProfileImage;
 
             return file;

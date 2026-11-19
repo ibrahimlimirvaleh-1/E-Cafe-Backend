@@ -11,6 +11,10 @@ namespace ECafe.Infrastructure.Repositories.User
         {
         }
 
+        /// <summary>Giriş kilidindən əvvəl yalnız hesab identifikatorunu oxuyur ki, köhnə parol və sessiya vəziyyəti tracking-də qalmasın.</summary>
+        public Task<int?> GetUserIdByEmailAsync(string email)
+            => Query(user => user.Email == email).Select(user => (int?)user.Id).SingleOrDefaultAsync();
+
 
         public async Task<Domain.Entities.User?> GetByEmailAsync(string email)
         {

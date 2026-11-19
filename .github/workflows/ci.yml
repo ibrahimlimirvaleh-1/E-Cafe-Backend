@@ -1,6 +1,7 @@
 name: Backend CI
 
 on:
+  workflow_call:
   pull_request:
     branches:
       - dev
@@ -12,6 +13,12 @@ on:
       - "feature/**"
       - "bugfix/**"
       - "hotfix/**"
+      - "security/**"
+      - "fix/**"
+      - "feat/**"
+
+permissions:
+  contents: read
 
 concurrency:
   group: backend-ci-${{ github.ref }}
@@ -19,13 +26,39 @@ concurrency:
 
 jobs:
   build:
+    # Keep the required branch-protection check name stable.
     name: Restore and build backend
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      DOTNET_PROCESSOR_COUNT: "4"
+      ECAFE_STOCK_TEST_CONNECTION: "Host=127.0.0.1;Port=55439;Database=postgres;Username=postgres;Password=ci-only-password"
+      ECAFE_DASHBOARD_TEST_CONNECTION: "Host=127.0.0.1;Port=55439;Database=postgres;Username=postgres;Password=ci-only-password"
+      ECAFE_TEST_REDIS: "127.0.0.1:16381,abortConnect=false"
+      ECAFE_TEST_PERMISSION_REDIS_LIFECYCLE: "1"
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: ci-only-password
+        ports:
+          - 55439:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+      redis:
+        image: redis:7.4-alpine
+        ports:
+          - 16381:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 5s --health-retries 12
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -33,7 +66,10 @@ jobs:
           dotnet-version: "9.0.x"
 
       - name: Restore solution
-        run: dotnet restore ECafe.sln
+        run: dotnet restore ECafe.sln -p:NuGetAudit=true -p:NuGetAuditMode=all -warnaserror:NU1900,NU1901,NU1902,NU1903,NU1904,NU1905
 
       - name: Build solution
         run: dotnet build ECafe.sln --configuration Release --no-restore
+
+      - name: Run regression and isolated database tests
+        run: dotnet test tests/ECafe.Tests/ECafe.Tests.csproj --configuration Release --no-build --no-restore --logger trx --results-directory "$RUNNER_TEMP/test-results" -- xUnit.ParallelizeTestCollections=false

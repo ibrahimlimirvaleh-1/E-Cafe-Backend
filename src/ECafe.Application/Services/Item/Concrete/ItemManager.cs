@@ -377,6 +377,7 @@ namespace ECafe.Application.Services.Item.Concrete
         private static int GetOutOfStockStatusId()
             => StatusIds.Item(ItemStatus.OutOfStock);
 
+        /// <summary>Menyu şəklinə yalnız yükləyicinin özünə aid uyğun sərbəst şəkli bağlayır.</summary>
         private async Task<Domain.Entities.File?> GetAttachableFileAsync(int? fileId)
         {
             if (!fileId.HasValue)
@@ -386,6 +387,7 @@ namespace ECafe.Application.Services.Item.Concrete
             if (file is null)
                 throw new BusinessRuleException(ErrorCode.FileNotFoundOrAlreadyAttached);
 
+            EnsureCurrentUserCanAttachImage(file);
             file.FileTypeId = (int)FileTypeCode.MenuItemImage;
 
             return file;

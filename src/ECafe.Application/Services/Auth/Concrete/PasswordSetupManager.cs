@@ -5,6 +5,8 @@ using ECafe.Application.Common.Outbox;
 using ECafe.Application.DTOs.Auth;
 using ECafe.Application.Repositories.User;
 using ECafe.Application.Repositories.UserPasswordSetupToken;
+using ECafe.Application.Repositories.UserRefreshToken;
+using ECafe.Application.Repository;
 using ECafe.Application.Services.Auth.Abstract;
 using ECafe.Domain.Exceptions;
 using Microsoft.Extensions.Configuration;
@@ -19,17 +21,23 @@ namespace ECafe.Application.Services.Auth.Concrete
         private readonly IUserPasswordSetupTokenRepository _tokenRepository;
         private readonly IEmailOutboxService _emailOutboxService;
         private readonly IConfiguration _configuration;
+        private readonly IUserRefreshTokenRepository _refreshTokenRepository;
+        private readonly IApplicationDbTransactionFactory _transactionFactory;
 
         public PasswordSetupManager(
             IUserRepository userRepository,
             IUserPasswordSetupTokenRepository tokenRepository,
             IEmailOutboxService emailOutboxService,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            IUserRefreshTokenRepository refreshTokenRepository,
+            IApplicationDbTransactionFactory transactionFactory)
         {
             _userRepository = userRepository;
             _tokenRepository = tokenRepository;
             _emailOutboxService = emailOutboxService;
             _configuration = configuration;
+            _refreshTokenRepository = refreshTokenRepository;
+            _transactionFactory = transactionFactory;
         }
 
         public async Task SendSetupLinkAsync(Domain.Entities.User user)
@@ -81,10 +89,18 @@ namespace ECafe.Application.Services.Auth.Concrete
         public async Task SetPasswordAsync(SetPasswordRequest request)
         {
             var tokenHash = HashToken(request.Token);
+            var userId = await _tokenRepository.GetUserIdByTokenHashAsync(tokenHash);
+            if (!userId.HasValue)
+                throw new BusinessRuleException(ErrorCode.PasswordResetTokenInvalidOrExpired);
+            await using var transaction = await _transactionFactory.BeginTransactionAsync();
+            await _refreshTokenRepository.AcquireUserLockAsync(userId.Value);
             var setupToken = await _tokenRepository.GetActiveByTokenHashTrackedAsync(tokenHash, DateTime.UtcNow);
 
             if (setupToken is null)
                 throw new BusinessRuleException("Password setup link is invalid or expired.");
+
+            if (!setupToken.User.IsActive || setupToken.User.PasswordSetAt.HasValue)
+                throw new BusinessRuleException(ErrorCode.PasswordResetTokenInvalidOrExpired);
 
             var nowUtc = DateTime.UtcNow;
             setupToken.User.Password = BCrypt.Net.BCrypt.HashPassword(request.Password);
@@ -92,6 +108,7 @@ namespace ECafe.Application.Services.Auth.Concrete
             setupToken.UsedAt = nowUtc;
 
             await _userRepository.SaveChangesAsync();
+            await transaction.CommitAsync();
         }
 
         private string BuildSetupUrl(string token)

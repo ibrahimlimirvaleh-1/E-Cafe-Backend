@@ -27,6 +27,17 @@ public abstract class BaseManager
     protected bool IsCurrentUserSuperAdmin()
         => GetCurrentRoleId() == (int)RoleCode.SuperAdmin;
 
+    /// <summary>Fayl bağlamada anonim sorğunu, başqa yükləyicinin faylını və sənədin şəkil kimi ictimailəşdirilməsini rədd edir.</summary>
+    protected void EnsureCurrentUserCanAttachImage(Domain.Entities.File file)
+    {
+        var principal = HttpContextAccessor.HttpContext?.User;
+        var authenticated = principal?.Identity?.IsAuthenticated == true;
+        var actorId = authenticated && int.TryParse(principal?.FindFirst("userId")?.Value, out var parsedId) ? parsedId : 0;
+        var isAdmin = authenticated && principal?.FindFirst(ClaimTypes.Role)?.Value == ((int)RoleCode.SuperAdmin).ToString();
+        if (!ECafe.Domain.Policies.FileAttachmentPolicy.CanAttachImage(file, actorId, isAdmin))
+            throw new BusinessRuleException(ErrorCode.FileNotFoundOrAlreadyAttached);
+    }
+
     protected int? GetCurrentRestaurantId()
     {
         var activeRestaurantId = GetActiveRestaurantIdFromHeader();

@@ -1,6 +1,7 @@
 using AutoMapper;
 using ECafe.Application.DTOs.Auth;
 using ECafe.Application.Repositories.UserRefreshToken;
+using ECafe.Application.Repository;
 using ECafe.Application.Services.Auth.Abstract;
 using ECafe.Domain.Exceptions;
 using Microsoft.AspNetCore.Http;
@@ -13,18 +14,21 @@ public sealed class UserSessionManager : BaseManager, IUserSessionService
     private readonly IUserRefreshTokenRepository _refreshTokenRepository;
     private readonly IUserSessionStateCache _userSessionStateCache;
     private readonly UserSessionDeviceLabelOptions _deviceLabelOptions;
+    private readonly IApplicationDbTransactionFactory _transactionFactory;
 
     public UserSessionManager(
         IHttpContextAccessor httpContextAccessor,
         IMapper mapper,
         IConfiguration configuration,
         IUserRefreshTokenRepository refreshTokenRepository,
-        IUserSessionStateCache userSessionStateCache)
+        IUserSessionStateCache userSessionStateCache,
+        IApplicationDbTransactionFactory transactionFactory)
         : base(httpContextAccessor, mapper, configuration)
     {
         _refreshTokenRepository = refreshTokenRepository;
         _userSessionStateCache = userSessionStateCache;
         _deviceLabelOptions = LoadDeviceLabelOptions(configuration);
+        _transactionFactory = transactionFactory;
     }
 
     public async Task<List<UserSessionResponseDto>> GetMySessionsAsync()
@@ -65,6 +69,8 @@ public sealed class UserSessionManager : BaseManager, IUserSessionService
 
         var userId = GetCurrentUserId();
         var normalizedSessionId = sessionId.Trim();
+        await using var transaction = await _transactionFactory.BeginTransactionAsync();
+        await _refreshTokenRepository.AcquireUserLockAsync(userId);
         var tokens = await _refreshTokenRepository.GetActiveByUserSessionTrackedAsync(
             userId,
             normalizedSessionId,
@@ -83,6 +89,7 @@ public sealed class UserSessionManager : BaseManager, IUserSessionService
         }
 
         await _refreshTokenRepository.SaveChangesAsync();
+        await transaction.CommitAsync();
         await _userSessionStateCache.InvalidateSessionAsync(userId, normalizedSessionId);
     }
 

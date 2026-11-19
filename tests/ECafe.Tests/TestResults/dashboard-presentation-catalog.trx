@@ -1,0 +1,93 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="694dbff1-7ed8-4f73-988a-e31ac5297b6a" name="mirvalehis@BACKEND-06 2026-11-03 01:24:43" runUser="DCAD\mirvalehis" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-11-03T01:24:43.2958221+04:00" queuing="2026-11-03T01:24:43.2958224+04:00" start="2026-11-03T01:24:41.2151294+04:00" finish="2026-11-03T01:24:46.3831654+04:00" />
+  <TestSettings name="default" id="509b118d-4404-48bd-bd2a-eb9251f055e9">
+    <Deployment runDeploymentRoot="mirvalehis_BACKEND-06_2026-11-03_01_24_43" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="b6f2cab3-7341-445f-862a-7b15255baf06" testId="423f7dd3-469e-1be9-b6e2-c16abf75d351" testName="ECafe.Tests.DashboardPresentationCatalogTests.ClarifiedOrderLabelsAreAvailableInEveryLanguage(key: &quot;ui.dashboardReports.cancelledOriginal&quot;)" computerName="BACKEND-06" duration="00:00:00.6404786" startTime="2026-11-03T01:24:43.2630666+04:00" endTime="2026-11-03T01:24:43.2630766+04:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="b6f2cab3-7341-445f-862a-7b15255baf06" />
+    <UnitTestResult executionId="6c620e96-ecbc-4670-9186-14f3e87114c9" testId="863db8c1-aba8-1d7d-17dc-d4e8b444912e" testName="ECafe.Tests.DashboardPresentationCatalogTests.ClarifiedOrderLabelsAreAvailableInEveryLanguage(key: &quot;ui.dashboardReports.column.confirmedOrderAmount&quot;)" computerName="BACKEND-06" duration="00:00:00.5449963" startTime="2026-11-03T01:24:44.3858071+04:00" endTime="2026-11-03T01:24:44.3858074+04:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="6c620e96-ecbc-4670-9186-14f3e87114c9" />
+    <UnitTestResult executionId="c906cbd3-0389-4e58-821f-22a1bb8d9dba" testId="5a2e8593-3f0a-4fab-e011-43ee8faa96b3" testName="ECafe.Tests.DashboardPresentationCatalogTests.ClarifiedOrderLabelsAreAvailableInEveryLanguage(key: &quot;ui.dashboardReports.column.originalSubtotal&quot;)" computerName="BACKEND-06" duration="00:00:00.4586422" startTime="2026-11-03T01:24:45.5042980+04:00" endTime="2026-11-03T01:24:45.5042982+04:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="c906cbd3-0389-4e58-821f-22a1bb8d9dba" />
+    <UnitTestResult executionId="6e30eef4-b4f5-430f-af3c-669f1722f1a8" testId="8a22a854-eac9-5d3c-12e5-72d39da3d2b5" testName="ECafe.Tests.DashboardPresentationCatalogTests.ClarifiedOrderLabelsAreAvailableInEveryLanguage(key: &quot;ui.dashboard.column.confirmedOrderAmount&quot;)" computerName="BACKEND-06" duration="00:00:00.5737747" startTime="2026-11-03T01:24:43.8436664+04:00" endTime="2026-11-03T01:24:43.8436667+04:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="6e30eef4-b4f5-430f-af3c-669f1722f1a8">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.True() Failure&#xD;
+Expected: True&#xD;
+Actual:   False</Message>
+          <StackTrace>   at ECafe.Tests.DashboardPresentationCatalogTests.ClarifiedOrderLabelsAreAvailableInEveryLanguage(String key) in C:\Users\mirvaleh.ibrahimli\Desktop\E-Cafe-Backend\tests\ECafe.Tests\DashboardPresentationCatalogTests.cs:line 20&#xD;
+   at InvokeStub_DashboardPresentationCatalogTests.ClarifiedOrderLabelsAreAvailableInEveryLanguage(Object, Span`1)&#xD;
+   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="d15d34b5-f381-4b78-a447-900c6f4ed718" testId="5516f20b-1031-1a61-7de2-d3ad4b63b79e" testName="ECafe.Tests.DashboardPresentationCatalogTests.DashboardCatalogPreservesTranslationPlaceholders" computerName="BACKEND-06" duration="00:00:00.3864875" startTime="2026-11-03T01:24:46.3314843+04:00" endTime="2026-11-03T01:24:46.3314849+04:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="d15d34b5-f381-4b78-a447-900c6f4ed718" />
+    <UnitTestResult executionId="ecf84627-e901-4b6a-b61e-4ddb7af2e5e2" testId="240e3fd3-fe75-068a-c340-d16bdcde773c" testName="ECafe.Tests.DashboardPresentationCatalogTests.ClarifiedOrderLabelsAreAvailableInEveryLanguage(key: &quot;ui.dashboardReports.originalSubtotalNote&quot;)" computerName="BACKEND-06" duration="00:00:00.6595134" startTime="2026-11-03T01:24:45.0455799+04:00" endTime="2026-11-03T01:24:45.0455801+04:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="ecf84627-e901-4b6a-b61e-4ddb7af2e5e2" />
+    <UnitTestResult executionId="4524e476-d8ec-47d0-bac1-98c5195cfb62" testId="cd4156e8-0108-64e5-75db-2ae09f6a14a3" testName="ECafe.Tests.DashboardPresentationCatalogTests.ClarifiedOrderLabelsAreAvailableInEveryLanguage(key: &quot;ui.dashboardReports.column.itemUnits&quot;)" computerName="BACKEND-06" duration="00:00:00.4402124" startTime="2026-11-03T01:24:45.9445613+04:00" endTime="2026-11-03T01:24:45.9445615+04:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="4524e476-d8ec-47d0-bac1-98c5195cfb62" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="ECafe.Tests.DashboardPresentationCatalogTests.ClarifiedOrderLabelsAreAvailableInEveryLanguage(key: &quot;ui.dashboardReports.cancelledOriginal&quot;)" storage="c:\users\mirvaleh.ibrahimli\desktop\e-cafe-backend\tests\ecafe.tests\bin\debug\net9.0\ecafe.tests.dll" id="423f7dd3-469e-1be9-b6e2-c16abf75d351">
+      <Execution id="b6f2cab3-7341-445f-862a-7b15255baf06" />
+      <TestMethod codeBase="C:\Users\mirvaleh.ibrahimli\Desktop\E-Cafe-Backend\tests\ECafe.Tests\bin\Debug\net9.0\ECafe.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="ECafe.Tests.DashboardPresentationCatalogTests" name="ClarifiedOrderLabelsAreAvailableInEveryLanguage" />
+    </UnitTest>
+    <UnitTest name="ECafe.Tests.DashboardPresentationCatalogTests.ClarifiedOrderLabelsAreAvailableInEveryLanguage(key: &quot;ui.dashboardReports.originalSubtotalNote&quot;)" storage="c:\users\mirvaleh.ibrahimli\desktop\e-cafe-backend\tests\ecafe.tests\bin\debug\net9.0\ecafe.tests.dll" id="240e3fd3-fe75-068a-c340-d16bdcde773c">
+      <Execution id="ecf84627-e901-4b6a-b61e-4ddb7af2e5e2" />
+      <TestMethod codeBase="C:\Users\mirvaleh.ibrahimli\Desktop\E-Cafe-Backend\tests\ECafe.Tests\bin\Debug\net9.0\ECafe.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="ECafe.Tests.DashboardPresentationCatalogTests" name="ClarifiedOrderLabelsAreAvailableInEveryLanguage" />
+    </UnitTest>
+    <UnitTest name="ECafe.Tests.DashboardPresentationCatalogTests.ClarifiedOrderLabelsAreAvailableInEveryLanguage(key: &quot;ui.dashboard.column.confirmedOrderAmount&quot;)" storage="c:\users\mirvaleh.ibrahimli\desktop\e-cafe-backend\tests\ecafe.tests\bin\debug\net9.0\ecafe.tests.dll" id="8a22a854-eac9-5d3c-12e5-72d39da3d2b5">
+      <Execution id="6e30eef4-b4f5-430f-af3c-669f1722f1a8" />
+      <TestMethod codeBase="C:\Users\mirvaleh.ibrahimli\Desktop\E-Cafe-Backend\tests\ECafe.Tests\bin\Debug\net9.0\ECafe.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="ECafe.Tests.DashboardPresentationCatalogTests" name="ClarifiedOrderLabelsAreAvailableInEveryLanguage" />
+    </UnitTest>
+    <UnitTest name="ECafe.Tests.DashboardPresentationCatalogTests.ClarifiedOrderLabelsAreAvailableInEveryLanguage(key: &quot;ui.dashboardReports.column.itemUnits&quot;)" storage="c:\users\mirvaleh.ibrahimli\desktop\e-cafe-backend\tests\ecafe.tests\bin\debug\net9.0\ecafe.tests.dll" id="cd4156e8-0108-64e5-75db-2ae09f6a14a3">
+      <Execution id="4524e476-d8ec-47d0-bac1-98c5195cfb62" />
+      <TestMethod codeBase="C:\Users\mirvaleh.ibrahimli\Desktop\E-Cafe-Backend\tests\ECafe.Tests\bin\Debug\net9.0\ECafe.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="ECafe.Tests.DashboardPresentationCatalogTests" name="ClarifiedOrderLabelsAreAvailableInEveryLanguage" />
+    </UnitTest>
+    <UnitTest name="ECafe.Tests.DashboardPresentationCatalogTests.DashboardCatalogPreservesTranslationPlaceholders" storage="c:\users\mirvaleh.ibrahimli\desktop\e-cafe-backend\tests\ecafe.tests\bin\debug\net9.0\ecafe.tests.dll" id="5516f20b-1031-1a61-7de2-d3ad4b63b79e">
+      <Execution id="d15d34b5-f381-4b78-a447-900c6f4ed718" />
+      <TestMethod codeBase="C:\Users\mirvaleh.ibrahimli\Desktop\E-Cafe-Backend\tests\ECafe.Tests\bin\Debug\net9.0\ECafe.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="ECafe.Tests.DashboardPresentationCatalogTests" name="DashboardCatalogPreservesTranslationPlaceholders" />
+    </UnitTest>
+    <UnitTest name="ECafe.Tests.DashboardPresentationCatalogTests.ClarifiedOrderLabelsAreAvailableInEveryLanguage(key: &quot;ui.dashboardReports.column.originalSubtotal&quot;)" storage="c:\users\mirvaleh.ibrahimli\desktop\e-cafe-backend\tests\ecafe.tests\bin\debug\net9.0\ecafe.tests.dll" id="5a2e8593-3f0a-4fab-e011-43ee8faa96b3">
+      <Execution id="c906cbd3-0389-4e58-821f-22a1bb8d9dba" />
+      <TestMethod codeBase="C:\Users\mirvaleh.ibrahimli\Desktop\E-Cafe-Backend\tests\ECafe.Tests\bin\Debug\net9.0\ECafe.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="ECafe.Tests.DashboardPresentationCatalogTests" name="ClarifiedOrderLabelsAreAvailableInEveryLanguage" />
+    </UnitTest>
+    <UnitTest name="ECafe.Tests.DashboardPresentationCatalogTests.ClarifiedOrderLabelsAreAvailableInEveryLanguage(key: &quot;ui.dashboardReports.column.confirmedOrderAmount&quot;)" storage="c:\users\mirvaleh.ibrahimli\desktop\e-cafe-backend\tests\ecafe.tests\bin\debug\net9.0\ecafe.tests.dll" id="863db8c1-aba8-1d7d-17dc-d4e8b444912e">
+      <Execution id="6c620e96-ecbc-4670-9186-14f3e87114c9" />
+      <TestMethod codeBase="C:\Users\mirvaleh.ibrahimli\Desktop\E-Cafe-Backend\tests\ECafe.Tests\bin\Debug\net9.0\ECafe.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="ECafe.Tests.DashboardPresentationCatalogTests" name="ClarifiedOrderLabelsAreAvailableInEveryLanguage" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="423f7dd3-469e-1be9-b6e2-c16abf75d351" executionId="b6f2cab3-7341-445f-862a-7b15255baf06" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="863db8c1-aba8-1d7d-17dc-d4e8b444912e" executionId="6c620e96-ecbc-4670-9186-14f3e87114c9" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="5a2e8593-3f0a-4fab-e011-43ee8faa96b3" executionId="c906cbd3-0389-4e58-821f-22a1bb8d9dba" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="8a22a854-eac9-5d3c-12e5-72d39da3d2b5" executionId="6e30eef4-b4f5-430f-af3c-669f1722f1a8" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="5516f20b-1031-1a61-7de2-d3ad4b63b79e" executionId="d15d34b5-f381-4b78-a447-900c6f4ed718" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="240e3fd3-fe75-068a-c340-d16bdcde773c" executionId="ecf84627-e901-4b6a-b61e-4ddb7af2e5e2" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="cd4156e8-0108-64e5-75db-2ae09f6a14a3" executionId="4524e476-d8ec-47d0-bac1-98c5195cfb62" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Failed">
+    <Counters total="7" executed="7" passed="6" failed="1" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v2.8.2+699d445a1a (64-bit .NET 9.0.20)&#xD;
+[xUnit.net 00:00:00.21]   Discovering: ECafe.Tests&#xD;
+[xUnit.net 00:00:00.33]   Discovered:  ECafe.Tests&#xD;
+[xUnit.net 00:00:00.34]   Starting:    ECafe.Tests&#xD;
+[xUnit.net 00:00:01.58]       Assert.True() Failure&#xD;
+[xUnit.net 00:00:01.58]       Expected: True&#xD;
+[xUnit.net 00:00:01.58]       Actual:   False&#xD;
+[xUnit.net 00:00:01.58]       Stack Trace:&#xD;
+[xUnit.net 00:00:01.58]         C:\Users\mirvaleh.ibrahimli\Desktop\E-Cafe-Backend\tests\ECafe.Tests\DashboardPresentationCatalogTests.cs(20,0): at ECafe.Tests.DashboardPresentationCatalogTests.ClarifiedOrderLabelsAreAvailableInEveryLanguage(String key)&#xD;
+[xUnit.net 00:00:01.58]            at InvokeStub_DashboardPresentationCatalogTests.ClarifiedOrderLabelsAreAvailableInEveryLanguage(Object, Span`1)&#xD;
+[xUnit.net 00:00:01.58]            at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)&#xD;
+[xUnit.net 00:00:04.07]   Finished:    ECafe.Tests&#xD;
+</StdOut>
+    </Output>
+    <RunInfos>
+      <RunInfo computerName="BACKEND-06" outcome="Error" timestamp="2026-11-03T01:24:43.8425917+04:00">
+        <Text>[xUnit.net 00:00:01.58]     ECafe.Tests.DashboardPresentationCatalogTests.ClarifiedOrderLabelsAreAvailableInEveryLanguage(key: "ui.dashboard.column.confirmedOrderAmount") [FAIL]</Text>
+      </RunInfo>
+    </RunInfos>
+  </ResultSummary>
+</TestRun>
