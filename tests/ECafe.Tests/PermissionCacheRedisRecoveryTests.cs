@@ -66,7 +66,9 @@ public sealed class PermissionCacheRedisRecoveryTests
         await db.SaveChangesAsync();
         var permissions = new PermissionCacheService(cache, db, NullLogger<PermissionCacheService>.Instance);
         Assert.Equal([permissionId], await permissions.GetPermissionsAsync(roleId));
-        Assert.NotNull(await cache.GetStringAsync(PermissionCacheKeys.ForRole(roleId)));
+        await cache.SetStringAsync(PermissionCacheKeys.ForRole(roleId), JsonSerializer.Serialize(new[] { permissionId }));
+        await cache.SetStringAsync("user-session-state:17", JsonSerializer.Serialize(new UserSessionState(true, 7)));
+        await cache.SetStringAsync("user-session-active:17:isolated-test-session", "True");
 
         (bool IsActive, int SessionVersion)? currentUser = (true, 7);
         var activeSession = true;
@@ -103,19 +105,35 @@ public sealed class PermissionCacheRedisRecoveryTests
         await Assert.ThrowsAsync<UnauthorizedException>(() => middleware.Invoke(http, sessions));
         activeSession = true;
 
-        await redis.RestartAsync();
-        await WaitForCacheAsync(cache, PermissionCacheKeys.ForRole(roleId));
-        Assert.Equal([permissionId], await permissions.GetPermissionsAsync(roleId));
-        var rebuilt = await cache.GetStringAsync(PermissionCacheKeys.ForRole(roleId));
-        Assert.Equal([permissionId], JsonSerializer.Deserialize<List<int>>(rebuilt!));
-        reachedNext = false;
-        await middleware.Invoke(http, sessions);
-        Assert.True(reachedNext);
-
+        // Redis əlçatmaz ikən icazə bazada alınır; uğursuz təmizləmə commit-i uğursuz göstərməməlidir.
         db.RolePermissions.Remove(grant);
         await db.SaveChangesAsync();
-        Assert.Null(await cache.GetStringAsync(PermissionCacheKeys.ForRole(roleId)));
         Assert.Empty(await permissions.GetPermissionsAsync(roleId));
+        currentUser = (false, 7);
+        activeSession = false;
+
+        await redis.RestartAsync();
+        await WaitForCacheAsync(cache, PermissionCacheKeys.ForRole(roleId));
+        // Köhnə instansiyanın gecikmiş yazısını bərpadan sonra da modelləşdirir.
+        await cache.SetStringAsync(PermissionCacheKeys.ForRole(roleId), JsonSerializer.Serialize(new[] { permissionId }));
+        await cache.SetStringAsync("user-session-state:17", JsonSerializer.Serialize(new UserSessionState(true, 7)));
+        await cache.SetStringAsync("user-session-active:17:isolated-test-session", "True");
+        Assert.Empty(await permissions.GetPermissionsAsync(roleId));
+        reachedNext = false;
+        await Assert.ThrowsAsync<UnauthorizedException>(() => middleware.Invoke(http, sessions));
+        Assert.False(reachedNext);
+        currentUser = (true, 8);
+        await Assert.ThrowsAsync<UnauthorizedException>(() => middleware.Invoke(http, sessions));
+        currentUser = (true, 7);
+        await Assert.ThrowsAsync<UnauthorizedException>(() => middleware.Invoke(http, sessions));
+
+        grant.IsDeleted = false;
+        await db.SaveChangesAsync();
+        Assert.Null(await cache.GetStringAsync(PermissionCacheKeys.ForRole(roleId)));
+        Assert.Equal([permissionId], await permissions.GetPermissionsAsync(roleId));
+        activeSession = true;
+        await middleware.Invoke(http, sessions);
+        Assert.True(reachedNext);
     }
 
     /// <summary>Saxta test kimliyi ilə real middleware-i işlədir; canlı JWT, istifadəçi və refresh token götürmür.</summary>

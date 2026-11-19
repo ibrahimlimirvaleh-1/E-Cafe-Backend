@@ -145,7 +145,7 @@ public sealed class RedisAclTests
     }
 
     [RedisAclFact]
-    public async Task AuthenticatedCachePreservesSessionStateAndSupportsRevocationWithoutFallback()
+    public async Task AuthenticatedCacheCannotOverrideFreshSessionStateAndSupportsLegacyCleanup()
     {
         var options = Options.Create(new RedisCacheOptions { Configuration = Settings("CACHE").ToString(includePassword: true) });
         using var cache = new RedisCache(options);
@@ -164,16 +164,16 @@ public sealed class RedisAclTests
                 Assert.Equal(7, (await service.GetAsync(userId))!.SessionVersion);
                 Assert.True(await service.IsSessionActiveAsync(userId, sessionId));
             }
-            users.Verify(repository => repository.GetSessionStateAsync(userId), Times.Once);
-            refreshTokens.Verify(repository => repository.HasActiveUserSessionAsync(userId, sessionId, It.IsAny<DateTime>()), Times.Once);
+            users.Verify(repository => repository.GetSessionStateAsync(userId), Times.Exactly(3));
+            refreshTokens.Verify(repository => repository.HasActiveUserSessionAsync(userId, sessionId, It.IsAny<DateTime>()), Times.Exactly(3));
             await service.InvalidateAsync(userId);
             await service.InvalidateSessionAsync(userId, sessionId);
             users.Setup(repository => repository.GetSessionStateAsync(userId)).ReturnsAsync((true, 8));
             refreshTokens.Setup(repository => repository.HasActiveUserSessionAsync(userId, sessionId, It.IsAny<DateTime>())).ReturnsAsync(false);
             Assert.Equal(8, (await service.GetAsync(userId))!.SessionVersion);
             Assert.False(await service.IsSessionActiveAsync(userId, sessionId));
-            users.Verify(repository => repository.GetSessionStateAsync(userId), Times.Exactly(2));
-            refreshTokens.Verify(repository => repository.HasActiveUserSessionAsync(userId, sessionId, It.IsAny<DateTime>()), Times.Exactly(2));
+            users.Verify(repository => repository.GetSessionStateAsync(userId), Times.Exactly(4));
+            refreshTokens.Verify(repository => repository.HasActiveUserSessionAsync(userId, sessionId, It.IsAny<DateTime>()), Times.Exactly(4));
             var slidingKey = "role_permissions_v3_acl-test-" + Guid.NewGuid().ToString("N");
             await cache.SetStringAsync(slidingKey, "[1,2]", new DistributedCacheEntryOptions
                 { SlidingExpiration = TimeSpan.FromSeconds(30), AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1) });

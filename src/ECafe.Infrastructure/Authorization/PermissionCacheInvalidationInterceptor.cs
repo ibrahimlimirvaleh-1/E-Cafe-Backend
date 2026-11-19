@@ -4,17 +4,21 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace ECafe.Infrastructure.Authorization;
 
 public sealed class PermissionCacheInvalidationInterceptor : SaveChangesInterceptor
 {
-    private readonly IDistributedCache _cache;
+    private readonly AuthorizationCacheInvalidator _invalidator;
     private readonly HashSet<int> _pendingRoleIds = [];
 
-    public PermissionCacheInvalidationInterceptor(IDistributedCache cache)
+    /// <summary>Köhnə Redis açarlarının təmizlənməsini saxlayır; icazə qərarları artıq həmin açarlardan asılı deyil.</summary>
+    public PermissionCacheInvalidationInterceptor(IDistributedCache cache,
+        ILogger<PermissionCacheInvalidationInterceptor>? logger = null)
     {
-        _cache = cache;
+        _invalidator = new(cache, logger ?? NullLogger<PermissionCacheInvalidationInterceptor>.Instance);
     }
 
     public override InterceptionResult<int> SavingChanges(
@@ -63,6 +67,7 @@ public sealed class PermissionCacheInvalidationInterceptor : SaveChangesIntercep
         return base.SaveChangesFailedAsync(eventData, cancellationToken);
     }
 
+    /// <summary>Dəyişən aidiyyətlərin əvvəlki və yeni rollarını köhnə açarların təmizlənməsi üçün toplayır.</summary>
     private void CaptureChangedRoleIds(DbContext? context)
     {
         if (context is null)
@@ -83,6 +88,7 @@ public sealed class PermissionCacheInvalidationInterceptor : SaveChangesIntercep
         }
     }
 
+    /// <summary>İcazə başqa rola köçürüləndə həm köhnə, həm yeni rolun açarını seçir.</summary>
     private static IEnumerable<int> GetRoleIds(EntityEntry<RolePermission> entry)
     {
         yield return entry.Entity.RoleId;
@@ -97,26 +103,26 @@ public sealed class PermissionCacheInvalidationInterceptor : SaveChangesIntercep
         }
     }
 
-    /// <summary>Uğurlu saxlamadan sonra dəyişən rolların oxuma xidməti ilə eyni keş açarlarını silir.</summary>
+    /// <summary>Köhnə rol açarlarını təmizləyir; Redis nasazlığı saxlanmış DB dəyişikliyini uğursuz kimi göstərmir.</summary>
     private void InvalidateCapturedRoleIds()
     {
-        foreach (var roleId in _pendingRoleIds)
+        try
         {
-            _cache.Remove(PermissionCacheKeys.ForRole(roleId));
+            foreach (var roleId in _pendingRoleIds)
+                _invalidator.Invalidate(PermissionCacheKeys.ForRole(roleId));
         }
-
-        _pendingRoleIds.Clear();
+        finally { _pendingRoleIds.Clear(); }
     }
 
-    /// <summary>Asinxron saxlamada da versiyalı icazə keşini ləğv edir və ləğvetmə tokenini saxlayır.</summary>
+    /// <summary>Köhnə rol açarlarını asinxron təmizləyir; provayder xətasını ayırır və ləğvetmə tokenini saxlayır.</summary>
     private async Task InvalidateCapturedRoleIdsAsync(CancellationToken cancellationToken)
     {
-        foreach (var roleId in _pendingRoleIds)
+        try
         {
-            await _cache.RemoveAsync(PermissionCacheKeys.ForRole(roleId), cancellationToken);
+            foreach (var roleId in _pendingRoleIds)
+                await _invalidator.InvalidateAsync(PermissionCacheKeys.ForRole(roleId), cancellationToken);
         }
-
-        _pendingRoleIds.Clear();
+        finally { _pendingRoleIds.Clear(); }
     }
 
 }
