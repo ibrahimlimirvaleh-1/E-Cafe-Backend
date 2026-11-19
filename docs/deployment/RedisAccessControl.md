@@ -1,5 +1,14 @@
 # Redis Access Control
 
+## Authorization Freshness
+
+Session, device-session, restaurant-role and role-permission decisions now read
+the authoritative database rather than cached allow/deny values. The cache ACL
+and legacy key cleanup remain for compatibility; missing legacy authorization
+keys in RedisInsight are expected after expiry. SignalR backplane/lease ACLs
+remain unchanged. See [authorization cache consistency](../change-reports/2026-11-20-authorization-cache-consistency.md)
+for the read-cost trade-off, concurrency boundary and all-replica rollout rule.
+
 ## Accounts And Boundaries
 
 The API already supports named Redis users in its connection strings. No business
@@ -8,7 +17,7 @@ policy changes are needed for this deployment hardening.
 
 | Account | Purpose | Allowed scope |
 | --- | --- | --- |
-| `ecafe_cache` | Distributed permission/session/restaurant-access cache | Existing cache prefixes; hash reads/writes, expiry and deletion |
+| `ecafe_cache` | Legacy authorization-cache cleanup | Existing prefixes; legacy client ACLs retained for compatibility; new authorization code only evicts keys |
 | `ecafe_realtime` | SignalR backplane and shared connection leases | `ecafe:signalr*` channels and `ecafe:realtime:connections:*` keys |
 | `ecafe_viewer` | RedisInsight inspection through an SSH tunnel | Explicit read/metadata commands; no write, delete, expiry update, script or publication |
 | `ecafe_admin` | Controlled maintenance | Full administration; never configured in the API or RedisInsight |

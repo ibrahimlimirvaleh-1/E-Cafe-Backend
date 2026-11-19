@@ -8,11 +8,41 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
+using Moq;
+using StackExchange.Redis;
+using Role = ECafe.Domain.Entities.Role;
 
 namespace ECafe.Tests;
 
 public sealed class PermissionCacheInvalidationTests
 {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task RedisEvictionFailureCannotUndoACommittedGrantRevocation(bool asynchronous)
+    {
+        var cache = new Mock<IDistributedCache>(MockBehavior.Strict);
+        cache.Setup(value => value.Remove(It.IsAny<string>()))
+            .Throws(new RedisConnectionException(ConnectionFailureType.UnableToConnect, "Synthetic offline Redis"));
+        cache.Setup(value => value.RemoveAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new RedisConnectionException(ConnectionFailureType.UnableToConnect, "Synthetic offline Redis"));
+        await using var db = Context(cache.Object);
+        await db.Database.EnsureCreatedAsync();
+        var grant = new RolePermission
+        {
+            Id = 910001, Role = new ECafe.Domain.Entities.Role { Id = 910001, Name = "Offline eviction test role" },
+            Permission = new Permission { Id = 910002, Name = "Offline eviction test permission" }
+        };
+        db.RolePermissions.Add(grant);
+        await db.SaveChangesAsync();
+        var service = new PermissionCacheService(cache.Object, db, NullLogger<PermissionCacheService>.Instance);
+        Assert.Equal([910002], await service.GetPermissionsAsync(910001));
+        db.RolePermissions.Remove(grant);
+        if (asynchronous) await db.SaveChangesAsync(); else db.SaveChanges();
+        Assert.Empty(await service.GetPermissionsAsync(910001));
+        Assert.True((await db.RolePermissions.IgnoreQueryFilters().SingleAsync(value => value.RoleId == 910001)).IsDeleted);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -27,6 +57,7 @@ public sealed class PermissionCacheInvalidationTests
         db.RolePermissions.Add(assignment); await db.SaveChangesAsync();
         var service = new PermissionCacheService(cache, db, NullLogger<PermissionCacheService>.Instance);
         Assert.Contains(permission.Id, await service.GetPermissionsAsync(role.Id));
+        await cache.SetStringAsync("role_permissions_v3_100001", "[100001]");
         Assert.NotNull(await cache.GetStringAsync("role_permissions_v3_100001"));
         db.RolePermissions.Remove(assignment);
         if (asynchronous) await db.SaveChangesAsync(); else db.SaveChanges();
@@ -48,6 +79,8 @@ public sealed class PermissionCacheInvalidationTests
         var service = new PermissionCacheService(cache, db, NullLogger<PermissionCacheService>.Instance);
         Assert.Contains(permission.Id, await service.GetPermissionsAsync(first.Id));
         Assert.Empty(await service.GetPermissionsAsync(second.Id));
+        await cache.SetStringAsync(PermissionCacheKeys.ForRole(first.Id), "[100001]");
+        await cache.SetStringAsync(PermissionCacheKeys.ForRole(second.Id), "[]");
         db.RolePermissions.Remove(assignment);
         db.RolePermissions.Add(new RolePermission { Id = 100002, RoleId = second.Id, Role = second, PermissionId = permission.Id, Permission = permission });
         await db.SaveChangesAsync();
