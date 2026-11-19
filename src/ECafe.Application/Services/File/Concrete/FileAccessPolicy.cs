@@ -4,6 +4,7 @@ using ECafe.Application.Services.FileAccess.Abstract;
 using ECafe.Domain.Enums;
 using ECafe.Domain.Exceptions;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Authorization;
 
 namespace ECafe.Application.Services.FileAccess.Concrete
 {
@@ -12,10 +13,35 @@ namespace ECafe.Application.Services.FileAccess.Concrete
         private const string ActiveRestaurantIdHeader = "X-Active-Restaurant-Id";
 
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly IAuthorizationService _authorization;
 
-        public FileAccessPolicy(IHttpContextAccessor httpContextAccessor)
+        public FileAccessPolicy(IHttpContextAccessor httpContextAccessor, IAuthorizationService authorization)
         {
             _httpContextAccessor = httpContextAccessor;
+            _authorization = authorization;
+        }
+
+        /// <summary>Müqavilə faylında restoran aidiyyəti ilə yanaşı mərkəzi müqavilə baxış icazəsini də yoxlayır.</summary>
+        public async Task EnsureCurrentUserCanAccessAsync(Domain.Entities.File file)
+        {
+            if (file.FileTypeId == (int)FileTypeCode.PaymentReceipt)
+                throw new ForbiddenException(ErrorCode.ManualPaymentRetired);
+            if (file.RestaurantContracts.Count == 0)
+            {
+                EnsureCurrentUserCanAccess(file);
+                return;
+            }
+
+            foreach (var restaurantId in file.RestaurantContracts.Select(contract => contract.RestaurantId).Distinct())
+            {
+                EnsureCurrentUserCanAccessRestaurant(restaurantId);
+                var resource = new DefaultHttpContext { User = CurrentUser };
+                resource.Request.Headers[ActiveRestaurantIdHeader] = restaurantId.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                var result = await _authorization.AuthorizeAsync(CurrentUser, resource,
+                    $"Permission:{(int)PermissionCode.ViewRestaurantContracts}");
+                if (!result.Succeeded)
+                    throw new ForbiddenException(ErrorCode.AccessDenied);
+            }
         }
 
         public void EnsureCurrentUserCanAccess(Domain.Entities.File file)
@@ -37,10 +63,7 @@ namespace ECafe.Application.Services.FileAccess.Concrete
 
             if (contractRestaurantIds.Count > 0)
             {
-                foreach (var restaurantId in contractRestaurantIds)
-                    EnsureCurrentUserCanAccessRestaurant(restaurantId);
-
-                return;
+                throw new ForbiddenException(ErrorCode.AccessDenied);
             }
 
             if (file.Restaurant is not null)

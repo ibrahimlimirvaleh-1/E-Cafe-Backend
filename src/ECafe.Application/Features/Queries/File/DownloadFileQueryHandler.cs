@@ -33,7 +33,7 @@ namespace ECafe.Application.Features.Queries.File
             if (file is null)
                 throw new NotFoundException(ErrorCode.FileNotFound);
 
-            _fileAccessPolicy.EnsureCurrentUserCanAccess(file);
+            await _fileAccessPolicy.EnsureCurrentUserCanAccessAsync(file);
 
             var response = await _minioService.GetFileAsync(file.Token);
             response.FileName = $"{file.Name}{file.Extension}";

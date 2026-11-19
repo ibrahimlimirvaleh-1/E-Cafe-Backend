@@ -5,6 +5,7 @@ namespace ECafe.Application.Repositories.User
     public interface IUserRepository : IBaseRepository<Domain.Entities.User>
     {
         Task<Domain.Entities.User?> GetByEmailAsync(string email);
+        Task<int?> GetUserIdByEmailAsync(string email);
 
         Task<Domain.Entities.User?> GetByEmailTrackedAsync(string email);
 

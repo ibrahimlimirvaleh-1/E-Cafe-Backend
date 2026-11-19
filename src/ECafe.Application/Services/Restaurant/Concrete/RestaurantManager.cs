@@ -566,6 +566,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             restaurant.Files.AddRange(currentFiles.Concat(attachableFiles));
         }
 
+        /// <summary>Bütün sərbəst şəkillərin formatını və yükləyici aidiyyətini dəyişiklik etmədən yoxlayıb restorana bağlanmağa hazırlayır.</summary>
         private async Task<List<File>> GetAttachableFilesAsync(IEnumerable<int> fileIds)
         {
             var uniqueFileIds = fileIds.Distinct().ToList();
@@ -577,6 +578,9 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             var missingIds = uniqueFileIds.Where(fileId => !foundIds.Contains(fileId)).ToList();
             if (missingIds.Count > 0)
                 throw new BusinessRuleException($"File(s) not found or already attached: {string.Join(", ", missingIds)}");
+
+            foreach (var file in files)
+                EnsureCurrentUserCanAttachImage(file);
 
             foreach (var file in files)
                 file.FileTypeId = (int)FileTypeCode.RestaurantImage;

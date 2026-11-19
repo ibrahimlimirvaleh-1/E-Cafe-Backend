@@ -6,6 +6,7 @@ using ECafe.Application.DTOs.Auth;
 using ECafe.Application.Repositories.PasswordResetToken;
 using ECafe.Application.Repositories.User;
 using ECafe.Application.Repositories.UserRefreshToken;
+using ECafe.Application.Repository;
 using ECafe.Application.Services.Auth.Abstract;
 using ECafe.Domain.Exceptions;
 using Microsoft.AspNetCore.Http;
@@ -26,6 +27,7 @@ public class PasswordResetManager : IPasswordResetService
     private readonly IConfiguration _configuration;
     private readonly ILogger<PasswordResetManager> _logger;
     private readonly IUserSessionStateCache _userSessionStateCache;
+    private readonly IApplicationDbTransactionFactory _transactionFactory;
 
     public PasswordResetManager(
         IUserRepository userRepository,
@@ -35,7 +37,8 @@ public class PasswordResetManager : IPasswordResetService
         IHttpContextAccessor httpContextAccessor,
         IConfiguration configuration,
         ILogger<PasswordResetManager> logger,
-        IUserSessionStateCache userSessionStateCache)
+        IUserSessionStateCache userSessionStateCache,
+        IApplicationDbTransactionFactory transactionFactory)
     {
         _userRepository = userRepository;
         _passwordResetTokenRepository = passwordResetTokenRepository;
@@ -45,11 +48,17 @@ public class PasswordResetManager : IPasswordResetService
         _configuration = configuration;
         _logger = logger;
         _userSessionStateCache = userSessionStateCache;
+        _transactionFactory = transactionFactory;
     }
 
     public async Task RequestPasswordResetAsync(ForgotPasswordRequest request)
     {
         var normalizedEmail = request.Email.Trim().ToLowerInvariant();
+        var userId = await _userRepository.GetUserIdByEmailAsync(normalizedEmail);
+        if (!userId.HasValue)
+            return;
+        await using var transaction = await _transactionFactory.BeginTransactionAsync();
+        await _refreshTokenRepository.AcquireUserLockAsync(userId.Value);
         var user = await _userRepository.GetByEmailTrackedAsync(normalizedEmail);
 
         if (user is null)
@@ -86,13 +95,20 @@ public class PasswordResetManager : IPasswordResetService
         await _passwordResetTokenRepository.SaveChangesAsync();
 
         await EnqueueResetLinkEmailAsync(user, BuildResetUrl(plainToken));
+        await transaction.CommitAsync();
         _logger.LogInformation("Password reset email outbox event queued for user {UserId}.", user.Id);
     }
 
     public async Task ResetPasswordAsync(ResetPasswordRequest request)
     {
-        var nowUtc = DateTime.UtcNow;
         var tokenHash = HashToken(request.Token);
+        var userId = await _passwordResetTokenRepository.GetUserIdByTokenHashAsync(tokenHash);
+        if (!userId.HasValue)
+            throw new BusinessRuleException(ErrorCode.PasswordResetTokenInvalidOrExpired);
+
+        await using var transaction = await _transactionFactory.BeginTransactionAsync();
+        await _refreshTokenRepository.AcquireUserLockAsync(userId.Value);
+        var nowUtc = DateTime.UtcNow;
         var resetToken = await _passwordResetTokenRepository.GetActiveByTokenHashTrackedAsync(tokenHash, nowUtc);
 
         if (resetToken is null)
@@ -114,6 +130,7 @@ public class PasswordResetManager : IPasswordResetService
 
         await RevokeActiveRefreshTokensAsync(resetToken.UserId, nowUtc);
         await _passwordResetTokenRepository.SaveChangesAsync();
+        await transaction.CommitAsync();
         await _userSessionStateCache.InvalidateAsync(resetToken.UserId);
 
         await EnqueuePasswordChangedEmailAsync(resetToken.User);

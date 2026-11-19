@@ -11,6 +11,10 @@ public class PasswordResetTokenRepository
     {
     }
 
+    /// <summary>Kiliddən əvvəl yalnız hesab identifikatorunu oxuyur; tokenin istifadə vəziyyətini tracking-də saxlamır.</summary>
+    public Task<int?> GetUserIdByTokenHashAsync(string tokenHash)
+        => Query(x => x.TokenHash == tokenHash).Select(x => (int?)x.UserId).SingleOrDefaultAsync();
+
     public Task<Domain.Entities.PasswordResetToken?> GetActiveByTokenHashTrackedAsync(string tokenHash, DateTime nowUtc)
         => QueryTracked(x =>
                 x.TokenHash == tokenHash &&

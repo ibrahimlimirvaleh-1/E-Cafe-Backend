@@ -31,7 +31,7 @@ namespace ECafe.Application.Features.Commands.File
             if (file is null)
                 throw new BusinessRuleException(ErrorCode.FileNotFound);
 
-            _fileAccessPolicy.EnsureCurrentUserCanAccess(file);
+            await _fileAccessPolicy.EnsureCurrentUserCanAccessAsync(file);
 
             if (await _fileRepository.IsAttachedAsync(request.FileId))
                 throw new BusinessRuleException(ErrorCode.AttachedFileCannotBeDeleted);

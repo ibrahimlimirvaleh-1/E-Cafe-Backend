@@ -11,6 +11,10 @@ namespace ECafe.Infrastructure.Repositories.UserPasswordSetupToken
         {
         }
 
+        /// <summary>İlkin parol linkinin sahibini kiliddən əvvəl tracking-siz tapır; aktivliyi kiliddən sonra yenidən yoxlanılır.</summary>
+        public Task<int?> GetUserIdByTokenHashAsync(string tokenHash)
+            => Query(token => token.TokenHash == tokenHash).Select(token => (int?)token.UserId).SingleOrDefaultAsync();
+
         public Task<Domain.Entities.UserPasswordSetupToken?> GetActiveByTokenHashTrackedAsync(string tokenHash, DateTime nowUtc)
             => QueryTracked(x =>
                     x.TokenHash == tokenHash &&

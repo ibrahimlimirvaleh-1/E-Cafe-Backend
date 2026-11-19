@@ -33,7 +33,7 @@ public sealed class RetiredPaymentTransportTests
     [Fact]
     public void PaymentReceiptDownloadIsDeniedBeforeAnyUserOrFileOwnershipBranch()
     {
-        var policy = new FileAccessPolicy(new HttpContextAccessor());
+        var policy = new FileAccessPolicy(new HttpContextAccessor(), Moq.Mock.Of<Microsoft.AspNetCore.Authorization.IAuthorizationService>());
         var error = Assert.Throws<ForbiddenException>(() => policy.EnsureCurrentUserCanAccess(new ECafe.Domain.Entities.File
         { FileTypeId = (int)FileTypeCode.PaymentReceipt }));
         Assert.Equal(ErrorCode.ManualPaymentRetired, error.Code);
