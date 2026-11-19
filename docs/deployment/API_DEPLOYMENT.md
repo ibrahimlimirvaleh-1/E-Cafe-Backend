@@ -2,6 +2,9 @@
 
 This document describes the production deployment shape for ECafe API.
 
+The current runtime is .NET 10 LTS. See [the .NET 10 upgrade checklist](DOTNET10_UPGRADE.md)
+for SDK requirements, compatibility checks and rollback precautions.
+
 ## Artifacts
 
 Build two images from the same `Dockerfile`:

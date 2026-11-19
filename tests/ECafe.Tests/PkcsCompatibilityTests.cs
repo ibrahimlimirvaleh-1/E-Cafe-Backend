@@ -17,7 +17,7 @@ public sealed class PkcsCompatibilityTests
             .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
         Assert.NotNull(informationalVersion);
 
-        Assert.Equal(new Version(9, 0, 23), Version.Parse(informationalVersion.Split('+')[0]));
+        Assert.Equal(new Version(10, 0, 15), Version.Parse(informationalVersion.Split('+')[0]));
     }
 
     [Fact]

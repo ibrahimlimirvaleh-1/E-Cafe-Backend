@@ -16,6 +16,7 @@ on:
       - "security/**"
       - "fix/**"
       - "feat/**"
+      - "upgrade/**"
 
 permissions:
   contents: read
@@ -63,13 +64,16 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: "9.0.x"
+          global-json-file: global.json
 
       - name: Restore solution
         run: dotnet restore ECafe.sln -p:NuGetAudit=true -p:NuGetAuditMode=all -warnaserror:NU1900,NU1901,NU1902,NU1903,NU1904,NU1905
 
       - name: Build solution
         run: dotnet build ECafe.sln --configuration Release --no-restore
+
+      - name: Build translation seed tool
+        run: dotnet build tools/GenerateFrozenTranslationSeed/GenerateFrozenTranslationSeed.csproj --configuration Release
 
       - name: Run regression and isolated database tests
         run: dotnet test tests/ECafe.Tests/ECafe.Tests.csproj --configuration Release --no-build --no-restore --logger trx --results-directory "$RUNNER_TEMP/test-results" -- xUnit.ParallelizeTestCollections=false
