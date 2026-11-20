@@ -102,6 +102,8 @@ public sealed class MobileAppModuleTests
         context.Users.Single().IsActive = true;
         context.Users.Single().RoleId = (int)RoleCode.Manager;
         await context.SaveChangesAsync();
+        Assert.True((await handler.Handle(new GetCustomerMobileAccessQuery(), CancellationToken.None)).Enabled);
+        await AddActiveStaffProfileAsync(context, 8);
         await Assert.ThrowsAsync<ForbiddenException>(() => handler.Handle(
             new GetCustomerMobileAccessQuery(), CancellationToken.None));
     }
@@ -142,6 +144,8 @@ public sealed class MobileAppModuleTests
             context.Users.Single().IsActive = true;
             context.Users.Single().RoleId = (int)RoleCode.Manager;
             await context.SaveChangesAsync();
+            Assert.True((await handler.Handle(new GetCustomerMobileReleaseQuery(), CancellationToken.None)).Ready);
+            await AddActiveStaffProfileAsync(context, 8);
             handler = CreateHandler(context, RoleCode.Customer, 8, settings);
             await Assert.ThrowsAsync<ForbiddenException>(() => handler.Handle(
                 new GetCustomerMobileReleaseQuery(), CancellationToken.None));
@@ -233,6 +237,14 @@ public sealed class MobileAppModuleTests
             Id = userId, UserId = userId, RestaurantId = restaurantId,
             RoleId = (int)role, IsActive = true
         });
+    }
+
+    /// <summary>Şəxsi fallback ilə aktiv personalı ayırmaq üçün həmin hesaba real restoran aidiyyəti verir.</summary>
+    private static async Task AddActiveStaffProfileAsync(ECafeDbContext context, int userId)
+    {
+        AddRestaurant(context, 1);
+        context.UserRestaurants.Add(new UserRestaurant { UserId = userId, RestaurantId = 1, RoleId = (int)RoleCode.Manager, IsActive = true });
+        await context.SaveChangesAsync();
     }
 
     private static ECafeDbContext CreateContext()

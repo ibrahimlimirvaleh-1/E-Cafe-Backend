@@ -35,6 +35,38 @@ namespace ECafe.Tests;
 public sealed class StaffRoleChangeTests
 {
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task NewStaffStatusBelongsToTheRestaurantProfileNotThePersonalAccount(bool profileActive)
+    {
+        await using var f = await Fixture.CreateAsync();
+        await f.Service.CreateUserAsync(new CreateUserRequest
+        {
+            Name = "New", Surname = "Staff", Email = "new@example.test", Phone = "0507654321",
+            RestaurantId = 1, RoleId = (int)RoleCode.Waiter, IsActive = profileActive
+        });
+        var user = await f.Db.Users.Include(value => value.UserRestaurants).SingleAsync(value => value.Email == "new@example.test");
+        Assert.True(user.IsActive);
+        Assert.Equal(profileActive, Assert.Single(user.UserRestaurants).IsActive);
+        f.Setup.Verify(value => value.SendSetupLinkAsync(user), Times.Once);
+    }
+
+    [Theory]
+    [InlineData(RoleCode.SuperAdmin)]
+    [InlineData(RoleCode.Customer)]
+    public async Task CreationOfNonStaffRolesPreservesExistingGlobalInactiveStatus(RoleCode role)
+    {
+        await using var f = await Fixture.CreateAsync();
+        await f.Service.CreateUserAsync(new CreateUserRequest
+        {
+            Name = "Inactive", Surname = "Account", Email = "inactive@example.test", Phone = "0507654321",
+            RestaurantId = 1, RoleId = (int)role, IsActive = false
+        });
+        var user = await f.Db.Users.SingleAsync(value => value.Email == "inactive@example.test");
+        Assert.False(user.IsActive);
+    }
+
+    [Theory]
     [InlineData(RoleCode.Manager)]
     [InlineData(RoleCode.Owner)]
     public async Task TenantCannotCreatePlatformAdministrator(RoleCode actor)
@@ -66,7 +98,7 @@ public sealed class StaffRoleChangeTests
     }
 
     [Fact]
-    public async Task DeactivatingLastAssignmentDeactivatesTheAccount()
+    public async Task DeactivatingLastAssignmentPreservesPersonalAccountAndDeviceSessions()
     {
         await using var f = await Fixture.CreateAsync();
         f.SetActor(RoleCode.Manager, 1);
@@ -74,8 +106,12 @@ public sealed class StaffRoleChangeTests
         request.IsActive = false;
         await f.Service.UpdateStaffAsync(1, 5, request);
         Assert.False(f.Assignment.IsActive);
-        Assert.False(f.User.IsActive);
-        f.Sessions.Verify(value => value.InvalidateAsync(5), Times.Once);
+        Assert.True(f.User.IsActive);
+        Assert.Equal(1, f.User.SessionVersion);
+        f.Sessions.Verify(value => value.InvalidateAsync(5), Times.Never);
+        f.Refresh.Verify(value => value.GetActiveByUserIdTrackedAsync(5, It.IsAny<DateTime>()), Times.Never);
+        f.Realtime.Verify(value => value.NotifyUserDeactivatedAsync(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        f.Realtime.Verify(value => value.NotifyRestaurantAccessChangedAsync(5, 1, "staff_deactivated", It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -107,6 +143,100 @@ public sealed class StaffRoleChangeTests
         Assert.False(f.Assignment.IsActive);
         Assert.True(f.User.IsActive);
         Assert.True(f.User.UserRestaurants.Single(value => value.RestaurantId == 2).IsActive);
+        Assert.Equal(1, f.User.SessionVersion);
+        f.Sessions.Verify(value => value.InvalidateAsync(It.IsAny<int>()), Times.Never);
+        f.Refresh.Verify(value => value.GetActiveByUserIdTrackedAsync(5, It.IsAny<DateTime>()), Times.Never);
+        f.Realtime.Verify(value => value.NotifyRestaurantAccessChangedAsync(5, 1, "staff_deactivated", It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
+        f.Realtime.Verify(value => value.NotifyUserDeactivatedAsync(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task DedicatedDeactivationOnlyChangesTargetMembership(bool multiple)
+    {
+        await using var f = await Fixture.CreateAsync(multiple);
+        f.SetActor(RoleCode.Manager, 1);
+        await f.Service.DeactivateStaffAsync(1, 5);
+        Assert.False(f.Assignment.IsActive);
+        Assert.True(f.User.IsActive);
+        Assert.Equal(1, f.User.SessionVersion);
+        Assert.Empty(f.Sessions.Invocations);
+        f.Refresh.Verify(value => value.GetActiveByUserIdTrackedAsync(5, It.IsAny<DateTime>()), Times.Never);
+        f.Access.Verify(value => value.InvalidateAsync(5, 1), Times.Once);
+        f.Access.Verify(value => value.InvalidateAsync(5, 2), Times.Never);
+        f.Realtime.Verify(value => value.NotifyRestaurantAccessChangedAsync(5, 1, "staff_deactivated", It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
+        Assert.Single(f.Realtime.Invocations);
+    }
+
+    [Fact]
+    public async Task ReactivationRestoresOnlyTheRestaurantProfileWithoutLoggingOutAnyDevice()
+    {
+        await using var f = await Fixture.CreateAsync(multiple: true);
+        f.Assignment.IsActive = false;
+        await f.Db.SaveChangesAsync();
+        f.SetActor(RoleCode.Manager, 1);
+        await f.Service.ActivateStaffAsync(1, 5);
+        Assert.True(f.Assignment.IsActive);
+        Assert.True(f.User.IsActive);
+        Assert.Equal(1, f.User.SessionVersion);
+        Assert.Empty(f.Sessions.Invocations);
+        f.Realtime.Verify(value => value.NotifyRestaurantAccessChangedAsync(5, 1, "staff_activated", It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
+        await f.Service.ActivateStaffAsync(1, 5);
+        f.Realtime.Verify(value => value.NotifyRestaurantAccessChangedAsync(5, 1, "staff_activated", It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task RestaurantActivationCannotUndoAGlobalAccountBlock()
+    {
+        await using var f = await Fixture.CreateAsync();
+        f.Assignment.IsActive = false;
+        f.User.IsActive = false;
+        await f.Db.SaveChangesAsync();
+        var error = await Assert.ThrowsAsync<BusinessRuleException>(() => f.Service.ActivateStaffAsync(1, 5));
+        Assert.Equal(ErrorCode.StaffAccountInactive, error.Code);
+        Assert.False(f.User.IsActive);
+        Assert.False(f.Assignment.IsActive);
+        Assert.Empty(f.Realtime.Invocations);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task StaffCannotDeactivateItsOwnProfileThroughEitherEndpoint(bool editForm)
+    {
+        await using var f = await Fixture.CreateAsync();
+        f.SetActor(RoleCode.Manager, 1, 5);
+        var request = StaffRequest();
+        request.IsActive = false;
+        var error = await Assert.ThrowsAsync<BusinessRuleException>(async () =>
+        {
+            if (editForm) await f.Service.UpdateStaffAsync(1, 5, request);
+            else await f.Service.DeactivateStaffAsync(1, 5);
+        });
+        Assert.Equal(ErrorCode.CannotDeactivateOwnAccount, error.Code);
+        Assert.True(f.Assignment.IsActive);
+        Assert.True(f.User.IsActive);
+        Assert.Empty(f.Realtime.Invocations);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ManagerCannotDeactivateAnotherRestaurantsProfile(bool editForm)
+    {
+        await using var f = await Fixture.CreateAsync(multiple: true);
+        f.SetActor(RoleCode.Manager, 2);
+        var request = StaffRequest();
+        request.IsActive = false;
+        await Assert.ThrowsAsync<ForbiddenException>(async () =>
+        {
+            if (editForm) await f.Service.UpdateStaffAsync(1, 5, request);
+            else await f.Service.DeactivateStaffAsync(1, 5);
+        });
+        Assert.True(f.Assignment.IsActive);
+        Assert.True(f.User.IsActive);
+        Assert.Empty(f.Realtime.Invocations);
     }
 
     [Theory]

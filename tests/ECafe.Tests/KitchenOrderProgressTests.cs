@@ -118,7 +118,10 @@ public sealed class KitchenOrderProgressTests
             case "different-restaurant": session.RestaurantId = 2; break;
             case "closed-session": session.ClosedAt = DateTime.UtcNow; break;
             case "inactive": customer.IsActive = false; break;
-            case "staff-role": customer.RoleId = (int)RoleCode.Waiter; break;
+            case "staff-role":
+                customer.RoleId = (int)RoleCode.Waiter;
+                f.Db.UserRestaurants.Add(new UserRestaurant { UserId = 7, RestaurantId = 1, RoleId = (int)RoleCode.Waiter, IsActive = true });
+                break;
         }
         await f.Db.SaveChangesAsync();
         Assert.Equal(2002, (await f.Service.AcceptAsync(1, 1)).StatusId);
@@ -128,6 +131,22 @@ public sealed class KitchenOrderProgressTests
             Assert.Equal(1, notice.UserId);
             Assert.Equal((int)NotificationType.WaiterOrderAccepted, notice.TypeId);
         });
+    }
+
+    [Theory]
+    [InlineData(RoleCode.Owner)]
+    [InlineData(RoleCode.Manager)]
+    [InlineData(RoleCode.Waiter)]
+    [InlineData(RoleCode.Kitchen)]
+    public async Task FormerStaffPersonalAccountGetsOnlyItsOwnCustomerKitchenNotifications(RoleCode storedRole)
+    {
+        await using var f = await SentFixtureAsync();
+        await AssignCustomerAsync(f);
+        (await f.Db.Users.SingleAsync(value => value.Id == 7)).RoleId = (int)storedRole;
+        f.Db.UserRestaurants.Add(new UserRestaurant { UserId = 7, RestaurantId = 1, RoleId = (int)storedRole, IsActive = false });
+        await f.Db.SaveChangesAsync();
+        await f.Service.AcceptAsync(1, 1);
+        Assert.Equal((int)NotificationType.CustomerOrderAccepted, Assert.Single(f.Sent, value => value.UserId == 7).TypeId);
     }
 
     [Fact]

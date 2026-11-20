@@ -3,6 +3,7 @@ using ECafe.Application.Common.Validation;
 using ECafe.Application.DTOs.User;
 using ECafe.Application.DTOs.User.Staff;
 using ECafe.Domain.Entities;
+using ECafe.Domain.Policies;
 
 namespace ECafe.Application.Mappings
 {
@@ -11,6 +12,7 @@ namespace ECafe.Application.Mappings
         public UserProfile()
         {
             CreateMap<CreateUserRequest, User>()
+                .ForMember(dest => dest.IsActive, opt => opt.MapFrom(src => UserProfileAccessPolicy.IsRestaurantRole(src.RoleId) || src.IsActive))
                 .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Name.Trim()))
                 .ForMember(dest => dest.Surname, opt => opt.MapFrom(src => src.Surname.Trim()))
                 .ForMember(dest => dest.Email, opt => opt.MapFrom(src => src.Email.Trim().ToLowerInvariant()))
@@ -25,7 +27,7 @@ namespace ECafe.Application.Mappings
                     {
                         RestaurantId = src.RestaurantId,
                         RoleId = src.RoleId,
-                        IsActive = true,
+                        IsActive = !UserProfileAccessPolicy.IsRestaurantRole(src.RoleId) || src.IsActive,
                         ServiceFeePercent = src.ServiceFeePercent
                     }
                 }));
@@ -39,6 +41,7 @@ namespace ECafe.Application.Mappings
                 .ForMember(dest => dest.File, opt => opt.Ignore());
 
             CreateMap<UpdateStaffRequest, User>()
+                .ForMember(dest => dest.IsActive, opt => opt.Ignore())
                 .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Name.Trim()))
                 .ForMember(dest => dest.Surname, opt => opt.MapFrom(src => src.Surname.Trim()))
                 .ForMember(dest => dest.Email, opt => opt.Ignore())

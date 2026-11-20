@@ -337,6 +337,43 @@ public sealed class MobilePushDeliveryTests
     }
 
     [Theory]
+    [InlineData(AuditEntityTypes.Reservation, true)]
+    [InlineData(AuditEntityTypes.Reservation, false)]
+    [InlineData(AuditEntityTypes.Order, true)]
+    [InlineData(AuditEntityTypes.Order, false)]
+    [InlineData(AuditEntityTypes.ReservationRefund, true)]
+    [InlineData(AuditEntityTypes.ReservationRefund, false)]
+    [InlineData(AuditEntityTypes.TableSession, true)]
+    [InlineData(AuditEntityTypes.TableSession, false)]
+    [InlineData("", false)]
+    public async Task FormerStaffPersonalPushStillRequiresItsOwnLinkedCustomerResource(string entityType, bool ownsResource)
+    {
+        await using var context = CreateContext();
+        var protector = new EphemeralDataProtectionProvider();
+        var notification = await SeedCustomerNotificationAsync(context, protector,
+            entityType.Length == 0 ? AuditEntityTypes.Order : entityType);
+        context.Users.Single().RoleId = (int)RoleCode.Waiter;
+        var formerProfile = context.UserRestaurants.IgnoreQueryFilters().Single();
+        formerProfile.IsDeleted = false;
+        formerProfile.IsActive = false;
+        formerProfile.RoleId = (int)RoleCode.Waiter;
+        if (!ownsResource) notification.RelatedEntityId = 999999;
+        if (entityType.Length == 0)
+        {
+            notification.RelatedEntityType = null;
+            notification.RelatedEntityId = null;
+        }
+        var configuration = ReadyConfiguration();
+        new MobilePushOutboxWriter(context, configuration).Enqueue(notification);
+        await context.SaveChangesAsync();
+        var transport = new FakeTransport();
+        var processor = new MobilePushDeliveryProcessor(context, configuration, protector, transport);
+        await processor.ExpandOutboxAsync(10, CancellationToken.None);
+        await processor.SendPendingAsync(10, CancellationToken.None);
+        Assert.Equal(ownsResource ? 1 : 0, transport.SentTokens.Count);
+    }
+
+    [Theory]
     [InlineData("inactive-user", false)]
     [InlineData("inactive-user", true)]
     [InlineData("expired-session", false)]

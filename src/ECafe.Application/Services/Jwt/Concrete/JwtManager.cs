@@ -4,7 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using AutoMapper;
 using ECafe.Domain.Enums;
-using ECafe.Domain.Exceptions;
+using ECafe.Domain.Policies;
 using ECafe.Shared.Extensions;
 using ECafe.Shared.Services.Jwt.Abstract;
 using Microsoft.AspNetCore.Http;
@@ -53,11 +53,7 @@ namespace ECafe.Application.Services.Jwt.Concrete
                 .OrderBy(restaurantId => restaurantId)
                 .ToList();
 
-            if (RequiresActiveRestaurantAssignment(user.RoleId))
-            {
-                if (assignedRestaurantIds.Count == 0)
-                    throw new BusinessRuleException("Restaurant-scoped role requires an active restaurant assignment.");
-            }
+            var accountRoleId = UserProfileAccessPolicy.ResolveAccountRole(user.RoleId, assignedRestaurantIds.Count > 0);
 
             if (assignedRestaurantIds.Count > 0)
             {
@@ -74,10 +70,10 @@ namespace ECafe.Application.Services.Jwt.Concrete
                 claims.Add(new Claim("restaurantRoles", string.Join(",", restaurantRoles)));
             }
 
-            claims.Add(new Claim(ClaimTypes.Role, user.RoleId.ToString()));
-            claims.Add(new Claim("roleName", EnumExtensions.GetDescription((RoleCode)user.RoleId)));
+            claims.Add(new Claim(ClaimTypes.Role, accountRoleId.ToString()));
+            claims.Add(new Claim("roleName", EnumExtensions.GetDescription((RoleCode)accountRoleId)));
 
-            foreach (var permission in GetPermissionClaims(user))
+            foreach (var permission in accountRoleId == user.RoleId ? GetPermissionClaims(user) : [])
                 claims.Add(new Claim("permission", permission));
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]!));
@@ -93,12 +89,6 @@ namespace ECafe.Application.Services.Jwt.Concrete
 
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
-
-        private static bool RequiresActiveRestaurantAssignment(int roleId)
-            => roleId is (int)RoleCode.Owner or
-                (int)RoleCode.Manager or
-                (int)RoleCode.Waiter or
-                (int)RoleCode.Kitchen;
 
         private int GetAccessTokenLifetimeMinutes()
         {
