@@ -322,6 +322,31 @@ public sealed class StaffRoleChangeTests
         Assert.Equal((int)RoleCode.Waiter, f.Assignment.RoleId);
     }
 
+    [Fact]
+    public async Task ProfileCannotBypassVerificationByPostingANewEmail()
+    {
+        await using var f = await Fixture.CreateAsync();
+        f.SetActor(RoleCode.Waiter, 1, 5);
+        var error = await Assert.ThrowsAsync<BusinessRuleException>(() => f.Service.UpdateProfileAsync(5, new()
+        {
+            Name = "Changed", Surname = "Staff", Email = "unverified@example.test", Phone = "0501234567"
+        }));
+        Assert.Equal(ErrorCode.EmailChangeRequiresVerification, error.Code);
+        Assert.Equal("staff@example.com", f.User.Email);
+        Assert.Equal("Test", f.User.Name);
+    }
+
+    [Fact]
+    public async Task EvenSuperAdminCannotBypassEmailVerificationThroughStaffUpdate()
+    {
+        await using var f = await Fixture.CreateAsync();
+        var request = StaffRequest();
+        request.Email = "unverified@example.test";
+        var error = await Assert.ThrowsAsync<ForbiddenException>(() => f.Service.UpdateStaffAsync(1, 5, request));
+        Assert.Equal(ErrorCode.EmailChangeRequiresVerification, error.Code);
+        Assert.Equal("staff@example.com", f.User.Email);
+    }
+
     private sealed class Fixture : IAsyncDisposable
     {
         public ECafeDbContext Db { get; } = new(new DbContextOptionsBuilder<ECafeDbContext>()

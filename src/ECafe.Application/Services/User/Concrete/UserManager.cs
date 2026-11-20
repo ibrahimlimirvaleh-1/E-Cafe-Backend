@@ -279,8 +279,8 @@ namespace ECafe.Application.Services.User.Concrete
                 EnsureOnlySuperAdminCanManagePrivilegedRole(staffAssignment.User.RoleId);
 
             var email = request.Email.Trim().ToLowerInvariant();
-            if (!IsCurrentUserSuperAdmin() && !string.Equals(email, staffAssignment.User.Email.Trim(), StringComparison.OrdinalIgnoreCase))
-                throw new ForbiddenException(ErrorCode.AccessDenied);
+            if (!string.Equals(email, staffAssignment.User.Email.Trim(), StringComparison.OrdinalIgnoreCase))
+                throw new ForbiddenException(ErrorCode.EmailChangeRequiresVerification);
             var phone = PhoneNumberValidationExtensions.NormalizeAzerbaijanPhoneNumber(request.Phone);
             var conflict = await _userRepository.GetProfileConflictAsync(staffId, email, phone);
             if (conflict is not null)
@@ -495,12 +495,16 @@ namespace ECafe.Application.Services.User.Concrete
             if (request is null)
                 throw new BusinessRuleException(ErrorCode.RequestCannotBeNull);
 
+            await using var transaction = await _transactionFactory.BeginTransactionAsync();
+            await _refreshTokenRepository.AcquireUserLockAsync(userId);
             var user = await _userRepository.GetProfileByIdTrackedAsync(userId);
 
             if (user is null)
                 throw new BusinessRuleException(ErrorCode.UserNotFound);
 
             var email = request.Email.Trim().ToLowerInvariant();
+            if (!string.Equals(email, user.Email.Trim(), StringComparison.OrdinalIgnoreCase))
+                throw new BusinessRuleException(ErrorCode.EmailChangeRequiresVerification);
             var phone = PhoneNumberValidationExtensions.NormalizeAzerbaijanPhoneNumber(request.Phone);
 
             var conflictingUser = await _userRepository.GetProfileConflictAsync(userId, email, phone);
@@ -518,6 +522,7 @@ namespace ECafe.Application.Services.User.Concrete
                 user.File = file;
 
             await _userRepository.SaveChangesAsync();
+            await transaction.CommitAsync();
         }
 
         public async Task<StaffDetailResponseDto> GetStaffDetailAsync(int restaurantId, int staffId)

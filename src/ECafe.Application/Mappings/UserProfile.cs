@@ -33,7 +33,7 @@ namespace ECafe.Application.Mappings
             CreateMap<UpdateProfileRequest, User>()
                 .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Name.Trim()))
                 .ForMember(dest => dest.Surname, opt => opt.MapFrom(src => src.Surname.Trim()))
-                .ForMember(dest => dest.Email, opt => opt.MapFrom(src => src.Email.Trim().ToLowerInvariant()))
+                .ForMember(dest => dest.Email, opt => opt.Ignore())
                 .ForMember(dest => dest.Phone, opt => opt.MapFrom(src => PhoneNumberValidationExtensions.NormalizeAzerbaijanPhoneNumber(src.Phone)))
                 .ForMember(dest => dest.FileId, opt => opt.Ignore())
                 .ForMember(dest => dest.File, opt => opt.Ignore());
@@ -41,7 +41,7 @@ namespace ECafe.Application.Mappings
             CreateMap<UpdateStaffRequest, User>()
                 .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Name.Trim()))
                 .ForMember(dest => dest.Surname, opt => opt.MapFrom(src => src.Surname.Trim()))
-                .ForMember(dest => dest.Email, opt => opt.MapFrom(src => src.Email.Trim().ToLowerInvariant()))
+                .ForMember(dest => dest.Email, opt => opt.Ignore())
                 .ForMember(dest => dest.Phone, opt => opt.MapFrom(src => PhoneNumberValidationExtensions.NormalizeAzerbaijanPhoneNumber(src.Phone)))
                 .ForMember(dest => dest.FileId, opt => opt.Ignore())
                 .ForMember(dest => dest.File, opt => opt.Ignore())

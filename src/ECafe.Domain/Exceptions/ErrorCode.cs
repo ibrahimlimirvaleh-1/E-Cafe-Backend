@@ -48,6 +48,8 @@ public enum ErrorCode
     DashboardFilterInvalid = 1135,
     RealtimeConnectionLimitExceeded = 1136,
     RealtimeTemporarilyUnavailable = 1137,
+    EmailChangeRequiresVerification = 1138,
+    EmailChangeInvalidOrExpired = 1139,
 
     RestaurantNotFound = 2000,
     UnitNotFound = 2001,

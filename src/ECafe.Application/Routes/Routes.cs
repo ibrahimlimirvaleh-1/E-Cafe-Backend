@@ -389,6 +389,8 @@ public static class Routes
         public const string GetStaff = Base + "/staff/{restaurantId}";
         public const string GetProfile = Base + "/profile";
         public const string UpdateProfile = Base + "/profile";
+        public const string RequestEmailChange = Base + "/profile/email-change/request";
+        public const string ConfirmEmailChange = Base + "/profile/email-change/confirm";
         public const string GetStaffDetail = Base + "/staff/{restaurantId}/detail/{staffId}";
     }
 

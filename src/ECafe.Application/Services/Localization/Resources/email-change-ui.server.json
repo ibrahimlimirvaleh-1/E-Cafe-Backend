@@ -1,0 +1,132 @@
+{
+  "ui.emailChange.requestLoginRequired": {
+    "az": "Sessiya etibarsızdır. Yenidən daxil olub e-poçt dəyişikliyi sorğusunu təkrarlayın.",
+    "en": "Your session is no longer valid. Sign in again, then request the email change.",
+    "ru": "Сеанс недействителен. Войдите снова и повторите запрос на смену email."
+  },
+  "ui.emailChange.change": {
+    "az": "E-poçtu dəyiş",
+    "en": "Change email",
+    "ru": "Изменить email"
+  },
+  "ui.emailChange.description": {
+    "az": "Yeni ünvanı təsdiqləmək üçün məktub göndəriləcək. Hazırkı e-poçt təsdiqədək dəyişməyəcək.",
+    "en": "A verification email will be sent. Your current email stays unchanged until you confirm.",
+    "ru": "Мы отправим письмо для подтверждения. Текущий email изменится только после подтверждения."
+  },
+  "ui.emailChange.newEmail": {
+    "az": "Yeni e-poçt",
+    "en": "New email",
+    "ru": "Новый email"
+  },
+  "ui.emailChange.password": {
+    "az": "Cari şifrə",
+    "en": "Current password",
+    "ru": "Текущий пароль"
+  },
+  "ui.emailChange.accepted": {
+    "az": "Sorğu qəbul edildi. Ünvan uyğundursa, təsdiq məktubu göndəriləcək. Spam qovluğunu da yoxlayın.",
+    "en": "Request accepted. If the address is eligible, a verification email will be sent. Check your spam folder too.",
+    "ru": "Запрос принят. Если адрес подходит, мы отправим письмо для подтверждения. Проверьте также папку «Спам»."
+  },
+  "ui.emailChange.rateLimited": {
+    "az": "Çox sayda cəhd edilib. Bir qədər gözləyib yenidən cəhd edin.",
+    "en": "Too many attempts. Wait a while before trying again.",
+    "ru": "Слишком много попыток. Подождите и попробуйте снова."
+  },
+  "ui.emailChange.invalidPassword": {
+    "az": "Cari şifrə yanlışdır.",
+    "en": "The current password is incorrect.",
+    "ru": "Текущий пароль неверен."
+  },
+  "ui.emailChange.loginRequired": {
+    "az": "Bu əməliyyat üçün giriş tələb olunur. Sorğunu yaratdığınız hesaba daxil olun, sonra məktubdakı orijinal linki yenidən açın.",
+    "en": "Sign in to the account that requested this change, then reopen the original link from your email.",
+    "ru": "Войдите в аккаунт, из которого был отправлен запрос, затем снова откройте исходную ссылку из письма."
+  },
+  "ui.emailChange.requestFailed": {
+    "az": "Sorğu göndərilmədi. Məlumatları yoxlayıb yenidən cəhd edin.",
+    "en": "Could not send the request. Check your details and try again.",
+    "ru": "Не удалось отправить запрос. Проверьте данные и попробуйте снова."
+  },
+  "ui.emailChange.login": {
+    "az": "Daxil ol",
+    "en": "Sign in",
+    "ru": "Войти"
+  },
+  "ui.emailChange.sending": {
+    "az": "Göndərilir…",
+    "en": "Sending…",
+    "ru": "Отправка…"
+  },
+  "ui.emailChange.retryIn": {
+    "az": "{{seconds}} san sonra yenidən",
+    "en": "Retry in {{seconds}}s",
+    "ru": "Повторить через {{seconds}} с"
+  },
+  "ui.emailChange.resend": {
+    "az": "Məktubu yenidən göndər",
+    "en": "Resend email",
+    "ru": "Отправить повторно"
+  },
+  "ui.emailChange.send": {
+    "az": "Təsdiq məktubu göndər",
+    "en": "Send verification email",
+    "ru": "Отправить письмо"
+  },
+  "ui.emailChange.confirmTitle": {
+    "az": "E-poçt dəyişikliyini təsdiqlə",
+    "en": "Confirm email change",
+    "ru": "Подтвердите смену email"
+  },
+  "ui.emailChange.confirmDescription": {
+    "az": "Bu link 30 dəqiqə etibarlıdır və yalnız bir dəfə istifadə olunur. Təsdiqdən sonra bütün sessiyalar bağlanacaq.",
+    "en": "This link is valid for 30 minutes and can be used once. Confirming will sign you out of all sessions.",
+    "ru": "Ссылка действует 30 минут и используется один раз. После подтверждения все сеансы будут завершены."
+  },
+  "ui.emailChange.checkingSession": {
+    "az": "Sessiya yoxlanılır…",
+    "en": "Checking your session…",
+    "ru": "Проверка сеанса…"
+  },
+  "ui.emailChange.success": {
+    "az": "E-poçt yeniləndi və bütün sessiyalar bağlandı. Yeni e-poçtunuzla yenidən daxil olun.",
+    "en": "Email updated and all sessions ended. Sign in again with your new email.",
+    "ru": "Email обновлён, все сеансы завершены. Войдите снова с новым email."
+  },
+  "ui.emailChange.invalidLink": {
+    "az": "Link etibarsızdır, istifadə olunub və ya müddəti bitib. Sorğunu göndərən hesabın profilindən yeni məktub istəyin.",
+    "en": "This link is invalid, already used or expired. Request a new email from the profile of the account that requested this change.",
+    "ru": "Ссылка недействительна, уже использована или истекла. Запросите новое письмо в профиле аккаунта, отправившего запрос."
+  },
+  "ui.emailChange.confirmFailed": {
+    "az": "Dəyişikliyi təsdiqləmək mümkün olmadı. Bağlantını yoxlayıb yenidən cəhd edin.",
+    "en": "Could not confirm the change. Check your connection and try again.",
+    "ru": "Не удалось подтвердить изменение. Проверьте соединение и попробуйте снова."
+  },
+  "ui.emailChange.confirming": {
+    "az": "Təsdiqlənir…",
+    "en": "Confirming…",
+    "ru": "Подтверждение…"
+  },
+  "ui.emailChange.confirm": {
+    "az": "Dəyişikliyi təsdiqlə",
+    "en": "Confirm change",
+    "ru": "Подтвердить изменение"
+  },
+  "ui.emailChange.backToProfile": {
+    "az": "Profilə qayıt",
+    "en": "Back to profile",
+    "ru": "Вернуться в профиль"
+  },
+  "ui.emailChange.staffReadonly": {
+    "az": "E-poçtu yalnız hesab sahibi öz profilindən təsdiqləmə ilə dəyişə bilər.",
+    "en": "Only the account owner can change this email through verification in their profile.",
+    "ru": "Изменить email может только владелец аккаунта через подтверждение в своём профиле."
+  },
+  "ui.emailChange.requiresVerification": {
+    "az": "E-poçtu ayrıca təsdiqləmə axını ilə dəyişin.",
+    "en": "Use email verification to change your address.",
+    "ru": "Измените email через отдельное подтверждение."
+  }
+}
