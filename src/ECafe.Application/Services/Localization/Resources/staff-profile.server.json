@@ -1,0 +1,7 @@
+{
+  "api.error.StaffAccountInactive": {
+    "az": "Hesab səviyyəsində bloklanmış istifadəçinin restoran profilini aktivləşdirmək mümkün deyil.",
+    "en": "This restaurant profile cannot be activated while the user account is blocked.",
+    "ru": "Нельзя активировать профиль ресторана, пока учётная запись пользователя заблокирована."
+  }
+}

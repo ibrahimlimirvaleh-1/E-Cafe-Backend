@@ -72,6 +72,7 @@ public sealed class ErrorMessageProvider(ITextLocalizer? localizer = null) : IEr
         [ErrorCode.SessionInvalid] = "Sessiya məlumatları yenilənib. Zəhmət olmasa yenidən daxil olun.",
         [ErrorCode.EmailChangeRequiresVerification] = "E-poçtu dəyişmək üçün ayrıca təsdiq axınından istifadə edin.",
         [ErrorCode.EmailChangeInvalidOrExpired] = "E-poçt dəyişmə linki etibarsızdır və ya vaxtı bitib.",
+        [ErrorCode.StaffAccountInactive] = "Hesab səviyyəsində bloklanmış istifadəçinin restoran profilini aktivləşdirmək mümkün deyil.",
         [ErrorCode.OwnerRoleCannotBeChanged] = "Sahibkar hesabının rolu dəyişdirilə bilməz.",
 
         [ErrorCode.RestaurantNotFound] = "Restaurant not found.",

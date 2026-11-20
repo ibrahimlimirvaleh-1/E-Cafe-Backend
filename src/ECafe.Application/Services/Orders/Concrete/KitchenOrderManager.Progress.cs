@@ -74,7 +74,7 @@ public sealed partial class KitchenOrderManager
         return KitchenOrderResponseMapper.Map(order);
     }
 
-    /// <summary>Yalnız açıq sessiya ilə sifarişdə ortaq olan aktiv müştəriyə yeni mətbəx mərhələsini bildirir.</summary>
+    /// <summary>Açıq sessiya və sifarişin ortaq sahibinə mətbəx mərhələsini bildirir; son profili bağlanmış şəxsi hesabı da müştəri qaydası ilə yoxlayır.</summary>
     private async Task NotifyCustomerProgressAsync(Order order, OrderStatus target, CancellationToken cancellationToken)
     {
         if (order.CustomerUserId is not > 0 || order.TableSessionId is not > 0)
@@ -85,7 +85,6 @@ public sealed partial class KitchenOrderManager
                 candidate.Id == order.Id && candidate.RestaurantId == order.RestaurantId &&
                 candidate.CustomerUserId == customerId && candidate.CustomerUser != null &&
                 candidate.CustomerUser.IsActive && !candidate.CustomerUser.IsDeleted &&
-                candidate.CustomerUser.RoleId == (int)RoleCode.Customer &&
                 candidate.TableSession != null && !candidate.TableSession.IsDeleted &&
                 candidate.TableSession.ClosedAt == null && candidate.TableSession.CustomerUserId == customerId &&
                 candidate.TableSession.RestaurantId == candidate.RestaurantId && candidate.TableSession.TableId == candidate.TableId &&
@@ -94,6 +93,8 @@ public sealed partial class KitchenOrderManager
                  candidate.TableSession.Reservation != null && !candidate.TableSession.Reservation.IsDeleted &&
                  candidate.TableSession.Reservation.CustomerUserId == customerId &&
                  candidate.TableSession.Reservation.RestaurantId == candidate.RestaurantId))
+            .Select(candidate => candidate.CustomerUser!)
+            .Where(UserProfileAccessPolicy.PersonalAccounts)
             .AnyAsync(cancellationToken);
         if (!isOwned) return;
 

@@ -22,6 +22,7 @@ using ECafe.Application.Services.Realtime.Abstract;
 using ECafe.Application.Services.User.Abstract;
 using ECafe.Domain.Enums;
 using ECafe.Domain.Exceptions;
+using ECafe.Domain.Policies;
 using ECafe.Shared.DTOs;
 using ECafe.Shared.Extensions;
 using ECafe.Shared.Services.Jwt.Abstract;
@@ -178,8 +179,11 @@ namespace ECafe.Application.Services.User.Concrete
                 staffAssignment.RoleId,
                 staffAssignment.UserId);
 
+            if (!staffAssignment.User.IsActive)
+                throw new BusinessRuleException(ErrorCode.StaffAccountInactive);
+
+            var wasActive = staffAssignment.IsActive;
             staffAssignment.IsActive = true;
-            staffAssignment.User.IsActive = true;
 
             await _auditLogService.RecordRestaurantActionAsync(
                 restaurantId,
@@ -198,8 +202,9 @@ namespace ECafe.Application.Services.User.Concrete
 
             await _userRestaurantRepository.SaveChangesAsync();
             await transaction.CommitAsync();
-            await _userSessionStateCache.InvalidateAsync(staffId);
             await _userRestaurantAccessCache.InvalidateAsync(staffId, restaurantId);
+            if (!wasActive)
+                await NotifyStaffProfileChangedAsync(staffId, restaurantId, true);
         }
 
         public async Task DeactivateStaffAsync(int restaurantId, int staffId)
@@ -227,12 +232,6 @@ namespace ECafe.Application.Services.User.Concrete
 
             staffAssignment.IsActive = false;
 
-            if (!await _userRestaurantRepository.HasAnyOtherActiveAssignmentAsync(staffId, staffAssignment.Id))
-                staffAssignment.User.IsActive = false;
-
-            staffAssignment.User.SessionVersion++;
-            await RevokeActiveRefreshTokensAsync(staffId);
-
             await _auditLogService.RecordRestaurantActionAsync(
                 restaurantId,
                 AuditActions.StaffDeactivated,
@@ -250,9 +249,8 @@ namespace ECafe.Application.Services.User.Concrete
 
             await _userRestaurantRepository.SaveChangesAsync();
             await transaction.CommitAsync();
-            await _userSessionStateCache.InvalidateAsync(staffId);
             await _userRestaurantAccessCache.InvalidateAsync(staffId, restaurantId);
-            await NotifyUserSessionTerminatedAsync(staffId);
+            await NotifyStaffProfileChangedAsync(staffId, restaurantId, false);
         }
 
         public async Task<StaffDetailResponseDto> UpdateStaffAsync(int restaurantId, int staffId, UpdateStaffRequest request)
@@ -267,6 +265,9 @@ namespace ECafe.Application.Services.User.Concrete
                 throw new BusinessRuleException(ErrorCode.InvalidStaffId);
 
             EnsureCurrentUserCanAccessRestaurant(restaurantId);
+
+            if (!request.IsActive && staffId == GetCurrentUserId())
+                throw new BusinessRuleException(ErrorCode.CannotDeactivateOwnAccount);
 
             await using var transaction = await _transactionFactory.BeginTransactionAsync();
             await _refreshTokenRepository.AcquireUserLockAsync(staffId);
@@ -297,9 +298,6 @@ namespace ECafe.Application.Services.User.Concrete
             if (!request.IsActive)
             {
                 staffAssignment.IsActive = false;
-                staffAssignment.User.IsActive = await _userRestaurantRepository.HasAnyOtherActiveAssignmentAsync(staffId, staffAssignment.Id);
-                staffAssignment.User.SessionVersion++;
-                await RevokeActiveRefreshTokensAsync(staffId);
             }
 
             await _auditLogService.RecordRestaurantActionAsync(
@@ -323,8 +321,7 @@ namespace ECafe.Application.Services.User.Concrete
 
             if (!request.IsActive)
             {
-                await _userSessionStateCache.InvalidateAsync(staffId);
-                await NotifyUserSessionTerminatedAsync(staffId);
+                await NotifyStaffProfileChangedAsync(staffId, restaurantId, false);
             }
 
             return await MapToStaffDetailResponseAsync(staffAssignment);
@@ -676,6 +673,7 @@ namespace ECafe.Application.Services.User.Concrete
             throw new BusinessRuleException(ErrorCode.RestaurantAlreadyHasActiveOwner);
         }
 
+        /// <summary>Hesabın qlobal statusunu və aktiv restoran profillərini ayırır; profilsiz personalı müştəri kimi qaytarır.</summary>
         private async Task<ProfileResponseDto> MapToProfileResponseAsync(Domain.Entities.User user)
         {
             var response = Mapper.Map<ProfileResponseDto>(user);
@@ -693,6 +691,9 @@ namespace ECafe.Application.Services.User.Concrete
                     IsActive = userRestaurant.IsActive && user.IsActive
                 })
                 .ToList();
+            response.RoleId = UserProfileAccessPolicy.ResolveAccountRole(user.RoleId, response.Profiles.Count > 0);
+            if (response.RoleId != user.RoleId)
+                response.Role = GetRoleDescription(response.RoleId);
             return response;
         }
 
@@ -760,6 +761,12 @@ namespace ECafe.Application.Services.User.Concrete
             foreach (var assignment in assignments)
                 await _userRestaurantAccessCache.InvalidateAsync(assignment.UserId, assignment.RestaurantId);
         }
+
+        /// <summary>Yalnız dəyişən restoranın profilini yeniləmək üçün hesabı bağlamayan hadisə göndərir.</summary>
+        private Task NotifyStaffProfileChangedAsync(int userId, int restaurantId, bool isActive)
+            => _userRealtimeNotifier.NotifyRestaurantAccessChangedAsync(
+                userId, restaurantId, isActive ? "staff_activated" : "staff_deactivated",
+                string.Empty);
 
         private Task NotifyUserSessionTerminatedAsync(int userId)
         {

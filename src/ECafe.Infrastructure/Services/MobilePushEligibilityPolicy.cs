@@ -1,5 +1,6 @@
 using ECafe.Domain.Entities;
 using ECafe.Domain.Enums;
+using ECafe.Domain.Policies;
 using ECafe.Infrastructure.Context;
 using ECafe.Application.Common.Audit;
 using ECafe.Application.Features.MobileApp;
@@ -29,9 +30,9 @@ internal static class MobilePushEligibilityPolicy
             assignment.Restaurant.Contracts.Any(contract => contract.StatusId == activeContractStatusId));
     }
 
-    /// <summary>Aktiv müştəri hesablarını bazadakı cari rola görə seçir; restoranın işçi push icazəsi tələb olunmur.</summary>
+    /// <summary>Aktiv müştəri və son profili bağlanmış şəxsi hesabları DB-dən seçir; köhnə JWT və işçi push icazəsinə güvənmir.</summary>
     public static IQueryable<User> EligibleCustomers(ECafeDbContext context)
-        => context.Users.Where(user => user.IsActive && user.RoleId == (int)RoleCode.Customer);
+        => context.Users.Where(UserProfileAccessPolicy.PersonalAccounts);
 
     /// <summary>
     /// Müştəriyə yalnız server bildirişində göstərilmiş öz rezervasiya, refund, sifariş və ya masa sessiyası üçün push icazəsi verir.

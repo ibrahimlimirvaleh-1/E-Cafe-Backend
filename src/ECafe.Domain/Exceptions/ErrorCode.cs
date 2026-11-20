@@ -50,6 +50,7 @@ public enum ErrorCode
     RealtimeTemporarilyUnavailable = 1137,
     EmailChangeRequiresVerification = 1138,
     EmailChangeInvalidOrExpired = 1139,
+    StaffAccountInactive = 1140,
 
     RestaurantNotFound = 2000,
     UnitNotFound = 2001,

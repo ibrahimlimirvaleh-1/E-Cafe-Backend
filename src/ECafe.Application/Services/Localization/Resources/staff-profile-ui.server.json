@@ -1,0 +1,92 @@
+{
+  "ui.profiles.sessionEnded": {
+    "az": "Sessiya bağlandı",
+    "en": "Session ended",
+    "ru": "Сеанс завершён"
+  },
+  "ui.profiles.accessUpdated": {
+    "az": "Restoran profili yeniləndi",
+    "en": "Restaurant profile updated",
+    "ru": "Профиль ресторана обновлён"
+  },
+  "ui.profiles.switched": {
+    "az": "Əvvəlki profil əlçatan deyil. Digər aktiv profilinizə keçildi.",
+    "en": "The previous profile is no longer available. Switched to another active profile.",
+    "ru": "Предыдущий профиль недоступен. Вы переключены на другой активный профиль."
+  },
+  "ui.profiles.personal": {
+    "az": "Aktiv restoran profiliniz qalmayıb. Şəxsi hesabınız açıq qalır.",
+    "en": "You have no active restaurant profiles. Your personal account remains signed in.",
+    "ru": "Активных профилей ресторанов больше нет. Ваш личный аккаунт остаётся открытым."
+  },
+  "ui.profiles.accountInactive": {
+    "az": "Bu hesab bloklanıb. Restoran profilini aktivləşdirmək hesab blokunu açmır.",
+    "en": "This account is blocked. Activating a restaurant profile cannot unblock the account.",
+    "ru": "Этот аккаунт заблокирован. Активация профиля ресторана не снимает блокировку аккаунта."
+  },
+  "ui.profiles.staffStatus": {
+    "az": "Restoran profilinin statusu",
+    "en": "Restaurant profile status",
+    "ru": "Статус профиля ресторана"
+  },
+  "ui.profiles.staffActive": {
+    "az": "Profil aktivdir",
+    "en": "Profile active",
+    "ru": "Профиль активен"
+  },
+  "ui.profiles.staffInactive": {
+    "az": "Profil deaktivdir",
+    "en": "Profile inactive",
+    "ru": "Профиль неактивен"
+  },
+  "ui.profiles.statusHint": {
+    "az": "Yalnız bu restorandakı girişə təsir edir; şəxsi hesabı və digər restoran profillərini bağlamır.",
+    "en": "Affects access to this restaurant only, not the personal account or other restaurant profiles.",
+    "ru": "Влияет только на доступ к этому ресторану, а не на личный аккаунт или другие профили."
+  },
+  "ui.profiles.activate": {
+    "az": "Profili aktiv et",
+    "en": "Activate profile",
+    "ru": "Активировать профиль"
+  },
+  "ui.profiles.deactivate": {
+    "az": "Profili deaktiv et",
+    "en": "Deactivate profile",
+    "ru": "Деактивировать профиль"
+  },
+  "ui.profiles.activating": {
+    "az": "Profil aktivləşdirilir",
+    "en": "Activating profile",
+    "ru": "Активация профиля"
+  },
+  "ui.profiles.deactivating": {
+    "az": "Profil deaktiv edilir",
+    "en": "Deactivating profile",
+    "ru": "Деактивация профиля"
+  },
+  "ui.profiles.activated": {
+    "az": "Restoran profili aktiv edildi.",
+    "en": "Restaurant profile activated.",
+    "ru": "Профиль ресторана активирован."
+  },
+  "ui.profiles.deactivated": {
+    "az": "Restoran profili deaktiv edildi. Digər profillər və şəxsi hesab açıq qalır.",
+    "en": "Restaurant profile deactivated. Other profiles and the personal account stay active.",
+    "ru": "Профиль ресторана деактивирован. Другие профили и личный аккаунт остаются активными."
+  },
+  "ui.profiles.activationFailed": {
+    "az": "Restoran profili aktiv edilmədi.",
+    "en": "Could not activate the restaurant profile.",
+    "ru": "Не удалось активировать профиль ресторана."
+  },
+  "ui.profiles.deactivationFailed": {
+    "az": "Restoran profili deaktiv edilmədi.",
+    "en": "Could not deactivate the restaurant profile.",
+    "ru": "Не удалось деактивировать профиль ресторана."
+  },
+  "ui.profiles.ownerRestriction": {
+    "az": "Bu restorandakı sahibkar profilini yalnız platforma administratoru idarə edə bilər.",
+    "en": "Only the platform administrator can manage the owner profile in this restaurant.",
+    "ru": "Управлять профилем владельца в этом ресторане может только администратор платформы."
+  }
+}

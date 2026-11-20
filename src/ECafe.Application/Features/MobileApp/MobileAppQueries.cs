@@ -6,6 +6,7 @@ using ECafe.Application.Repositories.UserRestaurant;
 using ApiRoutes = ECafe.Application.Routes.Routes;
 using ECafe.Domain.Enums;
 using ECafe.Domain.Exceptions;
+using ECafe.Domain.Policies;
 using MediatR;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
@@ -116,8 +117,8 @@ public sealed class MobileAppQueryHandler(
         if (!int.TryParse(idClaim, out var userId) || userId <= 0)
             throw new ForbiddenException("An active customer account is required.");
 
-        var isCustomer = await users.Query(x => x.Id == userId && x.IsActive &&
-                x.RoleId == (int)RoleCode.Customer)
+        var isCustomer = await users.Query(x => x.Id == userId)
+            .Where(UserProfileAccessPolicy.PersonalAccounts)
             .AnyAsync(cancellationToken);
         if (!isCustomer)
             throw new ForbiddenException("An active customer account is required.");
