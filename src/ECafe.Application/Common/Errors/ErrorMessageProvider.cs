@@ -70,6 +70,8 @@ public sealed class ErrorMessageProvider(ITextLocalizer? localizer = null) : IEr
         [ErrorCode.PasswordResetTokenInvalidOrExpired] = "Password reset link is invalid or expired.",
         [ErrorCode.PasswordResetNewPasswordMustBeDifferent] = "New password must be different from the current password.",
         [ErrorCode.SessionInvalid] = "Sessiya məlumatları yenilənib. Zəhmət olmasa yenidən daxil olun.",
+        [ErrorCode.EmailChangeRequiresVerification] = "E-poçtu dəyişmək üçün ayrıca təsdiq axınından istifadə edin.",
+        [ErrorCode.EmailChangeInvalidOrExpired] = "E-poçt dəyişmə linki etibarsızdır və ya vaxtı bitib.",
         [ErrorCode.OwnerRoleCannotBeChanged] = "Sahibkar hesabının rolu dəyişdirilə bilməz.",
 
         [ErrorCode.RestaurantNotFound] = "Restaurant not found.",

@@ -76,6 +76,9 @@ namespace ECafe.Application.Common.Audit
         public const string RestaurantScheduleCustomerResponded = "RestaurantScheduleCustomerResponded";
         public const string RestaurantScheduleWalkInAcknowledged = "RestaurantScheduleWalkInAcknowledged";
 
+        public const string EmailChangeRequested = "EmailChangeRequested";
+        public const string EmailChangeConfirmed = "EmailChangeConfirmed";
+
         public static IReadOnlyCollection<AuditActionDefinition> All { get; } =
         [
             new(1, RestaurantCreated, "Restoran yaradıldı"),
@@ -146,7 +149,9 @@ namespace ECafe.Application.Common.Audit
             new(83, OrderCancellationForwarded, "Ləğv sorğusu mətbəxə ötürüldü"),
             new(84, OrderCancellationApproved, "Mətbəx sifarişin ləğvini təsdiqlədi"),
             new(85, OrderCancellationRejected, "Mətbəx sifarişin ləğvini rədd etdi"),
-            new(86, OrderCancellationExpired, "Sifarişin ləğv sorğusu aktuallığını itirdi")
+            new(86, OrderCancellationExpired, "Sifarişin ləğv sorğusu aktuallığını itirdi"),
+            new(87, EmailChangeRequested, "E-poçt dəyişikliyi soruşuldu"),
+            new(88, EmailChangeConfirmed, "E-poçt dəyişikliyi təsdiqləndi")
         ];
 
         public static string GetDisplayName(string? action)

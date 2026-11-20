@@ -57,6 +57,7 @@ public partial class ECafeDbContext : DbContext
     public virtual DbSet<User> Users { get; set; } = null!;
     public virtual DbSet<UserPasswordSetupToken> UserPasswordSetupTokens { get; set; } = null!;
     public virtual DbSet<PasswordResetToken> PasswordResetTokens { get; set; } = null!;
+    public DbSet<EmailChangeRequest> EmailChangeRequests { get; set; } = null!;
     public virtual DbSet<UserRefreshToken> UserRefreshTokens { get; set; } = null!;
     public virtual DbSet<LoginAttempt> LoginAttempts { get; set; } = null!;
     public virtual DbSet<UserRestaurant> UserRestaurants { get; set; } = null!;

@@ -1,0 +1,42 @@
+{
+  "api.error.EmailChangeRequiresVerification": {
+    "az": "E-poçtu dəyişmək üçün ayrıca təsdiq axınından istifadə edin.",
+    "en": "Use the verification flow to change your email address.",
+    "ru": "Для изменения электронной почты используйте отдельное подтверждение."
+  },
+  "api.error.EmailChangeInvalidOrExpired": {
+    "az": "E-poçt dəyişmə linki etibarsızdır və ya vaxtı bitib.",
+    "en": "The email change link is invalid or has expired.",
+    "ru": "Ссылка изменения электронной почты недействительна или срок её действия истёк."
+  },
+  "email.emailChange.confirmSubject": {
+    "az": "ECafe: yeni e-poçt ünvanını təsdiqləyin",
+    "en": "ECafe: verify your new email address",
+    "ru": "ECafe: подтвердите новый адрес электронной почты"
+  },
+  "email.emailChange.confirmBody": {
+    "az": "ECafe hesabınızın e-poçt ünvanını dəyişmək üçün bu linki açın və daxil olduğunuz hesabda təsdiqləyin:\n{url}\n\nLink {minutes} dəqiqə aktivdir və bir dəfə istifadə olunur. Sorğunu siz etməmisinizsə, təsdiqləməyin.",
+    "en": "Open this link and confirm with the signed-in account to change your ECafe email:\n{url}\n\nThis link expires in {minutes} minutes and can be used once. Do not confirm if you did not request this change.",
+    "ru": "Откройте ссылку и подтвердите изменение в своём аккаунте ECafe:\n{url}\n\nСсылка действует {minutes} минут и используется один раз. Если вы не запрашивали изменение, не подтверждайте его."
+  },
+  "email.emailChange.requestSubject": {
+    "az": "ECafe: e-poçt dəyişikliyi sorğusu",
+    "en": "ECafe: email change requested",
+    "ru": "ECafe: запрошено изменение электронной почты"
+  },
+  "email.emailChange.requestBody": {
+    "az": "Hesabınız üçün e-poçt dəyişikliyi soruşulub. Yeni ünvan təsdiqlənənədək bu ünvan qüvvədə qalır. Sorğunu siz etməmisinizsə, dərhal parolunuzu bərpa edin və bütün cihazlardan çıxış edin.",
+    "en": "An email change was requested for your account. Your current address remains active until verification. If this was not you, reset your password immediately and sign out all devices.",
+    "ru": "Для вашего аккаунта запрошено изменение электронной почты. До подтверждения действует прежний адрес. Если это были не вы, немедленно восстановите пароль и завершите все сеансы."
+  },
+  "email.emailChange.changedSubject": {
+    "az": "ECafe: hesabınızın e-poçtu dəyişdirildi",
+    "en": "ECafe: your account email was changed",
+    "ru": "ECafe: электронная почта аккаунта изменена"
+  },
+  "email.emailChange.changedBody": {
+    "az": "Hesabınızın e-poçt ünvanı dəyişdirildi. Təhlükəsizlik üçün bütün girişlər bağlandı. Yeni ünvanla yenidən daxil olun. Dəyişiklik sizə aid deyilsə, dərhal dəstək xidməti ilə əlaqə saxlayın.",
+    "en": "Your account email address was changed. All sessions were signed out for security. Sign in again with your new address. Contact support immediately if you did not make this change.",
+    "ru": "Электронная почта аккаунта изменена. Все сеансы завершены для безопасности. Войдите с новым адресом. Если изменение совершили не вы, немедленно обратитесь в поддержку."
+  }
+}
