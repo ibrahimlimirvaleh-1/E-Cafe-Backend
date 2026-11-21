@@ -70,12 +70,13 @@ namespace ECafe.Infrastructure.Repositories.UserRestaurant
                 .ThenInclude(u => u.File)
                 .FirstOrDefaultAsync();
 
-        public Task<bool> HasAnyOtherActiveAssignmentAsync(int userId, int excludedUserRestaurantId)
+        /// <summary>User kilidi altında kompozit user/restoran açarı ilə digər aktiv işçi profilini yoxlayır; miras Id sahəsinə güvənmir.</summary>
+        public Task<bool> HasAnyOtherActiveStaffAssignmentAsync(int userId, int excludedRestaurantId)
             => Query(x =>
                     x.UserId == userId &&
-                    x.Id != excludedUserRestaurantId &&
+                    x.RestaurantId != excludedRestaurantId &&
                     x.IsActive &&
-                    x.Restaurant.IsActive)
+                    ECafe.Domain.Policies.UserProfileAccessPolicy.RestaurantRoleIds.Contains(x.RoleId))
                 .AnyAsync();
 
         public Task<Domain.Entities.UserRestaurant?> GetActiveOwnerByRestaurantAsync(int restaurantId)

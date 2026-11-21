@@ -73,6 +73,7 @@ public sealed class ErrorMessageProvider(ITextLocalizer? localizer = null) : IEr
         [ErrorCode.EmailChangeRequiresVerification] = "E-poçtu dəyişmək üçün ayrıca təsdiq axınından istifadə edin.",
         [ErrorCode.EmailChangeInvalidOrExpired] = "E-poçt dəyişmə linki etibarsızdır və ya vaxtı bitib.",
         [ErrorCode.StaffAccountInactive] = "Hesab səviyyəsində bloklanmış istifadəçinin restoran profilini aktivləşdirmək mümkün deyil.",
+        [ErrorCode.StaffProfileInactive] = "Aktiv işçi profiliniz yoxdur. Giriş üçün restoran məsulu ilə əlaqə saxlayın.",
         [ErrorCode.OwnerRoleCannotBeChanged] = "Sahibkar hesabının rolu dəyişdirilə bilməz.",
 
         [ErrorCode.RestaurantNotFound] = "Restaurant not found.",

@@ -346,7 +346,7 @@ public sealed class MobilePushDeliveryTests
     [InlineData(AuditEntityTypes.TableSession, true)]
     [InlineData(AuditEntityTypes.TableSession, false)]
     [InlineData("", false)]
-    public async Task FormerStaffPersonalPushStillRequiresItsOwnLinkedCustomerResource(string entityType, bool ownsResource)
+    public async Task StaffWithoutActiveProfilesNeverReceivesCustomerPush(string entityType, bool ownsResource)
     {
         await using var context = CreateContext();
         var protector = new EphemeralDataProtectionProvider();
@@ -370,7 +370,7 @@ public sealed class MobilePushDeliveryTests
         var processor = new MobilePushDeliveryProcessor(context, configuration, protector, transport);
         await processor.ExpandOutboxAsync(10, CancellationToken.None);
         await processor.SendPendingAsync(10, CancellationToken.None);
-        Assert.Equal(ownsResource ? 1 : 0, transport.SentTokens.Count);
+        Assert.Empty(transport.SentTokens);
     }
 
     [Theory]

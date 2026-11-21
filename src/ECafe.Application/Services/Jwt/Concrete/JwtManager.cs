@@ -30,6 +30,7 @@ namespace ECafe.Application.Services.Jwt.Concrete
 
         public string GenerateToken(Domain.Entities.User user, string? fileUrl = null, string? sessionId = null)
         {
+            UserProfileAccessPolicy.EnsureHasRequiredStaffProfile(user);
             var claims = new List<Claim>
                 {
                     new Claim("userId", user.Id.ToString()),
@@ -53,7 +54,6 @@ namespace ECafe.Application.Services.Jwt.Concrete
                 .OrderBy(restaurantId => restaurantId)
                 .ToList();
 
-            var accountRoleId = UserProfileAccessPolicy.ResolveAccountRole(user.RoleId, assignedRestaurantIds.Count > 0);
 
             if (assignedRestaurantIds.Count > 0)
             {
@@ -70,10 +70,10 @@ namespace ECafe.Application.Services.Jwt.Concrete
                 claims.Add(new Claim("restaurantRoles", string.Join(",", restaurantRoles)));
             }
 
-            claims.Add(new Claim(ClaimTypes.Role, accountRoleId.ToString()));
-            claims.Add(new Claim("roleName", EnumExtensions.GetDescription((RoleCode)accountRoleId)));
+            claims.Add(new Claim(ClaimTypes.Role, user.RoleId.ToString()));
+            claims.Add(new Claim("roleName", EnumExtensions.GetDescription((RoleCode)user.RoleId)));
 
-            foreach (var permission in accountRoleId == user.RoleId ? GetPermissionClaims(user) : [])
+            foreach (var permission in GetPermissionClaims(user))
                 claims.Add(new Claim("permission", permission));
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]!));

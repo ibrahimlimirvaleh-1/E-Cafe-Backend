@@ -51,6 +51,7 @@ public enum ErrorCode
     EmailChangeRequiresVerification = 1138,
     EmailChangeInvalidOrExpired = 1139,
     StaffAccountInactive = 1140,
+    StaffProfileInactive = 1141,
 
     RestaurantNotFound = 2000,
     UnitNotFound = 2001,

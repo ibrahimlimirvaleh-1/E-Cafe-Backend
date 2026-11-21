@@ -98,20 +98,24 @@ namespace ECafe.Infrastructure.Repositories.User
             => Query()
                 .AnyAsync(u => u.Id == userId && u.IsActive);
 
-        public async Task<(bool IsActive, int SessionVersion)?> GetSessionStateAsync(int userId)
+        /// <summary>Qlobal status, sessiya versiyası və personalın aktiv profil tələbini bir SQL projection-da oxuyur.</summary>
+        public async Task<(bool IsActive, int SessionVersion, bool HasRequiredStaffProfile)?> GetSessionStateAsync(int userId)
         {
             var state = await Query()
                 .Where(u => u.Id == userId)
                 .Select(u => new
                 {
                     u.IsActive,
-                    u.SessionVersion
+                    u.SessionVersion,
+                    HasRequiredStaffProfile = !ECafe.Domain.Policies.UserProfileAccessPolicy.RestaurantRoleIds.Contains(u.RoleId) ||
+                        u.UserRestaurants.Any(assignment => assignment.IsActive && !assignment.IsDeleted &&
+                            ECafe.Domain.Policies.UserProfileAccessPolicy.RestaurantRoleIds.Contains(assignment.RoleId))
                 })
                 .FirstOrDefaultAsync();
 
             return state is null
                 ? null
-                : (state.IsActive, state.SessionVersion);
+                : (state.IsActive, state.SessionVersion, state.HasRequiredStaffProfile);
         }
 
         public Task<Domain.Entities.User?> GetStaffDetailAsync(int restaurantId, int staffId)

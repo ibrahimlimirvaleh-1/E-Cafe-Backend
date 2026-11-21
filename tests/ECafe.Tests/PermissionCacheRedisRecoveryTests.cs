@@ -70,7 +70,7 @@ public sealed class PermissionCacheRedisRecoveryTests
         await cache.SetStringAsync("user-session-state:17", JsonSerializer.Serialize(new UserSessionState(true, 7)));
         await cache.SetStringAsync("user-session-active:17:isolated-test-session", "True");
 
-        (bool IsActive, int SessionVersion)? currentUser = (true, 7);
+        (bool IsActive, int SessionVersion, bool HasRequiredStaffProfile)? currentUser = (true, 7, true);
         var activeSession = true;
         var users = new Mock<IUserRepository>();
         users.Setup(value => value.GetSessionStateAsync(17)).ReturnsAsync(() => currentUser);
@@ -96,11 +96,14 @@ public sealed class PermissionCacheRedisRecoveryTests
             Assert.True(reachedNext);
         }
 
-        currentUser = (false, 7);
+        currentUser = (true, 7, false);
+        Assert.Equal(ErrorCode.StaffProfileInactive,
+            (await Assert.ThrowsAsync<UnauthorizedException>(() => middleware.Invoke(http, sessions))).Code);
+        currentUser = (false, 7, true);
         await Assert.ThrowsAsync<UnauthorizedException>(() => middleware.Invoke(http, sessions));
-        currentUser = (true, 8);
+        currentUser = (true, 8, true);
         await Assert.ThrowsAsync<UnauthorizedException>(() => middleware.Invoke(http, sessions));
-        currentUser = (true, 7);
+        currentUser = (true, 7, true);
         activeSession = false;
         await Assert.ThrowsAsync<UnauthorizedException>(() => middleware.Invoke(http, sessions));
         activeSession = true;
@@ -109,7 +112,7 @@ public sealed class PermissionCacheRedisRecoveryTests
         db.RolePermissions.Remove(grant);
         await db.SaveChangesAsync();
         Assert.Empty(await permissions.GetPermissionsAsync(roleId));
-        currentUser = (false, 7);
+        currentUser = (false, 7, true);
         activeSession = false;
 
         await redis.RestartAsync();
@@ -120,11 +123,15 @@ public sealed class PermissionCacheRedisRecoveryTests
         await cache.SetStringAsync("user-session-active:17:isolated-test-session", "True");
         Assert.Empty(await permissions.GetPermissionsAsync(roleId));
         reachedNext = false;
+        currentUser = (true, 7, false);
+        Assert.Equal(ErrorCode.StaffProfileInactive,
+            (await Assert.ThrowsAsync<UnauthorizedException>(() => middleware.Invoke(http, sessions))).Code);
+        currentUser = (false, 7, true);
         await Assert.ThrowsAsync<UnauthorizedException>(() => middleware.Invoke(http, sessions));
         Assert.False(reachedNext);
-        currentUser = (true, 8);
+        currentUser = (true, 8, true);
         await Assert.ThrowsAsync<UnauthorizedException>(() => middleware.Invoke(http, sessions));
-        currentUser = (true, 7);
+        currentUser = (true, 7, true);
         await Assert.ThrowsAsync<UnauthorizedException>(() => middleware.Invoke(http, sessions));
 
         grant.IsDeleted = false;

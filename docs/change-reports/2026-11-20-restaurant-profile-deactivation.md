@@ -1,5 +1,7 @@
 # Restoran profilinin deaktiv edilməsi
 
+> Bu sənəd əvvəlki şəxsi/müştəri fallback yanaşmasının tarixçəsidir. Son işçi profili bağlananda çıxış və təkrar girişin rədd edilməsi üçün qüvvədə olan yeni qayda: [2026-11-22 hesabatı](2026-11-22-staff-profile-required-login.md).
+
 ## Problem
 
 Eyni istifadəçinin Buta Baku və Dolce Vita profilləri var. Bir restoran profilinin deaktiv edilməsi digər restorandakı sessiyanı da bağlayırdı.

@@ -98,7 +98,7 @@ public sealed class StaffRoleChangeTests
     }
 
     [Fact]
-    public async Task DeactivatingLastAssignmentPreservesPersonalAccountAndDeviceSessions()
+    public async Task DeactivatingLastAssignmentKeepsAccountButRevokesAllDeviceSessions()
     {
         await using var f = await Fixture.CreateAsync();
         f.SetActor(RoleCode.Manager, 1);
@@ -107,11 +107,13 @@ public sealed class StaffRoleChangeTests
         await f.Service.UpdateStaffAsync(1, 5, request);
         Assert.False(f.Assignment.IsActive);
         Assert.True(f.User.IsActive);
-        Assert.Equal(1, f.User.SessionVersion);
-        f.Sessions.Verify(value => value.InvalidateAsync(5), Times.Never);
-        f.Refresh.Verify(value => value.GetActiveByUserIdTrackedAsync(5, It.IsAny<DateTime>()), Times.Never);
+        Assert.Equal(2, f.User.SessionVersion);
+        f.Sessions.Verify(value => value.InvalidateAsync(5), Times.Once);
+        f.Refresh.Verify(value => value.GetActiveByUserIdTrackedAsync(5, It.IsAny<DateTime>()), Times.Once);
         f.Realtime.Verify(value => value.NotifyUserDeactivatedAsync(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
-        f.Realtime.Verify(value => value.NotifyRestaurantAccessChangedAsync(5, 1, "staff_deactivated", It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
+        f.Realtime.Verify(value => value.NotifyRestaurantAccessChangedAsync(5, 1, "staff_access_revoked", It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
+        Assert.Equal(ErrorCode.StaffProfileInactive,
+            (await Assert.ThrowsAsync<UnauthorizedException>(() => f.Service.GetProfileAsync(5))).Code);
     }
 
     [Fact]
@@ -160,13 +162,43 @@ public sealed class StaffRoleChangeTests
         await f.Service.DeactivateStaffAsync(1, 5);
         Assert.False(f.Assignment.IsActive);
         Assert.True(f.User.IsActive);
-        Assert.Equal(1, f.User.SessionVersion);
-        Assert.Empty(f.Sessions.Invocations);
-        f.Refresh.Verify(value => value.GetActiveByUserIdTrackedAsync(5, It.IsAny<DateTime>()), Times.Never);
+        Assert.Equal(multiple ? 1 : 2, f.User.SessionVersion);
+        f.Sessions.Verify(value => value.InvalidateAsync(5), multiple ? Times.Never() : Times.Once());
+        f.Refresh.Verify(value => value.GetActiveByUserIdTrackedAsync(5, It.IsAny<DateTime>()), multiple ? Times.Never() : Times.Once());
         f.Access.Verify(value => value.InvalidateAsync(5, 1), Times.Once);
         f.Access.Verify(value => value.InvalidateAsync(5, 2), Times.Never);
-        f.Realtime.Verify(value => value.NotifyRestaurantAccessChangedAsync(5, 1, "staff_deactivated", It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
+        f.Realtime.Verify(value => value.NotifyRestaurantAccessChangedAsync(5, 1, multiple ? "staff_deactivated" : "staff_access_revoked", It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
         Assert.Single(f.Realtime.Invocations);
+    }
+
+    [Fact]
+    public async Task OrdinaryCustomerDoesNotLoseItsSessionWhenAnAdditionalStaffProfileIsRemoved()
+    {
+        await using var f = await Fixture.CreateAsync();
+        f.User.RoleId = (int)RoleCode.Customer;
+        await f.Db.SaveChangesAsync();
+        await f.Service.DeactivateStaffAsync(1, 5);
+        Assert.True(f.User.IsActive);
+        Assert.Equal(1, f.User.SessionVersion);
+        Assert.Equal((int)RoleCode.Customer, (await f.Service.GetProfileAsync(5)).RoleId);
+        Assert.Empty(f.Sessions.Invocations);
+        f.Refresh.Verify(value => value.GetActiveByUserIdTrackedAsync(5, It.IsAny<DateTime>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task RestoringFirstStaffProfileCannotResurrectLegacyPersonalFallbackSessions()
+    {
+        await using var f = await Fixture.CreateAsync();
+        f.Assignment.IsActive = false;
+        await f.Db.SaveChangesAsync();
+        var token = new UserRefreshToken { UserId = 5, SessionId = "legacy-device", ExpiresAt = DateTime.UtcNow.AddDays(1) };
+        f.Refresh.Setup(value => value.GetActiveByUserIdTrackedAsync(5, It.IsAny<DateTime>())).ReturnsAsync([token]);
+        await f.Service.ActivateStaffAsync(1, 5);
+        Assert.True(f.Assignment.IsActive);
+        Assert.True(f.User.IsActive);
+        Assert.Equal(2, f.User.SessionVersion);
+        Assert.NotNull(token.RevokedAt);
+        f.Sessions.Verify(value => value.InvalidateAsync(5), Times.Once);
     }
 
     [Fact]

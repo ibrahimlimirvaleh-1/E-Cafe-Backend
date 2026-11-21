@@ -31,7 +31,7 @@ public sealed class AuthorizationStateConsistencyTests
         var oldState = JsonSerializer.Serialize(new UserSessionState(true, 7));
         await cache.SetStringAsync("user-session-state:17", oldState);
         await cache.SetStringAsync("user-session-active:17:device-a", "True");
-        (bool IsActive, int SessionVersion)? state = (true, 7);
+        (bool IsActive, int SessionVersion, bool HasRequiredStaffProfile)? state = (true, 7, true);
         var activeSession = true;
         var users = new Mock<IUserRepository>(MockBehavior.Strict);
         users.Setup(value => value.GetSessionStateAsync(17)).ReturnsAsync(() => state);
@@ -44,7 +44,7 @@ public sealed class AuthorizationStateConsistencyTests
         await middleware.Invoke(Request(), service);
         Assert.True(reachedNext);
 
-        state = (isActive, version);
+        state = (isActive, version, true);
         activeSession = deviceActive;
         reachedNext = false;
         var error = await Assert.ThrowsAsync<UnauthorizedException>(() => middleware.Invoke(Request(), service));
@@ -60,10 +60,26 @@ public sealed class AuthorizationStateConsistencyTests
         var cache = Cache();
         await cache.SetStringAsync("user-session-state:17", JsonSerializer.Serialize(new UserSessionState(true, 7)));
         var users = new Mock<IUserRepository>(MockBehavior.Strict);
-        users.Setup(value => value.GetSessionStateAsync(17)).ReturnsAsync(((bool, int)?)null);
+        users.Setup(value => value.GetSessionStateAsync(17)).ReturnsAsync(((bool, int, bool)?)null);
         var middleware = new ActiveUserMiddleware(_ => throw new InvalidOperationException("Must not reach endpoint"));
         await Assert.ThrowsAsync<UnauthorizedException>(() => middleware.Invoke(Request(),
             Sessions(cache, users.Object, Mock.Of<IUserRefreshTokenRepository>())));
+    }
+
+    [Fact]
+    public async Task MissingStaffProfileRejectsEvenAnOldCustomerClaimAndWarmAllowCache()
+    {
+        var cache = Cache();
+        await cache.SetStringAsync("user-session-state:17", JsonSerializer.Serialize(new UserSessionState(true, 7)));
+        var users = new Mock<IUserRepository>();
+        users.Setup(value => value.GetSessionStateAsync(17)).ReturnsAsync((true, 7, false));
+        var http = Request();
+        http.User = new(new ClaimsIdentity([new("userId", "17"), new("sessionVersion", "7"),
+            new(ClaimTypes.Role, "5")], "test"));
+        var middleware = new ActiveUserMiddleware(_ => throw new InvalidOperationException("Must not reach endpoint"));
+        var error = await Assert.ThrowsAsync<UnauthorizedException>(() => middleware.Invoke(http,
+            Sessions(cache, users.Object, Mock.Of<IUserRefreshTokenRepository>())));
+        Assert.Equal(ErrorCode.StaffProfileInactive, error.Code);
     }
 
     [Fact]
@@ -148,7 +164,7 @@ public sealed class AuthorizationStateConsistencyTests
         cache.Setup(value => value.GetAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .Returns(new TaskCompletionSource<byte[]?>().Task);
         var users = new Mock<IUserRepository>();
-        users.Setup(value => value.GetSessionStateAsync(17)).ReturnsAsync((true, 7));
+        users.Setup(value => value.GetSessionStateAsync(17)).ReturnsAsync((true, 7, true));
         var tokens = new Mock<IUserRefreshTokenRepository>();
         tokens.Setup(value => value.HasActiveUserSessionAsync(17, "device-a", It.IsAny<DateTime>())).ReturnsAsync(false);
         var restaurants = new Mock<IUserRestaurantRepository>();
