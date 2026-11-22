@@ -5,6 +5,7 @@ using ECafe.Application.Services.Jwt.Concrete;
 using ECafe.Domain.Entities;
 using ECafe.Domain.Enums;
 using ECafe.Domain.Policies;
+using ECafe.Domain.Exceptions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -19,17 +20,16 @@ public sealed class UserProfileAccessPolicyTests
     [InlineData(RoleCode.Manager)]
     [InlineData(RoleCode.Waiter)]
     [InlineData(RoleCode.Kitchen)]
-    public void StaffWithoutActiveProfilesGetsPersonalRoleWithoutFormerStaffPermissions(RoleCode role)
+    public void StaffWithoutActiveProfilesCannotMintAnyTokenOrBecomeCustomer(RoleCode role)
     {
         var user = Account(role);
         user.UserRestaurants.Add(new UserRestaurant { RestaurantId = 1, RoleId = (int)role, IsActive = false });
-        var claims = Claims(user);
-        Assert.Equal(((int)RoleCode.Customer).ToString(), Assert.Single(claims, value => value.Type == ClaimTypes.Role).Value);
-        Assert.DoesNotContain(claims, value => value.Type is "permission" or "restaurantId" or "restaurantIds" or "restaurantRoles");
+        Assert.Equal(ErrorCode.StaffProfileInactive, Assert.Throws<UnauthorizedException>(() => Claims(user)).Code);
         Assert.Equal((int)role, user.RoleId);
         Assert.True(user.IsActive);
         Assert.Equal(7, user.SessionVersion);
-        Assert.True(UserProfileAccessPolicy.PersonalAccounts.Compile()(user));
+        Assert.False(UserProfileAccessPolicy.HasRequiredStaffProfile(user));
+        Assert.False(UserProfileAccessPolicy.PersonalAccounts.Compile()(user));
         user.IsActive = false;
         Assert.False(UserProfileAccessPolicy.PersonalAccounts.Compile()(user));
     }
@@ -40,9 +40,22 @@ public sealed class UserProfileAccessPolicyTests
     public void AccountRolesDoNotRequireRestaurantProfiles(RoleCode role)
     {
         var user = Account(role);
-        Assert.Equal((int)role, UserProfileAccessPolicy.ResolveAccountRole((int)role, false));
+        Assert.True(UserProfileAccessPolicy.HasRequiredStaffProfile(user));
         Assert.Equal(((int)role).ToString(), Assert.Single(Claims(user), value => value.Type == ClaimTypes.Role).Value);
         Assert.Equal(role == RoleCode.Customer, UserProfileAccessPolicy.PersonalAccounts.Compile()(user));
+    }
+
+    [Theory]
+    [InlineData(RoleCode.Customer, false)]
+    [InlineData(RoleCode.SuperAdmin, false)]
+    [InlineData(RoleCode.Waiter, true)]
+    public void OnlyActiveStaffAssignmentsSatisfyTheStaffLoginRequirement(RoleCode assignmentRole, bool allowed)
+    {
+        var user = Account(RoleCode.Manager);
+        user.UserRestaurants.Add(new UserRestaurant { RoleId = (int)assignmentRole, IsActive = true });
+        Assert.Equal(allowed, UserProfileAccessPolicy.HasRequiredStaffProfile(user));
+        user.UserRestaurants.Single().IsDeleted = true;
+        Assert.False(UserProfileAccessPolicy.HasRequiredStaffProfile(user));
     }
 
     [Fact]

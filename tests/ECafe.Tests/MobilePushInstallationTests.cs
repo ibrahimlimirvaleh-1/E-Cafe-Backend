@@ -69,7 +69,7 @@ public sealed class MobilePushInstallationTests
     }
 
     [Fact]
-    public async Task RegistrationAllowsCustomerAndFormerStaffPersonalAccountsButRejectsUnassignedPlatformAdmin()
+    public async Task RegistrationAllowsCustomerButRejectsStaffWithoutAnActiveProfile()
     {
         await using var context = CreateContext();
         await AddSessionAsync(context, 1, "a");
@@ -84,15 +84,9 @@ public sealed class MobilePushInstallationTests
         Assert.True(Assert.Single(context.MobilePushInstallations).IsActive);
         context.Users.Single().RoleId = (int)RoleCode.Manager;
         await context.SaveChangesAsync();
-        var formerStaffInstallation = Guid.NewGuid();
-        await CreateService(context, 1, "a")
-            .RegisterAsync(formerStaffInstallation, new(TokenB, ProjectId), CancellationToken.None);
-        Assert.Equal(2, context.MobilePushInstallations.Count());
-        context.Users.Single().RoleId = (int)RoleCode.SuperAdmin;
-        await context.SaveChangesAsync();
         await Assert.ThrowsAsync<ForbiddenException>(() => CreateService(context, 1, "a")
-            .RegisterAsync(formerStaffInstallation, new(TokenB, ProjectId), CancellationToken.None));
-        Assert.Equal(2, context.MobilePushInstallations.Count());
+            .RegisterAsync(Guid.NewGuid(), new(TokenB, ProjectId), CancellationToken.None));
+        Assert.Single(context.MobilePushInstallations);
     }
 
     [Theory]
@@ -138,7 +132,7 @@ public sealed class MobilePushInstallationTests
     [InlineData("expired-contract")]
     [InlineData("inactive-assignment")]
     [InlineData("unsupported-role")]
-    public async Task RegistrationRechecksStaffGrantOrFallsBackToPersonalAccount(string change)
+    public async Task RegistrationRequiresActiveStaffGrantWithoutCustomerFallback(string change)
     {
         await using var context = CreateContext();
         await AddSessionAsync(context, 1, "a");
@@ -152,15 +146,6 @@ public sealed class MobilePushInstallationTests
             case "unsupported-role": context.UserRestaurants.Single().RoleId = (int)RoleCode.SuperAdmin; break;
         }
         await context.SaveChangesAsync();
-
-        if (change == "inactive-assignment")
-        {
-            await CreateService(context, 1, "a")
-                .RegisterAsync(Guid.NewGuid(), new(TokenA, ProjectId), CancellationToken.None);
-            Assert.True(Assert.Single(context.MobilePushInstallations).IsActive);
-            Assert.False(context.UserRestaurants.Any(value => value.IsActive));
-            return;
-        }
 
         await Assert.ThrowsAsync<ForbiddenException>(() => CreateService(context, 1, "a")
             .RegisterAsync(Guid.NewGuid(), new(TokenA, ProjectId), CancellationToken.None));

@@ -1,4 +1,9 @@
 {
+  "api.error.StaffProfileInactive": {
+    "az": "Aktiv işçi profiliniz yoxdur. Giriş üçün restoran məsulu ilə əlaqə saxlayın.",
+    "en": "You have no active staff profile. Contact the restaurant administrator to regain access.",
+    "ru": "У вас нет активного профиля сотрудника. Для восстановления доступа обратитесь к администрации ресторана."
+  },
   "api.error.StaffAccountInactive": {
     "az": "Hesab səviyyəsində bloklanmış istifadəçinin restoran profilini aktivləşdirmək mümkün deyil.",
     "en": "This restaurant profile cannot be activated while the user account is blocked.",

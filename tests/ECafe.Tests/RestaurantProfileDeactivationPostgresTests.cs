@@ -73,36 +73,129 @@ public sealed partial class MobileAuthPostgresTests
     }
 
     [StockPostgresFact]
-    public async Task LastProfileDeactivationAllowsPersonalLoginAndRefreshWithoutAnyStaffClaims()
+    public async Task LastProfileDeactivationRevokesBothDevicesAndRequiresFreshLoginAfterReactivation()
+    {
+        foreach (var editForm in new[] { false, true })
+        {
+            await using var fixture = await ProfileDatabaseAsync();
+            await DisableSecondProfileAsync(fixture);
+            await using (var db = fixture.Context()) await DeactivateProfileAsync(db, editForm);
+            await AssertProfileSessionDeniedAsync(fixture, ErrorCode.StaffProfileInactive);
+            await using (var db = fixture.Context())
+            {
+                Assert.Equal(ErrorCode.StaffProfileInactive,
+                    (await Assert.ThrowsAsync<UnauthorizedException>(() => ProfileService(db).GetProfileAsync(1001))).Code);
+                var user = await db.Users.SingleAsync(value => value.Id == 1001);
+                Assert.True(user.IsActive);
+                Assert.Equal((int)RoleCode.Waiter, user.RoleId);
+                Assert.Equal(1, user.SessionVersion);
+                Assert.False(await db.UserRefreshTokens.AnyAsync(value => value.RevokedAt == null));
+                Assert.False(await db.Users.Where(UserProfileAccessPolicy.PersonalAccounts).AnyAsync(value => value.Id == 1001));
+            }
+            await using (var db = fixture.Context())
+                Assert.Equal(ErrorCode.StaffProfileInactive, (await Assert.ThrowsAsync<UnauthorizedException>(() =>
+                    Service(db).LoginAsync(new() { Email = "test1001@example.test", Password = "test-password" }))).Code);
+            foreach (var token in new[] { OriginalToken, OtherDeviceToken })
+            {
+                await using var db = fixture.Context();
+                await Assert.ThrowsAsync<UnauthorizedException>(() => Service(db).RefreshAsync(new() { RefreshToken = token }));
+            }
+            await using (var db = fixture.Context()) await ProfileService(db).ActivateStaffAsync(1001, 1001);
+            await AssertProfileSessionDeniedAsync(fixture, ErrorCode.SessionInvalid);
+            await using (var db = fixture.Context())
+                await Assert.ThrowsAsync<UnauthorizedException>(() => Service(db).RefreshAsync(new() { RefreshToken = OriginalToken }));
+            await using (var db = fixture.Context())
+            {
+                var response = await Service(db).LoginAsync(new() { Email = "test1001@example.test", Password = "test-password" });
+                var claims = new JwtSecurityTokenHandler().ReadJwtToken(response.AccessToken).Claims.ToList();
+                Assert.Equal("4", Assert.Single(claims, value => value.Type == ClaimTypes.Role).Value);
+                Assert.Equal("1001:4", Assert.Single(claims, value => value.Type == "restaurantRoles").Value);
+            }
+        }
+    }
+
+    [StockPostgresFact]
+    public async Task StaffAlreadyInLegacyCustomerFallbackCannotUseLoginRefreshOrOldCustomerClaims()
     {
         await using var fixture = await ProfileDatabaseAsync();
         await using (var setup = fixture.Context())
         {
-            (await setup.UserRestaurants.SingleAsync(value => value.RestaurantId == 1002)).IsActive = false;
+            foreach (var assignment in await setup.UserRestaurants.ToListAsync()) assignment.IsActive = false;
             await setup.SaveChangesAsync();
         }
-        await using (var db = fixture.Context()) await DeactivateProfileAsync(db, false);
+        await AssertProfileSessionDeniedAsync(fixture, ErrorCode.StaffProfileInactive);
+        await using (var db = fixture.Context())
+        {
+            Assert.Equal(ErrorCode.StaffProfileInactive, (await Assert.ThrowsAsync<UnauthorizedException>(() =>
+                Service(db).RefreshAsync(new() { RefreshToken = OriginalToken }))).Code);
+        }
+        await using (var db = fixture.Context())
+            Assert.Equal(ErrorCode.StaffProfileInactive, (await Assert.ThrowsAsync<UnauthorizedException>(() =>
+                Service(db).LoginAsync(new() { Email = "test1001@example.test", Password = "test-password" }))).Code);
+        await using (var db = fixture.Context())
+            Assert.Equal(ErrorCode.InvalidCredentials, (await Assert.ThrowsAsync<UnauthorizedException>(() =>
+                Service(db).LoginAsync(new() { Email = "test1001@example.test", Password = "wrong" }))).Code);
+        await using (var db = fixture.Context()) await ProfileService(db).ActivateStaffAsync(1001, 1001);
+        await using (var db = fixture.Context())
+            await Assert.ThrowsAsync<UnauthorizedException>(() => Service(db).RefreshAsync(new() { RefreshToken = OriginalToken }));
+    }
+
+    [StockPostgresFact]
+    public async Task OrdinaryCustomerWithoutStaffProfilesStillLogsInRefreshesAndKeepsItsAccount()
+    {
+        await using var fixture = await Database.CreateAsync();
+        await using (var db = fixture.Context())
+            AssertPersonalToken((await Service(db).LoginAsync(new() { Email = "test1001@example.test", Password = "test-password" })).AccessToken);
+        await using (var db = fixture.Context())
+            AssertPersonalToken((await Service(db).RefreshAsync(new() { RefreshToken = OriginalToken })).AccessToken);
         await using (var db = fixture.Context())
         {
             var profile = await ProfileService(db).GetProfileAsync(1001);
             Assert.True(profile.IsActive);
-            Assert.Empty(profile.Profiles);
             Assert.Equal((int)RoleCode.Customer, profile.RoleId);
-            Assert.Null(profile.RestaurantId);
-            Assert.Null(profile.RestaurantName);
-            Assert.True(await db.Users.Where(UserProfileAccessPolicy.PersonalAccounts).AnyAsync(value => value.Id == 1001));
+            Assert.Empty(profile.Profiles);
+            Assert.True((await new UserRepository(db).GetSessionStateAsync(1001))!.Value.HasRequiredStaffProfile);
         }
-        await using (var db = fixture.Context())
-            AssertPersonalToken((await Service(db).RefreshAsync(new() { RefreshToken = OriginalToken })).AccessToken);
-        await using (var db = fixture.Context())
-            AssertPersonalToken((await Service(db).LoginAsync(new() { Email = "test1001@example.test", Password = "test-password" })).AccessToken);
-        await using (var db = fixture.Context())
+    }
+
+    [StockPostgresFact]
+    public async Task LastStaffProfileAndRefreshSerializeInBothOrdersWithoutLeavingAnyUsableToken()
+    {
+        foreach (var refreshFirst in new[] { false, true })
         {
-            var user = await db.Users.SingleAsync(value => value.Id == 1001);
-            Assert.Equal((int)RoleCode.Waiter, user.RoleId);
-            Assert.True(user.IsActive);
-            Assert.Equal(0, user.SessionVersion);
+            await using var fixture = await ProfileDatabaseAsync();
+            await DisableSecondProfileAsync(fixture);
+            string? replacement = null;
+            // İlk sorğu user kilidində saxlanılır ki, refresh və son profilin bağlanması hər iki sırada yoxlanılsın.
+            async Task Rotate(ECafeDbContext db)
+                => replacement = (await Service(db).RefreshAsync(new() { RefreshToken = OriginalToken })).RefreshToken;
+            var errors = await RunOrderedAsync(fixture,
+                refreshFirst ? Rotate : db => DeactivateProfileAsync(db, false),
+                refreshFirst ? db => DeactivateProfileAsync(db, false) : Rotate);
+            Assert.Null(errors.First);
+            if (refreshFirst) Assert.Null(errors.Second);
+            else Assert.IsType<UnauthorizedException>(errors.Second);
+            await using var read = fixture.Context();
+            Assert.False(await read.UserRefreshTokens.AnyAsync(value => value.RevokedAt == null));
+            Assert.Equal(1, (await read.Users.SingleAsync(value => value.Id == 1001)).SessionVersion);
+            if (replacement is not null)
+                await Assert.ThrowsAsync<UnauthorizedException>(() => Service(read).RefreshAsync(new() { RefreshToken = replacement }));
         }
+    }
+
+    [StockPostgresFact]
+    public async Task ParallelRemovalOfBothProfilesRevokesDevicesOnlyWhenTheLastProfileCommits()
+    {
+        await using var fixture = await ProfileDatabaseAsync();
+        var errors = await RunOrderedAsync(fixture, db => ProfileService(db).DeactivateStaffAsync(1001, 1001),
+            db => ProfileService(db).DeactivateStaffAsync(1002, 1001));
+        Assert.Null(errors.First);
+        Assert.Null(errors.Second);
+        await using var read = fixture.Context();
+        Assert.False(await read.UserRestaurants.AnyAsync(value => value.IsActive));
+        Assert.False(await read.UserRefreshTokens.AnyAsync(value => value.RevokedAt == null));
+        Assert.Equal(1, (await read.Users.SingleAsync(value => value.Id == 1001)).SessionVersion);
+        Assert.True((await read.Users.SingleAsync(value => value.Id == 1001)).IsActive);
     }
 
     [StockPostgresFact]
@@ -189,6 +282,27 @@ public sealed partial class MobileAuthPostgresTests
             await Assert.ThrowsAsync<ForbiddenException>(() => Service(db).RefreshAsync(new() { RefreshToken = OriginalToken }));
     }
 
+    /// <summary>Sınaq hesabında yalnız bir aktiv işçi profilini saxlayır; cihaz sessiyalarına toxunmur.</summary>
+    private static async Task DisableSecondProfileAsync(Database fixture)
+    {
+        await using var db = fixture.Context();
+        (await db.UserRestaurants.SingleAsync(value => value.RestaurantId == 1002)).IsActive = false;
+        await db.SaveChangesAsync();
+    }
+
+    /// <summary>Köhnə müştəri fallback claim-i və köhnə versiya ilə yeni scope-da real middleware rəddini yoxlayır.</summary>
+    private static async Task AssertProfileSessionDeniedAsync(Database fixture, ErrorCode expected)
+    {
+        await using var db = fixture.Context();
+        var cache = new MemoryDistributedCache(Options.Create(new MemoryDistributedCacheOptions()));
+        var http = new DefaultHttpContext { User = new(new ClaimsIdentity([new("userId", "1001"),
+            new("sessionVersion", "0"), new("sessionId", Session), new(ClaimTypes.Role, "5")], "test")) };
+        http.Request.Path = "/api/v1/profile";
+        var middleware = new ECafe.Api.Middlewares.ActiveUserMiddleware(_ => throw new InvalidOperationException("Must not reach endpoint"));
+        Assert.Equal(expected, (await Assert.ThrowsAsync<UnauthorizedException>(() =>
+            middleware.Invoke(http, AuthorizationSessions(db, cache)))).Code);
+    }
+
     /// <summary>İki restoranlı sintetik icazə bazasını real personal hesabı roluna bağlayır.</summary>
     private static async Task<Database> ProfileDatabaseAsync()
     {
@@ -214,12 +328,13 @@ public sealed partial class MobileAuthPostgresTests
         else await ProfileService(db).DeactivateStaffAsync(1001, 1001);
     }
 
-    /// <summary>Profilsiz şəxsi tokenin əvvəlki personal icazələrini və restoran claim-lərini daşımadığını yoxlayır.</summary>
+    /// <summary>Adi müştəri tokeninin şəxsi rolunu, restoran claim-lərinin yoxluğunu və müştəri icazəsini saxlayır.</summary>
     private static void AssertPersonalToken(string token)
     {
         var claims = new JwtSecurityTokenHandler().ReadJwtToken(token).Claims.ToList();
         Assert.Equal(((int)RoleCode.Customer).ToString(), Assert.Single(claims, value => value.Type == ClaimTypes.Role).Value);
-        Assert.DoesNotContain(claims, value => value.Type is "restaurantId" or "restaurantIds" or "restaurantRoles" or "permission");
+        Assert.DoesNotContain(claims, value => value.Type is "restaurantId" or "restaurantIds" or "restaurantRoles");
+        Assert.All(claims.Where(value => value.Type == "permission"), value => Assert.Equal(nameof(PermissionCode.ViewRestaurantInfo), value.Value));
     }
 
     /// <summary>Real repository, transaction və row-lock ilə personal xidmətini qurur; yalnız xarici kanallar saxtadır.</summary>

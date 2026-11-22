@@ -183,6 +183,7 @@ namespace ECafe.Application.Services.User.Concrete
                 throw new BusinessRuleException(ErrorCode.StaffAccountInactive);
 
             var wasActive = staffAssignment.IsActive;
+            var sessionsRevoked = !wasActive && await RevokeSessionsIfNoOtherStaffProfileAsync(staffAssignment);
             staffAssignment.IsActive = true;
 
             await _auditLogService.RecordRestaurantActionAsync(
@@ -202,6 +203,8 @@ namespace ECafe.Application.Services.User.Concrete
 
             await _userRestaurantRepository.SaveChangesAsync();
             await transaction.CommitAsync();
+            if (sessionsRevoked)
+                await _userSessionStateCache.InvalidateAsync(staffId);
             await _userRestaurantAccessCache.InvalidateAsync(staffId, restaurantId);
             if (!wasActive)
                 await NotifyStaffProfileChangedAsync(staffId, restaurantId, true);
@@ -231,6 +234,7 @@ namespace ECafe.Application.Services.User.Concrete
                 EnsureOnlySuperAdminCanManagePrivilegedRole(staffAssignment.User.RoleId);
 
             staffAssignment.IsActive = false;
+            var accessRevoked = await RevokeSessionsIfNoOtherStaffProfileAsync(staffAssignment);
 
             await _auditLogService.RecordRestaurantActionAsync(
                 restaurantId,
@@ -249,8 +253,10 @@ namespace ECafe.Application.Services.User.Concrete
 
             await _userRestaurantRepository.SaveChangesAsync();
             await transaction.CommitAsync();
+            if (accessRevoked)
+                await _userSessionStateCache.InvalidateAsync(staffId);
             await _userRestaurantAccessCache.InvalidateAsync(staffId, restaurantId);
-            await NotifyStaffProfileChangedAsync(staffId, restaurantId, false);
+            await NotifyStaffProfileChangedAsync(staffId, restaurantId, false, accessRevoked);
         }
 
         public async Task<StaffDetailResponseDto> UpdateStaffAsync(int restaurantId, int staffId, UpdateStaffRequest request)
@@ -295,9 +301,11 @@ namespace ECafe.Application.Services.User.Concrete
 
             staffAssignment.ServiceFeePercent = request.ServiceFeePercent;
 
+            var accessRevoked = false;
             if (!request.IsActive)
             {
                 staffAssignment.IsActive = false;
+                accessRevoked = await RevokeSessionsIfNoOtherStaffProfileAsync(staffAssignment);
             }
 
             await _auditLogService.RecordRestaurantActionAsync(
@@ -317,11 +325,13 @@ namespace ECafe.Application.Services.User.Concrete
 
             await _userRestaurantRepository.SaveChangesAsync();
             await transaction.CommitAsync();
+            if (accessRevoked)
+                await _userSessionStateCache.InvalidateAsync(staffId);
             await _userRestaurantAccessCache.InvalidateAsync(staffId, restaurantId);
 
             if (!request.IsActive)
             {
-                await NotifyStaffProfileChangedAsync(staffId, restaurantId, false);
+                await NotifyStaffProfileChangedAsync(staffId, restaurantId, false, accessRevoked);
             }
 
             return await MapToStaffDetailResponseAsync(staffAssignment);
@@ -673,9 +683,10 @@ namespace ECafe.Application.Services.User.Concrete
             throw new BusinessRuleException(ErrorCode.RestaurantAlreadyHasActiveOwner);
         }
 
-        /// <summary>Hesabın qlobal statusunu və aktiv restoran profillərini ayırır; profilsiz personalı müştəri kimi qaytarır.</summary>
+        /// <summary>Qlobal hesabı və restoran profillərini ayırır; aktiv işçi profili olmayan personalın cavab almasını dayandırır.</summary>
         private async Task<ProfileResponseDto> MapToProfileResponseAsync(Domain.Entities.User user)
         {
+            UserProfileAccessPolicy.EnsureHasRequiredStaffProfile(user);
             var response = Mapper.Map<ProfileResponseDto>(user);
             response.FileUrl = await GenerateFileUrlAsync(user.File);
             response.Profiles = user.UserRestaurants
@@ -691,9 +702,6 @@ namespace ECafe.Application.Services.User.Concrete
                     IsActive = userRestaurant.IsActive && user.IsActive
                 })
                 .ToList();
-            response.RoleId = UserProfileAccessPolicy.ResolveAccountRole(user.RoleId, response.Profiles.Count > 0);
-            if (response.RoleId != user.RoleId)
-                response.Role = GetRoleDescription(response.RoleId);
             return response;
         }
 
@@ -762,11 +770,23 @@ namespace ECafe.Application.Services.User.Concrete
                 await _userRestaurantAccessCache.InvalidateAsync(assignment.UserId, assignment.RestaurantId);
         }
 
-        /// <summary>Yalnız dəyişən restoranın profilini yeniləmək üçün hesabı bağlamayan hadisə göndərir.</summary>
-        private Task NotifyStaffProfileChangedAsync(int userId, int restaurantId, bool isActive)
+        /// <summary>Son profil bağlananda çıxış, digər hallarda yalnız restoran profili yenilənməsi hadisəsi göndərir.</summary>
+        private Task NotifyStaffProfileChangedAsync(int userId, int restaurantId, bool isActive, bool accessRevoked = false)
             => _userRealtimeNotifier.NotifyRestaurantAccessChangedAsync(
-                userId, restaurantId, isActive ? "staff_activated" : "staff_deactivated",
+                userId, restaurantId, isActive ? "staff_activated" : accessRevoked ? "staff_access_revoked" : "staff_deactivated",
                 string.Empty);
+
+        /// <summary>Son profilin bağlanması və sıfırdan bərpasında köhnə cihaz tokenlərini user kilidi altında ləğv edir; adi müştərini dəyişmir.</summary>
+        private async Task<bool> RevokeSessionsIfNoOtherStaffProfileAsync(Domain.Entities.UserRestaurant assignment)
+        {
+            if (!UserProfileAccessPolicy.IsRestaurantRole(assignment.User.RoleId) ||
+                await _userRestaurantRepository.HasAnyOtherActiveStaffAssignmentAsync(assignment.UserId, assignment.RestaurantId))
+                return false;
+
+            assignment.User.SessionVersion++;
+            await RevokeActiveRefreshTokensAsync(assignment.UserId);
+            return true;
+        }
 
         private Task NotifyUserSessionTerminatedAsync(int userId)
         {

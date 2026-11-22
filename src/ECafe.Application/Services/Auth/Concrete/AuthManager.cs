@@ -12,6 +12,7 @@ using ECafe.Application.Services.Monitoring.Abstract;
 using ECafe.Application.Services.MinIO.Abstracts;
 using ECafe.Domain.Enums;
 using ECafe.Domain.Exceptions;
+using ECafe.Domain.Policies;
 using ECafe.Shared.Services.Jwt.Abstract;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
@@ -108,6 +109,13 @@ namespace ECafe.Application.Services.Auth.Concrete
                 throw new ForbiddenException("User account is inactive.");
             }
 
+            if (!UserProfileAccessPolicy.HasRequiredStaffProfile(user))
+            {
+                await _loginAttemptService.RecordFailureAsync(user, normalizedEmail, "InactiveStaffProfile");
+                await transaction.CommitAsync();
+                throw new UnauthorizedException(ErrorCode.StaffProfileInactive);
+            }
+
             await _loginAttemptService.RecordSuccessAsync(user, normalizedEmail);
             var response = await CreateAndStoreTokenResponseAsync(user);
             await transaction.CommitAsync();
@@ -183,6 +191,7 @@ namespace ECafe.Application.Services.Auth.Concrete
             if (!storedToken.User.IsActive)
                 throw new ForbiddenException("User account is inactive.");
 
+            UserProfileAccessPolicy.EnsureHasRequiredStaffProfile(storedToken.User);
             var response = await RotateRefreshTokenAsync(storedToken);
             await transaction.CommitAsync();
             return response;

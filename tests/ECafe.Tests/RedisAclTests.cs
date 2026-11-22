@@ -152,7 +152,7 @@ public sealed class RedisAclTests
         var userId = Random.Shared.Next(1000000, int.MaxValue);
         var sessionId = Guid.NewGuid().ToString("N");
         var users = new Mock<IUserRepository>(MockBehavior.Strict);
-        users.Setup(repository => repository.GetSessionStateAsync(userId)).ReturnsAsync((true, 7));
+        users.Setup(repository => repository.GetSessionStateAsync(userId)).ReturnsAsync((true, 7, true));
         var refreshTokens = new Mock<IUserRefreshTokenRepository>(MockBehavior.Strict);
         refreshTokens.Setup(repository => repository.HasActiveUserSessionAsync(userId, sessionId, It.IsAny<DateTime>())).ReturnsAsync(true);
         var service = new UserSessionStateCache(cache, users.Object, refreshTokens.Object,
@@ -168,7 +168,7 @@ public sealed class RedisAclTests
             refreshTokens.Verify(repository => repository.HasActiveUserSessionAsync(userId, sessionId, It.IsAny<DateTime>()), Times.Exactly(3));
             await service.InvalidateAsync(userId);
             await service.InvalidateSessionAsync(userId, sessionId);
-            users.Setup(repository => repository.GetSessionStateAsync(userId)).ReturnsAsync((true, 8));
+            users.Setup(repository => repository.GetSessionStateAsync(userId)).ReturnsAsync((true, 8, true));
             refreshTokens.Setup(repository => repository.HasActiveUserSessionAsync(userId, sessionId, It.IsAny<DateTime>())).ReturnsAsync(false);
             Assert.Equal(8, (await service.GetAsync(userId))!.SessionVersion);
             Assert.False(await service.IsSessionActiveAsync(userId, sessionId));

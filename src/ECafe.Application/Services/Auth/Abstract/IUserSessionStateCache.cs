@@ -1,6 +1,6 @@
 namespace ECafe.Application.Services.Auth.Abstract;
 
-public sealed record UserSessionState(bool IsActive, int SessionVersion);
+public sealed record UserSessionState(bool IsActive, int SessionVersion, bool HasRequiredStaffProfile = true);
 
 /// <summary>Adı çağırış uyğunluğu üçün saxlanır; təhlükəsizlik oxunuşları cari bazaya əsaslanır, invalidation yalnız köhnə açarların təmizliyidir.</summary>
 public interface IUserSessionStateCache

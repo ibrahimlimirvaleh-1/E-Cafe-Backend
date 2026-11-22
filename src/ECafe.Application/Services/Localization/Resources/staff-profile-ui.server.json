@@ -40,9 +40,9 @@
     "ru": "Профиль неактивен"
   },
   "ui.profiles.statusHint": {
-    "az": "Yalnız bu restorandakı girişə təsir edir; şəxsi hesabı və digər restoran profillərini bağlamır.",
-    "en": "Affects access to this restaurant only, not the personal account or other restaurant profiles.",
-    "ru": "Влияет только на доступ к этому ресторану, а не на личный аккаунт или другие профили."
+    "az": "Status bu restoranın işçi profilinə aiddir. Son aktiv işçi profili bağlanarsa, sistemə giriş dayandırılır.",
+    "en": "This status applies to the restaurant staff profile. Deactivating the last active staff profile disables sign-in.",
+    "ru": "Статус относится к рабочему профилю ресторана. После отключения последнего активного рабочего профиля вход блокируется."
   },
   "ui.profiles.activate": {
     "az": "Profili aktiv et",
@@ -70,9 +70,9 @@
     "ru": "Профиль ресторана активирован."
   },
   "ui.profiles.deactivated": {
-    "az": "Restoran profili deaktiv edildi. Digər profillər və şəxsi hesab açıq qalır.",
-    "en": "Restaurant profile deactivated. Other profiles and the personal account stay active.",
-    "ru": "Профиль ресторана деактивирован. Другие профили и личный аккаунт остаются активными."
+    "az": "Restoran profili deaktiv edildi.",
+    "en": "Restaurant profile deactivated.",
+    "ru": "Профиль ресторана деактивирован."
   },
   "ui.profiles.activationFailed": {
     "az": "Restoran profili aktiv edilmədi.",
@@ -88,5 +88,10 @@
     "az": "Bu restorandakı sahibkar profilini yalnız platforma administratoru idarə edə bilər.",
     "en": "Only the platform administrator can manage the owner profile in this restaurant.",
     "ru": "Управлять профилем владельца в этом ресторане может только администратор платформы."
+  },
+  "ui.staffAccess.inactive": {
+    "az": "Aktiv işçi profiliniz yoxdur. Giriş üçün restoran məsulu ilə əlaqə saxlayın.",
+    "en": "You have no active staff profile. Contact your restaurant administrator to sign in.",
+    "ru": "У вас нет активного рабочего профиля. Для входа обратитесь к ответственному за ресторан."
   }
 }

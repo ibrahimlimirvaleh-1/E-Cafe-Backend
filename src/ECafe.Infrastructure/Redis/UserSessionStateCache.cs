@@ -24,11 +24,11 @@ public sealed class UserSessionStateCache : IUserSessionStateCache
         _invalidator = new(cache, logger);
     }
 
-    /// <summary>Hər yoxlamada aktivliyi və sessiya versiyasını bazadan oxuyur; baza xətasında köhnə keşlə icazə vermir.</summary>
+    /// <summary>Aktivliyi, versiyanı və işçi profilinin mövcudluğunu bazadan oxuyur; köhnə Redis və ya müştəri JWT-si ilə giriş vermir.</summary>
     public async Task<UserSessionState?> GetAsync(int userId)
     {
         var state = await _userRepository.GetSessionStateAsync(userId);
-        return state is null ? null : new(state.Value.IsActive, state.Value.SessionVersion);
+        return state is null ? null : new(state.Value.IsActive, state.Value.SessionVersion, state.Value.HasRequiredStaffProfile);
     }
 
     /// <summary>Cihaz sessiyasının ləğvini və bitmə vaxtını hər dəfə bazadan yoxlayır; gecikmiş keş yazısı sessiyanı diriltmir.</summary>

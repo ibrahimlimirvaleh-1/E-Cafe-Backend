@@ -138,7 +138,7 @@ public sealed class KitchenOrderProgressTests
     [InlineData(RoleCode.Manager)]
     [InlineData(RoleCode.Waiter)]
     [InlineData(RoleCode.Kitchen)]
-    public async Task FormerStaffPersonalAccountGetsOnlyItsOwnCustomerKitchenNotifications(RoleCode storedRole)
+    public async Task StaffWithoutActiveProfilesDoesNotReceiveCustomerKitchenNotifications(RoleCode storedRole)
     {
         await using var f = await SentFixtureAsync();
         await AssignCustomerAsync(f);
@@ -146,7 +146,7 @@ public sealed class KitchenOrderProgressTests
         f.Db.UserRestaurants.Add(new UserRestaurant { UserId = 7, RestaurantId = 1, RoleId = (int)storedRole, IsActive = false });
         await f.Db.SaveChangesAsync();
         await f.Service.AcceptAsync(1, 1);
-        Assert.Equal((int)NotificationType.CustomerOrderAccepted, Assert.Single(f.Sent, value => value.UserId == 7).TypeId);
+        Assert.DoesNotContain(f.Sent, value => value.UserId == 7);
     }
 
     [Fact]

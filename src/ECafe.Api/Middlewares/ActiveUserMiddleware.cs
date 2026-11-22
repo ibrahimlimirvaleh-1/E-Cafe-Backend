@@ -30,6 +30,9 @@ public sealed class ActiveUserMiddleware
                 if (sessionState is null || !sessionState.IsActive)
                     throw new UnauthorizedException(ErrorCode.UserDeactivated);
 
+                if (!sessionState.HasRequiredStaffProfile)
+                    throw new UnauthorizedException(ErrorCode.StaffProfileInactive);
+
                 if (sessionState.SessionVersion != sessionVersion.Value)
                     throw new UnauthorizedException(ErrorCode.SessionInvalid);
 
