@@ -128,6 +128,8 @@ namespace ECafe.Application.Services.User.Concrete
 
         public async Task DeleteAsync(int userId)
         {
+            EnsureCurrentUserCanDeleteAccount();
+
             if (userId <= 0)
                 throw new BusinessRuleException(ErrorCode.InvalidUserId);
 
@@ -137,8 +139,6 @@ namespace ECafe.Application.Services.User.Concrete
 
             if (userDetails is null)
                 throw new BusinessRuleException(ErrorCode.UserNotFound);
-
-            EnsureCanManageTargetUser(userDetails);
 
             var user = await _userRepository.GetByIdAsync(userId);
             if (user is null)
@@ -558,26 +558,11 @@ namespace ECafe.Application.Services.User.Concrete
                 throw new BusinessRuleException(ErrorCode.RestaurantNotFound);
         }
 
-        /// <summary>Restoran səviyyəli idarəetmənin platforma admininə və qorunan sahibkar hesablarına təsir etməsinə icazə vermir.</summary>
-        private void EnsureCanManageTargetUser(Domain.Entities.User user)
+        /// <summary>Ümumi hesabın və bütün restoran girişlərinin silinməsini yalnız platforma administratoruna saxlayır.</summary>
+        private void EnsureCurrentUserCanDeleteAccount()
         {
-            if (IsCurrentUserSuperAdmin())
-                return;
-
-            if (user.RoleId == (int)RoleCode.SuperAdmin)
+            if (!IsCurrentUserSuperAdmin())
                 throw new ForbiddenException(ErrorCode.AccessDenied);
-
-            if (user.UserRestaurants.Any(userRestaurant => userRestaurant.RoleId == (int)RoleCode.Owner))
-                EnsureOnlySuperAdminCanManagePrivilegedRole((int)RoleCode.Owner);
-
-            var restaurantId = user.UserRestaurants
-                .Where(userRestaurant => userRestaurant.IsActive)
-                .Select(userRestaurant => (int?)userRestaurant.RestaurantId)
-                .FirstOrDefault();
-            if (!restaurantId.HasValue)
-                throw new ForbiddenException("Target user is not assigned to a restaurant.");
-
-            EnsureCurrentUserCanAccessRestaurant(restaurantId.Value);
         }
 
         private async Task EnsureRoleExistsAsync(int roleId)

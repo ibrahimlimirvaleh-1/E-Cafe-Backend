@@ -3,13 +3,15 @@ using ECafe.Application.Features.Queries.RestaurantGroup;
 using ECafe.Domain.Enums;
 using ECafe.Infrastructure.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using ApiRoutes = ECafe.Application.Routes.Routes;
 
 namespace ECafe.Api.Controllers
 {
+    [Authorize(Roles = "1")]
     public class RestaurantGroupController : BaseController
     {
-        [HasPermission(PermissionCode.ViewRestaurantInfo)]
+        [HasPermission(PermissionCode.ManageRestaurants)]
         [HttpGet(ApiRoutes.RestaurantGroup.GetAll)]
         public async Task<IActionResult> GetAll()
             => Ok(await Mediator.Send(new GetRestaurantGroupsQuery()));

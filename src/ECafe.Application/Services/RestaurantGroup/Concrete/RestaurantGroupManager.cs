@@ -1,4 +1,5 @@
 using AutoMapper;
+using ECafe.Application.Common.Exceptions;
 using ECafe.Application.DTOs.RestaurantGroup;
 using ECafe.Application.Repositories.RestaurantGroup;
 using ECafe.Application.Services.RestaurantGroup.Abstract;
@@ -25,6 +26,7 @@ namespace ECafe.Application.Services.RestaurantGroup.Concrete
 
         public async Task<List<RestaurantGroupResponse>> GetAllAsync()
         {
+            EnsurePlatformAdministration();
             var groups = await _restaurantGroupRepository
                 .Query(x => x.IsActive)
                 .OrderBy(x => x.Name)
@@ -43,6 +45,7 @@ namespace ECafe.Application.Services.RestaurantGroup.Concrete
 
         public async Task<int> CreateAsync(CreateRestaurantGroupRequest request)
         {
+            EnsurePlatformAdministration();
             if (request is null)
                 throw new BusinessRuleException("Request is required.");
 
@@ -74,6 +77,13 @@ namespace ECafe.Application.Services.RestaurantGroup.Concrete
             await _restaurantGroupRepository.SaveChangesAsync();
 
             return group.Id;
+        }
+
+        /// <summary>Qrupların hüquqi və əlaqə məlumatlarının idarəetməsini restoran rollarına və müştərilərə açmır.</summary>
+        private void EnsurePlatformAdministration()
+        {
+            if (!IsCurrentUserSuperAdmin())
+                throw new ForbiddenException(ErrorCode.AccessDenied);
         }
     }
 }

@@ -1,0 +1,37 @@
+{
+  "ui.tenantAccess.accountDeleteAction": {
+    "az": "Hesabı sil",
+    "en": "Delete account",
+    "ru": "Удалить аккаунт"
+  },
+  "ui.tenantAccess.accountDeleteFailed": {
+    "az": "İstifadəçi hesabı silinmədi.",
+    "en": "The user account could not be deleted.",
+    "ru": "Не удалось удалить учётную запись."
+  },
+  "ui.tenantAccess.accountDeleteMessage": {
+    "az": "{{name}} istifadəçisinin ümumi hesabı və bütün restoranlardakı girişi silinəcək. Yalnız bu restoran profilini bağlamaq üçün profili deaktiv edin.",
+    "en": "This will delete the account for {{name}} and their access to all restaurants. To remove only this restaurant profile, deactivate the profile instead.",
+    "ru": "Учётная запись пользователя {{name}} и доступ ко всем ресторанам будут удалены. Чтобы закрыть только профиль этого ресторана, деактивируйте профиль."
+  },
+  "ui.tenantAccess.accountDeleteSuccess": {
+    "az": "İstifadəçi hesabı silindi.",
+    "en": "User account deleted.",
+    "ru": "Учётная запись удалена."
+  },
+  "ui.tenantAccess.accountDeleteTitle": {
+    "az": "Ümumi istifadəçi hesabı silinsin?",
+    "en": "Delete the user account?",
+    "ru": "Удалить учётную запись?"
+  },
+  "ui.tenantAccess.notificationsDenied": {
+    "az": "Bu restoranın bildirişlərinə girişiniz yoxdur. Aktiv restoran profilinə keçin.",
+    "en": "You cannot access notifications for this restaurant. Switch to an active restaurant profile.",
+    "ru": "У вас нет доступа к уведомлениям этого ресторана. Переключитесь на активный профиль ресторана."
+  },
+  "ui.tenantAccess.notificationsFailed": {
+    "az": "Bildiriş əməliyyatı tamamlanmadı. Yenidən cəhd edin.",
+    "en": "The notification action could not be completed. Please try again.",
+    "ru": "Не удалось выполнить действие с уведомлением. Попробуйте ещё раз."
+  }
+}

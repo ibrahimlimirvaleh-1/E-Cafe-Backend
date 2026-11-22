@@ -509,6 +509,52 @@ public sealed class StaffRoleChangeTests
         Assert.Equal("staff@example.com", f.User.Email);
     }
 
+    [Theory]
+    [InlineData(RoleCode.Owner)]
+    [InlineData(RoleCode.Manager)]
+    [InlineData(RoleCode.Waiter)]
+    [InlineData(RoleCode.Kitchen)]
+    [InlineData(RoleCode.Customer)]
+    public async Task RestaurantRolesCannotDeleteAGlobalAccountOrRevokeOtherTenantSessions(RoleCode role)
+    {
+        await using var f = await Fixture.CreateAsync(multiple: true);
+        f.SetActor(role, restaurantId: 1);
+
+        var error = await Assert.ThrowsAsync<ForbiddenException>(() => f.Service.DeleteAsync(5));
+
+        Assert.Equal(ErrorCode.AccessDenied, error.Code);
+        Assert.False(f.User.IsDeleted);
+        Assert.Equal(1, f.User.SessionVersion);
+        Assert.Equal(2, await f.Db.UserRestaurants.CountAsync(value => value.IsActive));
+        f.Refresh.VerifyNoOtherCalls();
+        f.Sessions.VerifyNoOtherCalls();
+        f.Access.VerifyNoOtherCalls();
+        f.Realtime.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task PlatformAdminGlobalDeletionStillRevokesEveryDeviceAndTenant()
+    {
+        await using var f = await Fixture.CreateAsync(multiple: true);
+        var tokens = new List<UserRefreshToken>
+        {
+            new() { UserId = 5, SessionId = "device-one", TokenHash = "synthetic-one" },
+            new() { UserId = 5, SessionId = "device-two", TokenHash = "synthetic-two" }
+        };
+        f.Refresh.Setup(value => value.GetActiveByUserIdTrackedAsync(5, It.IsAny<DateTime>())).ReturnsAsync(tokens);
+
+        await f.Service.DeleteAsync(5);
+
+        Assert.True(f.User.IsDeleted);
+        Assert.Equal(2, f.User.SessionVersion);
+        Assert.All(tokens, value => Assert.NotNull(value.RevokedAt));
+        Assert.Empty(await f.Db.Users.ToListAsync());
+        f.Sessions.Verify(value => value.InvalidateAsync(5), Times.Once);
+        f.Access.Verify(value => value.InvalidateAsync(5, 1), Times.Once);
+        f.Access.Verify(value => value.InvalidateAsync(5, 2), Times.Once);
+        f.Realtime.Verify(value => value.NotifyUserDeactivatedAsync(5, It.IsAny<string>(), default), Times.Once);
+    }
+
     private sealed class Fixture : IAsyncDisposable
     {
         public ECafeDbContext Db { get; } = new(new DbContextOptionsBuilder<ECafeDbContext>()

@@ -10,6 +10,7 @@ using ECafe.Application.Services.Realtime.Abstract;
 using ECafe.Domain.Entities;
 using ECafe.Domain.Enums;
 using ECafe.Infrastructure.Repositories.Notification;
+using ECafe.Infrastructure.Repositories.UserRestaurant;
 using ECafe.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -55,7 +56,7 @@ public sealed partial class OrderStockPostgresTests
                 await using var db = fixture.Context();
                 var notices = new NotificationManager(Accessor(), mapper, configuration, new NotificationRepository(db),
                     new CreateNotificationRequestValidator(), Mock.Of<INotificationChangeDispatcher>(),
-                    new MobilePushOutboxWriter(db, configuration), new NotificationEmailOutboxWriter(db));
+                    new MobilePushOutboxWriter(db, configuration), new NotificationEmailOutboxWriter(db), new UserRestaurantRepository(db));
                 var kitchen = Service(db, notifications: notices);
                 if (stage == OrderStatus.Accepted) await kitchen.AcceptAsync(1001, 1001);
                 else if (stage == OrderStatus.Preparing) await kitchen.StartPreparingAsync(1001, 1001);
