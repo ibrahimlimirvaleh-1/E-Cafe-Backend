@@ -32,7 +32,8 @@ namespace ECafe.Api.Controllers
 
 
         [RequireActiveRestaurantContract]
-        [HasPermission(Domain.Enums.PermissionCode.ManageStaff)]
+        [Authorize(Roles = "1")]
+        [HasPermission(Domain.Enums.PermissionCode.ManageUsers)]
         [HttpDelete(ApiRoutes.User.Delete)]
         public async Task<IActionResult> Delete(int userId)
         {

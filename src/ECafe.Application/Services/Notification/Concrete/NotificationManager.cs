@@ -2,6 +2,8 @@ using AutoMapper;
 using ECafe.Application.DTOs.Notification;
 using ECafe.Application.Features.MobileApp;
 using ECafe.Application.Repositories.Notification;
+using ECafe.Application.Repositories.UserRestaurant;
+using ECafe.Application.Common.Exceptions;
 using ECafe.Application.Services.Notification.Abstract;
 using ECafe.Application.Services.Realtime.Abstract;
 using ECafe.Domain.Enums;
@@ -19,6 +21,7 @@ namespace ECafe.Application.Services.Notification.Concrete
         private readonly INotificationChangeDispatcher _notificationDispatcher;
         private readonly IMobilePushOutboxWriter _mobilePushOutboxWriter;
         private readonly INotificationEmailOutboxWriter _notificationEmailOutboxWriter;
+        private readonly IUserRestaurantRepository _assignments;
         private readonly Services.Localization.Abstract.INotificationTextService? _texts;
 
         public NotificationManager(
@@ -30,6 +33,7 @@ namespace ECafe.Application.Services.Notification.Concrete
             INotificationChangeDispatcher notificationDispatcher,
             IMobilePushOutboxWriter mobilePushOutboxWriter,
             INotificationEmailOutboxWriter notificationEmailOutboxWriter,
+            IUserRestaurantRepository assignments,
             Services.Localization.Abstract.INotificationTextService? texts = null)
             : base(httpContextAccessor, mapper, configuration)
         {
@@ -38,6 +42,7 @@ namespace ECafe.Application.Services.Notification.Concrete
             _notificationDispatcher = notificationDispatcher;
             _mobilePushOutboxWriter = mobilePushOutboxWriter;
             _notificationEmailOutboxWriter = notificationEmailOutboxWriter;
+            _assignments = assignments;
             _texts = texts;
         }
 
@@ -60,7 +65,7 @@ namespace ECafe.Application.Services.Notification.Concrete
 
         public async Task<List<NotificationResponse>> GetMyNotificationsAsync()
         {
-            var notifications = await _notificationRepository.GetByUserAsync(GetCurrentUserId(), GetNotificationRestaurantScope());
+            var notifications = await _notificationRepository.GetByUserAsync(GetCurrentUserId(), await GetNotificationRestaurantScopeAsync());
             var responses = Mapper.Map<List<NotificationResponse>>(notifications);
             if (_texts != null)
                 for (var index = 0; index < notifications.Count; index++) _texts.LocalizeForReader(notifications[index], responses[index]);
@@ -69,7 +74,7 @@ namespace ECafe.Application.Services.Notification.Concrete
 
         public async Task<UnreadNotificationCountResponse> GetUnreadCountAsync()
         {
-            var count = await _notificationRepository.GetUnreadCountAsync(GetCurrentUserId(), GetNotificationRestaurantScope());
+            var count = await _notificationRepository.GetUnreadCountAsync(GetCurrentUserId(), await GetNotificationRestaurantScopeAsync());
 
             return new UnreadNotificationCountResponse
             {
@@ -79,7 +84,7 @@ namespace ECafe.Application.Services.Notification.Concrete
 
         public async Task MarkAllAsReadAsync()
         {
-            var unreadNotifications = await _notificationRepository.GetUnreadByUserAsync(GetCurrentUserId(), GetNotificationRestaurantScope());
+            var unreadNotifications = await _notificationRepository.GetUnreadByUserAsync(GetCurrentUserId(), await GetNotificationRestaurantScopeAsync());
             if (unreadNotifications.Count == 0)
                 return;
 
@@ -100,7 +105,7 @@ namespace ECafe.Application.Services.Notification.Concrete
             var notification = await _notificationRepository.GetByUserAndIdTrackedAsync(
                 GetCurrentUserId(),
                 notificationId,
-                GetNotificationRestaurantScope());
+                await GetNotificationRestaurantScopeAsync());
 
             if (notification is null)
                 throw new BusinessRuleException("Notification not found.");
@@ -113,6 +118,7 @@ namespace ECafe.Application.Services.Notification.Concrete
             await _notificationDispatcher.NotifyChangedAsync(GetCurrentUserId());
         }
 
+        /// <summary>Artıq oxunmuş bildirişin tarixini dəyişmədən oxunma vəziyyətini tamamlayır.</summary>
         private static void MarkAsRead(Domain.Entities.Notification notification)
         {
             notification.IsRead = true;
@@ -120,15 +126,18 @@ namespace ECafe.Application.Services.Notification.Concrete
             notification.ReadAt ??= DateTime.UtcNow;
         }
 
-        private int? GetNotificationRestaurantScope()
+        /// <summary>İşçinin seçilmiş restorana canlı aidiyyətini yoxlayır; adi müştərinin öz müxtəlif restoran bildirişlərini saxlayır.</summary>
+        private async Task<int?> GetNotificationRestaurantScopeAsync()
         {
-            // Customers can receive notifications from any restaurant where they
-            // create a reservation, so their own notifications must not depend on
-            // an active restaurant context.
             if (IsCurrentUserSuperAdmin() || GetCurrentRoleId() == (int)RoleCode.Customer)
                 return null;
 
-            return GetCurrentRestaurantId();
+            var restaurantId = GetRequiredCurrentRestaurantId();
+            var role = await _assignments.GetActiveRoleIdAsync(GetCurrentUserId(), restaurantId);
+            if (!role.HasValue || !ECafe.Domain.Policies.UserProfileAccessPolicy.IsRestaurantRole(role.Value))
+                throw new ForbiddenException(ErrorCode.AccessDenied);
+
+            return restaurantId;
         }
     }
 }
