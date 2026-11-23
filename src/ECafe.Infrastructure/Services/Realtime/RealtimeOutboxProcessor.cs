@@ -4,28 +4,22 @@ using ECafe.Application.Services.Realtime;
 using ECafe.Application.Services.Realtime.Abstract;
 using ECafe.Domain.Entities;
 using ECafe.Infrastructure.Context;
+using ECafe.Infrastructure.Repositories.Outbox;
 using Microsoft.EntityFrameworkCore;
 
 namespace ECafe.Infrastructure.Services.Realtime;
 
 public sealed class RealtimeOutboxProcessor(ECafeDbContext context, IUserRealtimeNotifier notifier, OrderRealtimeRecipients recipients)
 {
+    private readonly OutboxBatchReader _outboxBatches = new(context);
+
     /// <summary>Yalnız commit olunmuş siqnalları SKIP LOCKED ilə seçir; çatdırılmayan sətirləri məxfi xəta yazmadan təkrar üçün saxlayır.</summary>
     public async Task<int> ProcessAsync(int batchSize, CancellationToken token = default)
     {
         batchSize = Math.Clamp(batchSize, 1, 100);
         var now = DateTime.UtcNow;
         await using var transaction = context.Database.IsRelational() ? await context.Database.BeginTransactionAsync(token) : null;
-        var events = context.Database.IsRelational()
-            ? await context.OutboxEvents.FromSqlInterpolated($"""
-                SELECT * FROM audit.outbox_events
-                WHERE "EventType" IN ({OutboxEventTypes.OrderRealtimeRequested}, {OutboxEventTypes.NotificationRealtimeRequested})
-                  AND "ProcessedAt" IS NULL AND ("LockedUntil" IS NULL OR "LockedUntil" <= {now})
-                ORDER BY "OccurredAt", "Id" LIMIT {batchSize} FOR UPDATE SKIP LOCKED
-                """).ToListAsync(token)
-            : await context.OutboxEvents.Where(item => (item.EventType == OutboxEventTypes.OrderRealtimeRequested ||
-                item.EventType == OutboxEventTypes.NotificationRealtimeRequested) && item.ProcessedAt == null &&
-                (item.LockedUntil == null || item.LockedUntil <= now)).OrderBy(item => item.OccurredAt).Take(batchSize).ToListAsync(token);
+        var events = await _outboxBatches.ReadRealtimeAsync(batchSize, now, token);
         foreach (var item in events)
         {
             token.ThrowIfCancellationRequested();

@@ -95,6 +95,8 @@ namespace ECafe.Application
             services.AddScoped<IPasswordSetupService, PasswordSetupManager>();
             services.AddScoped<IPasswordResetService, PasswordResetManager>();
             services.AddScoped<IEmailChangeService, EmailChangeManager>();
+            services.AddScoped<ICustomerAccountDeletionService, CustomerAccountDeletionManager>();
+            services.AddScoped<Services.ProductAnnouncements.IProductAnnouncementService, Services.ProductAnnouncements.ProductAnnouncementManager>();
             services.AddScoped<IEmailService, EmailManager>();
             services.AddScoped<EmailOutboxManager>();
             services.AddScoped<IEmailOutboxService>(provider => provider.GetRequiredService<EmailOutboxManager>());

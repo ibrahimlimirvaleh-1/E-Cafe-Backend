@@ -1,0 +1,6 @@
+{
+  "api.error.AnnouncementNotFound": { "az": "Yenilik tapılmadı və ya bu profil üçün əlçatan deyil.", "en": "The announcement was not found or is unavailable for this profile.", "ru": "Новость не найдена или недоступна для этого профиля." },
+  "api.error.AnnouncementInvalid": { "az": "Yeniliyin məlumatlarını, dillərini və yayım tarixini yoxlayın.", "en": "Check the announcement details, languages and expiry date.", "ru": "Проверьте данные новости, языки и срок публикации." },
+  "api.error.AnnouncementChanged": { "az": "Yenilik dəyişib. Cari versiyanı yenidən yükləyin.", "en": "The announcement changed. Reload the current version.", "ru": "Новость изменилась. Загрузите текущую версию." },
+  "api.error.AnnouncementMustBeDraft": { "az": "Redaktədən əvvəl yeniliyi yayımdan çıxarın.", "en": "Unpublish the announcement before editing it.", "ru": "Снимите новость с публикации перед редактированием." }
+}

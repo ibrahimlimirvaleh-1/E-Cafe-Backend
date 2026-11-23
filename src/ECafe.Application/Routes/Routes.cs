@@ -391,6 +391,7 @@ public static class Routes
         public const string UpdateProfile = Base + "/profile";
         public const string RequestEmailChange = Base + "/profile/email-change/request";
         public const string ConfirmEmailChange = Base + "/profile/email-change/confirm";
+        public const string AccountDeletion = Base + "/profile/account-deletion";
         public const string GetStaffDetail = Base + "/staff/{restaurantId}/detail/{staffId}";
     }
 
@@ -403,5 +404,16 @@ public static class Routes
     public static class Workflow
     {
         public const string GetActions = Base + "/workflows/{flowCode}/actions";
+    }
+
+    public static class ProductAnnouncements
+    {
+        public const string Pending = Base + "/announcements/pending";
+        public const string Acknowledge = Base + "/announcements/{id:int}/acknowledge";
+        public const string AdminList = Base + "/admin/announcements";
+        public const string Destinations = Base + "/admin/announcements/destinations";
+        public const string AdminItem = Base + "/admin/announcements/{id:int}";
+        public const string Publish = Base + "/admin/announcements/{id:int}/publish";
+        public const string Unpublish = Base + "/admin/announcements/{id:int}/unpublish";
     }
 }

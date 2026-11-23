@@ -2414,6 +2414,167 @@ namespace ECafe.Infrastructure.Migrations
                         });
                 });
 
+            modelBuilder.Entity("ECafe.Domain.Entities.ProductAnnouncement", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+                    NpgsqlPropertyBuilderExtensions.HasIdentityOptions(b.Property<int>("Id"), 2L, null, null, null, null, null);
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Destination")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<DateTime?>("ExpiresAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("PublishedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PublishedAtUtc", "Id");
+
+                    b.ToTable("product_announcements", "platform", t =>
+                        {
+                            t.HasCheckConstraint("announcement_version_positive", "\"Version\" > 0");
+                        });
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            CreatedAt = new DateTime(2026, 11, 23, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            Destination = "CustomerProfile",
+                            IsDeleted = false,
+                            Version = 1
+                        });
+                });
+
+            modelBuilder.Entity("ECafe.Domain.Entities.ProductAnnouncementReceipt", b =>
+                {
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("RoleId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("AnnouncementId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("AcknowledgedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("UserId", "RoleId", "AnnouncementId", "Version");
+
+                    b.HasIndex("AnnouncementId");
+
+                    b.HasIndex("RoleId");
+
+                    b.ToTable("product_announcement_receipts", "platform");
+                });
+
+            modelBuilder.Entity("ECafe.Domain.Entities.ProductAnnouncementRole", b =>
+                {
+                    b.Property<int>("AnnouncementId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("RoleId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("AnnouncementId", "RoleId");
+
+                    b.HasIndex("RoleId", "AnnouncementId");
+
+                    b.ToTable("product_announcement_roles", "platform");
+
+                    b.HasData(
+                        new
+                        {
+                            AnnouncementId = 1,
+                            RoleId = 5
+                        });
+                });
+
+            modelBuilder.Entity("ECafe.Domain.Entities.ProductAnnouncementText", b =>
+                {
+                    b.Property<int>("AnnouncementId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Language")
+                        .HasMaxLength(2)
+                        .HasColumnType("character varying(2)");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(600)
+                        .HasColumnType("character varying(600)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.HasKey("AnnouncementId", "Language");
+
+                    b.ToTable("product_announcement_texts", "platform");
+
+                    b.HasData(
+                        new
+                        {
+                            AnnouncementId = 1,
+                            Language = "az",
+                            Body = "Profilinizin Təhlükəsizlik bölməsindən hesabınızı bağlaya bilərsiniz. Aktiv rezervasiya, açıq masa və ya ödənilməmiş hesab varsa, əvvəl onları tamamlamalısınız. Profil məlumatları anonimləşdirilir, sifariş və maliyyə tarixçəsi saxlanılır.",
+                            Title = "Hesabınızı özünüz silə bilərsiniz"
+                        },
+                        new
+                        {
+                            AnnouncementId = 1,
+                            Language = "en",
+                            Body = "You can close your account in Profile > Security. Complete active reservations, open table sessions and outstanding payments first. Profile details are anonymized; order and financial history is retained.",
+                            Title = "You can now delete your own account"
+                        },
+                        new
+                        {
+                            AnnouncementId = 1,
+                            Language = "ru",
+                            Body = "Закрыть аккаунт можно в разделе Профиль > Безопасность. Сначала завершите активные бронирования, сеансы за столом и неоплаченные счета. Данные профиля обезличиваются, история заказов и финансовых операций сохраняется.",
+                            Title = "Теперь вы можете удалить свой аккаунт"
+                        });
+                });
+
             modelBuilder.Entity("ECafe.Domain.Entities.Recipe", b =>
                 {
                     b.Property<int>("Id")
@@ -7613,6 +7774,51 @@ namespace ECafe.Infrastructure.Migrations
                     b.Navigation("TableSession");
                 });
 
+            modelBuilder.Entity("ECafe.Domain.Entities.ProductAnnouncementReceipt", b =>
+                {
+                    b.HasOne("ECafe.Domain.Entities.ProductAnnouncement", null)
+                        .WithMany()
+                        .HasForeignKey("AnnouncementId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ECafe.Domain.Entities.Role", null)
+                        .WithMany()
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ECafe.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("ECafe.Domain.Entities.ProductAnnouncementRole", b =>
+                {
+                    b.HasOne("ECafe.Domain.Entities.ProductAnnouncement", null)
+                        .WithMany("Roles")
+                        .HasForeignKey("AnnouncementId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ECafe.Domain.Entities.Role", null)
+                        .WithMany()
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("ECafe.Domain.Entities.ProductAnnouncementText", b =>
+                {
+                    b.HasOne("ECafe.Domain.Entities.ProductAnnouncement", null)
+                        .WithMany("Texts")
+                        .HasForeignKey("AnnouncementId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("ECafe.Domain.Entities.Recipe", b =>
                 {
                     b.HasOne("ECafe.Domain.Entities.InventoryItem", "InventoryItem")
@@ -8507,6 +8713,13 @@ namespace ECafe.Infrastructure.Migrations
             modelBuilder.Entity("ECafe.Domain.Entities.Permission", b =>
                 {
                     b.Navigation("RolePermissions");
+                });
+
+            modelBuilder.Entity("ECafe.Domain.Entities.ProductAnnouncement", b =>
+                {
+                    b.Navigation("Roles");
+
+                    b.Navigation("Texts");
                 });
 
             modelBuilder.Entity("ECafe.Domain.Entities.Reservation", b =>

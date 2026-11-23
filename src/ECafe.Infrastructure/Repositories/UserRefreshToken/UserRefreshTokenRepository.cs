@@ -17,8 +17,7 @@ namespace ECafe.Infrastructure.Repositories.UserRefreshToken
 
         /// <summary>Refresh və native çıxışı eyni istifadəçi sətrinin transaction kilidi ilə ardıcıllaşdırır; schema dəyişmir.</summary>
         public Task AcquireUserLockAsync(int userId)
-            => Context.Database.ExecuteSqlInterpolatedAsync(
-                $"SELECT id FROM auth.users WHERE id = {userId} FOR UPDATE");
+            => Context.TransactionLocks.LockUserAsync(userId);
 
         public Task<Domain.Entities.UserRefreshToken?> GetByTokenHashTrackedAsync(string tokenHash)
         {

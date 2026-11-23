@@ -30,15 +30,18 @@ public class ReservationRepository : BaseRepository<Domain.Entities.Reservation>
             .FirstOrDefaultAsync(r => r.Id == reservationId && r.CustomerUserId == customerUserId, cancellationToken);
     }
 
-    public Task AcquireCustomerReservationLockAsync(
+    /// <summary>Hesab bağlanmasını və müştəri əməliyyatlarını eyni user kilidi ilə ardıcıllaşdırır; menecerin köhnə ödənişə baxışında müştərinin aktivliyi tələb edilmir.</summary>
+    public async Task AcquireCustomerReservationLockAsync(
         int restaurantId,
         int customerUserId,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        bool requireActiveCustomer = true)
     {
+        await Context.TransactionLocks.LockUserAsync(customerUserId, cancellationToken);
+        if (requireActiveCustomer && !await Context.Users.AnyAsync(user => user.Id == customerUserId && user.IsActive && user.RoleId == (int)RoleCode.Customer, cancellationToken))
+            throw new ECafe.Domain.Exceptions.UnauthorizedException(ECafe.Domain.Exceptions.ErrorCode.SessionInvalid);
         // Negative second key keeps this lock namespace separate from table locks.
-        return Context.Database.ExecuteSqlInterpolatedAsync(
-            $"SELECT pg_advisory_xact_lock({restaurantId}, {-customerUserId})",
-            cancellationToken);
+        await Context.TransactionLocks.LockAdvisoryAsync(restaurantId, -customerUserId, cancellationToken);
     }
 
     public Task<bool> HasActiveReservationForCustomerOnUtcDayAsync(

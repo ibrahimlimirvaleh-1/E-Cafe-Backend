@@ -13,11 +13,10 @@ public sealed class ReservationRefundRepository
     {
     }
 
+    /// <summary>Geri ödənişi əvvəlki mənfi namespace açarı ilə transaction sonunadək kilidləyir.</summary>
     public Task AcquireRefundLockAsync(int refundId, CancellationToken cancellationToken = default)
     {
-        return Context.Database.ExecuteSqlInterpolatedAsync(
-            $"SELECT pg_advisory_xact_lock({-(int)StatusType.Refund}, {refundId})",
-            cancellationToken);
+        return Context.TransactionLocks.LockAdvisoryAsync(-(int)StatusType.Refund, refundId, cancellationToken);
     }
 
     public Task<Domain.Entities.ReservationRefund?> GetByReservationForCustomerAsync(

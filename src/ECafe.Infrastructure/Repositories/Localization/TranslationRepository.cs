@@ -112,7 +112,6 @@ public sealed class TranslationRepository(ECafeDbContext context) : ITranslation
         => TranslationPolicy.TextFor(text, TranslationPolicy.ParseLanguage(language));
     /// <summary>Aztezlikli admin yazılarını ayrıca PostgreSQL transaction advisory kilidi ilə ardıcıl edir; masa və istifadəçi kilidlərinə toxunmur.</summary>
     public Task AcquireLockAsync(CancellationToken cancellationToken)
-        => context.Database.ExecuteSqlRawAsync("SELECT pg_advisory_xact_lock({0}, {1})",
-            [TranslationLockKeys.CatalogNamespace, LocalizationDefaults.CatalogId], cancellationToken);
+        => context.TransactionLocks.LockAdvisoryAsync(TranslationLockKeys.CatalogNamespace, LocalizationDefaults.CatalogId, cancellationToken);
     public async Task SaveChangesAsync(CancellationToken cancellationToken) => await context.SaveChangesAsync(cancellationToken);
 }

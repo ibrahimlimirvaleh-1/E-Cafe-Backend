@@ -74,6 +74,12 @@ public sealed class ErrorMessageProvider(ITextLocalizer? localizer = null) : IEr
         [ErrorCode.EmailChangeInvalidOrExpired] = "E-poçt dəyişmə linki etibarsızdır və ya vaxtı bitib.",
         [ErrorCode.StaffAccountInactive] = "Hesab səviyyəsində bloklanmış istifadəçinin restoran profilini aktivləşdirmək mümkün deyil.",
         [ErrorCode.StaffProfileInactive] = "Aktiv işçi profiliniz yoxdur. Giriş üçün restoran məsulu ilə əlaqə saxlayın.",
+        [ErrorCode.AccountDeletionCustomerOnly] = "Öz hesabını silmə əməliyyatı yalnız müştəri hesabı üçündür.",
+        [ErrorCode.AccountDeletionBlocked] = "Hesabı silməzdən əvvəl aktiv profilləri və tamamlanmamış əməliyyatları həll edin.",
+        [ErrorCode.AnnouncementNotFound] = "Yenilik tapılmadı və ya bu profil üçün əlçatan deyil.",
+        [ErrorCode.AnnouncementInvalid] = "Yeniliyin məlumatlarını, dillərini və yayım tarixini yoxlayın.",
+        [ErrorCode.AnnouncementChanged] = "Yenilik dəyişib. Cari versiyanı yenidən yükləyin.",
+        [ErrorCode.AnnouncementMustBeDraft] = "Redaktədən əvvəl yeniliyi yayımdan çıxarın.",
         [ErrorCode.OwnerRoleCannotBeChanged] = "Sahibkar hesabının rolu dəyişdirilə bilməz.",
 
         [ErrorCode.RestaurantNotFound] = "Restaurant not found.",

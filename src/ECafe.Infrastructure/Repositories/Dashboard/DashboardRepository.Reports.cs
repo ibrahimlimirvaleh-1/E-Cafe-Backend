@@ -19,8 +19,7 @@ public sealed partial class DashboardRepository
             throw new ForbiddenException(ErrorCode.AccessDenied);
         await using var transaction = db.Database.IsRelational()
             ? await db.Database.BeginTransactionAsync(IsolationLevel.RepeatableRead, cancellationToken) : null;
-        if (db.Database.IsNpgsql())
-            await db.Database.ExecuteSqlRawAsync("SET TRANSACTION READ ONLY", cancellationToken);
+        await db.SetCurrentTransactionReadOnlyAsync(cancellationToken);
         var data = kind switch
         {
             DashboardReportKind.Orders => await ReadOrderReportAsync(scope, period, statusId, pageIndex, export, cancellationToken),

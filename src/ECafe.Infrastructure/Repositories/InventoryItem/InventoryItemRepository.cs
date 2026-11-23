@@ -24,9 +24,7 @@ namespace ECafe.Infrastructure.Repositories.InventoryItem
             if (Context.Database.CurrentTransaction == null) throw new InvalidOperationException("Stock mutation requires a transaction.");
             if (ids.Count == 0) return Task.CompletedTask;
             var keys = ids.Distinct().Order().ToArray();
-            return Context.Database.ExecuteSqlInterpolatedAsync(
-                $"SELECT id FROM inventory.inventory_items WHERE restaurant_id = {restaurantId} AND id = ANY({keys}) ORDER BY id FOR UPDATE",
-                cancellationToken);
+            return Context.TransactionLocks.LockInventoryRowsAsync(restaurantId, keys, cancellationToken);
         }
 
    

@@ -1,0 +1,147 @@
+{
+  "ui.accountDeletion.title": {
+    "az": "Hesabın silinməsi",
+    "en": "Account deletion",
+    "ru": "Удаление аккаунта"
+  },
+  "ui.accountDeletion.description": {
+    "az": "Bu əməliyyat geri qaytarılmır. Hesaba giriş bağlanır və profil məlumatları anonimləşdirilir. Sifariş və maliyyə əməliyyatlarının tarixçəsi saxlanılır.",
+    "en": "This action cannot be undone. Account access will be closed and profile details anonymized. Order and financial transaction history will be retained.",
+    "ru": "Это действие нельзя отменить. Доступ к аккаунту будет закрыт, а данные профиля обезличены. История заказов и финансовых операций сохранится."
+  },
+  "ui.accountDeletion.action": {
+    "az": "Hesabımı sil",
+    "en": "Delete my account",
+    "ru": "Удалить мой аккаунт"
+  },
+  "ui.accountDeletion.checking": {
+    "az": "Hesabın silinmə şərtləri yoxlanılır...",
+    "en": "Checking account deletion requirements...",
+    "ru": "Проверяем условия удаления аккаунта..."
+  },
+  "ui.accountDeletion.blocked": {
+    "az": "Əvvəl bu məsələləri tamamlayın",
+    "en": "Resolve these items first",
+    "ru": "Сначала завершите эти действия"
+  },
+  "ui.accountDeletion.activeStaff": {
+    "az": "Aktiv işçi profiliniz var. Restoran məsulu ilə əlaqə saxlayın.",
+    "en": "You have an active staff profile. Contact your restaurant administrator.",
+    "ru": "У вас есть активный рабочий профиль. Обратитесь к ответственному за ресторан."
+  },
+  "ui.accountDeletion.activeReservation": {
+    "az": "Aktiv rezervasiyanız var. Onu tamamlayın və ya ləğv edin.",
+    "en": "You have an active reservation. Complete or cancel it first.",
+    "ru": "У вас есть активное бронирование. Завершите или отмените его."
+  },
+  "ui.accountDeletion.openSession": {
+    "az": "Restoranda açıq masa sessiyanız var.",
+    "en": "You have an open restaurant table session.",
+    "ru": "У вас открыт сеанс обслуживания за столом в ресторане."
+  },
+  "ui.accountDeletion.pendingPayment": {
+    "az": "Ödəniş əməliyyatınız hələ tamamlanmayıb.",
+    "en": "A payment has not been completed yet.",
+    "ru": "Платёж ещё не завершён."
+  },
+  "ui.accountDeletion.pendingRefund": {
+    "az": "Geri ödənişiniz hələ tamamlanmayıb.",
+    "en": "A refund has not been completed yet.",
+    "ru": "Возврат средств ещё не завершён."
+  },
+  "ui.accountDeletion.unpaidBill": {
+    "az": "Ödənilməmiş restoran hesabınız var.",
+    "en": "You have an unpaid restaurant bill.",
+    "ru": "У вас есть неоплаченный счёт в ресторане."
+  },
+  "ui.accountDeletion.walletBalance": {
+    "az": "Pul kisənizdə sıfırlanmamış balans var.",
+    "en": "Your wallet has a remaining balance.",
+    "ru": "В вашем кошельке есть остаток средств."
+  },
+  "ui.accountDeletion.unresolvedOrder": {
+    "az": "Tamamlanmamış sifarişiniz var.",
+    "en": "You have an unfinished order.",
+    "ru": "У вас есть незавершённый заказ."
+  },
+  "ui.accountDeletion.unknownBlocker": {
+    "az": "Həll edilməmiş əməliyyat var. Dəstək xidməti ilə əlaqə saxlayın.",
+    "en": "An operation needs attention. Please contact support.",
+    "ru": "Есть нерешённая операция. Обратитесь в службу поддержки."
+  },
+  "ui.accountDeletion.password": {
+    "az": "Cari şifrə",
+    "en": "Current password",
+    "ru": "Текущий пароль"
+  },
+  "ui.accountDeletion.confirm": {
+    "az": "Hesabımı bərpa edə bilməyəcəyimi və əməliyyat tarixçəsinin saxlanacağını anlayıram.",
+    "en": "I understand that I cannot restore my account and that transaction history will be retained.",
+    "ru": "Я понимаю, что восстановить аккаунт будет невозможно, а история операций сохранится."
+  },
+  "ui.accountDeletion.recheck": {
+    "az": "Yenidən yoxla",
+    "en": "Check again",
+    "ru": "Проверить снова"
+  },
+  "ui.accountDeletion.deleting": {
+    "az": "Hesab bağlanır...",
+    "en": "Closing account...",
+    "ru": "Закрываем аккаунт..."
+  },
+  "ui.accountDeletion.completed": {
+    "az": "Hesabınız bağlandı.",
+    "en": "Your account has been closed.",
+    "ru": "Ваш аккаунт закрыт."
+  },
+  "ui.accountDeletion.invalidPassword": {
+    "az": "Cari şifrə yanlışdır.",
+    "en": "The current password is incorrect.",
+    "ru": "Текущий пароль указан неверно."
+  },
+  "ui.accountDeletion.locked": {
+    "az": "Çoxsaylı uğursuz cəhdə görə hesab müvəqqəti kilidlənib. Bir qədər sonra yenidən cəhd edin.",
+    "en": "Your account is temporarily locked after repeated failed attempts. Please try again later.",
+    "ru": "Аккаунт временно заблокирован после нескольких неудачных попыток. Попробуйте позже."
+  },
+  "ui.accountDeletion.rateLimited": {
+    "az": "Çox sayda sorğu göndərilib. Bir qədər sonra yenidən cəhd edin.",
+    "en": "Too many requests. Please try again later.",
+    "ru": "Слишком много запросов. Попробуйте позже."
+  },
+  "ui.accountDeletion.sessionExpired": {
+    "az": "Sessiyanız etibarlı deyil. Yenidən daxil olun.",
+    "en": "Your session is no longer valid. Please sign in again.",
+    "ru": "Сеанс больше недействителен. Войдите снова."
+  },
+  "ui.accountDeletion.login": {
+    "az": "Girişə keç",
+    "en": "Go to sign in",
+    "ru": "Перейти ко входу"
+  },
+  "ui.accountDeletion.checkFailed": {
+    "az": "Hesabın silinmə şərtlərini yoxlamaq mümkün olmadı. Yenidən cəhd edin.",
+    "en": "Account deletion requirements could not be checked. Please try again.",
+    "ru": "Не удалось проверить условия удаления аккаунта. Попробуйте ещё раз."
+  },
+  "ui.accountDeletion.failed": {
+    "az": "Sorğunun nəticəsi təsdiqlənmədi. Bağlantını və hesabın vəziyyətini yoxlayın.",
+    "en": "The request result could not be confirmed. Check your connection and account status.",
+    "ru": "Не удалось подтвердить результат запроса. Проверьте соединение и состояние аккаунта."
+  },
+  "ui.accountDeletion.changed": {
+    "az": "Hesabın vəziyyəti dəyişib. Yenilənmiş şərtləri yoxlayın.",
+    "en": "Your account status has changed. Review the updated requirements.",
+    "ru": "Состояние аккаунта изменилось. Ознакомьтесь с обновлёнными условиями."
+  },
+  "ui.accountDeletion.customerOnly": {
+    "az": "Bu əməliyyat yalnız aktiv işçi profili olmayan müştəri hesabları üçündür.",
+    "en": "This action is only available to customer accounts without active staff profiles.",
+    "ru": "Это действие доступно только клиентам без активных рабочих профилей."
+  },
+  "ui.accountDeletion.retryIn": {
+    "az": "{{seconds}} saniyədən sonra yenidən cəhd edin",
+    "en": "Try again in {{seconds}} seconds",
+    "ru": "Повторите через {{seconds}} сек."
+  }
+}

@@ -9,7 +9,12 @@ namespace ECafe.Infrastructure.Context;
 
 public partial class ECafeDbContext : DbContext
 {
-    public ECafeDbContext(DbContextOptions<ECafeDbContext> options) : base(options) { }
+    public ECafeDbContext(DbContextOptions<ECafeDbContext> options) : base(options)
+    {
+        TransactionLocks = new(this);
+    }
+
+    internal PostgresTransactionLocks TransactionLocks { get; }
 
     public virtual DbSet<Category> Categories { get; set; } = null!;
     public DbSet<TranslationCatalog> TranslationCatalogs { get; set; } = null!;
@@ -58,6 +63,8 @@ public partial class ECafeDbContext : DbContext
     public virtual DbSet<UserPasswordSetupToken> UserPasswordSetupTokens { get; set; } = null!;
     public virtual DbSet<PasswordResetToken> PasswordResetTokens { get; set; } = null!;
     public DbSet<EmailChangeRequest> EmailChangeRequests { get; set; } = null!;
+    public DbSet<ProductAnnouncement> ProductAnnouncements { get; set; } = null!;
+    public DbSet<ProductAnnouncementReceipt> ProductAnnouncementReceipts { get; set; } = null!;
     public virtual DbSet<UserRefreshToken> UserRefreshTokens { get; set; } = null!;
     public virtual DbSet<LoginAttempt> LoginAttempts { get; set; } = null!;
     public virtual DbSet<UserRestaurant> UserRestaurants { get; set; } = null!;

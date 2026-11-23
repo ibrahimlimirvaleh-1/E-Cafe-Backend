@@ -8,17 +8,16 @@ namespace ECafe.Infrastructure.Repositories.Restaurant;
 
 public sealed class RestaurantScheduleRepository(ECafeDbContext context) : IRestaurantScheduleRepository
 {
+    /// <summary>Əvvəl iş saatı kilidini, sonra masaları ID sırası ilə alaraq mövcud kilid ardıcıllığını saxlayır.</summary>
     public async Task AcquireLocksAsync(int restaurantId, CancellationToken ct)
     {
         if (context.Database.IsRelational())
         {
-            await context.Database.ExecuteSqlInterpolatedAsync(
-                $"SELECT pg_advisory_xact_lock({restaurantId}, {0})", ct);
+            await context.TransactionLocks.LockAdvisoryAsync(restaurantId, 0, ct);
             var tables = await context.Tables.Where(t => t.RestaurantId == restaurantId)
                 .OrderBy(t => t.Id).Select(t => t.Id).ToListAsync(ct);
             foreach (var tableId in tables)
-                await context.Database.ExecuteSqlInterpolatedAsync(
-                    $"SELECT pg_advisory_xact_lock({restaurantId}, {tableId})", ct);
+                await context.TransactionLocks.LockAdvisoryAsync(restaurantId, tableId, ct);
         }
     }
 
