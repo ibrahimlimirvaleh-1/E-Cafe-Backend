@@ -52,6 +52,12 @@ public enum ErrorCode
     EmailChangeInvalidOrExpired = 1139,
     StaffAccountInactive = 1140,
     StaffProfileInactive = 1141,
+    AccountDeletionCustomerOnly = 1142,
+    AccountDeletionBlocked = 1143,
+    AnnouncementNotFound = 5200,
+    AnnouncementInvalid = 5201,
+    AnnouncementChanged = 5202,
+    AnnouncementMustBeDraft = 5203,
 
     RestaurantNotFound = 2000,
     UnitNotFound = 2001,

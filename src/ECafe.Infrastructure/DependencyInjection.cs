@@ -111,6 +111,8 @@ namespace ECafe.Infrastructure
             services.AddScoped<IApplicationDbTransactionFactory, EfApplicationDbTransactionFactory>();
             services.AddScoped<INotificationChangeDispatcher, NotificationChangeDispatcher>();
             services.AddScoped<IUserRepository, UserRepository>();
+            services.AddScoped<ICustomerAccountClosureRepository, Repositories.User.CustomerAccountClosureRepository>();
+            services.AddScoped<Application.Repositories.ProductAnnouncements.IProductAnnouncementRepository, Repositories.ProductAnnouncements.ProductAnnouncementRepository>();
             services.AddScoped<IPasswordResetTokenRepository, PasswordResetTokenRepository>();
             services.AddScoped<IUserPasswordSetupTokenRepository, UserPasswordSetupTokenRepository>();
             services.AddScoped<IUserRefreshTokenRepository, UserRefreshTokenRepository>();

@@ -184,11 +184,12 @@ public sealed partial class ProviderPaymentManager(IHttpContextAccessor accessor
             ?? throw new NotFoundException(ErrorCode.ReservationNotFound);
     }
 
-    /// <summary>Masa və müştəri kilidlərindən sonra aidiyyət, cari rol və dəyişmiş masa ID-sini yenidən yoxlayır.</summary>
+    /// <summary>Rezervasiya yaradılması ilə eyni user-sonra-masa kilid sırasını saxlayır; menecerin köhnə ödənişə çıxışını müştərinin aktivliyi ilə məhdudlaşdırmır.</summary>
     private async Task<Domain.Entities.Reservation> LockReservationAsync(Domain.Entities.Reservation snapshot, bool customerOnly, CancellationToken cancellationToken)
     {
+        await reservations.AcquireCustomerReservationLockAsync(snapshot.RestaurantId, snapshot.CustomerUserId, cancellationToken,
+            requireActiveCustomer: customerOnly);
         await tables.AcquireReservationLockAsync(snapshot.RestaurantId, snapshot.TableId, cancellationToken);
-        await reservations.AcquireCustomerReservationLockAsync(snapshot.RestaurantId, snapshot.CustomerUserId, cancellationToken);
         var current = await FindReservationAsync(snapshot.Id, true, cancellationToken);
         var customer = await RequireAccessAsync(current, customerOnly, cancellationToken);
         if (!customerOnly && customer) throw new ForbiddenException(ErrorCode.AccessDenied);

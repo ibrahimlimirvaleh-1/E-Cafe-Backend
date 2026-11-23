@@ -75,6 +75,10 @@ public static class RateLimitingServiceCollectionExtensions
                 "RateLimiting:EmailChangeRequest", permitLimit: 3, windowSeconds: 900, partitionByUserWhenAuthenticated: true);
             AddFixedWindowPolicy(options, configuration, RateLimitPolicyNames.EmailChangeConfirm,
                 "RateLimiting:EmailChangeConfirm", permitLimit: 10, windowSeconds: 300, partitionByUserWhenAuthenticated: true);
+            AddFixedWindowPolicy(options, configuration, RateLimitPolicyNames.CustomerAccountDeletion,
+                "RateLimiting:CustomerAccountDeletion", permitLimit: 3, windowSeconds: 900, partitionByUserWhenAuthenticated: true);
+            AddFixedWindowPolicy(options, configuration, RateLimitPolicyNames.ProductAnnouncements,
+                "RateLimiting:ProductAnnouncements", permitLimit: 60, windowSeconds: 60, partitionByUserWhenAuthenticated: true);
 
             AddFixedWindowPolicy(
                 options,

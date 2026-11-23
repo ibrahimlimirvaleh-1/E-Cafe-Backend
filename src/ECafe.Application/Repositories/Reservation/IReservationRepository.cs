@@ -23,7 +23,8 @@ public interface IReservationRepository : IBaseRepository<Domain.Entities.Reserv
     Task AcquireCustomerReservationLockAsync(
         int restaurantId,
         int customerUserId,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken = default,
+        bool requireActiveCustomer = true);
 
     Task<bool> HasActiveReservationForCustomerOnUtcDayAsync(
         int restaurantId,

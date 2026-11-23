@@ -30,7 +30,7 @@ public sealed class ContentTranslationRepository(
     public Task AcquireLockAsync(ContentEntityType type, int id, CancellationToken cancellationToken)
     {
         _ = Store(type);
-        return context.Database.ExecuteSqlRawAsync("SELECT pg_advisory_xact_lock({0}, {1})", [TranslationLockKeys.ContentNamespaceOffset + (int)type, id], cancellationToken);
+        return context.TransactionLocks.LockAdvisoryAsync(TranslationLockKeys.ContentNamespaceOffset + (int)type, id, cancellationToken);
     }
 
     /// <summary>Tərcümə yazısını seçilmiş tipli saxlayıcıya ötürür; reviziya nəzarəti saxlayıcıda icra olunur.</summary>

@@ -5,6 +5,7 @@ using ECafe.Application.Features.MobileApp;
 using ECafe.Domain.Entities;
 using ECafe.Domain.Enums;
 using ECafe.Infrastructure.Context;
+using ECafe.Infrastructure.Repositories.Outbox;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -23,7 +24,9 @@ public sealed class MobilePushDeliveryProcessor(
     private static readonly TimeSpan ReceiptRetryDelay = TimeSpan.FromMinutes(5);
     private static readonly TimeSpan ReceiptLifetime = TimeSpan.FromHours(24);
     private readonly IDataProtector _protector = dataProtectionProvider.CreateProtector("ECafe.MobilePush.InstallationToken.v1");
+    private readonly OutboxBatchReader _outboxBatches = new(context);
 
+    /// <summary>Batch oxuyucusunun seçdiyi hadisələri əvvəlki transaction və idempotentlik qaydaları ilə mobil çatdırılmalara çevirir.</summary>
     public async Task<int> ExpandOutboxAsync(int batchSize, CancellationToken cancellationToken)
     {
         if (!IsReady() || batchSize <= 0)
@@ -32,20 +35,7 @@ public sealed class MobilePushDeliveryProcessor(
         await using var transaction = context.Database.IsRelational()
             ? await context.Database.BeginTransactionAsync(cancellationToken)
             : null;
-        var events = context.Database.IsRelational()
-            ? await context.OutboxEvents.FromSqlInterpolated($"""
-                SELECT * FROM audit.outbox_events
-                WHERE "EventType" = {OutboxEventTypes.MobilePushRequested}
-                  AND "ProcessedAt" IS NULL
-                ORDER BY "OccurredAt", "Id"
-                LIMIT {batchSize}
-                FOR UPDATE SKIP LOCKED
-                """).ToListAsync(cancellationToken)
-            : await context.OutboxEvents
-                .Where(x => x.EventType == OutboxEventTypes.MobilePushRequested && x.ProcessedAt == null)
-                .OrderBy(x => x.OccurredAt)
-                .Take(batchSize)
-                .ToListAsync(cancellationToken);
+        var events = await _outboxBatches.ReadMobilePushAsync(batchSize, cancellationToken);
 
         var now = DateTime.UtcNow;
         foreach (var eventItem in events)

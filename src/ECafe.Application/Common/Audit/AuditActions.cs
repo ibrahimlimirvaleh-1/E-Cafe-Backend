@@ -78,6 +78,11 @@ namespace ECafe.Application.Common.Audit
 
         public const string EmailChangeRequested = "EmailChangeRequested";
         public const string EmailChangeConfirmed = "EmailChangeConfirmed";
+        public const string CustomerAccountDeleted = "CustomerAccountDeleted";
+        public const string ProductAnnouncementCreated = "ProductAnnouncementCreated";
+        public const string ProductAnnouncementUpdated = "ProductAnnouncementUpdated";
+        public const string ProductAnnouncementPublished = "ProductAnnouncementPublished";
+        public const string ProductAnnouncementUnpublished = "ProductAnnouncementUnpublished";
 
         public static IReadOnlyCollection<AuditActionDefinition> All { get; } =
         [
@@ -151,7 +156,12 @@ namespace ECafe.Application.Common.Audit
             new(85, OrderCancellationRejected, "Mətbəx sifarişin ləğvini rədd etdi"),
             new(86, OrderCancellationExpired, "Sifarişin ləğv sorğusu aktuallığını itirdi"),
             new(87, EmailChangeRequested, "E-poçt dəyişikliyi soruşuldu"),
-            new(88, EmailChangeConfirmed, "E-poçt dəyişikliyi təsdiqləndi")
+            new(88, EmailChangeConfirmed, "E-poçt dəyişikliyi təsdiqləndi"),
+            new(89, CustomerAccountDeleted, "Müştəri öz hesabını bağladı"),
+            new(90, ProductAnnouncementCreated, "Yenilik draftı yaradıldı"),
+            new(91, ProductAnnouncementUpdated, "Yenilik draftı yeniləndi"),
+            new(92, ProductAnnouncementPublished, "Yenilik yayımlandı"),
+            new(93, ProductAnnouncementUnpublished, "Yenilik yayımdan çıxarıldı")
         ];
 
         public static string GetDisplayName(string? action)

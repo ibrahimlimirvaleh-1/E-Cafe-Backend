@@ -1,0 +1,247 @@
+{
+  "ui.announcements.whatsNew": {
+    "az": "Yenilik",
+    "en": "What is new",
+    "ru": "Новое"
+  },
+  "ui.announcements.dismiss": {
+    "az": "Bu yeniliyi bağla",
+    "en": "Dismiss this update",
+    "ru": "Закрыть это обновление"
+  },
+  "ui.announcements.open": {
+    "az": "Aç",
+    "en": "Open",
+    "ru": "Открыть"
+  },
+  "ui.announcements.next": {
+    "az": "Növbəti",
+    "en": "Next",
+    "ru": "Далее"
+  },
+  "ui.announcements.gotIt": {
+    "az": "Aydındır",
+    "en": "Got it",
+    "ru": "Понятно"
+  },
+  "ui.announcements.management": {
+    "az": "Yeniliklərin idarəetməsi",
+    "en": "Announcements",
+    "ru": "Управление обновлениями"
+  },
+  "ui.announcements.back": {
+    "az": "Siyahıya qayıt",
+    "en": "Back to list",
+    "ru": "К списку"
+  },
+  "ui.announcements.new": {
+    "az": "Yeni qaralama",
+    "en": "New draft",
+    "ru": "Новый черновик"
+  },
+  "ui.announcements.saved": {
+    "az": "Dəyişiklik saxlanıldı.",
+    "en": "Changes saved.",
+    "ru": "Изменения сохранены."
+  },
+  "ui.announcements.version": {
+    "az": "Versiya {{version}}",
+    "en": "Version {{version}}",
+    "ru": "Версия {{version}}"
+  },
+  "ui.announcements.published": {
+    "az": "Yayımdadır",
+    "en": "Published",
+    "ru": "Опубликовано"
+  },
+  "ui.announcements.draft": {
+    "az": "Qaralama",
+    "en": "Draft",
+    "ru": "Черновик"
+  },
+  "ui.announcements.unpublishFirst": {
+    "az": "Redaktə etmək üçün əvvəl yayımı dayandırın.",
+    "en": "Unpublish before editing.",
+    "ru": "Перед редактированием снимите с публикации."
+  },
+  "ui.announcements.destination": {
+    "az": "Keçid hədəfi",
+    "en": "Destination",
+    "ru": "Назначение"
+  },
+  "ui.announcements.audience": {
+    "az": "Uyğun rollar",
+    "en": "Audience roles",
+    "ru": "Роли получателей"
+  },
+  "ui.announcements.languages": {
+    "az": "Mətnin dili",
+    "en": "Content language",
+    "ru": "Язык текста"
+  },
+  "ui.announcements.title": {
+    "az": "Başlıq",
+    "en": "Title",
+    "ru": "Заголовок"
+  },
+  "ui.announcements.body": {
+    "az": "Qısa izah",
+    "en": "Short description",
+    "ru": "Краткое описание"
+  },
+  "ui.announcements.expiry": {
+    "az": "Son yayım vaxtı (UTC, istəyə bağlı)",
+    "en": "Expiry (UTC, optional)",
+    "ru": "Срок окончания (UTC, необязательно)"
+  },
+  "ui.announcements.preview": {
+    "az": "Önizləmə",
+    "en": "Preview",
+    "ru": "Предпросмотр"
+  },
+  "ui.announcements.saveDraft": {
+    "az": "Qaralamanı saxla",
+    "en": "Save draft",
+    "ru": "Сохранить черновик"
+  },
+  "ui.announcements.publish": {
+    "az": "Yayımla",
+    "en": "Publish",
+    "ru": "Опубликовать"
+  },
+  "ui.announcements.unpublish": {
+    "az": "Yayımı dayandır",
+    "en": "Unpublish",
+    "ru": "Снять с публикации"
+  },
+  "ui.announcements.records": {
+    "az": "Elan sayı: {{count}}",
+    "en": "Announcements: {{count}}",
+    "ru": "Объявлений: {{count}}"
+  },
+  "ui.announcements.refresh": {
+    "az": "Yenilə",
+    "en": "Refresh",
+    "ru": "Обновить"
+  },
+  "ui.announcements.edit": {
+    "az": "Redaktə et",
+    "en": "Edit",
+    "ru": "Изменить"
+  },
+  "ui.announcements.empty": {
+    "az": "Hələ elan yoxdur.",
+    "en": "No announcements yet.",
+    "ru": "Объявлений пока нет."
+  },
+  "ui.announcements.loading": {
+    "az": "Yüklənir...",
+    "en": "Loading...",
+    "ru": "Загрузка..."
+  },
+  "ui.announcements.older": {
+    "az": "Əvvəlki elanlar",
+    "en": "Older announcements",
+    "ru": "Предыдущие объявления"
+  },
+  "ui.announcements.releaseConfirmation": {
+    "az": "Mətnləri, uyğun rolları və funksiyanın istifadəyə hazır olduğunu yoxladınız? Yalnız hazır funksiyaları yayımlayın.",
+    "en": "Have you checked the texts, audience and release readiness? Publish only available features.",
+    "ru": "Проверены ли тексты, роли и готовность функции? Публикуйте только доступные функции."
+  },
+  "ui.announcements.reloadLatest": {
+    "az": "Son versiyanı aç",
+    "en": "Load latest version",
+    "ru": "Открыть последнюю версию"
+  },
+  "ui.announcements.failed": {
+    "az": "Sorğunun nəticəsi təsdiqlənmədi. Yeniləyib vəziyyəti yoxlayın.",
+    "en": "The result could not be confirmed. Refresh to check the current state.",
+    "ru": "Не удалось подтвердить результат. Обновите данные для проверки."
+  },
+  "ui.announcements.changed": {
+    "az": "Elan başqa yerdə dəyişib. Son versiyanı açın.",
+    "en": "This announcement changed elsewhere. Load the latest version.",
+    "ru": "Объявление изменено в другом месте. Откройте последнюю версию."
+  },
+  "ui.announcements.mustBeDraft": {
+    "az": "Yayında olan elan birbaşa redaktə edilmir. Son vəziyyəti yeniləyin.",
+    "en": "A published announcement cannot be edited. Refresh its current state.",
+    "ru": "Опубликованное объявление нельзя редактировать. Обновите его состояние."
+  },
+  "ui.announcements.notFound": {
+    "az": "Elan tapılmadı. Siyahını yeniləyin.",
+    "en": "Announcement not found. Refresh the list.",
+    "ru": "Объявление не найдено. Обновите список."
+  },
+  "ui.announcements.invalid": {
+    "az": "Elanın məlumatlarını yoxlayın.",
+    "en": "Check the announcement details.",
+    "ru": "Проверьте данные объявления."
+  },
+  "ui.announcements.denied": {
+    "az": "Bu əməliyyata girişiniz yoxdur.",
+    "en": "You do not have access to this action.",
+    "ru": "У вас нет доступа к этому действию."
+  },
+  "ui.announcements.rateLimited": {
+    "az": "Sorğu limiti aşılıb. Bir qədər sonra yenidən cəhd edin.",
+    "en": "Request limit reached. Please try again later.",
+    "ru": "Лимит запросов достигнут. Попробуйте позже."
+  },
+  "ui.announcements.required": {
+    "az": "Hər üç dildə başlıq və izah yazın, uyğun rol seçin.",
+    "en": "Enter a title and description in all three languages and select an eligible role.",
+    "ru": "Заполните заголовок и описание на трёх языках и выберите подходящую роль."
+  },
+  "ui.announcements.invalidExpiry": {
+    "az": "Gələcək son yayım vaxtını seçin və ya sahəni boş saxlayın.",
+    "en": "Choose a future expiry or leave it empty.",
+    "ru": "Укажите срок в будущем или оставьте поле пустым."
+  },
+  "ui.announcements.destination.CustomerProfile": {
+    "az": "Müştəri profili",
+    "en": "Customer profile",
+    "ru": "Профиль клиента"
+  },
+  "ui.announcements.destination.CustomerReservations": {
+    "az": "Müştəri rezervasiyaları",
+    "en": "Customer reservations",
+    "ru": "Бронирования клиента"
+  },
+  "ui.announcements.destination.CustomerOrders": {
+    "az": "Müştəri sifarişləri",
+    "en": "Customer orders",
+    "ru": "Заказы клиента"
+  },
+  "ui.announcements.destination.WaiterTables": {
+    "az": "Ofisiantın masaları",
+    "en": "Waiter tables",
+    "ru": "Столы официанта"
+  },
+  "ui.announcements.destination.KitchenOrders": {
+    "az": "Mətbəx sifarişləri",
+    "en": "Kitchen orders",
+    "ru": "Заказы кухни"
+  },
+  "ui.announcements.destination.Inventory": {
+    "az": "Stok",
+    "en": "Inventory",
+    "ru": "Склад"
+  },
+  "ui.announcements.destination.DashboardReports": {
+    "az": "Hesabat paneli",
+    "en": "Dashboard reports",
+    "ru": "Панель отчётов"
+  },
+  "ui.announcements.destination.AnnouncementAdmin": {
+    "az": "Yeniliklərin idarəetməsi",
+    "en": "Announcement management",
+    "ru": "Управление обновлениями"
+  },
+  "ui.announcements.saveBeforePublish": {
+    "az": "Yayımdan əvvəl dəyişiklikləri saxlayın.",
+    "en": "Save changes before publishing.",
+    "ru": "Сохраните изменения перед публикацией."
+  }
+}

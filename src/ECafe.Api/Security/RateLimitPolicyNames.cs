@@ -7,6 +7,8 @@ public static class RateLimitPolicyNames
     public const string AuthPasswordReset = "auth-password-reset";
     public const string EmailChangeRequest = "email-change-request";
     public const string EmailChangeConfirm = "email-change-confirm";
+    public const string CustomerAccountDeletion = "customer-account-deletion";
+    public const string ProductAnnouncements = "product-announcements";
     public const string FileUpload = "file-upload";
     public const string FileDownload = "file-download";
     public const string MobileRelease = "mobile-release";

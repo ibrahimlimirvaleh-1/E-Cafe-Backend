@@ -46,15 +46,13 @@ namespace ECafe.Infrastructure.Repositories.Table
                     ts.ClosedAt == null));
         }
 
+        /// <summary>Eyni masa üçün rezervasiya cəhdlərini mövcud transaction advisory kilidi ilə ardıcıllaşdırır.</summary>
         public Task AcquireReservationLockAsync(
             int restaurantId,
             int tableId,
             CancellationToken cancellationToken = default)
         {
-            // Transaction-scoped advisory locks serialize reservation attempts for one table.
-            return Context.Database.ExecuteSqlInterpolatedAsync(
-                $"SELECT pg_advisory_xact_lock({restaurantId}, {tableId})",
-                cancellationToken);
+            return Context.TransactionLocks.LockAdvisoryAsync(restaurantId, tableId, cancellationToken);
         }
 
         public async Task<bool> IsTableAvailableForReservationAsync(

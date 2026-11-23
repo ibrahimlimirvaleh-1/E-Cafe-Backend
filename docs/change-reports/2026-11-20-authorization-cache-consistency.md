@@ -84,6 +84,10 @@ Köhnə açarların həqiqətən doldurulması ilə sərtləşdirilmiş testdən
 
 ## Deploy və yoxlama
 
+Addım-addım deploy, iki brauzerlə yoxlama, gözlənilən nəticələr və gözləyən
+e-poçt təhlükəsizliyi işi ayrıca
+[deploy və test siyahısında](../deployment/AuthorizationCacheRollout.md) qeyd olunub.
+
 1. Bütün API instansiyalarını eyni yeni versiyaya keçir; köhnə binarilər keşə
    etibar etməyə davam edir. Qarışıq versiya dövrünü riskin tam bağlanması sayma.
 2. Mövcud Redis ACL-ləri, `.env`, JWT açarları və data-protection volume-u saxla.
@@ -97,4 +101,5 @@ Köhnə açarların həqiqətən doldurulması ilə sərtləşdirilmiş testdən
 6. Redis dayanma testini yalnız ayrıca staging/test mühitində et. Baza da
    əlçatmazdırsa qorunan əməliyyatın uğurlu olmaması gözlənilir.
 
-Commit/push və canlı server dəyişikliyi bu işin icazəsinə daxil deyil.
+Düzəliş `690651b` commiti ilə push olunub. Sonrakı sənədləşdirmə işi ayrıca
+commit/push və canlı serverdə dəyişiklik etmir; deploy nəticəsi ayrıca təsdiqlənməlidir.

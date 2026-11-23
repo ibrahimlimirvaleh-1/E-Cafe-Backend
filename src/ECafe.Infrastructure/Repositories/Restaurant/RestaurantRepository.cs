@@ -16,10 +16,10 @@ namespace ECafe.Infrastructure.Repositories.Restaurant
         {
         }
 
+        /// <summary>İş saatı kilidinin əvvəlki sıfır açarını saxlayır; qeyri-relational sınaqlarda SQL icra etmir.</summary>
         public Task AcquireScheduleLockAsync(int restaurantId, CancellationToken cancellationToken = default)
             => Context.Database.IsRelational()
-                ? Context.Database.ExecuteSqlInterpolatedAsync(
-                    $"SELECT pg_advisory_xact_lock({restaurantId}, {0})", cancellationToken)
+                ? Context.TransactionLocks.LockAdvisoryAsync(restaurantId, 0, cancellationToken)
                 : Task.CompletedTask;
 
         public Task<bool> HasPendingScheduleChangeAsync(int restaurantId, CancellationToken cancellationToken = default)

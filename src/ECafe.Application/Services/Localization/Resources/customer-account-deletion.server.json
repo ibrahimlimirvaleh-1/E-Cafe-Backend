@@ -1,0 +1,17 @@
+{
+  "api.error.AccountDeletionCustomerOnly": {
+    "az": "Öz hesabını silmə əməliyyatı yalnız müştəri hesabı üçündür.",
+    "en": "Only customer accounts can use self-service account deletion.",
+    "ru": "Самостоятельное удаление доступно только для аккаунтов клиентов."
+  },
+  "api.error.AccountDeletionBlocked": {
+    "az": "Hesabı silməzdən əvvəl aktiv profilləri və tamamlanmamış əməliyyatları həll edin.",
+    "en": "Resolve active profiles and outstanding activity before deleting your account.",
+    "ru": "Перед удалением аккаунта завершите активные операции и закройте рабочие профили."
+  },
+  "account.customerDeletion.completed": {
+    "az": "Hesabınız bağlandı.",
+    "en": "Your account has been closed.",
+    "ru": "Ваш аккаунт закрыт."
+  }
+}
