@@ -1,15 +1,18 @@
 using ECafe.Application.DTOs.Payment;
+using ECafe.Api.Security;
 using ECafe.Application.DTOs.Reservation;
 using ECafe.Application.Features.Payments;
 using ECafe.Domain.Enums;
 using ECafe.Infrastructure.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using ApiRoutes = ECafe.Application.Routes.Routes;
 
 namespace ECafe.Api.Controllers;
 
 [Authorize]
+[EnableRateLimiting(RateLimitPolicyNames.PaymentMutation)]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 public sealed class PaymentFlowController : BaseController
 {
@@ -33,6 +36,7 @@ public sealed class PaymentFlowController : BaseController
     /// <remarks>Browserdə uğur səhifəsinin açılması ödəniş sübutu deyil. Təkrar yoxlama ikinci ödəniş, təsdiq və bildiriş yaratmır. Vaxtından gec təsdiq rezervasiyanı bərpa etmir; ilkin ödənişə refund başladılır.</remarks>
     [Authorize(Roles = "5")]
     [HttpPost(ApiRoutes.Payment.Refresh)]
+    [EnableRateLimiting(RateLimitPolicyNames.PaymentRefresh)]
     [ProducesResponseType(typeof(CheckoutPaymentResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> Refresh(int paymentId, CancellationToken cancellationToken)
         => Ok(await Mediator.Send(new RefreshPaymentCommand(paymentId), cancellationToken));
@@ -57,6 +61,7 @@ public sealed class PaymentFlowController : BaseController
     /// <remarks>Yalnız öz refunduna giriş verilir. Rekvizit və ya müştərinin “aldım” təsdiqi tələb olunmur; provayder uğuru təsdiqləmədən məbləğ qaytarılmış sayılmır.</remarks>
     [Authorize(Roles = "5")]
     [HttpPost(ApiRoutes.Payment.RefundRefresh)]
+    [EnableRateLimiting(RateLimitPolicyNames.PaymentRefresh)]
     [ProducesResponseType(typeof(ReservationRefundResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> RefreshRefund(int refundId, CancellationToken cancellationToken)
         => Ok(await Mediator.Send(new RefreshRefundCommand(refundId), cancellationToken));

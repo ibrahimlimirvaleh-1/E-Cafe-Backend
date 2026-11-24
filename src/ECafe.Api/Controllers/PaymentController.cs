@@ -1,12 +1,15 @@
 using ECafe.Application.DTOs.Payment;
+using ECafe.Api.Security;
 using ECafe.Application.Features.Payments;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using ApiRoutes = ECafe.Application.Routes.Routes;
 
 namespace ECafe.Api.Controllers;
 
 [Authorize]
+[EnableRateLimiting(RateLimitPolicyNames.PaymentRead)]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 public sealed class PaymentController : BaseController
 {
