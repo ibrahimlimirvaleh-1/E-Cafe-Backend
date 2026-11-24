@@ -1,4 +1,5 @@
 using ECafe.Application.DTOs.Payment;
+using ECafe.Shared.Http;
 using ECafe.Api.Security;
 using ECafe.Application.Features.Payments;
 using Microsoft.AspNetCore.Authorization;
@@ -25,7 +26,7 @@ public sealed class SessionBillController : BaseController
     /// <remarks>Idempotency-Key boş olmayan UUID olmalıdır. Məbləğ və valyuta body ilə qəbul edilmir; server hesablayır. Gözləmədə olan ödəniş zamanı yeni sifariş və sessiyanın bağlanması bloklanır. Real pul hərəkəti yoxdur.</remarks>
     [HttpPost(ApiRoutes.Payment.SessionBillCheckout)]
     [ProducesResponseType(typeof(SessionBillPaymentResponse), StatusCodes.Status200OK)]
-    public async Task<IActionResult> Checkout(int tableSessionId, [FromHeader(Name = "Idempotency-Key")] string key, CancellationToken cancellationToken)
+    public async Task<IActionResult> Checkout(int tableSessionId, [FromHeader(Name = RequestHeaderNames.IdempotencyKey)] string key, CancellationToken cancellationToken)
         => Ok(await Mediator.Send(new SessionBillCheckoutCommand(tableSessionId, key), cancellationToken));
 
     /// <summary>Yekun hesab ödənişini provayder adapterindən yoxlayır; browserin uğur səhifəsi ödəniş sübutu deyil.</summary>

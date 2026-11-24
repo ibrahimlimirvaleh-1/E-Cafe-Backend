@@ -1,4 +1,5 @@
 using AutoMapper;
+using ECafe.Shared.Security;
 using ECafe.Application.Common.Exceptions;
 using ECafe.Application.DTOs.Auth;
 using ECafe.Application.DTOs.File;
@@ -121,7 +122,7 @@ namespace ECafe.Application.Features.Commands.File
         /// <summary>Yüklənən faylın sahibini yalnız cari principal-dan oxuyur; etibarsız və sıfır ID-ni rədd edir.</summary>
         private int GetCurrentUserId()
         {
-            var userIdClaim = _httpContextAccessor.HttpContext?.User.FindFirst("userId")?.Value;
+            var userIdClaim = _httpContextAccessor.HttpContext?.User.FindFirst(AuthenticationClaimTypes.UserId)?.Value;
             if (!int.TryParse(userIdClaim, out var userId) || userId <= 0)
                 throw new ForbiddenException("User context is required.");
 

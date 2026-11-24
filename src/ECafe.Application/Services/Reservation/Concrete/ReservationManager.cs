@@ -775,7 +775,7 @@ public sealed partial class ReservationManager : BaseManager, IReservationServic
         await _workflowActionService.EnsureCanExecuteAsync(
             ReservationFlowCode,
             reservation.StatusId,
-            "sendPaymentInstruction",
+            WorkflowActionCode.Reservation.SendPaymentInstruction,
             restaurantId,
             reservation.Id);
 
@@ -1612,7 +1612,7 @@ public sealed partial class ReservationManager : BaseManager, IReservationServic
         await _workflowActionService.EnsureCanExecuteAsync(
             ReservationFlowCode,
             reservation.StatusId,
-            "approvePaymentProof",
+            WorkflowActionCode.Reservation.ApprovePaymentProof,
             restaurantId,
             reservation.Id);
 

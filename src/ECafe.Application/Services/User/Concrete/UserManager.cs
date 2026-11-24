@@ -1,4 +1,6 @@
 using AutoMapper;
+using ECafe.Shared.Security;
+using Microsoft.Net.Http.Headers;
 using AutoMapper.QueryableExtensions;
 using ECafe.Application.Common.Audit;
 using ECafe.Application.Common.Exceptions;
@@ -397,8 +399,8 @@ namespace ECafe.Application.Services.User.Concrete
             if (userId == GetCurrentUserId() && !roleChanged)
             {
                 var principal = HttpContextAccessor.HttpContext?.User;
-                var sessionId = principal?.FindFirst("sessionId")?.Value;
-                if (!user.IsActive || !int.TryParse(principal?.FindFirst("sessionVersion")?.Value, out var version) ||
+                var sessionId = principal?.FindFirst(AuthenticationClaimTypes.SessionId)?.Value;
+                if (!user.IsActive || !int.TryParse(principal?.FindFirst(AuthenticationClaimTypes.SessionVersion)?.Value, out var version) ||
                     version != user.SessionVersion ||
                     (!string.IsNullOrWhiteSpace(sessionId) && !await _refreshTokenRepository.HasActiveUserSessionAsync(userId, sessionId, DateTime.UtcNow)))
                     throw new UnauthorizedException(ErrorCode.SessionInvalid);
@@ -712,7 +714,7 @@ namespace ECafe.Application.Services.User.Concrete
                 SessionId = sessionId,
                 ExpiresAt = DateTime.UtcNow.AddDays(7),
                 CreatedByIp = HttpContextAccessor.HttpContext?.Connection.RemoteIpAddress?.ToString(),
-                UserAgent = HttpContextAccessor.HttpContext?.Request.Headers["User-Agent"].ToString()
+                UserAgent = HttpContextAccessor.HttpContext?.Request.Headers[HeaderNames.UserAgent].ToString()
             }));
             await _refreshTokenRepository.SaveChangesAsync();
 

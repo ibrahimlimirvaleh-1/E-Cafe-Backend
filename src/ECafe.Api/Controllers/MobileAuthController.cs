@@ -1,4 +1,5 @@
 using ECafe.Api.Security;
+using System.Net.Mime;
 using ECafe.Application.Common.Exceptions;
 using ECafe.Application.Features.Commands.Auth.Login;
 using ECafe.Application.Features.Commands.Auth.MobileLogout;
@@ -12,7 +13,7 @@ using ApiRoutes = ECafe.Application.Routes.Routes;
 namespace ECafe.Api.Controllers;
 
 [AllowAnonymous]
-[Consumes("application/json")]
+[Consumes(MediaTypeNames.Application.Json)]
 [RequestSizeLimit(16_384)]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 public sealed class MobileAuthController : BaseController

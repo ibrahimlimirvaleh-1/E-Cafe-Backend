@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using ECafe.Shared.Security;
 using ECafe.Application.Services.Auth.Abstract;
 using ECafe.Domain.Enums;
 using ECafe.Infrastructure.Redis;
@@ -37,6 +38,7 @@ public sealed class PermissionAuthorizationHandler
             context.Succeed(requirement);
     }
 
+    /// <summary>İcazə yoxlamasında restoran olduqda canlı təyinatı, əks halda əvvəlki qlobal rol qaydasını saxlayır.</summary>
     private async Task<int?> ResolveRoleIdForPermissionCheckAsync(AuthorizationHandlerContext context)
     {
         var globalRoleId = RestaurantContextAuthorizationHelper.GetIntClaim(context.User, ClaimTypes.Role);
@@ -52,7 +54,7 @@ public sealed class PermissionAuthorizationHandler
         if (globalRoleId.Value == (int)RoleCode.SuperAdmin)
             return globalRoleId;
 
-        var userId = RestaurantContextAuthorizationHelper.GetIntClaim(context.User, "userId");
+        var userId = RestaurantContextAuthorizationHelper.GetIntClaim(context.User, AuthenticationClaimTypes.UserId);
         if (!userId.HasValue)
             return null;
 

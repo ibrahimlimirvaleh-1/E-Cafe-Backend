@@ -1,4 +1,5 @@
 using AutoMapper;
+using Microsoft.Net.Http.Headers;
 using ECafe.Application.Common.Exceptions;
 using ECafe.Application.DTOs.Auth;
 using ECafe.Application.Repositories.File;
@@ -16,6 +17,7 @@ using ECafe.Shared.Services.Jwt.Abstract;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using ECafe.Application.Common.Security;
+using ECafe.Application.Common.Audit;
 
 namespace ECafe.Application.Services.Auth.Concrete
 {
@@ -342,7 +344,7 @@ namespace ECafe.Application.Services.Auth.Concrete
                 SessionId = sessionId,
                 ExpiresAt = DateTime.UtcNow.AddDays(7),
                 CreatedByIp = GetRequestIp(),
-                UserAgent = HttpContextAccessor.HttpContext?.Request.Headers["User-Agent"].ToString()
+                UserAgent = HttpContextAccessor.HttpContext?.Request.Headers[HeaderNames.UserAgent].ToString()
             });
 
             await _refreshTokenRepository.Add(refreshToken);
@@ -410,7 +412,7 @@ namespace ECafe.Application.Services.Auth.Concrete
         private Task EnqueueRefreshTokenReuseEmailAsync(Domain.Entities.User user)
         {
             var ipAddress = GetRequestIp() ?? "unknown";
-            var userAgent = HttpContextAccessor.HttpContext?.Request.Headers["User-Agent"].ToString();
+            var userAgent = HttpContextAccessor.HttpContext?.Request.Headers[HeaderNames.UserAgent].ToString();
             var body = $"""
             Salam {user.Name},
 
@@ -429,7 +431,7 @@ namespace ECafe.Application.Services.Auth.Concrete
                 body,
                 "RefreshToken",
                 user.Id,
-                "User",
+                AuditEntityTypes.User,
                 user.Id);
         }
 

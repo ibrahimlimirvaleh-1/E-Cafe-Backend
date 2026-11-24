@@ -32,10 +32,6 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
         private static readonly JsonSerializerOptions NotificationJsonOptions = new(JsonSerializerDefaults.Web);
         private static string ContractFlowCode
             => WorkflowFlowCode.FromStatusType(StatusType.Contract);
-        private const string SendForSignatureActionCode = "sendForSignature";
-        private const string ApproveActionCode = "approve";
-        private const string ActivateActionCode = "activate";
-        private const string TerminateActionCode = "terminate";
 
         private readonly IRestaurantContractRepository _contractRepository;
         private readonly IRestaurantRepository _restaurantRepository;
@@ -364,7 +360,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             var contract = await GetTrackedContractAsync(restaurantId, contractId);
 
             ValidateContractCanEnterActivationFlow(contract.StartDate, contract.EndDate);
-            await EnsureWorkflowActionAllowedAsync(contract, ActivateActionCode);
+            await EnsureWorkflowActionAllowedAsync(contract, WorkflowActionCode.Contract.Activate);
 
             var nowUtc = DateTime.UtcNow;
             if (contract.StartDate > nowUtc)
@@ -424,7 +420,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             var contract = await GetTrackedContractAsync(restaurantId, contractId);
             ValidatePersistedContractDates(contract.StartDate, contract.EndDate);
             EnsureContractHasNotExpired(contract.EndDate);
-            await EnsureWorkflowActionAllowedAsync(contract, SendForSignatureActionCode);
+            await EnsureWorkflowActionAllowedAsync(contract, WorkflowActionCode.Contract.SendForSignature);
 
             var owner = await GetRestaurantOwnerAsync(restaurantId);
 
@@ -461,7 +457,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             var contract = await GetTrackedContractAsync(restaurantId, contractId);
             ValidatePersistedContractDates(contract.StartDate, contract.EndDate);
             EnsureContractHasNotExpired(contract.EndDate);
-            await EnsureWorkflowActionAllowedAsync(contract, ApproveActionCode);
+            await EnsureWorkflowActionAllowedAsync(contract, WorkflowActionCode.Contract.Approve);
 
             var owner = await GetRestaurantOwnerAsync(restaurantId);
             var currentUserId = GetCurrentUserId();
@@ -498,7 +494,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             EnsureCurrentUserCanAccessRestaurant(restaurantId);
 
             var contract = await GetTrackedContractAsync(restaurantId, contractId);
-            await EnsureWorkflowActionAllowedAsync(contract, TerminateActionCode);
+            await EnsureWorkflowActionAllowedAsync(contract, WorkflowActionCode.Contract.Terminate);
             var owner = await GetRestaurantOwnerAsync(restaurantId);
 
             contract.StatusId = ContractStatusId(ContractStatus.Terminated);

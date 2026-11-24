@@ -1,4 +1,6 @@
 using System.IdentityModel.Tokens.Jwt;
+using ECafe.Shared.Security;
+using ECafe.Application.Common.Configuration;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
@@ -33,19 +35,19 @@ namespace ECafe.Application.Services.Jwt.Concrete
             UserProfileAccessPolicy.EnsureHasRequiredStaffProfile(user);
             var claims = new List<Claim>
                 {
-                    new Claim("userId", user.Id.ToString()),
-                    new Claim("name", user.Name),
-                    new Claim("surname", user.Surname),
-                    new Claim("email", user.Email),
-                    new Claim("isActive", user.IsActive.ToString()),
-                    new Claim("sessionVersion", user.SessionVersion.ToString()),
+                    new Claim(AuthenticationClaimTypes.UserId, user.Id.ToString()),
+                    new Claim(AuthenticationClaimTypes.Name, user.Name),
+                    new Claim(AuthenticationClaimTypes.Surname, user.Surname),
+                    new Claim(AuthenticationClaimTypes.Email, user.Email),
+                    new Claim(AuthenticationClaimTypes.IsActive, user.IsActive.ToString()),
+                    new Claim(AuthenticationClaimTypes.SessionVersion, user.SessionVersion.ToString()),
                 };
 
             if (!string.IsNullOrWhiteSpace(sessionId))
-                claims.Add(new Claim("sessionId", sessionId));
+                claims.Add(new Claim(AuthenticationClaimTypes.SessionId, sessionId));
 
             if (fileUrl != null)
-                claims.Add(new Claim("fileUrl", fileUrl));
+                claims.Add(new Claim(AuthenticationClaimTypes.FileUrl, fileUrl));
 
             var assignedRestaurantIds = user.UserRestaurants
                 .Where(userRestaurant => userRestaurant.IsActive)
@@ -57,8 +59,8 @@ namespace ECafe.Application.Services.Jwt.Concrete
 
             if (assignedRestaurantIds.Count > 0)
             {
-                claims.Add(new Claim("restaurantId", assignedRestaurantIds[0].ToString()));
-                claims.Add(new Claim("restaurantIds", string.Join(",", assignedRestaurantIds)));
+                claims.Add(new Claim(AuthenticationClaimTypes.RestaurantId, assignedRestaurantIds[0].ToString()));
+                claims.Add(new Claim(AuthenticationClaimTypes.RestaurantIds, string.Join(",", assignedRestaurantIds)));
 
                 var restaurantRoles = user.UserRestaurants
                     .Where(userRestaurant => userRestaurant.IsActive)
@@ -67,21 +69,21 @@ namespace ECafe.Application.Services.Jwt.Concrete
                     .OrderBy(value => value)
                     .ToList();
 
-                claims.Add(new Claim("restaurantRoles", string.Join(",", restaurantRoles)));
+                claims.Add(new Claim(AuthenticationClaimTypes.RestaurantRoles, string.Join(",", restaurantRoles)));
             }
 
             claims.Add(new Claim(ClaimTypes.Role, user.RoleId.ToString()));
-            claims.Add(new Claim("roleName", EnumExtensions.GetDescription((RoleCode)user.RoleId)));
+            claims.Add(new Claim(AuthenticationClaimTypes.RoleName, EnumExtensions.GetDescription((RoleCode)user.RoleId)));
 
             foreach (var permission in GetPermissionClaims(user))
-                claims.Add(new Claim("permission", permission));
+                claims.Add(new Claim(AuthenticationClaimTypes.Permission, permission));
 
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]!));
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration[AuthenticationConfigurationKeys.Jwt.Key]!));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
             var token = new JwtSecurityToken(
-                issuer: _configuration["Jwt:Issuer"],
-                audience: _configuration["Jwt:Audience"],
+                issuer: _configuration[AuthenticationConfigurationKeys.Jwt.Issuer],
+                audience: _configuration[AuthenticationConfigurationKeys.Jwt.Audience],
                 claims: claims,
                 expires: DateTime.UtcNow.AddMinutes(GetAccessTokenLifetimeMinutes()),
                 signingCredentials: creds
@@ -90,9 +92,10 @@ namespace ECafe.Application.Services.Jwt.Concrete
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
+        /// <summary>Mövcud Jwt ayarını oxuyur; əvvəlki 15 dəqiqə fallback-i və 1–60 dəqiqə həddi dəyişmir.</summary>
         private int GetAccessTokenLifetimeMinutes()
         {
-            var configuredLifetime = _configuration["Jwt:AccessTokenLifetimeMinutes"];
+            var configuredLifetime = _configuration[AuthenticationConfigurationKeys.Jwt.AccessTokenLifetimeMinutes];
             var lifetimeMinutes = int.TryParse(configuredLifetime, out var parsedLifetime) ? parsedLifetime : 15;
             return Math.Clamp(lifetimeMinutes, 1, 60);
         }

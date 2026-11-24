@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Net.Mime;
 using System.Text.Json.Serialization;
 using ECafe.Application.Common.Exceptions;
 using ECafe.Application.DTOs.Geocoding;
@@ -97,6 +98,7 @@ public sealed class GeoapifyGeocodingService : IGeocodingService
         throw new NotFoundException(ErrorCode.GeocodingAddressNotFound);
     }
 
+    /// <summary>Ünvanı mövcud GET və cancellation qaydası ilə provayderdən JSON kimi oxuyur; əvvəlki xəta və nəticə qaydalarını saxlayır.</summary>
     private async Task<IReadOnlyList<GeocodeAddressResponse>> RequestGeoapifyAsync(
         string endpoint,
         string address,
@@ -104,7 +106,7 @@ public sealed class GeoapifyGeocodingService : IGeocodingService
         CancellationToken cancellationToken)
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, BuildGeoapifyUri(endpoint, address, limit));
-        request.Headers.TryAddWithoutValidation("Accept", "application/json");
+        request.Headers.TryAddWithoutValidation("Accept", MediaTypeNames.Application.Json);
 
         using var response = await HttpClient.SendAsync(request, cancellationToken);
         if (!response.IsSuccessStatusCode)

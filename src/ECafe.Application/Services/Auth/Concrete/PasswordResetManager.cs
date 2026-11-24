@@ -1,4 +1,5 @@
 using ECafe.Application.Common.Security;
+using Microsoft.Net.Http.Headers;
 using ECafe.Application.Common.Audit;
 using ECafe.Application.Common.Outbox;
 using ECafe.Application.DTOs.Auth;
@@ -203,6 +204,6 @@ public class PasswordResetManager : IPasswordResetService
 
     /// <summary>Parol bərpası metadatası üçün User-Agent header-ini əvvəlki formatda oxuyur.</summary>
     private string? GetUserAgent()
-        => _httpContextAccessor.HttpContext?.Request.Headers["User-Agent"].ToString();
+        => _httpContextAccessor.HttpContext?.Request.Headers[HeaderNames.UserAgent].ToString();
 
 }

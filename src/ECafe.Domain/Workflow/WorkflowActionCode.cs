@@ -3,6 +3,14 @@ namespace ECafe.Domain.Workflow;
 // Immutable action identifiers shared by API handlers and workflow records.
 public static class WorkflowActionCode
 {
+    public static class Contract
+    {
+        public const string SendForSignature = "sendForSignature";
+        public const string Approve = "approve";
+        public const string Activate = "activate";
+        public const string Terminate = "terminate";
+    }
+
     public static class Reservation
     {
         public const string SendPaymentInstruction = "sendPaymentInstruction";
@@ -12,6 +20,7 @@ public static class WorkflowActionCode
         public const string CheckIn = "checkIn";
         public const string MarkArrived = "markArrived";
         public const string Cancel = "cancel";
+        public const string Complete = "complete";
         public const string RequestRefund = "requestRefund";
         public const string WaiveDeposit = "waiveDeposit";
     }

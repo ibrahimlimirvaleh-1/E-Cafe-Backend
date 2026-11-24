@@ -1,4 +1,6 @@
 using System.Security.Claims;
+using System.Net.Mime;
+using ECafe.Shared.Security;
 using System.Globalization;
 using System.Threading.RateLimiting;
 using ECafe.Domain.Exceptions;
@@ -19,7 +21,7 @@ public static class RateLimitingServiceCollectionExtensions
             options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
             options.OnRejected = async (context, cancellationToken) =>
             {
-                context.HttpContext.Response.ContentType = "application/json";
+                context.HttpContext.Response.ContentType = MediaTypeNames.Application.Json;
 
                 TimeSpan? retryAfter = null;
                 if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var metadataRetryAfter))
@@ -146,11 +148,12 @@ public static class RateLimitingServiceCollectionExtensions
                 }));
     }
 
+    /// <summary>Autentifikasiyalı istifadəçi və ya əvvəlki IP qaydası ilə limit partition açarını qurur; limit siyasətini dəyişmir.</summary>
     private static string GetPartitionKey(HttpContext context, bool partitionByUserWhenAuthenticated)
     {
         if (partitionByUserWhenAuthenticated && context.User.Identity?.IsAuthenticated == true)
         {
-            var userId = context.User.FindFirstValue("userId")
+            var userId = context.User.FindFirstValue(AuthenticationClaimTypes.UserId)
                          ?? context.User.FindFirstValue(ClaimTypes.NameIdentifier);
 
             if (!string.IsNullOrWhiteSpace(userId))

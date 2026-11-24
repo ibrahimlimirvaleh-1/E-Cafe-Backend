@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Mime;
 using ECafe.Application.Services.Monitoring.Abstract;
 using ECafe.Application.Services.Localization.Abstract;
 using ECafe.Domain.Exceptions;
@@ -124,12 +125,13 @@ public sealed class ExceptionHandlingMiddleware
         SentrySdk.CaptureException(exception);
     }
 
+    /// <summary>Xətanı mövcud təhlükəsiz response modelinə çevirib JSON cavabı yazır; daxili exception mətni cavaba çıxmır.</summary>
     private async Task WriteErrorResponseAsync(HttpContext context, Exception exception)
     {
         if (context.Response.HasStarted)
             return;
 
-        context.Response.ContentType = "application/json";
+        context.Response.ContentType = MediaTypeNames.Application.Json;
 
         var response = CreateErrorResponse(context, exception);
         context.Response.StatusCode = response.StatusCode;

@@ -1,4 +1,6 @@
 using ECafe.Api.BackgroundServices;
+using ECafe.Application.Common.Configuration;
+using System.Net.Mime;
 using ECafe.Api.Middlewares;
 using ECafe.Api.Monitoring;
 using ECafe.Api.Realtime;
@@ -217,9 +219,9 @@ if (useSignalRRedisBackplane && !string.IsNullOrWhiteSpace(signalRRedisConnectio
     });
 }
 
-var jwtKey = GetRequiredConfigurationValue(builder.Configuration, "Jwt:Key");
-var jwtIssuer = GetRequiredConfigurationValue(builder.Configuration, "Jwt:Issuer");
-var jwtAudience = GetRequiredConfigurationValue(builder.Configuration, "Jwt:Audience");
+var jwtKey = GetRequiredConfigurationValue(builder.Configuration, AuthenticationConfigurationKeys.Jwt.Key);
+var jwtIssuer = GetRequiredConfigurationValue(builder.Configuration, AuthenticationConfigurationKeys.Jwt.Issuer);
+var jwtAudience = GetRequiredConfigurationValue(builder.Configuration, AuthenticationConfigurationKeys.Jwt.Audience);
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -257,7 +259,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             {
                 context.HandleResponse();
                 context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-                context.Response.ContentType = "application/json";
+                context.Response.ContentType = MediaTypeNames.Application.Json;
 
                 var response = new
                 {

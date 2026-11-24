@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using ECafe.Shared.Security;
 using ECafe.Application.Common.Audit;
 using ECafe.Application.Common.Exceptions;
 using ECafe.Application.DTOs.Auth;
@@ -69,7 +70,7 @@ public sealed class CustomerAccountDeletionManager(IUserRepository users, IUserR
     private int CurrentUserId()
     {
         var principal = http.HttpContext?.User;
-        if (principal?.Identity?.IsAuthenticated != true || !int.TryParse(principal.FindFirst("userId")?.Value, out var id) || id <= 0)
+        if (principal?.Identity?.IsAuthenticated != true || !int.TryParse(principal.FindFirst(AuthenticationClaimTypes.UserId)?.Value, out var id) || id <= 0)
             throw new UnauthorizedException(ErrorCode.SessionInvalid);
         return id;
     }
@@ -81,9 +82,9 @@ public sealed class CustomerAccountDeletionManager(IUserRepository users, IUserR
         var userId = CurrentUserId();
         var principal = http.HttpContext!.User;
         var user = await users.GetProfileByIdTrackedAsync(userId);
-        var sessionId = principal.FindFirst("sessionId")?.Value;
+        var sessionId = principal.FindFirst(AuthenticationClaimTypes.SessionId)?.Value;
         if (user == null || !user.IsActive || string.IsNullOrEmpty(sessionId) ||
-            !int.TryParse(principal.FindFirst("sessionVersion")?.Value, out var version) || version != user.SessionVersion ||
+            !int.TryParse(principal.FindFirst(AuthenticationClaimTypes.SessionVersion)?.Value, out var version) || version != user.SessionVersion ||
             !await refreshTokens.HasActiveUserSessionAsync(userId, sessionId, clock.GetUtcNow().UtcDateTime))
             throw new UnauthorizedException(ErrorCode.SessionInvalid);
         if (user.RoleId != (int)RoleCode.Customer || principal.FindFirst(ClaimTypes.Role)?.Value != ((int)RoleCode.Customer).ToString())

@@ -1,5 +1,6 @@
 using ECafe.Application.DTOs.AuditLog;
 using ECafe.Shared.DTOs;
+using ECafe.Application.Common.Audit;
 
 namespace ECafe.Application.Services.AuditLog.Abstract
 {
@@ -9,7 +10,7 @@ namespace ECafe.Application.Services.AuditLog.Abstract
             int restaurantId,
             string action,
             object? metadata = null,
-            string entityType = "Restaurant",
+            string entityType = AuditEntityTypes.Restaurant,
             long? entityId = null,
             string? entityDisplayName = null);
 

@@ -1,4 +1,5 @@
 using ECafe.Api.Security;
+using System.Net.Mime;
 using ECafe.Application.DTOs.Auth;
 using ECafe.Application.Services.Auth.Abstract;
 using Microsoft.AspNetCore.Authorization;
@@ -12,7 +13,7 @@ namespace ECafe.Api.Controllers;
 public sealed class EmailChangeController(IEmailChangeService service) : BaseController
 {
     [HttpPost(ApiRoutes.User.RequestEmailChange)]
-    [Consumes("application/json")]
+    [Consumes(MediaTypeNames.Application.Json)]
     [EnableRateLimiting(RateLimitPolicyNames.EmailChangeRequest)]
     public async Task<IActionResult> RequestChange([FromBody] RequestEmailChangeRequest request, CancellationToken cancellationToken)
     {
@@ -21,7 +22,7 @@ public sealed class EmailChangeController(IEmailChangeService service) : BaseCon
     }
 
     [HttpPost(ApiRoutes.User.ConfirmEmailChange)]
-    [Consumes("application/json")]
+    [Consumes(MediaTypeNames.Application.Json)]
     [EnableRateLimiting(RateLimitPolicyNames.EmailChangeConfirm)]
     public async Task<IActionResult> Confirm([FromBody] ConfirmEmailChangeRequest request, CancellationToken cancellationToken)
     {

@@ -1,4 +1,5 @@
 using ECafe.Application.DTOs.Payment;
+using ECafe.Shared.Http;
 using ECafe.Api.Security;
 using ECafe.Application.DTOs.Reservation;
 using ECafe.Application.Features.Payments;
@@ -29,7 +30,7 @@ public sealed class PaymentFlowController : BaseController
     [Authorize(Roles = "5")]
     [HttpPost(ApiRoutes.Payment.Checkout)]
     [ProducesResponseType(typeof(CheckoutPaymentResponse), StatusCodes.Status200OK)]
-    public async Task<IActionResult> CreateCheckout(int reservationId, [FromHeader(Name = "Idempotency-Key")] string key, CancellationToken cancellationToken)
+    public async Task<IActionResult> CreateCheckout(int reservationId, [FromHeader(Name = RequestHeaderNames.IdempotencyKey)] string key, CancellationToken cancellationToken)
         => Ok(await Mediator.Send(new CreatePaymentCheckoutCommand(reservationId, key), cancellationToken));
 
     /// <summary>Ödəniş nəticəsini provayderdən server üzərindən yoxlayır.</summary>

@@ -1,4 +1,6 @@
 using System.Security.Cryptography;
+using ECafe.Shared.Security;
+using ECafe.Application.Common.Configuration;
 using ECafe.Application.Common.Security;
 using System.Net.Mail;
 using ECafe.Application.Common.Audit;
@@ -128,7 +130,7 @@ public sealed class EmailChangeManager(
     {
         var principal = http.HttpContext?.User;
         if (principal?.Identity?.IsAuthenticated != true
-            || !int.TryParse(principal.FindFirst("userId")?.Value, out var userId) || userId <= 0)
+            || !int.TryParse(principal.FindFirst(AuthenticationClaimTypes.UserId)?.Value, out var userId) || userId <= 0)
             throw new UnauthorizedException(ErrorCode.SessionInvalid);
         return userId;
     }
@@ -139,9 +141,9 @@ public sealed class EmailChangeManager(
         cancellationToken.ThrowIfCancellationRequested();
         var user = await users.GetProfileByIdTrackedAsync(userId);
         var principal = http.HttpContext!.User;
-        var sessionId = principal.FindFirst("sessionId")?.Value;
+        var sessionId = principal.FindFirst(AuthenticationClaimTypes.SessionId)?.Value;
         if (user == null || !user.IsActive
-            || !int.TryParse(principal.FindFirst("sessionVersion")?.Value, out var version) || version != user.SessionVersion
+            || !int.TryParse(principal.FindFirst(AuthenticationClaimTypes.SessionVersion)?.Value, out var version) || version != user.SessionVersion
             || (!string.IsNullOrEmpty(sessionId) && !await refreshTokens.HasActiveUserSessionAsync(userId, sessionId, clock.GetUtcNow().UtcDateTime)))
             throw new UnauthorizedException(ErrorCode.SessionInvalid);
         return user;
@@ -158,7 +160,7 @@ public sealed class EmailChangeManager(
     /// <summary>Tokeni query deyil, fragment-də saxlayan sabit frontend linki yaradır; request Host və redirect parametrinə etibar etmir.</summary>
     private string BuildConfirmationUrl(string token)
     {
-        var baseUrl = configuration["Frontend:BaseUrl"];
+        var baseUrl = configuration[AuthenticationConfigurationKeys.FrontendBaseUrl];
         if (!Uri.TryCreate(baseUrl, UriKind.Absolute, out var uri)
             || (uri.Scheme != Uri.UriSchemeHttps && !(uri.Scheme == Uri.UriSchemeHttp && uri.IsLoopback))
             || !string.IsNullOrEmpty(uri.Query) || !string.IsNullOrEmpty(uri.Fragment) || !string.IsNullOrEmpty(uri.UserInfo))

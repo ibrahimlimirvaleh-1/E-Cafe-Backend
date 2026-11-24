@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using ECafe.Shared.Security;
 using ECafe.Application.Services.Auth.Abstract;
 using ECafe.Domain.Exceptions;
 using ApiRoutes = ECafe.Application.Routes.Routes;
@@ -55,20 +56,23 @@ public sealed class ActiveUserMiddleware
            context.Request.Path.Equals(ApiRoutes.MobileAuth.RefreshPath, StringComparison.OrdinalIgnoreCase) ||
            context.Request.Path.Equals(ApiRoutes.MobileAuth.LogoutPath, StringComparison.OrdinalIgnoreCase);
 
+    /// <summary>Mövcud userId claim-ini oxuyur; əvvəlki NameIdentifier fallback-i saxlanılır.</summary>
     private static int? GetUserId(ClaimsPrincipal principal)
     {
-        var value = principal.FindFirstValue("userId")
+        var value = principal.FindFirstValue(AuthenticationClaimTypes.UserId)
                     ?? principal.FindFirstValue(ClaimTypes.NameIdentifier);
 
         return int.TryParse(value, out var userId) ? userId : null;
     }
 
+    /// <summary>JWT-dəki əvvəlki sessiya versiyasını oxuyur; səhv dəyər üçün null qaytarır.</summary>
     private static int? GetSessionVersion(ClaimsPrincipal principal)
     {
-        var value = principal.FindFirstValue("sessionVersion");
+        var value = principal.FindFirstValue(AuthenticationClaimTypes.SessionVersion);
         return int.TryParse(value, out var sessionVersion) ? sessionVersion : null;
     }
 
+    /// <summary>JWT-dəki cihaz sessiyasını dəyişməyən mərkəzi claim adı ilə oxuyur.</summary>
     private static string? GetSessionId(ClaimsPrincipal principal)
-        => principal.FindFirstValue("sessionId");
+        => principal.FindFirstValue(AuthenticationClaimTypes.SessionId);
 }

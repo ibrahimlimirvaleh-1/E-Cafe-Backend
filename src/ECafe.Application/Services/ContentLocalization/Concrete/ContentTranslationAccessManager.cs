@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using ECafe.Shared.Security;
 using ECafe.Application.Common.Exceptions;
 using ECafe.Application.Repositories.ContentLocalization;
 using ECafe.Application.Services.ContentLocalization.Abstract;
@@ -16,14 +17,14 @@ public sealed class ContentTranslationAccessManager(IContentTranslationQuery con
     public async Task<ContentTranslationSource> RequireAsync(ContentEntityType type, int id, CancellationToken cancellationToken)
     {
         var principal = accessor.HttpContext?.User;
-        var sessionId = principal?.FindFirst("sessionId")?.Value;
-        if (principal?.Identity?.IsAuthenticated != true || !int.TryParse(principal.FindFirst("userId")?.Value, out var userId) ||
+        var sessionId = principal?.FindFirst(AuthenticationClaimTypes.SessionId)?.Value;
+        if (principal?.Identity?.IsAuthenticated != true || !int.TryParse(principal.FindFirst(AuthenticationClaimTypes.UserId)?.Value, out var userId) ||
             !int.TryParse(principal.FindFirst(ClaimTypes.Role)?.Value, out var tokenRole) ||
             sessionId is not { Length: 32 } || !Guid.TryParseExact(sessionId, "N", out _))
             throw new ForbiddenException(ErrorCode.Forbidden);
         var actor = await access.GetActorAsync(userId, cancellationToken);
         if (actor == null || actor.RoleId != tokenRole ||
-            principal.FindFirst("sessionVersion") is { } version &&
+            principal.FindFirst(AuthenticationClaimTypes.SessionVersion) is { } version &&
             (!int.TryParse(version.Value, out var sessionVersion) || sessionVersion != actor.SessionVersion))
             throw new ForbiddenException(ErrorCode.Forbidden);
         if (!await access.HasActiveSessionAsync(userId, sessionId, cancellationToken))
@@ -47,7 +48,7 @@ public sealed class ContentTranslationAccessManager(IContentTranslationQuery con
     /// <summary>Seçilmiş restoran rolunu tokenin restoran təyinatından götürür; digər restoranın rolunu qəbul etmir.</summary>
     private static int TokenRestaurantRole(ClaimsPrincipal principal, int restaurantId, int fallback)
     {
-        var assignments = principal.FindFirst("restaurantRoles")?.Value;
+        var assignments = principal.FindFirst(AuthenticationClaimTypes.RestaurantRoles)?.Value;
         if (string.IsNullOrWhiteSpace(assignments)) return fallback;
         foreach (var assignment in assignments.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
         {

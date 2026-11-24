@@ -1,4 +1,5 @@
 using ECafe.Application.Features.Commands.Auth.Login;
+using System.Net.Mime;
 using ECafe.Application.Features.Commands.Auth.Logout;
 using ECafe.Application.Features.Commands.Auth.LogoutAll;
 using ECafe.Application.Features.Commands.Auth.ForgotPassword;
@@ -30,7 +31,7 @@ namespace ECafe.Api.Controllers
         }
 
         [HttpPost(ApiRoutes.Auth.Login)]
-        [Consumes("application/json")]
+        [Consumes(MediaTypeNames.Application.Json)]
         [EnableRateLimiting(RateLimitPolicyNames.AuthLogin)]
         public async Task<IActionResult> Login([FromBody] LoginUserCommand command)
         {
@@ -52,7 +53,7 @@ namespace ECafe.Api.Controllers
         }
 
         [HttpPost(ApiRoutes.Auth.SetPassword)]
-        [Consumes("application/json")]
+        [Consumes(MediaTypeNames.Application.Json)]
         [EnableRateLimiting(RateLimitPolicyNames.AuthLogin)]
         public async Task<IActionResult> SetPassword([FromBody] SetPasswordCommand command)
         {
@@ -61,7 +62,7 @@ namespace ECafe.Api.Controllers
         }
 
         [HttpPost(ApiRoutes.Auth.ForgotPassword)]
-        [Consumes("application/json")]
+        [Consumes(MediaTypeNames.Application.Json)]
         [EnableRateLimiting(RateLimitPolicyNames.AuthPasswordReset)]
         public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordCommand command)
         {
@@ -70,7 +71,7 @@ namespace ECafe.Api.Controllers
         }
 
         [HttpPost(ApiRoutes.Auth.ResetPassword)]
-        [Consumes("application/json")]
+        [Consumes(MediaTypeNames.Application.Json)]
         [EnableRateLimiting(RateLimitPolicyNames.AuthPasswordReset)]
         public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordCommand command)
         {

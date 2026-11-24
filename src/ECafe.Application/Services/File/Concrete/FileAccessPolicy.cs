@@ -1,4 +1,6 @@
 using System.Security.Claims;
+using ECafe.Shared.Http;
+using ECafe.Shared.Security;
 using ECafe.Application.Common.Exceptions;
 using ECafe.Application.Services.FileAccess.Abstract;
 using ECafe.Domain.Enums;
@@ -10,7 +12,6 @@ namespace ECafe.Application.Services.FileAccess.Concrete
 {
     public sealed class FileAccessPolicy : IFileAccessPolicy
     {
-        private const string ActiveRestaurantIdHeader = "X-Active-Restaurant-Id";
 
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IAuthorizationService _authorization;
@@ -36,7 +37,7 @@ namespace ECafe.Application.Services.FileAccess.Concrete
             {
                 EnsureCurrentUserCanAccessRestaurant(restaurantId);
                 var resource = new DefaultHttpContext { User = CurrentUser };
-                resource.Request.Headers[ActiveRestaurantIdHeader] = restaurantId.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                resource.Request.Headers[RequestHeaderNames.ActiveRestaurantId] = restaurantId.ToString(System.Globalization.CultureInfo.InvariantCulture);
                 var result = await _authorization.AuthorizeAsync(CurrentUser, resource,
                     $"Permission:{(int)PermissionCode.ViewRestaurantContracts}");
                 if (!result.Succeeded)
@@ -142,13 +143,14 @@ namespace ECafe.Application.Services.FileAccess.Concrete
         private bool IsCurrentUserSuperAdmin()
             => GetCurrentRoleId() == (int)RoleCode.SuperAdmin;
 
+        /// <summary>Fayl icazəsində seçilmiş header və token restoranlarının əvvəlki prioritetini saxlayır.</summary>
         private int? GetCurrentRestaurantId()
         {
             var activeRestaurantId = GetActiveRestaurantIdFromHeader();
             if (activeRestaurantId.HasValue && GetCurrentRestaurantIds().Contains(activeRestaurantId.Value))
                 return activeRestaurantId.Value;
 
-            var legacyRestaurantIdClaim = CurrentUser.FindFirst("restaurantId")?.Value;
+            var legacyRestaurantIdClaim = CurrentUser.FindFirst(AuthenticationClaimTypes.RestaurantId)?.Value;
             if (int.TryParse(legacyRestaurantIdClaim, out var legacyRestaurantId) && legacyRestaurantId > 0)
                 return legacyRestaurantId;
 
@@ -156,9 +158,10 @@ namespace ECafe.Application.Services.FileAccess.Concrete
             return restaurantIds.Count > 0 ? restaurantIds.First() : null;
         }
 
+        /// <summary>Fayla giriş üçün cari principal-dan əvvəlki müsbət userId yoxlamasını aparır.</summary>
         private int GetCurrentUserId()
         {
-            var userIdClaim = CurrentUser.FindFirst("userId")?.Value;
+            var userIdClaim = CurrentUser.FindFirst(AuthenticationClaimTypes.UserId)?.Value;
             if (!int.TryParse(userIdClaim, out var userId) || userId <= 0)
                 throw new ForbiddenException("User context is required.");
 
@@ -187,9 +190,10 @@ namespace ECafe.Application.Services.FileAccess.Concrete
                 throw new ForbiddenException(ErrorCode.AccessDenied);
         }
 
+        /// <summary>Fayl icazəsi üçün çox-restoran claim-ini və legacy restoran fallback-ini oxuyur.</summary>
         private IReadOnlyCollection<int> GetCurrentRestaurantIds()
         {
-            var restaurantIdsClaim = CurrentUser.FindFirst("restaurantIds")?.Value;
+            var restaurantIdsClaim = CurrentUser.FindFirst(AuthenticationClaimTypes.RestaurantIds)?.Value;
             if (!string.IsNullOrWhiteSpace(restaurantIdsClaim))
             {
                 return restaurantIdsClaim
@@ -200,17 +204,18 @@ namespace ECafe.Application.Services.FileAccess.Concrete
                     .ToList();
             }
 
-            var restaurantIdClaim = CurrentUser.FindFirst("restaurantId")?.Value;
+            var restaurantIdClaim = CurrentUser.FindFirst(AuthenticationClaimTypes.RestaurantId)?.Value;
             return int.TryParse(restaurantIdClaim, out var legacyRestaurantId) && legacyRestaurantId > 0
                 ? [legacyRestaurantId]
                 : [];
         }
 
+        /// <summary>Fayl icazəsində seçilmiş restoran header-indən yalnız əvvəlki etibarlı müsbət ID-ni qaytarır.</summary>
         private int? GetActiveRestaurantIdFromHeader()
         {
             var request = _httpContextAccessor.HttpContext?.Request;
             if (request is null ||
-                !request.Headers.TryGetValue(ActiveRestaurantIdHeader, out var headerValue) ||
+                !request.Headers.TryGetValue(RequestHeaderNames.ActiveRestaurantId, out var headerValue) ||
                 !int.TryParse(headerValue.FirstOrDefault(), out var restaurantId) ||
                 restaurantId <= 0)
             {

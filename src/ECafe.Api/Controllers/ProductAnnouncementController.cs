@@ -1,4 +1,5 @@
 using ECafe.Api.Security;
+using System.Net.Mime;
 using ECafe.Application.DTOs.ProductAnnouncements;
 using ECafe.Application.Services.ProductAnnouncements;
 using Microsoft.AspNetCore.Authorization;
@@ -18,7 +19,7 @@ public sealed class ProductAnnouncementController(IProductAnnouncementService se
         => Ok(await service.PendingAsync(cancellationToken));
 
     [HttpPost(ApiRoutes.ProductAnnouncements.Acknowledge)]
-    [Consumes("application/json")]
+    [Consumes(MediaTypeNames.Application.Json)]
     [RequestSizeLimit(1024)]
     public async Task<IActionResult> Acknowledge([FromRoute] int id, [FromBody] AnnouncementAcknowledgeRequest request, CancellationToken cancellationToken)
     {

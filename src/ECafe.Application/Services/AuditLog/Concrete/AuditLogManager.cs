@@ -1,4 +1,7 @@
 using AutoMapper;
+using ECafe.Shared.Security;
+using Microsoft.Net.Http.Headers;
+using ECafe.Shared.Http;
 using ECafe.Application.Common.Audit;
 using ECafe.Application.Common.Dates;
 using ECafe.Application.Common.Outbox;
@@ -63,8 +66,8 @@ namespace ECafe.Application.Services.AuditLog.Concrete
                 ActorUserId = TryGetCurrentUserId(),
                 ActorFullName = GetActorFullName(),
                 ActorRoleId = TryGetCurrentRoleId(),
-                ActorRoleName = GetClaimValue("roleName"),
-                ActorEmail = GetClaimValue(ClaimTypes.Email) ?? GetClaimValue("email"),
+                ActorRoleName = GetClaimValue(AuthenticationClaimTypes.RoleName),
+                ActorEmail = GetClaimValue(ClaimTypes.Email) ?? GetClaimValue(AuthenticationClaimTypes.Email),
                 EntityType = entityType.Trim(),
                 EntityId = entityId ?? restaurantId,
                 EntityDisplayName = string.IsNullOrWhiteSpace(entityDisplayName)
@@ -408,9 +411,10 @@ namespace ECafe.Application.Services.AuditLog.Concrete
             => string.Concat(value.Select((character, index) =>
                 index > 0 && char.IsUpper(character) ? $" {character}" : character.ToString()));
 
+        /// <summary>Audit aktorunu mərkəzi userId claim-indən oxuyur; yoxdursa və ya müsbət deyilsə null qaytarır.</summary>
         private int? TryGetCurrentUserId()
         {
-            var userIdClaim = HttpContextAccessor.HttpContext?.User.FindFirst("userId")?.Value;
+            var userIdClaim = HttpContextAccessor.HttpContext?.User.FindFirst(AuthenticationClaimTypes.UserId)?.Value;
             return int.TryParse(userIdClaim, out var userId) && userId > 0
                 ? userId
                 : null;
@@ -424,10 +428,11 @@ namespace ECafe.Application.Services.AuditLog.Concrete
                 : null;
         }
 
+        /// <summary>Audit üçün əvvəlki standart claim və tətbiq claim-i fallback ardıcıllığı ilə aktor adını qurur.</summary>
         private string? GetActorFullName()
         {
-            var name = GetClaimValue(ClaimTypes.Name) ?? GetClaimValue("name");
-            var surname = GetClaimValue(ClaimTypes.Surname) ?? GetClaimValue("surname");
+            var name = GetClaimValue(ClaimTypes.Name) ?? GetClaimValue(AuthenticationClaimTypes.Name);
+            var surname = GetClaimValue(ClaimTypes.Surname) ?? GetClaimValue(AuthenticationClaimTypes.Surname);
             var fullName = string.Join(' ', new[] { name, surname }.Where(x => !string.IsNullOrWhiteSpace(x)));
             return string.IsNullOrWhiteSpace(fullName) ? null : fullName.Trim();
         }
@@ -451,16 +456,18 @@ namespace ECafe.Application.Services.AuditLog.Concrete
             return context.Connection.RemoteIpAddress?.ToString();
         }
 
+        /// <summary>Audit üçün User-Agent header-inin əvvəlki ilk dəyərini oxuyur.</summary>
         private string? GetUserAgent()
-            => HttpContextAccessor.HttpContext?.Request.Headers["User-Agent"].FirstOrDefault();
+            => HttpContextAccessor.HttpContext?.Request.Headers[HeaderNames.UserAgent].FirstOrDefault();
 
+        /// <summary>Cari sorğunun əvvəlki correlation header-ini və ya TraceIdentifier fallback-ini qaytarır.</summary>
         private string? GetCorrelationId()
         {
             var context = HttpContextAccessor.HttpContext;
             if (context is null)
                 return null;
 
-            var correlationId = context.Request.Headers["X-Correlation-Id"].FirstOrDefault();
+            var correlationId = context.Request.Headers[RequestHeaderNames.CorrelationId].FirstOrDefault();
             return string.IsNullOrWhiteSpace(correlationId)
                 ? context.TraceIdentifier
                 : correlationId.Trim();
