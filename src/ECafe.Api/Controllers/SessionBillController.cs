@@ -1,18 +1,22 @@
 using ECafe.Application.DTOs.Payment;
+using ECafe.Api.Security;
 using ECafe.Application.Features.Payments;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using ApiRoutes = ECafe.Application.Routes.Routes;
 
 namespace ECafe.Api.Controllers;
 
 [Authorize]
+[EnableRateLimiting(RateLimitPolicyNames.PaymentMutation)]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 public sealed class SessionBillController : BaseController
 {
     /// <summary>Masa sessiyasının yekun hesabını, qalan borcu və icazəli əməliyyatları serverdən gətirir.</summary>
     /// <remarks>Öz müştərisi, cari məsul ofisiant və restoranın aktiv menecer/sahibkarı görə bilər. Ləğv edilmiş sifarişlər cəmə daxil deyil. Kart, rekvizit və çek məlumatı saxlanmır.</remarks>
     [HttpGet(ApiRoutes.Payment.SessionBill)]
+    [EnableRateLimiting(RateLimitPolicyNames.PaymentRead)]
     [ProducesResponseType(typeof(SessionBillResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> Get(int tableSessionId, CancellationToken cancellationToken)
         => Ok(await Mediator.Send(new SessionBillQuery(tableSessionId), cancellationToken));
@@ -26,6 +30,7 @@ public sealed class SessionBillController : BaseController
 
     /// <summary>Yekun hesab ödənişini provayder adapterindən yoxlayır; browserin uğur səhifəsi ödəniş sübutu deyil.</summary>
     [HttpPost(ApiRoutes.Payment.SessionBillRefresh)]
+    [EnableRateLimiting(RateLimitPolicyNames.PaymentRefresh)]
     [ProducesResponseType(typeof(SessionBillPaymentResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> Refresh(int tableSessionId, int paymentId, CancellationToken cancellationToken)
         => Ok(await Mediator.Send(new SessionBillRefreshCommand(tableSessionId, paymentId), cancellationToken));

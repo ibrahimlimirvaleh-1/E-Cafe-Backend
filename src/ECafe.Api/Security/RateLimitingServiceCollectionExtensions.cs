@@ -1,7 +1,9 @@
 using System.Security.Claims;
+using System.Globalization;
 using System.Threading.RateLimiting;
 using ECafe.Domain.Exceptions;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.Net.Http.Headers;
 
 namespace ECafe.Api.Security;
 
@@ -26,6 +28,10 @@ public static class RateLimitingServiceCollectionExtensions
                 double? retryAfterSeconds = retryAfter.HasValue
                     ? Math.Ceiling(retryAfter.Value.TotalSeconds)
                     : null;
+
+                if (retryAfterSeconds.HasValue)
+                    context.HttpContext.Response.Headers[HeaderNames.RetryAfter] =
+                        retryAfterSeconds.Value.ToString(CultureInfo.InvariantCulture);
 
                 await context.HttpContext.Response.WriteAsJsonAsync(new
                 {
@@ -79,6 +85,12 @@ public static class RateLimitingServiceCollectionExtensions
                 "RateLimiting:CustomerAccountDeletion", permitLimit: 3, windowSeconds: 900, partitionByUserWhenAuthenticated: true);
             AddFixedWindowPolicy(options, configuration, RateLimitPolicyNames.ProductAnnouncements,
                 "RateLimiting:ProductAnnouncements", permitLimit: 60, windowSeconds: 60, partitionByUserWhenAuthenticated: true);
+            AddFixedWindowPolicy(options, configuration, RateLimitPolicyNames.PaymentMutation,
+                "RateLimiting:PaymentMutation", permitLimit: 30, windowSeconds: 60, partitionByUserWhenAuthenticated: true);
+            AddFixedWindowPolicy(options, configuration, RateLimitPolicyNames.PaymentRefresh,
+                "RateLimiting:PaymentRefresh", permitLimit: 120, windowSeconds: 60, partitionByUserWhenAuthenticated: true);
+            AddFixedWindowPolicy(options, configuration, RateLimitPolicyNames.PaymentRead,
+                "RateLimiting:PaymentRead", permitLimit: 120, windowSeconds: 60, partitionByUserWhenAuthenticated: true);
 
             AddFixedWindowPolicy(
                 options,

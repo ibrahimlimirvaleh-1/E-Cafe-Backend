@@ -8,6 +8,7 @@ using ECafe.Domain.Enums;
 using ECafe.Infrastructure.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using ApiRoutes = ECafe.Application.Routes.Routes;
 
 namespace ECafe.Api.Controllers;
@@ -17,6 +18,7 @@ public sealed class ReservationRefundFlowController : BaseController
 {
     [Authorize(Roles = "5")]
     [HttpPost(ApiRoutes.ReservationRefundFlow.RequestRefund)]
+    [EnableRateLimiting(RateLimitPolicyNames.PaymentMutation)]
     public async Task<IActionResult> RequestRefund(
         [FromRoute] int reservationId,
         CancellationToken cancellationToken)
