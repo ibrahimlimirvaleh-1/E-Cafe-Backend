@@ -360,7 +360,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             var contract = await GetTrackedContractAsync(restaurantId, contractId);
 
             ValidateContractCanEnterActivationFlow(contract.StartDate, contract.EndDate);
-            await EnsureWorkflowActionAllowedAsync(contract, WorkflowActionCode.Contract.Activate);
+            await EnsureWorkflowActionAllowedAsync(contract, ContractActionCode.Activate);
 
             var nowUtc = DateTime.UtcNow;
             if (contract.StartDate > nowUtc)
@@ -420,7 +420,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             var contract = await GetTrackedContractAsync(restaurantId, contractId);
             ValidatePersistedContractDates(contract.StartDate, contract.EndDate);
             EnsureContractHasNotExpired(contract.EndDate);
-            await EnsureWorkflowActionAllowedAsync(contract, WorkflowActionCode.Contract.SendForSignature);
+            await EnsureWorkflowActionAllowedAsync(contract, ContractActionCode.SendForSignature);
 
             var owner = await GetRestaurantOwnerAsync(restaurantId);
 
@@ -457,7 +457,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             var contract = await GetTrackedContractAsync(restaurantId, contractId);
             ValidatePersistedContractDates(contract.StartDate, contract.EndDate);
             EnsureContractHasNotExpired(contract.EndDate);
-            await EnsureWorkflowActionAllowedAsync(contract, WorkflowActionCode.Contract.Approve);
+            await EnsureWorkflowActionAllowedAsync(contract, ContractActionCode.Approve);
 
             var owner = await GetRestaurantOwnerAsync(restaurantId);
             var currentUserId = GetCurrentUserId();
@@ -494,7 +494,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             EnsureCurrentUserCanAccessRestaurant(restaurantId);
 
             var contract = await GetTrackedContractAsync(restaurantId, contractId);
-            await EnsureWorkflowActionAllowedAsync(contract, WorkflowActionCode.Contract.Terminate);
+            await EnsureWorkflowActionAllowedAsync(contract, ContractActionCode.Terminate);
             var owner = await GetRestaurantOwnerAsync(restaurantId);
 
             contract.StatusId = ContractStatusId(ContractStatus.Terminated);

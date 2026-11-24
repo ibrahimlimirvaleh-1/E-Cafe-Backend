@@ -466,7 +466,7 @@ public sealed partial class ReservationManager : BaseManager, IReservationServic
         await _workflowActionService.EnsureCanExecuteAsync(
             ReservationFlowCode,
             reservation.StatusId,
-            WorkflowActionCode.Reservation.CheckIn,
+            ReservationActionCode.CheckIn,
             restaurantId,
             reservation.Id);
 
@@ -559,7 +559,7 @@ public sealed partial class ReservationManager : BaseManager, IReservationServic
 
         await _workflowActionService.EnsureCanExecuteAsync(
             ReservationFlowCode, reservation.StatusId,
-            WorkflowActionCode.Reservation.MarkArrived, restaurantId, reservation.Id);
+            ReservationActionCode.MarkArrived, restaurantId, reservation.Id);
 
         var nowUtc = DateTime.UtcNow;
         if (!ReservationArrivalPolicy.CanRecordPhysicalArrival(reservation, nowUtc))
@@ -775,7 +775,7 @@ public sealed partial class ReservationManager : BaseManager, IReservationServic
         await _workflowActionService.EnsureCanExecuteAsync(
             ReservationFlowCode,
             reservation.StatusId,
-            WorkflowActionCode.Reservation.SendPaymentInstruction,
+            ReservationActionCode.SendPaymentInstruction,
             restaurantId,
             reservation.Id);
 
@@ -1027,6 +1027,7 @@ public sealed partial class ReservationManager : BaseManager, IReservationServic
         }
     }
 
+    /// <summary>Köhnə çek təqdimatında gözləmə müddəti, təlimat və rezervasiya workflow şərtlərini dəyişmədən yoxlayır.</summary>
     private async Task EnsurePaymentProofSubmissionAllowedAsync(
         Domain.Entities.Reservation reservation,
         CancellationToken cancellationToken)
@@ -1047,7 +1048,7 @@ public sealed partial class ReservationManager : BaseManager, IReservationServic
         await _workflowActionService.EnsureCanExecuteAsync(
             ReservationFlowCode,
             reservation.StatusId,
-            WorkflowActionCode.Reservation.SubmitPaymentProof,
+            ReservationActionCode.SubmitPaymentProof,
             reservation.RestaurantId,
             reservation.Id);
     }
@@ -1520,7 +1521,7 @@ public sealed partial class ReservationManager : BaseManager, IReservationServic
         await _workflowActionService.EnsureCanExecuteAsync(
             ReservationFlowCode,
             reservation.StatusId,
-            WorkflowActionCode.Reservation.WaiveDeposit,
+            ReservationActionCode.WaiveDeposit,
             restaurantId,
             reservation.Id);
 
@@ -1612,7 +1613,7 @@ public sealed partial class ReservationManager : BaseManager, IReservationServic
         await _workflowActionService.EnsureCanExecuteAsync(
             ReservationFlowCode,
             reservation.StatusId,
-            WorkflowActionCode.Reservation.ApprovePaymentProof,
+            ReservationActionCode.ApprovePaymentProof,
             restaurantId,
             reservation.Id);
 
@@ -1882,7 +1883,7 @@ public sealed partial class ReservationManager : BaseManager, IReservationServic
         await _workflowActionService.EnsureCanExecuteAsync(
             ReservationFlowCode,
             reservation.StatusId,
-            WorkflowActionCode.Reservation.Cancel,
+            ReservationActionCode.Cancel,
             restaurantId,
             reservation.Id);
 

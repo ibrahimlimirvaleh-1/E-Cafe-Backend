@@ -148,7 +148,7 @@ public sealed class ReservationRefundManager : BaseManager, IReservationRefundSe
         await _workflowActionService.EnsureCanExecuteAsync(
             RefundFlowCode,
             refund.StatusId,
-            WorkflowActionCode.Refund.ViewPayoutDetails,
+            RefundActionCode.ViewPayoutDetails,
             restaurantId,
             refund.Id);
 
@@ -209,7 +209,7 @@ public sealed class ReservationRefundManager : BaseManager, IReservationRefundSe
         await _workflowActionService.EnsureCanExecuteAsync(
             ReservationFlowCode,
             reservation.StatusId,
-            WorkflowActionCode.Reservation.RequestRefund,
+            ReservationActionCode.RequestRefund,
             reservation.RestaurantId,
             reservation.Id);
 
@@ -317,7 +317,7 @@ public sealed class ReservationRefundManager : BaseManager, IReservationRefundSe
         await _workflowActionService.EnsureCanExecuteAsync(
             RefundFlowCode,
             refund.StatusId,
-            WorkflowActionCode.Refund.SubmitPayoutDetails,
+            RefundActionCode.SubmitPayoutDetails,
             refund.Reservation.RestaurantId,
             refund.Id);
 
@@ -383,7 +383,7 @@ public sealed class ReservationRefundManager : BaseManager, IReservationRefundSe
         await _workflowActionService.EnsureCanExecuteAsync(
             RefundFlowCode,
             refund.StatusId,
-            WorkflowActionCode.Refund.SubmitTransfer,
+            RefundActionCode.SubmitTransfer,
             restaurantId,
             refund.Id);
     }
@@ -421,7 +421,7 @@ public sealed class ReservationRefundManager : BaseManager, IReservationRefundSe
         await _workflowActionService.EnsureCanExecuteAsync(
             RefundFlowCode,
             refund.StatusId,
-            WorkflowActionCode.Refund.SubmitTransfer,
+            RefundActionCode.SubmitTransfer,
             restaurantId,
             refund.Id);
 
@@ -487,6 +487,7 @@ public sealed class ReservationRefundManager : BaseManager, IReservationRefundSe
         CancellationToken cancellationToken = default)
         => ReviewTransferAsync(refundId, transferId, NormalizeDisputeReason(reason), cancellationToken);
 
+    /// <summary>Müştərinin transfer təsdiqi və ya etirazını əvvəlki aidiyyət, status və refund workflow qaydaları ilə tətbiq edir.</summary>
     private async Task<ReservationRefundResponse> ReviewTransferAsync(
         int refundId,
         int transferId,
@@ -539,7 +540,7 @@ public sealed class ReservationRefundManager : BaseManager, IReservationRefundSe
         await _workflowActionService.EnsureCanExecuteAsync(
             RefundFlowCode,
             refund.StatusId,
-            isDispute ? WorkflowActionCode.Refund.DisputeTransfer : WorkflowActionCode.Refund.ConfirmTransfer,
+            isDispute ? RefundActionCode.DisputeTransfer : RefundActionCode.ConfirmTransfer,
             refund.Reservation.RestaurantId,
             refund.Id);
 

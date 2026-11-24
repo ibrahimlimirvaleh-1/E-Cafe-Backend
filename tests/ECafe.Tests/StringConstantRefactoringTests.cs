@@ -58,11 +58,11 @@ public sealed class StringConstantRefactoringTests
         => Assert.Equal(expected, actual);
 
     [Theory]
-    [InlineData(WorkflowActionCode.Contract.SendForSignature, "sendForSignature")]
-    [InlineData(WorkflowActionCode.Contract.Approve, "approve")]
-    [InlineData(WorkflowActionCode.Contract.Activate, "activate")]
-    [InlineData(WorkflowActionCode.Contract.Terminate, "terminate")]
-    [InlineData(WorkflowActionCode.Reservation.Complete, "complete")]
+    [InlineData(ContractActionCode.SendForSignature, "sendForSignature")]
+    [InlineData(ContractActionCode.Approve, "approve")]
+    [InlineData(ContractActionCode.Activate, "activate")]
+    [InlineData(ContractActionCode.Terminate, "terminate")]
+    [InlineData(ReservationActionCode.Complete, "complete")]
     public void WorkflowActionNamesKeepExistingStoredValues(string actual, string expected)
         => Assert.Equal(expected, actual);
 
