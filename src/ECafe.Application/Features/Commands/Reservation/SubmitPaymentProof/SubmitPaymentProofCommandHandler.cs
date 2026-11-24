@@ -58,6 +58,7 @@ public sealed class SubmitPaymentProofCommandHandler
         }
     }
 
+    /// <summary>Uğursuz əməliyyatın qoşulmamış faylını silməyə çalışır; xəta olarsa cleanup worker üçün məxfi mətnsiz qeyd saxlayır.</summary>
     private async Task TryDeleteUnattachedFileAsync(int fileId)
     {
         try
@@ -67,7 +68,7 @@ public sealed class SubmitPaymentProofCommandHandler
         catch (Exception exception)
         {
             _logger.LogWarning(
-                exception,
+                ECafe.Shared.Diagnostics.SafeDiagnosticException.ForLogging(exception),
                 "Could not compensate payment proof upload for file {FileId}. The unattached-file cleanup worker will retry it.",
                 fileId);
         }

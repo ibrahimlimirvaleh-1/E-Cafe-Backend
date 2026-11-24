@@ -243,6 +243,7 @@ namespace ECafe.Infrastructure.Services.MinIO
             }, token);
         }
 
+        /// <summary>Storage çağırışını icra edir; provayder xətasını təhlükəsiz biznes cavabına çevirir və xam mətnini loglamır.</summary>
         private async Task<T> ExecuteMinioAsync<T>(
             string operation,
             Func<Task<T>> action,
@@ -255,7 +256,7 @@ namespace ECafe.Infrastructure.Services.MinIO
             catch (ObjectNotFoundException exception)
             {
                 _logger.LogWarning(
-                    exception,
+                    ECafe.Shared.Diagnostics.SafeDiagnosticException.ForLogging(exception),
                     "MinIO object was not found during {Operation}. Token: {FileToken}",
                     operation,
                     MaskToken(token));
@@ -265,7 +266,7 @@ namespace ECafe.Infrastructure.Services.MinIO
             catch (BucketNotFoundException exception)
             {
                 _logger.LogError(
-                    exception,
+                    ECafe.Shared.Diagnostics.SafeDiagnosticException.ForLogging(exception),
                     "MinIO bucket was not found during {Operation}. Bucket: {BucketName}",
                     operation,
                     _bucket);
@@ -275,7 +276,7 @@ namespace ECafe.Infrastructure.Services.MinIO
             catch (MinioException exception)
             {
                 _logger.LogError(
-                    exception,
+                    ECafe.Shared.Diagnostics.SafeDiagnosticException.ForLogging(exception),
                     "MinIO failed during {Operation}. Token: {FileToken}",
                     operation,
                     MaskToken(token));
@@ -285,7 +286,7 @@ namespace ECafe.Infrastructure.Services.MinIO
             catch (Exception exception) when (IsTransientStorageException(exception))
             {
                 _logger.LogError(
-                    exception,
+                    ECafe.Shared.Diagnostics.SafeDiagnosticException.ForLogging(exception),
                     "File storage connection failed during {Operation}. Token: {FileToken}",
                     operation,
                     MaskToken(token));

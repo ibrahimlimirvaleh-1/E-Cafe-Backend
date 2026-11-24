@@ -62,7 +62,7 @@ namespace ECafe.Api.BackgroundServices
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Contract status processing failed.");
+                _logger.LogError(ECafe.Shared.Diagnostics.SafeDiagnosticException.ForLogging(ex), "Contract status processing failed.");
             }
         }
     }

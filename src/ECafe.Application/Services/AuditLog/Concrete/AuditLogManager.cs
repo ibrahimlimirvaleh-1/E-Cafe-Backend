@@ -14,6 +14,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using System.Security.Claims;
 using System.Text.Json;
+using ECafe.Shared.Diagnostics;
 
 namespace ECafe.Application.Services.AuditLog.Concrete
 {
@@ -131,9 +132,7 @@ namespace ECafe.Application.Services.AuditLog.Concrete
                 {
                     outboxEvent.RetryCount++;
                     outboxEvent.LockedUntil = null;
-                    outboxEvent.LastError = ex.Message.Length > 2000
-                        ? ex.Message[..2000]
-                        : ex.Message;
+                    outboxEvent.LastError = SafeDiagnosticException.Code(ex);
                 }
 
                 await _outboxRepository.SaveChangesAsync();

@@ -18,7 +18,7 @@ public sealed class RealtimeOutboxWorker(IServiceScopeFactory scopes, ILogger<Re
                     await scope.ServiceProvider.GetRequiredService<RealtimeOutboxProcessor>().ProcessAsync(25, stoppingToken);
                 }
                 catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { break; }
-                catch (Exception error) { logger.LogError(error, "Realtime outbox processing failed."); }
+                catch (Exception error) { logger.LogError(ECafe.Shared.Diagnostics.SafeDiagnosticException.ForLogging(error), "Realtime outbox processing failed."); }
             } while (await timer.WaitForNextTickAsync(stoppingToken));
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { }

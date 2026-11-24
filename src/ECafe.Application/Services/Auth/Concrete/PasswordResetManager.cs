@@ -199,13 +199,14 @@ public class PasswordResetManager : IPasswordResetService
             user.Id);
     }
 
+    /// <summary>Bərpa tokenini serverə GET/query kimi göndərilməyən fragment hissəsində yerləşdirir; token yalnız UI-dan POST ilə təqdim olunur.</summary>
     private string BuildResetUrl(string token)
     {
         var frontendBaseUrl = _configuration["Frontend:BaseUrl"]?.TrimEnd('/');
         if (string.IsNullOrWhiteSpace(frontendBaseUrl))
             frontendBaseUrl = "http://localhost:5173";
 
-        return $"{frontendBaseUrl}/reset-password?token={Uri.EscapeDataString(token)}";
+        return $"{frontendBaseUrl}/reset-password#token={Uri.EscapeDataString(token)}";
     }
 
     private string? GetRequestIp()

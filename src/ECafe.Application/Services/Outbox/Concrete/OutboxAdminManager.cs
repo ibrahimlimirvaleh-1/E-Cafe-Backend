@@ -1,6 +1,7 @@
 using System.Text.Json;
 using ECafe.Application.Common.Dates;
 using ECafe.Application.Common.Outbox;
+using ECafe.Application.Common.Errors;
 using ECafe.Application.Common.Pagination;
 using ECafe.Application.DTOs.Outbox;
 using ECafe.Application.Repository;
@@ -18,13 +19,16 @@ namespace ECafe.Application.Services.Outbox.Concrete
         private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
         private readonly IBaseRepository<Domain.Entities.OutboxEvent> _outboxRepository;
+        private readonly IErrorMessageProvider _errors;
         private readonly int _maxRetryCount;
 
         public OutboxAdminManager(
             IBaseRepository<Domain.Entities.OutboxEvent> outboxRepository,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            IErrorMessageProvider? errors = null)
         {
             _outboxRepository = outboxRepository;
+            _errors = errors ?? new ErrorMessageProvider();
             _maxRetryCount = GetPositiveIntSetting(configuration, "EmailOutbox:MaxRetryCount", 5);
         }
 
@@ -149,6 +153,7 @@ namespace ECafe.Application.Services.Outbox.Concrete
                 _ => query
             };
 
+        /// <summary>Admin cavabını qurur; əvvəlki qeydlərdə qalmış xam provider xətası əvəzinə təhlükəsiz uğursuzluq kodu göstərir.</summary>
         private OutboxMessageResponse Map(Domain.Entities.OutboxEvent outboxEvent, DateTime now)
         {
             var payload = DeserializePayload(outboxEvent);
@@ -177,7 +182,7 @@ namespace ECafe.Application.Services.Outbox.Concrete
                 LastError = outboxEvent.EventType == OutboxEventTypes.SmsNotificationRequested &&
                     !outboxEvent.ProcessedAt.HasValue
                     ? "SMS kanalı dayandırılıb. Bu qeyd yenidən göndərilmir."
-                    : outboxEvent.LastError,
+                    : string.IsNullOrEmpty(outboxEvent.LastError) ? null : _errors.GetMessage(ErrorCode.NotificationProviderUnavailable),
                 RelatedEntityType = payload?.RelatedEntityType,
                 RelatedEntityId = payload?.RelatedEntityId
             };

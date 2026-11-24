@@ -111,13 +111,14 @@ namespace ECafe.Application.Services.Auth.Concrete
             await transaction.CommitAsync();
         }
 
+        /// <summary>İlkin parol tokenini fragment-də saxlayır; keçid açılarkən proxy/access loguna query kimi düşmür.</summary>
         private string BuildSetupUrl(string token)
         {
             var frontendBaseUrl = _configuration["Frontend:BaseUrl"]?.TrimEnd('/');
             if (string.IsNullOrWhiteSpace(frontendBaseUrl))
                 frontendBaseUrl = "http://localhost:5173";
 
-            return $"{frontendBaseUrl}/set-password?token={Uri.EscapeDataString(token)}";
+            return $"{frontendBaseUrl}/set-password#token={Uri.EscapeDataString(token)}";
         }
 
         private static string GenerateSecureToken()

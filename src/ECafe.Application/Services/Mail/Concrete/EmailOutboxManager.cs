@@ -5,6 +5,7 @@ using ECafe.Domain.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using System.Text.Json;
+using ECafe.Shared.Diagnostics;
 
 namespace ECafe.Application.Services
 {
@@ -128,9 +129,7 @@ namespace ECafe.Application.Services
                     outboxEvent.LockedUntil = outboxEvent.RetryCount >= _maxRetryCount
                         ? null
                         : DateTime.UtcNow.Add(GetRetryDelay(outboxEvent.RetryCount));
-                    outboxEvent.LastError = ex.Message.Length > 2000
-                        ? ex.Message[..2000]
-                        : ex.Message;
+                    outboxEvent.LastError = SafeDiagnosticException.Code(ex);
 
                     if (retryLimitReached)
                         await ReportOutboxRetryLimitReachedAsync(outboxEvent, ex);

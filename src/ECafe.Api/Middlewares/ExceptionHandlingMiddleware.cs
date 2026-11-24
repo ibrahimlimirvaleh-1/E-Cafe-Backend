@@ -4,6 +4,7 @@ using ECafe.Application.Services.Localization.Abstract;
 using ECafe.Domain.Exceptions;
 using FluentValidation;
 using Sentry;
+using ECafe.Shared.Diagnostics;
 
 namespace ECafe.Api.Middlewares;
 
@@ -45,15 +46,16 @@ public sealed class ExceptionHandlingMiddleware
         }
     }
 
+    /// <summary>Xəta səviyyəsini və trace ID-ni saxlayır; logger-ə mətn/Data/inner exception olmayan diaqnostik nüsxə ötürür.</summary>
     private void LogException(HttpContext context, Exception exception)
     {
         if (IsHandledException(exception))
         {
-            _logger.LogWarning(exception, "Request failed with handled exception. TraceId: {TraceId}", context.TraceIdentifier);
+            _logger.LogWarning(SafeDiagnosticException.ForLogging(exception), "Request failed with handled exception. TraceId: {TraceId}", context.TraceIdentifier);
             return;
         }
 
-        _logger.LogError(exception, "Unhandled exception. TraceId: {TraceId}", context.TraceIdentifier);
+        _logger.LogError(SafeDiagnosticException.ForLogging(exception), "Unhandled exception. TraceId: {TraceId}", context.TraceIdentifier);
     }
 
     private static bool IsHandledException(Exception exception)

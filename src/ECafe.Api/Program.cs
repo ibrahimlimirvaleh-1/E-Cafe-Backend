@@ -67,8 +67,8 @@ if (isSentryEnabled)
             options.Dsn = sentryDsn;
             options.Environment = builder.Environment.EnvironmentName;
             options.Debug = builder.Configuration.GetValue<bool>("Sentry:Debug");
-            options.EnableLogs = builder.Configuration.GetValue<bool>("Sentry:EnableLogs");
             options.TracesSampleRate = builder.Configuration.GetValue<double?>("Sentry:TracesSampleRate") ?? 0.0;
+            SentryPrivacy.Apply(options);
         });
     }
     else

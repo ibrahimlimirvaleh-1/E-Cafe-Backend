@@ -60,6 +60,7 @@ public sealed class SubmitReservationRefundTransferCommandHandler
         }
     }
 
+    /// <summary>Uğursuz əməliyyatın qoşulmamış faylını silməyə çalışır; xəta olarsa cleanup worker üçün məxfi mətnsiz qeyd saxlayır.</summary>
     private async Task TryDeleteUnattachedFileAsync(int fileId)
     {
         try
@@ -69,7 +70,7 @@ public sealed class SubmitReservationRefundTransferCommandHandler
         catch (Exception exception)
         {
             _logger.LogWarning(
-                exception,
+                ECafe.Shared.Diagnostics.SafeDiagnosticException.ForLogging(exception),
                 "Could not compensate refund transfer proof upload for file {FileId}. The unattached-file cleanup worker will retry it.",
                 fileId);
         }

@@ -43,6 +43,7 @@ internal sealed class NotificationChangeDispatcher : INotificationChangeDispatch
 
     public void Discard() => _pendingUserIds.Clear();
 
+    /// <summary>Bildiriş yenilənməsini göndərir; çatdırılma xətası biznes əməliyyatını pozmur və məxfi mətn loglanmır.</summary>
     private async Task PublishAsync(int userId, CancellationToken cancellationToken)
     {
         try
@@ -51,7 +52,7 @@ internal sealed class NotificationChangeDispatcher : INotificationChangeDispatch
         }
         catch (Exception exception)
         {
-            _logger.LogWarning(exception, "Realtime notification update failed for user {UserId}.", userId);
+            _logger.LogWarning(ECafe.Shared.Diagnostics.SafeDiagnosticException.ForLogging(exception), "Realtime notification update failed for user {UserId}.", userId);
         }
     }
 }

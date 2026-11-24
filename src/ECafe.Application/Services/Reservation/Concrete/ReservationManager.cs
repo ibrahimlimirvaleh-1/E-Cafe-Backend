@@ -1352,6 +1352,7 @@ public sealed partial class ReservationManager : BaseManager, IReservationServic
         return normalizedDetails;
     }
 
+    /// <summary>Ödəniş təlimatının cavabını qurur; deşifrə xətasında məxfi təfərrüat əvəzinə təhlükəsiz status və diaqnostika saxlayır.</summary>
     private PaymentInstructionResponse MapPaymentInstructionResponse(
         ReservationPaymentInstruction instruction,
         string status)
@@ -1372,7 +1373,7 @@ public sealed partial class ReservationManager : BaseManager, IReservationServic
             }
             catch (CryptographicException exception)
             {
-                _logger.LogError(exception,
+                _logger.LogError(ECafe.Shared.Diagnostics.SafeDiagnosticException.ForLogging(exception),
                     "Reservation payment instruction {InstructionId} cannot be decrypted.", instruction.Id);
                 detailsAvailable = false;
                 details = maskedDetails ?? "Ödəniş məlumatı əlçatan deyil";

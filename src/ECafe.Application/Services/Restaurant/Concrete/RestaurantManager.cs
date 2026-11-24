@@ -1157,6 +1157,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
                 .ToList();
         }
 
+        /// <summary>Media keçidini yaradır; uğursuzluqda token və provider xəta mətnini loglamadan null qaytarır.</summary>
         private async Task<string?> TryGenerateFileUrlAsync(string? token)
         {
             if (string.IsNullOrWhiteSpace(token))
@@ -1169,9 +1170,8 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             catch (Exception exception)
             {
                 _logger.LogWarning(
-                    exception,
-                    "Failed to generate file URL for token {FileToken}.",
-                    token);
+                    ECafe.Shared.Diagnostics.SafeDiagnosticException.ForLogging(exception),
+                    "Failed to generate restaurant media URL.");
 
                 return null;
             }
