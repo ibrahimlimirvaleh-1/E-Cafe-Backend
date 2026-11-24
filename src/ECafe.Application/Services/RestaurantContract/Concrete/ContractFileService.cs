@@ -9,6 +9,7 @@ using ECafe.Application.Services.RestaurantContract.Abstract;
 using ECafe.Domain.Enums;
 using ECafe.Domain.Exceptions;
 using File = ECafe.Domain.Entities.File;
+using ECafe.Application.Services.FileValidation;
 
 namespace ECafe.Application.Services.RestaurantContract.Concrete
 {
@@ -51,7 +52,7 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
                 FileName = document.FileName,
                 ContentType = document.ContentType,
                 FileTypeId = fileType.Id
-            }, BuildUploadPolicy(fileType));
+            }, FileUploadPolicyFactory.FromFileType(fileType));
 
             return _mapper.Map<File>(new FileMapData
             {
@@ -80,13 +81,6 @@ namespace ECafe.Application.Services.RestaurantContract.Concrete
             return fileType;
         }
 
-        private static FileUploadPolicy BuildUploadPolicy(Domain.Entities.FileType fileType)
-            => new()
-            {
-                AllowedExtensions = fileType.AllowedExtensions,
-                AllowedMimeTypes = fileType.AllowedMimeTypes,
-                MaxSizeMb = fileType.MaxSizeMb
-            };
 
         private static RestaurantContractDocumentData BuildContractDocumentData(
             Domain.Entities.Restaurant restaurant,

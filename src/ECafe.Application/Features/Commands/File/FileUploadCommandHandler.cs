@@ -11,6 +11,7 @@ using ECafe.Domain.Enums;
 using ECafe.Domain.Exceptions;
 using MediatR;
 using Microsoft.AspNetCore.Http;
+using ECafe.Application.Services.FileValidation;
 
 namespace ECafe.Application.Features.Commands.File
 {
@@ -54,7 +55,7 @@ namespace ECafe.Application.Features.Commands.File
             if (fileType is null)
                 throw new BusinessRuleException(ErrorCode.FileTypeNotFound);
 
-            var uploadPolicy = BuildUploadPolicy(fileType);
+            var uploadPolicy = FileUploadPolicyFactory.FromFileType(fileType);
             var fileTypeCode = ParseFileTypeCode(fileType.Id);
             var processedFile = await _imageProcessingService.OptimizeForUploadAsync(
                 file,
@@ -117,6 +118,7 @@ namespace ECafe.Application.Features.Commands.File
             return await _fileTypeRepository.GetByTypeAsync(FileTypeCode.TemporaryUpload, cancellationToken);
         }
 
+        /// <summary>Yüklənən faylın sahibini yalnız cari principal-dan oxuyur; etibarsız və sıfır ID-ni rədd edir.</summary>
         private int GetCurrentUserId()
         {
             var userIdClaim = _httpContextAccessor.HttpContext?.User.FindFirst("userId")?.Value;
@@ -125,14 +127,6 @@ namespace ECafe.Application.Features.Commands.File
 
             return userId;
         }
-
-        private static FileUploadPolicy BuildUploadPolicy(Domain.Entities.FileType fileType)
-            => new()
-            {
-                AllowedExtensions = fileType.AllowedExtensions,
-                AllowedMimeTypes = fileType.AllowedMimeTypes,
-                MaxSizeMb = fileType.MaxSizeMb
-            };
 
         private static FileTypeCode ParseFileTypeCode(int id)
             => Enum.IsDefined(typeof(FileTypeCode), id)

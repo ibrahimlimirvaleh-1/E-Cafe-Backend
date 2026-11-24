@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using System.Text.Json;
 using ECafe.Shared.Diagnostics;
+using ECafe.Application.Common.Configuration;
 
 namespace ECafe.Application.Services
 {
@@ -29,8 +30,8 @@ namespace ECafe.Application.Services
             _outboxRepository = outboxRepository;
             _emailService = emailService;
             _criticalEventReporter = criticalEventReporter;
-            _lockDuration = TimeSpan.FromSeconds(GetPositiveIntSetting(configuration, "EmailOutbox:LockSeconds", 300));
-            _maxRetryCount = GetPositiveIntSetting(configuration, "EmailOutbox:MaxRetryCount", 5);
+            _lockDuration = TimeSpan.FromSeconds(ConfigurationValueReader.GetPositiveInt(configuration, "EmailOutbox:LockSeconds", 300));
+            _maxRetryCount = ConfigurationValueReader.GetPositiveInt(configuration, "EmailOutbox:MaxRetryCount", 5);
         }
 
         public async Task EnqueueEmailAsync(
@@ -185,12 +186,5 @@ namespace ECafe.Application.Services
                     ["exceptionType"] = exception.GetType().Name
                 }));
 
-        private static int GetPositiveIntSetting(IConfiguration configuration, string key, int fallback)
-        {
-            var value = configuration[key];
-            return int.TryParse(value, out var parsed) && parsed > 0
-                ? parsed
-                : fallback;
-        }
     }
 }

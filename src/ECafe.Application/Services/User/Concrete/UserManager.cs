@@ -16,6 +16,7 @@ using ECafe.Application.Repositories.UserRefreshToken;
 using ECafe.Application.Repositories.UserRestaurant;
 using ECafe.Application.Repository;
 using ECafe.Application.Services.Auth.Abstract;
+using ECafe.Application.Services.Auth;
 using ECafe.Application.Services.AuditLog.Abstract;
 using ECafe.Application.Services.MinIO.Abstracts;
 using ECafe.Application.Services.Realtime.Abstract;
@@ -28,8 +29,7 @@ using ECafe.Shared.Extensions;
 using ECafe.Shared.Services.Jwt.Abstract;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
-using System.Security.Cryptography;
-using System.Text;
+using ECafe.Application.Common.Security;
 
 namespace ECafe.Application.Services.User.Concrete
 {
@@ -99,13 +99,13 @@ namespace ECafe.Application.Services.User.Concrete
             await EnsureRoleExistsAsync(request.RoleId);
             EnsureOnlySuperAdminCanManagePrivilegedRole(request.RoleId);
             await EnsureRestaurantOwnerSlotAvailableAsync(request.RestaurantId, request.RoleId);
-            await EnsureUserDoesNotExistAsync(request.Email, request.Phone);
+            await UserRegistrationValidation.EnsureUserDoesNotExistAsync(_userRepository, request.Email, request.Phone);
 
             var file = await GetAttachableFileAsync(request.FileId);
 
             var user = Mapper.Map<Domain.Entities.User>(request);
             user.File = file;
-            user.Password = CreateUnusablePasswordHash();
+            user.Password = AuthenticationTokenHelper.CreateUnusablePasswordHash();
 
             await using var transaction = await _transactionFactory.BeginTransactionAsync();
 
@@ -573,20 +573,6 @@ namespace ECafe.Application.Services.User.Concrete
                 throw new BusinessRuleException(ErrorCode.RoleNotFound);
         }
 
-        private async Task EnsureUserDoesNotExistAsync(string email, string phone)
-        {
-            var normalizedEmail = email.Trim().ToLowerInvariant();
-            var normalizedPhone = PhoneNumberValidationExtensions.NormalizeAzerbaijanPhoneNumber(phone);
-
-            var emailExists = await _userRepository.CheckExistAsync(x => x.Email == normalizedEmail);
-            if (emailExists)
-                throw new BusinessRuleException(ErrorCode.UserEmailAlreadyExists);
-
-            var phoneExists = await _userRepository.CheckExistAsync(x => x.Phone == normalizedPhone);
-            if (phoneExists)
-                throw new BusinessRuleException(ErrorCode.UserPhoneAlreadyExists);
-        }
-
         /// <summary>Profilə yalnız uyğun formatlı və sorğunu göndərənə aid sərbəst şəkli bağlayır; məxfi sənədi ictimailəşdirmir.</summary>
         private async Task<Domain.Entities.File?> GetAttachableFileAsync(int? fileId)
         {
@@ -712,6 +698,7 @@ namespace ECafe.Application.Services.User.Concrete
             return await _minioService.GenerateFileUrl(file.Token);
         }
 
+        /// <summary>İstifadəçi üçün cihaz sessiyası yaradır; refresh tokenin yalnız ortaq SHA-256 hash-i bazaya yazılır.</summary>
         private async Task<AuthResponseDto> CreateAndStoreTokenResponseAsync(Domain.Entities.User user)
         {
             var fileUrl = await GenerateFileUrlAsync(user.File);
@@ -721,7 +708,7 @@ namespace ECafe.Application.Services.User.Concrete
             await _refreshTokenRepository.Add(Mapper.Map<Domain.Entities.UserRefreshToken>(new RefreshTokenMapData
             {
                 UserId = user.Id,
-                TokenHash = HashRefreshToken(refreshToken),
+                TokenHash = AuthenticationTokenHelper.HashToken(refreshToken),
                 SessionId = sessionId,
                 ExpiresAt = DateTime.UtcNow.AddDays(7),
                 CreatedByIp = HttpContextAccessor.HttpContext?.Connection.RemoteIpAddress?.ToString(),
@@ -785,16 +772,5 @@ namespace ECafe.Application.Services.User.Concrete
             return _userRealtimeNotifier.NotifyUserRoleChangedAsync(userId, message);
         }
 
-        private static string HashRefreshToken(string refreshToken)
-        {
-            var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(refreshToken));
-            return Convert.ToHexString(bytes);
-        }
-
-        private static string CreateUnusablePasswordHash()
-        {
-            var bytes = RandomNumberGenerator.GetBytes(32);
-            return BCrypt.Net.BCrypt.HashPassword(Convert.ToHexString(bytes));
-        }
     }
 }

@@ -5,6 +5,7 @@ using ECafe.Application.Services.Monitoring.Abstract;
 using ECafe.Domain.Exceptions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
+using ECafe.Application.Common.Configuration;
 
 namespace ECafe.Application.Services.Auth.Concrete;
 
@@ -30,9 +31,9 @@ public class LoginAttemptManager : ILoginAttemptService
         _emailOutboxService = emailOutboxService;
         _criticalEventReporter = criticalEventReporter;
         _httpContextAccessor = httpContextAccessor;
-        _maxFailedAttempts = GetPositiveInt(configuration, "LoginSecurity:MaxFailedAttempts", 5);
-        _failedAttemptWindow = TimeSpan.FromMinutes(GetPositiveInt(configuration, "LoginSecurity:FailedAttemptWindowMinutes", 15));
-        _lockoutDuration = TimeSpan.FromMinutes(GetPositiveInt(configuration, "LoginSecurity:LockoutMinutes", 15));
+        _maxFailedAttempts = ConfigurationValueReader.GetPositiveInt(configuration, "LoginSecurity:MaxFailedAttempts", 5);
+        _failedAttemptWindow = TimeSpan.FromMinutes(ConfigurationValueReader.GetPositiveInt(configuration, "LoginSecurity:FailedAttemptWindowMinutes", 15));
+        _lockoutDuration = TimeSpan.FromMinutes(ConfigurationValueReader.GetPositiveInt(configuration, "LoginSecurity:LockoutMinutes", 15));
         _notifyOnLockout = GetBool(configuration, "LoginSecurity:NotifyOnLockout", true);
     }
 
@@ -103,6 +104,7 @@ public class LoginAttemptManager : ILoginAttemptService
         await _loginAttemptRepository.SaveChangesAsync();
     }
 
+    /// <summary>Uğursuz giriş limitinin əvvəlki kilid xəbərdarlığını istifadəçi ilə əlaqəli email outbox-a yazır.</summary>
     private Task EnqueueLockoutEmailAsync(Domain.Entities.User user, DateTime lockoutUntil)
     {
         var ipAddress = GetClientIpAddress() ?? "unknown";
@@ -147,19 +149,13 @@ public class LoginAttemptManager : ILoginAttemptService
         return context.Connection.RemoteIpAddress?.ToString();
     }
 
+    /// <summary>Giriş cəhdi üçün User-Agent header-inin əvvəlki ilk dəyərini oxuyur.</summary>
     private string? GetUserAgent()
         => _httpContextAccessor.HttpContext?.Request.Headers["User-Agent"].FirstOrDefault();
 
     private static string NormalizeEmail(string email)
         => email.Trim().ToLowerInvariant();
 
-    private static int GetPositiveInt(IConfiguration configuration, string key, int fallback)
-    {
-        var value = configuration[key];
-        return int.TryParse(value, out var parsed) && parsed > 0
-            ? parsed
-            : fallback;
-    }
 
     private static bool GetBool(IConfiguration configuration, string key, bool fallback)
     {

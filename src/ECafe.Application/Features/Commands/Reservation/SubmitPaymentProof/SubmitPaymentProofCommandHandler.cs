@@ -53,24 +53,9 @@ public sealed class SubmitPaymentProofCommandHandler
         }
         catch
         {
-            await TryDeleteUnattachedFileAsync(uploadedFile.Id);
+            await UnattachedFileCompensation.TryDeleteAsync(_sender, _logger, uploadedFile.Id, "payment proof");
             throw;
         }
     }
 
-    /// <summary>Uğursuz əməliyyatın qoşulmamış faylını silməyə çalışır; xəta olarsa cleanup worker üçün məxfi mətnsiz qeyd saxlayır.</summary>
-    private async Task TryDeleteUnattachedFileAsync(int fileId)
-    {
-        try
-        {
-            await _sender.Send(new DeleteFileCommand { FileId = fileId });
-        }
-        catch (Exception exception)
-        {
-            _logger.LogWarning(
-                ECafe.Shared.Diagnostics.SafeDiagnosticException.ForLogging(exception),
-                "Could not compensate payment proof upload for file {FileId}. The unattached-file cleanup worker will retry it.",
-                fileId);
-        }
-    }
 }

@@ -1,4 +1,4 @@
-using ECafe.Domain.Enums;
+using ECafe.Application.Common.Validation;
 using FluentValidation;
 
 namespace ECafe.Application.DTOs.Item
@@ -11,7 +11,7 @@ namespace ECafe.Application.DTOs.Item
                 .GreaterThan(0).WithMessage("CategoryId must be greater than 0.");
 
             RuleFor(x => x.StatusId)
-                .Must(BeValidItemStatus).WithMessage("StatusId is not a valid item status.");
+                .Must(ItemStatusValidation.IsValid).WithMessage("StatusId is not a valid item status.");
 
             RuleFor(x => x.Name)
                 .NotEmpty().WithMessage("Name is required.")
@@ -37,12 +37,5 @@ namespace ECafe.Application.DTOs.Item
                 .WithMessage("FileId must be greater than 0.");
         }
 
-        private static bool BeValidItemStatus(int statusId)
-        {
-            const int itemStatusTypeId = (int)StatusType.ItemStatus;
-            return Enum.GetValues<ItemStatus>()
-                .Select(status => (itemStatusTypeId * 1000) + Convert.ToInt32(status))
-                .Contains(statusId);
-        }
     }
 }

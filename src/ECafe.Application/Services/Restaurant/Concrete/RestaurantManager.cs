@@ -29,7 +29,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using System.Security.Cryptography;
+using ECafe.Application.Common.Security;
 using System.Data;
 using ECafe.Application.Services.Restaurant.Schedule;
 using File = ECafe.Domain.Entities.File;
@@ -1023,6 +1023,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             return $"{groupName} {branchName}".Trim();
         }
 
+        /// <summary>Mövcud sahibkarı yoxlayır və ya ilkin parol hash-i ilə yeni hesab qurur; restoran qeydiyyatının transaction sərhədini dəyişmir.</summary>
         private async Task<(Domain.Entities.User Owner, bool IsNewOwner)> ResolveRestaurantOwnerAsync(RegisterRestaurantRequest request)
         {
             var ownerRequest = request.Owner;
@@ -1061,7 +1062,7 @@ namespace ECafe.Application.Services.Restaurant.Concrete
                 Phone = PhoneNumberValidationExtensions.NormalizeAzerbaijanPhoneNumber(ownerRequest.Phone!),
                 RoleId = (int)RoleCode.Owner,
                 IsActive = true,
-                Password = CreateUnusablePasswordHash()
+                Password = AuthenticationTokenHelper.CreateUnusablePasswordHash()
             };
 
             await _userRepository.Add(owner);
@@ -1117,12 +1118,6 @@ namespace ECafe.Application.Services.Restaurant.Concrete
             return string.IsNullOrWhiteSpace(ownerEmail)
                 ? null
                 : ownerEmail.Trim().ToLowerInvariant();
-        }
-
-        private static string CreateUnusablePasswordHash()
-        {
-            var bytes = RandomNumberGenerator.GetBytes(32);
-            return BCrypt.Net.BCrypt.HashPassword(Convert.ToHexString(bytes));
         }
 
         private async Task<StaffPublicResponseDto> MapToPublicDtoAsync(UserRestaurant staff)

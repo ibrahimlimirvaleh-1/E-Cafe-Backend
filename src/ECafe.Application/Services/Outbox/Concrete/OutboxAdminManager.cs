@@ -11,6 +11,7 @@ using ECafe.Domain.Exceptions;
 using ECafe.Shared.DTOs;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using ECafe.Application.Common.Configuration;
 
 namespace ECafe.Application.Services.Outbox.Concrete
 {
@@ -29,7 +30,7 @@ namespace ECafe.Application.Services.Outbox.Concrete
         {
             _outboxRepository = outboxRepository;
             _errors = errors ?? new ErrorMessageProvider();
-            _maxRetryCount = GetPositiveIntSetting(configuration, "EmailOutbox:MaxRetryCount", 5);
+            _maxRetryCount = ConfigurationValueReader.GetPositiveInt(configuration, "EmailOutbox:MaxRetryCount", 5);
         }
 
         public async Task<PaginatedList<OutboxMessageResponse>> GetMessagesAsync(OutboxMessageFilterRequest filter)
@@ -278,13 +279,6 @@ namespace ECafe.Application.Services.Outbox.Concrete
                 _ => channel.ToString()
             };
 
-        private static int GetPositiveIntSetting(IConfiguration configuration, string key, int fallback)
-        {
-            var value = configuration[key];
-            return int.TryParse(value, out var parsed) && parsed > 0
-                ? parsed
-                : fallback;
-        }
 
         private sealed record NotificationPayloadView(
             string Recipient,

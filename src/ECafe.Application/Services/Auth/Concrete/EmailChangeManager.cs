@@ -1,5 +1,5 @@
 using System.Security.Cryptography;
-using System.Text;
+using ECafe.Application.Common.Security;
 using System.Net.Mail;
 using ECafe.Application.Common.Audit;
 using ECafe.Application.Common.Outbox;
@@ -62,7 +62,7 @@ public sealed class EmailChangeManager(
         var token = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
         await requests.Add(new EmailChangeRequest
         {
-            UserId = userId, OriginalEmail = user.Email, NewEmail = newEmail, TokenHash = Hash(token),
+            UserId = userId, OriginalEmail = user.Email, NewEmail = newEmail, TokenHash = AuthenticationTokenHelper.HashToken(token),
             SessionVersion = user.SessionVersion, CreatedAt = now, ExpiresAt = now.AddMinutes(LifetimeMinutes),
             RevokedAt = unavailable ? now : null
         });
@@ -86,7 +86,7 @@ public sealed class EmailChangeManager(
         await refreshTokens.AcquireUserLockAsync(userId);
         var user = await CurrentUserAsync(userId, cancellationToken);
         var now = clock.GetUtcNow().UtcDateTime;
-        var hash = Hash(request.Token);
+        var hash = AuthenticationTokenHelper.HashToken(request.Token);
         var pending = await requests.QueryTracked(x => x.UserId == userId && x.TokenHash == hash
             && x.UsedAt == null && x.RevokedAt == null && x.ExpiresAt > now).SingleOrDefaultAsync(cancellationToken);
         if (pending == null || pending.SessionVersion != user.SessionVersion
@@ -177,8 +177,6 @@ public sealed class EmailChangeManager(
             OutboxAggregateTypes.User, user.Id, AuditEntityTypes.User, user.Id);
     }
 
-    /// <summary>32 baytlıq təsadüfi tokenin yalnız SHA-256 hash-ini təsdiq cədvəlində saxlayır.</summary>
-    private static string Hash(string token) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
 }
 
 public sealed class RequestEmailChangeValidator : AbstractValidator<RequestEmailChangeRequest>
