@@ -1,4 +1,5 @@
 using ECafe.Application.DTOs.Order;
+using ECafe.Shared.Http;
 using ECafe.Application.Features.Commands.Order;
 using ECafe.Application.Features.Queries.Order;
 using ECafe.Domain.Enums;
@@ -21,7 +22,7 @@ public sealed class OrderController : BaseController
     [ProducesResponseType(typeof(SessionOrderResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(SessionOrderResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> Create([FromRoute] int restaurantId, [FromRoute] int tableSessionId,
-        [FromHeader(Name = "Idempotency-Key")] Guid requestId, [FromBody] CreateWaiterOrderRequest request,
+        [FromHeader(Name = RequestHeaderNames.IdempotencyKey)] Guid requestId, [FromBody] CreateWaiterOrderRequest request,
         CancellationToken cancellationToken)
     {
         var result = await Mediator.Send(new CreateWaiterOrderCommand(restaurantId, tableSessionId, requestId, request), cancellationToken);

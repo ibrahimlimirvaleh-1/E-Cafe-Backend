@@ -65,7 +65,7 @@ public sealed class SentryCriticalEventReporter : ICriticalEventReporter
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Critical event could not be reported to Sentry. Event: {Event}", criticalEvent.Name);
+            _logger.LogWarning(ECafe.Shared.Diagnostics.SafeDiagnosticException.ForLogging(ex), "Critical event could not be reported to Sentry. Event: {Event}", criticalEvent.Name);
         }
 
         return Task.CompletedTask;

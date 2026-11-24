@@ -77,3 +77,6 @@ jobs:
 
       - name: Run regression and isolated database tests
         run: dotnet test tests/ECafe.Tests/ECafe.Tests.csproj --configuration Release --no-build --no-restore --logger trx --results-directory "$RUNNER_TEMP/test-results" -- xUnit.ParallelizeTestCollections=false
+
+      - name: Test runtime hardening transforms
+        run: python3 -B -m unittest discover -s deploy/security -p 'test_*.py' -v

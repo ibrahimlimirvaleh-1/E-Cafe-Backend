@@ -10,12 +10,17 @@ services:
     ports:
       - "8080:8080"
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/health/ready || exit 1"]
+      test: ["CMD-SHELL", "curl -fsS -H \"Host: $${HealthChecks__Host:-localhost}\" -H 'X-Forwarded-Proto: https' http://127.0.0.1:8080/health/ready || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3
       start_period: 30s
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     volumes:
       - data_protection_keys:/var/lib/ecafe/data-protection-keys
       - ${ECAFE_APK_RELEASE_DIR:-./private-releases}:/var/lib/ecafe/private-releases:ro
@@ -31,6 +36,11 @@ services:
     profiles:
       - migrate
     restart: "no"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 volumes:
   data_protection_keys:

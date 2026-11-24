@@ -48,6 +48,7 @@ public sealed class ReservationExpiryWorker : BackgroundService
     }
 
     /// <summary>Vaxtı bitmiş rezervasiyaları emal edir, uzanan gözləməni və işgünü bitmiş açıq masa sessiyalarını xəbər verir; oturan qonağın sessiyasını avtomatik bağlamır.</summary>
+    /// <summary>Müddəti bitən rezervasiyaların və gözləmə bildirişlərinin mövcud emalını aparır; xətanı təhlükəsiz diaqnostika ilə qeyd edir.</summary>
     private async Task ExpireReservationsAsync(
         CancellationToken stoppingToken)
     {
@@ -82,7 +83,7 @@ public sealed class ReservationExpiryWorker : BackgroundService
         catch (Exception exception)
         {
             _logger.LogError(
-                exception,
+                ECafe.Shared.Diagnostics.SafeDiagnosticException.ForLogging(exception),
                 "Error while expiring reservations.");
         }
     }

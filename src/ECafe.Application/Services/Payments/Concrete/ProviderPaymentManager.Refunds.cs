@@ -31,7 +31,7 @@ public sealed partial class ProviderPaymentManager
         }
         if (reservation.RefundEligible != true) throw new BusinessRuleException(ErrorCode.ReservationRefundNotEligible);
         await workflow.EnsureCanExecuteAsync(WorkflowFlowCode.FromStatusType(StatusType.Reservation), reservation.StatusId,
-            WorkflowActionCode.Reservation.RequestRefund, reservation.RestaurantId, reservation.Id);
+            ReservationActionCode.RequestRefund, reservation.RestaurantId, reservation.Id);
         var payment = ReservationDepositPolicy.GetConfirmedPayment(reservation);
         if (payment != null)
         {

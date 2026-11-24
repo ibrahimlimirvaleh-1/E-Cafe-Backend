@@ -43,6 +43,7 @@ namespace ECafe.Api.BackgroundServices
             }
         }
 
+        /// <summary>Köhnə qoşulmamış faylları mövcud qayda ilə təmizləyir; xətaları məxfi mətnsiz qeyd edir.</summary>
         private async Task CleanupAsync(CancellationToken stoppingToken)
         {
             try
@@ -65,7 +66,7 @@ namespace ECafe.Api.BackgroundServices
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogWarning(ex, "Failed to cleanup unattached file {FileId}", file.Id);
+                        _logger.LogWarning(ECafe.Shared.Diagnostics.SafeDiagnosticException.ForLogging(ex), "Failed to cleanup unattached file {FileId}", file.Id);
                     }
                 }
 
@@ -77,7 +78,7 @@ namespace ECafe.Api.BackgroundServices
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Unattached file cleanup failed.");
+                _logger.LogError(ECafe.Shared.Diagnostics.SafeDiagnosticException.ForLogging(ex), "Unattached file cleanup failed.");
             }
         }
     }

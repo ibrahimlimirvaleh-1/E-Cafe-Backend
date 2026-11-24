@@ -1,7 +1,7 @@
 using AutoMapper;
+using Microsoft.Net.Http.Headers;
 using ECafe.Application.Common.Exceptions;
 using ECafe.Application.DTOs.Auth;
-using ECafe.Application.Common.Validation;
 using ECafe.Application.Repositories.File;
 using ECafe.Application.Repositories.User;
 using ECafe.Application.Repositories.UserRefreshToken;
@@ -16,8 +16,8 @@ using ECafe.Domain.Policies;
 using ECafe.Shared.Services.Jwt.Abstract;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
-using System.Security.Cryptography;
-using System.Text;
+using ECafe.Application.Common.Security;
+using ECafe.Application.Common.Audit;
 
 namespace ECafe.Application.Services.Auth.Concrete
 {
@@ -124,7 +124,7 @@ namespace ECafe.Application.Services.Auth.Concrete
 
         public async Task<AuthResponseDto> RegisterAsync(RegisterRequestDto request)
         {
-            await EnsureUserDoesNotExistAsync(request.Email, request.Phone);
+            await UserRegistrationValidation.EnsureUserDoesNotExistAsync(_userRepository, request.Email, request.Phone);
             var file = await GetAttachableFileAsync(request.FileId);
 
             var user = Mapper.Map<Domain.Entities.User>(request);
@@ -160,7 +160,7 @@ namespace ECafe.Application.Services.Auth.Concrete
             if (request is null || string.IsNullOrWhiteSpace(request.RefreshToken))
                 throw new UnauthorizedException(ErrorCode.RefreshTokenInvalid);
 
-            var refreshTokenHash = HashRefreshToken(request.RefreshToken);
+            var refreshTokenHash = AuthenticationTokenHelper.HashToken(request.RefreshToken);
             var userId = await _refreshTokenRepository.GetUserIdByTokenHashAsync(refreshTokenHash);
             if (!userId.HasValue)
                 throw new UnauthorizedException(ErrorCode.RefreshTokenInvalid);
@@ -203,7 +203,7 @@ namespace ECafe.Application.Services.Auth.Concrete
             if (request is null || string.IsNullOrWhiteSpace(request.RefreshToken))
                 return;
 
-            var hash = HashRefreshToken(request.RefreshToken);
+            var hash = AuthenticationTokenHelper.HashToken(request.RefreshToken);
             var userId = await _refreshTokenRepository.GetUserIdByTokenHashAsync(hash);
             if (!userId.HasValue)
                 return;
@@ -260,20 +260,6 @@ namespace ECafe.Application.Services.Auth.Concrete
         }
 
         #region Helpers
-        private async Task EnsureUserDoesNotExistAsync(string email, string phone)
-        {
-            var normalizedEmail = email.Trim().ToLowerInvariant();
-            var normalizedPhone = PhoneNumberValidationExtensions.NormalizeAzerbaijanPhoneNumber(phone);
-
-            var emailExists = await _userRepository.CheckExistAsync(x => x.Email == normalizedEmail);
-            if (emailExists)
-                throw new BusinessRuleException(ErrorCode.UserEmailAlreadyExists);
-
-            var phoneExists = await _userRepository.CheckExistAsync(x => x.Phone == normalizedPhone);
-            if (phoneExists)
-                throw new BusinessRuleException(ErrorCode.UserPhoneAlreadyExists);
-        }
-
         /// <summary>Qeydiyyata yalnız identifikasiyalı yükləyicinin uyğun sərbəst şəklini bağlayır.</summary>
         private async Task<Domain.Entities.File?> GetAttachableFileAsync(int? fileId)
         {
@@ -309,12 +295,7 @@ namespace ECafe.Application.Services.Auth.Concrete
             });
         }
 
-        private static string HashRefreshToken(string refreshToken)
-        {
-            var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(refreshToken));
-            return Convert.ToHexString(bytes);
-        }
-
+        /// <summary>Cari sessiyanı qoruyaraq refresh tokeni rotasiya edir; bazaya ortaq helper-in əvvəlki formatdakı hash-i yazılır.</summary>
         private async Task<AuthResponseDto> RotateRefreshTokenAsync(Domain.Entities.UserRefreshToken storedToken)
         {
             string? fileUrl = null;
@@ -323,7 +304,7 @@ namespace ECafe.Application.Services.Auth.Concrete
                 fileUrl = await _minioService.GenerateFileUrl(storedToken.User.File.Token);
 
             var refreshToken = _jwtService.GenerateRefreshToken();
-            var refreshTokenHash = HashRefreshToken(refreshToken);
+            var refreshTokenHash = AuthenticationTokenHelper.HashToken(refreshToken);
             var sessionId = string.IsNullOrWhiteSpace(storedToken.SessionId)
                 ? CreateSessionId()
                 : storedToken.SessionId;
@@ -342,13 +323,15 @@ namespace ECafe.Application.Services.Auth.Concrete
             });
         }
 
+        /// <summary>Yeni refresh token yaradır və yalnız hash-ini verilmiş sessiyaya bağlayır; açıq token yalnız cavab üçün qaytarılır.</summary>
         private async Task<string> AddRefreshTokenAsync(Domain.Entities.User user, string sessionId)
         {
             var refreshToken = _jwtService.GenerateRefreshToken();
-            await AddRefreshTokenAsync(user, HashRefreshToken(refreshToken), sessionId);
+            await AddRefreshTokenAsync(user, AuthenticationTokenHelper.HashToken(refreshToken), sessionId);
             return refreshToken;
         }
 
+        /// <summary>Hazır refresh token hash-ini cihaz sessiyasına bağlayır; əvvəlki müddət, IP və User-Agent metadatasını saxlayır.</summary>
         private async Task AddRefreshTokenAsync(
             Domain.Entities.User user,
             string refreshTokenHash,
@@ -361,7 +344,7 @@ namespace ECafe.Application.Services.Auth.Concrete
                 SessionId = sessionId,
                 ExpiresAt = DateTime.UtcNow.AddDays(7),
                 CreatedByIp = GetRequestIp(),
-                UserAgent = HttpContextAccessor.HttpContext?.Request.Headers["User-Agent"].ToString()
+                UserAgent = HttpContextAccessor.HttpContext?.Request.Headers[HeaderNames.UserAgent].ToString()
             });
 
             await _refreshTokenRepository.Add(refreshToken);
@@ -425,10 +408,11 @@ namespace ECafe.Application.Services.Auth.Concrete
             refreshToken.RevokedByIp ??= GetRequestIp();
         }
 
+        /// <summary>Refresh token təkrar istifadəsi xəbərdarlığını əvvəlki email outbox və audit əlaqəsi ilə növbəyə yazır.</summary>
         private Task EnqueueRefreshTokenReuseEmailAsync(Domain.Entities.User user)
         {
             var ipAddress = GetRequestIp() ?? "unknown";
-            var userAgent = HttpContextAccessor.HttpContext?.Request.Headers["User-Agent"].ToString();
+            var userAgent = HttpContextAccessor.HttpContext?.Request.Headers[HeaderNames.UserAgent].ToString();
             var body = $"""
             Salam {user.Name},
 
@@ -447,7 +431,7 @@ namespace ECafe.Application.Services.Auth.Concrete
                 body,
                 "RefreshToken",
                 user.Id,
-                "User",
+                AuditEntityTypes.User,
                 user.Id);
         }
 

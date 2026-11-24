@@ -1,5 +1,7 @@
 using System.Security.Cryptography;
-using System.Text;
+using ECafe.Shared.Security;
+using ECafe.Application.Common.Configuration;
+using ECafe.Application.Common.Security;
 using System.Net.Mail;
 using ECafe.Application.Common.Audit;
 using ECafe.Application.Common.Outbox;
@@ -62,7 +64,7 @@ public sealed class EmailChangeManager(
         var token = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
         await requests.Add(new EmailChangeRequest
         {
-            UserId = userId, OriginalEmail = user.Email, NewEmail = newEmail, TokenHash = Hash(token),
+            UserId = userId, OriginalEmail = user.Email, NewEmail = newEmail, TokenHash = AuthenticationTokenHelper.HashToken(token),
             SessionVersion = user.SessionVersion, CreatedAt = now, ExpiresAt = now.AddMinutes(LifetimeMinutes),
             RevokedAt = unavailable ? now : null
         });
@@ -86,7 +88,7 @@ public sealed class EmailChangeManager(
         await refreshTokens.AcquireUserLockAsync(userId);
         var user = await CurrentUserAsync(userId, cancellationToken);
         var now = clock.GetUtcNow().UtcDateTime;
-        var hash = Hash(request.Token);
+        var hash = AuthenticationTokenHelper.HashToken(request.Token);
         var pending = await requests.QueryTracked(x => x.UserId == userId && x.TokenHash == hash
             && x.UsedAt == null && x.RevokedAt == null && x.ExpiresAt > now).SingleOrDefaultAsync(cancellationToken);
         if (pending == null || pending.SessionVersion != user.SessionVersion
@@ -128,7 +130,7 @@ public sealed class EmailChangeManager(
     {
         var principal = http.HttpContext?.User;
         if (principal?.Identity?.IsAuthenticated != true
-            || !int.TryParse(principal.FindFirst("userId")?.Value, out var userId) || userId <= 0)
+            || !int.TryParse(principal.FindFirst(AuthenticationClaimTypes.UserId)?.Value, out var userId) || userId <= 0)
             throw new UnauthorizedException(ErrorCode.SessionInvalid);
         return userId;
     }
@@ -139,9 +141,9 @@ public sealed class EmailChangeManager(
         cancellationToken.ThrowIfCancellationRequested();
         var user = await users.GetProfileByIdTrackedAsync(userId);
         var principal = http.HttpContext!.User;
-        var sessionId = principal.FindFirst("sessionId")?.Value;
+        var sessionId = principal.FindFirst(AuthenticationClaimTypes.SessionId)?.Value;
         if (user == null || !user.IsActive
-            || !int.TryParse(principal.FindFirst("sessionVersion")?.Value, out var version) || version != user.SessionVersion
+            || !int.TryParse(principal.FindFirst(AuthenticationClaimTypes.SessionVersion)?.Value, out var version) || version != user.SessionVersion
             || (!string.IsNullOrEmpty(sessionId) && !await refreshTokens.HasActiveUserSessionAsync(userId, sessionId, clock.GetUtcNow().UtcDateTime)))
             throw new UnauthorizedException(ErrorCode.SessionInvalid);
         return user;
@@ -158,7 +160,7 @@ public sealed class EmailChangeManager(
     /// <summary>Tokeni query deyil, fragment-də saxlayan sabit frontend linki yaradır; request Host və redirect parametrinə etibar etmir.</summary>
     private string BuildConfirmationUrl(string token)
     {
-        var baseUrl = configuration["Frontend:BaseUrl"];
+        var baseUrl = configuration[AuthenticationConfigurationKeys.FrontendBaseUrl];
         if (!Uri.TryCreate(baseUrl, UriKind.Absolute, out var uri)
             || (uri.Scheme != Uri.UriSchemeHttps && !(uri.Scheme == Uri.UriSchemeHttp && uri.IsLoopback))
             || !string.IsNullOrEmpty(uri.Query) || !string.IsNullOrEmpty(uri.Fragment) || !string.IsNullOrEmpty(uri.UserInfo))
@@ -177,8 +179,6 @@ public sealed class EmailChangeManager(
             OutboxAggregateTypes.User, user.Id, AuditEntityTypes.User, user.Id);
     }
 
-    /// <summary>32 baytlıq təsadüfi tokenin yalnız SHA-256 hash-ini təsdiq cədvəlində saxlayır.</summary>
-    private static string Hash(string token) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
 }
 
 public sealed class RequestEmailChangeValidator : AbstractValidator<RequestEmailChangeRequest>

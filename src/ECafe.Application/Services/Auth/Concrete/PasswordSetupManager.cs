@@ -1,5 +1,4 @@
-using System.Security.Cryptography;
-using System.Text;
+using ECafe.Application.Common.Security;
 using ECafe.Application.Common.Audit;
 using ECafe.Application.Common.Outbox;
 using ECafe.Application.DTOs.Auth;
@@ -50,18 +49,18 @@ namespace ECafe.Application.Services.Auth.Concrete
                 token.UsedAt = nowUtc;
             }
 
-            var plainToken = GenerateSecureToken();
+            var plainToken = AuthenticationTokenHelper.GenerateUrlSafeToken();
             var setupToken = new Domain.Entities.UserPasswordSetupToken
             {
                 UserId = user.Id,
-                TokenHash = HashToken(plainToken),
+                TokenHash = AuthenticationTokenHelper.HashToken(plainToken),
                 ExpiresAt = nowUtc.AddMinutes(TokenLifetimeMinutes)
             };
 
             await _tokenRepository.Add(setupToken);
             await _tokenRepository.SaveChangesAsync();
 
-            var setupUrl = BuildSetupUrl(plainToken);
+            var setupUrl = PasswordLinkBuilder.Build(_configuration, "/set-password", plainToken);
             var body = $"""
             Salam {user.Name},
 
@@ -88,7 +87,7 @@ namespace ECafe.Application.Services.Auth.Concrete
 
         public async Task SetPasswordAsync(SetPasswordRequest request)
         {
-            var tokenHash = HashToken(request.Token);
+            var tokenHash = AuthenticationTokenHelper.HashToken(request.Token);
             var userId = await _tokenRepository.GetUserIdByTokenHashAsync(tokenHash);
             if (!userId.HasValue)
                 throw new BusinessRuleException(ErrorCode.PasswordResetTokenInvalidOrExpired);
@@ -111,28 +110,5 @@ namespace ECafe.Application.Services.Auth.Concrete
             await transaction.CommitAsync();
         }
 
-        private string BuildSetupUrl(string token)
-        {
-            var frontendBaseUrl = _configuration["Frontend:BaseUrl"]?.TrimEnd('/');
-            if (string.IsNullOrWhiteSpace(frontendBaseUrl))
-                frontendBaseUrl = "http://localhost:5173";
-
-            return $"{frontendBaseUrl}/set-password?token={Uri.EscapeDataString(token)}";
-        }
-
-        private static string GenerateSecureToken()
-        {
-            var bytes = RandomNumberGenerator.GetBytes(64);
-            return Convert.ToBase64String(bytes)
-                .Replace("+", "-")
-                .Replace("/", "_")
-                .Replace("=", string.Empty);
-        }
-
-        private static string HashToken(string token)
-        {
-            var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(token));
-            return Convert.ToHexString(bytes);
-        }
     }
 }

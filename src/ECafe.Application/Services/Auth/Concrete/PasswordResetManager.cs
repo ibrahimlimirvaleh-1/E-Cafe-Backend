@@ -1,5 +1,5 @@
-using System.Security.Cryptography;
-using System.Text;
+using ECafe.Application.Common.Security;
+using Microsoft.Net.Http.Headers;
 using ECafe.Application.Common.Audit;
 using ECafe.Application.Common.Outbox;
 using ECafe.Application.DTOs.Auth;
@@ -81,11 +81,11 @@ public class PasswordResetManager : IPasswordResetService
             token.RevokedAt = nowUtc;
         }
 
-        var plainToken = GenerateSecureToken();
+        var plainToken = AuthenticationTokenHelper.GenerateUrlSafeToken();
         var resetToken = new Domain.Entities.PasswordResetToken
         {
             UserId = user.Id,
-            TokenHash = HashToken(plainToken),
+            TokenHash = AuthenticationTokenHelper.HashToken(plainToken),
             ExpiresAt = nowUtc.AddMinutes(TokenLifetimeMinutes),
             CreatedByIp = GetRequestIp(),
             UserAgent = GetUserAgent()
@@ -94,14 +94,14 @@ public class PasswordResetManager : IPasswordResetService
         await _passwordResetTokenRepository.Add(resetToken);
         await _passwordResetTokenRepository.SaveChangesAsync();
 
-        await EnqueueResetLinkEmailAsync(user, BuildResetUrl(plainToken));
+        await EnqueueResetLinkEmailAsync(user, PasswordLinkBuilder.Build(_configuration, "/reset-password", plainToken));
         await transaction.CommitAsync();
         _logger.LogInformation("Password reset email outbox event queued for user {UserId}.", user.Id);
     }
 
     public async Task ResetPasswordAsync(ResetPasswordRequest request)
     {
-        var tokenHash = HashToken(request.Token);
+        var tokenHash = AuthenticationTokenHelper.HashToken(request.Token);
         var userId = await _passwordResetTokenRepository.GetUserIdByTokenHashAsync(tokenHash);
         if (!userId.HasValue)
             throw new BusinessRuleException(ErrorCode.PasswordResetTokenInvalidOrExpired);
@@ -199,33 +199,11 @@ public class PasswordResetManager : IPasswordResetService
             user.Id);
     }
 
-    private string BuildResetUrl(string token)
-    {
-        var frontendBaseUrl = _configuration["Frontend:BaseUrl"]?.TrimEnd('/');
-        if (string.IsNullOrWhiteSpace(frontendBaseUrl))
-            frontendBaseUrl = "http://localhost:5173";
-
-        return $"{frontendBaseUrl}/reset-password?token={Uri.EscapeDataString(token)}";
-    }
-
     private string? GetRequestIp()
         => _httpContextAccessor.HttpContext?.Connection.RemoteIpAddress?.ToString();
 
+    /// <summary>Parol bərpası metadatası üçün User-Agent header-ini əvvəlki formatda oxuyur.</summary>
     private string? GetUserAgent()
-        => _httpContextAccessor.HttpContext?.Request.Headers["User-Agent"].ToString();
+        => _httpContextAccessor.HttpContext?.Request.Headers[HeaderNames.UserAgent].ToString();
 
-    private static string GenerateSecureToken()
-    {
-        var bytes = RandomNumberGenerator.GetBytes(64);
-        return Convert.ToBase64String(bytes)
-            .Replace("+", "-")
-            .Replace("/", "_")
-            .Replace("=", string.Empty);
-    }
-
-    private static string HashToken(string token)
-    {
-        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(token));
-        return Convert.ToHexString(bytes);
-    }
 }

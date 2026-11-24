@@ -54,7 +54,7 @@ namespace ECafe.Api.BackgroundServices
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Audit outbox processing failed.");
+                _logger.LogError(ECafe.Shared.Diagnostics.SafeDiagnosticException.ForLogging(ex), "Audit outbox processing failed.");
             }
         }
     }

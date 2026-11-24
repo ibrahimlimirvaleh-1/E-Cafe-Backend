@@ -54,7 +54,7 @@ namespace ECafe.Api.BackgroundServices
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Email outbox processing failed.");
+                _logger.LogError(ECafe.Shared.Diagnostics.SafeDiagnosticException.ForLogging(ex), "Email outbox processing failed.");
             }
         }
     }

@@ -86,7 +86,7 @@ public class WorkflowActionManager : BaseManager, IWorkflowActionService
             rules = rules
                 .Where(rule => !string.Equals(
                     rule.ActionCode,
-                    WorkflowActionCode.Reservation.ApprovePaymentProof,
+                    ReservationActionCode.ApprovePaymentProof,
                     StringComparison.OrdinalIgnoreCase))
                 .ToList();
         }
@@ -102,7 +102,7 @@ public class WorkflowActionManager : BaseManager, IWorkflowActionService
             rules = rules
                 .Where(rule => !string.Equals(
                     rule.ActionCode,
-                    WorkflowActionCode.Reservation.CheckIn,
+                    ReservationActionCode.CheckIn,
                     StringComparison.OrdinalIgnoreCase))
                 .ToList();
         }
@@ -118,7 +118,7 @@ public class WorkflowActionManager : BaseManager, IWorkflowActionService
             rules = rules
                 .Where(rule => !string.Equals(
                     rule.ActionCode,
-                    WorkflowActionCode.Reservation.MarkArrived,
+                    ReservationActionCode.MarkArrived,
                     StringComparison.OrdinalIgnoreCase))
                 .ToList();
         }
@@ -134,7 +134,7 @@ public class WorkflowActionManager : BaseManager, IWorkflowActionService
             rules = rules
                 .Where(rule => !string.Equals(
                     rule.ActionCode,
-                    WorkflowActionCode.Reservation.RequestRefund,
+                    ReservationActionCode.RequestRefund,
                     StringComparison.OrdinalIgnoreCase))
                 .ToList();
         }
@@ -188,7 +188,7 @@ public class WorkflowActionManager : BaseManager, IWorkflowActionService
         if (restaurantId.HasValue &&
             entityId.HasValue &&
             string.Equals(normalizedFlowCode, WorkflowFlowCode.FromStatusType(StatusType.Reservation), StringComparison.Ordinal) &&
-            string.Equals(normalizedActionCode, WorkflowActionCode.Reservation.CheckIn, StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(normalizedActionCode, ReservationActionCode.CheckIn, StringComparison.OrdinalIgnoreCase) &&
             !await _reservationRepository.IsCheckInWindowOpenAsync(
                 restaurantId.Value,
                 entityId.Value,
@@ -200,7 +200,7 @@ public class WorkflowActionManager : BaseManager, IWorkflowActionService
         if (restaurantId.HasValue &&
             entityId.HasValue &&
             string.Equals(normalizedFlowCode, WorkflowFlowCode.FromStatusType(StatusType.Reservation), StringComparison.Ordinal) &&
-            string.Equals(normalizedActionCode, WorkflowActionCode.Reservation.MarkArrived, StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(normalizedActionCode, ReservationActionCode.MarkArrived, StringComparison.OrdinalIgnoreCase) &&
             !await _reservationRepository.IsMarkArrivalWindowOpenAsync(
                 restaurantId.Value,
                 entityId.Value,
@@ -267,8 +267,8 @@ public class WorkflowActionManager : BaseManager, IWorkflowActionService
     private static bool IsRetiredPaymentAction(string flow, string action)
         => flow == WorkflowFlowCode.FromStatusType(StatusType.Refund) ||
             (flow == WorkflowFlowCode.FromStatusType(StatusType.Reservation) &&
-             action is WorkflowActionCode.Reservation.SendPaymentInstruction or WorkflowActionCode.Reservation.SubmitPaymentProof or
-                 WorkflowActionCode.Reservation.ApprovePaymentProof or WorkflowActionCode.Reservation.RejectPaymentProof);
+             action is ReservationActionCode.SendPaymentInstruction or ReservationActionCode.SubmitPaymentProof or
+                 ReservationActionCode.ApprovePaymentProof or ReservationActionCode.RejectPaymentProof);
 
     private static string NormalizeFlowCode(string flowCode)
         => flowCode.Trim().ToLowerInvariant();

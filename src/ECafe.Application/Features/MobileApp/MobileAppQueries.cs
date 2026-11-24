@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using ECafe.Shared.Security;
 using ECafe.Application.Common.Exceptions;
 using ECafe.Application.Repositories.Restaurant;
 using ECafe.Application.Repositories.User;
@@ -113,7 +114,7 @@ public sealed class MobileAppQueryHandler(
     public async Task<CustomerMobileAccessResponse> Handle(GetCustomerMobileAccessQuery request, CancellationToken cancellationToken)
     {
         var user = httpContextAccessor.HttpContext?.User;
-        var idClaim = user?.FindFirst("userId")?.Value ?? user?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var idClaim = user?.FindFirst(AuthenticationClaimTypes.UserId)?.Value ?? user?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (!int.TryParse(idClaim, out var userId) || userId <= 0)
             throw new ForbiddenException("An active customer account is required.");
 
@@ -129,7 +130,7 @@ public sealed class MobileAppQueryHandler(
     public async Task<StaffMobileAccessResponse> Handle(GetStaffMobileAccessQuery request, CancellationToken cancellationToken)
     {
         var user = httpContextAccessor.HttpContext?.User;
-        var idClaim = user?.FindFirst("userId")?.Value ?? user?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var idClaim = user?.FindFirst(AuthenticationClaimTypes.UserId)?.Value ?? user?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (!int.TryParse(idClaim, out var userId))
             throw new ForbiddenException("An active restaurant staff account is required.");
 

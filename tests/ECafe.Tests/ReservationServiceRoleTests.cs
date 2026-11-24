@@ -21,17 +21,17 @@ public sealed class ReservationServiceRoleTests
 
         Assert.Contains(rules, row =>
             (int)row[nameof(WorkflowActionRule.RoleId)]! == (int)RoleCode.Waiter &&
-            (string)row[nameof(WorkflowActionRule.ActionCode)]! == WorkflowActionCode.Reservation.CheckIn);
+            (string)row[nameof(WorkflowActionRule.ActionCode)]! == ReservationActionCode.CheckIn);
         Assert.DoesNotContain(rules, row =>
             (int)row[nameof(WorkflowActionRule.RoleId)]! == (int)RoleCode.Manager &&
-            (string)row[nameof(WorkflowActionRule.ActionCode)]! == WorkflowActionCode.Reservation.CheckIn);
+            (string)row[nameof(WorkflowActionRule.ActionCode)]! == ReservationActionCode.CheckIn);
         Assert.DoesNotContain(rules, row =>
             (int)row[nameof(WorkflowActionRule.RoleId)]! == (int)RoleCode.Owner &&
-            (string)row[nameof(WorkflowActionRule.ActionCode)]! == WorkflowActionCode.Reservation.CheckIn);
+            (string)row[nameof(WorkflowActionRule.ActionCode)]! == ReservationActionCode.CheckIn);
         Assert.All(new[] { RoleCode.Manager, RoleCode.Owner, RoleCode.Waiter }, role =>
             Assert.Contains(rules, row =>
                 (int)row[nameof(WorkflowActionRule.RoleId)]! == (int)role &&
-                (string)row[nameof(WorkflowActionRule.ActionCode)]! == WorkflowActionCode.Reservation.MarkArrived));
+                (string)row[nameof(WorkflowActionRule.ActionCode)]! == ReservationActionCode.MarkArrived));
     }
 
     [Fact]

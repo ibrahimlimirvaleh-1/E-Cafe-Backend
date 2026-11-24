@@ -1,4 +1,5 @@
 using ECafe.Api.Security;
+using System.Net.Mime;
 using ECafe.Application.DTOs.Auth;
 using ECafe.Application.Services.Auth.Abstract;
 using Microsoft.AspNetCore.Authorization;
@@ -17,7 +18,7 @@ public sealed class CustomerAccountDeletionController(ICustomerAccountDeletionSe
         => Ok(await service.GetEligibilityAsync(cancellationToken));
 
     [HttpPost(ApiRoutes.User.AccountDeletion)]
-    [Consumes("application/json")]
+    [Consumes(MediaTypeNames.Application.Json)]
     [EnableRateLimiting(RateLimitPolicyNames.CustomerAccountDeletion)]
     public async Task<IActionResult> Delete([FromBody] CustomerAccountDeletionRequest request, CancellationToken cancellationToken)
     {

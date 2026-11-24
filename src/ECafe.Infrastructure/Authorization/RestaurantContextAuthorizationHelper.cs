@@ -1,4 +1,6 @@
 using System.Security.Claims;
+using ECafe.Shared.Http;
+using ECafe.Shared.Security;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 
@@ -6,10 +8,6 @@ namespace ECafe.Infrastructure.Authorization;
 
 internal static class RestaurantContextAuthorizationHelper
 {
-    private const string ActiveRestaurantIdHeader = "X-Active-Restaurant-Id";
-    private const string RestaurantIdsClaim = "restaurantIds";
-    private const string RestaurantRolesClaim = "restaurantRoles";
-    private const string LegacyRestaurantIdClaim = "restaurantId";
 
     private static readonly string[] RestaurantIdKeys =
     [
@@ -17,6 +15,7 @@ internal static class RestaurantContextAuthorizationHelper
         "RestaurantId"
     ];
 
+    /// <summary>Route, seçilmiş header, query və legacy claim-in əvvəlki prioriteti ilə restoran kontekstini oxuyur.</summary>
     public static int? ResolveRestaurantId(HttpContext? httpContext, ClaimsPrincipal user, string? preferredKey = null)
     {
         if (httpContext is not null)
@@ -36,7 +35,7 @@ internal static class RestaurantContextAuthorizationHelper
                 }
             }
 
-            if (httpContext.Request.Headers.TryGetValue(ActiveRestaurantIdHeader, out var headerValue) &&
+            if (httpContext.Request.Headers.TryGetValue(RequestHeaderNames.ActiveRestaurantId, out var headerValue) &&
                 TryReadPositiveInt(headerValue.FirstOrDefault(), out var activeRestaurantId))
             {
                 return activeRestaurantId;
@@ -52,14 +51,15 @@ internal static class RestaurantContextAuthorizationHelper
             }
         }
 
-        return GetIntClaim(user, LegacyRestaurantIdClaim);
+        return GetIntClaim(user, AuthenticationClaimTypes.RestaurantId);
     }
 
+    /// <summary>Verilmiş restoranın token rolunu və əvvəlki legacy rol fallback-ini eyni qaydada oxuyur.</summary>
     public static bool TryResolveRestaurantRoleId(ClaimsPrincipal user, int restaurantId, out int roleId)
     {
         roleId = 0;
 
-        var restaurantRolesClaim = user.FindFirst(RestaurantRolesClaim)?.Value;
+        var restaurantRolesClaim = user.FindFirst(AuthenticationClaimTypes.RestaurantRoles)?.Value;
         if (!string.IsNullOrWhiteSpace(restaurantRolesClaim))
         {
             foreach (var assignment in restaurantRolesClaim.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
@@ -77,7 +77,7 @@ internal static class RestaurantContextAuthorizationHelper
             }
         }
 
-        var legacyRestaurantId = GetIntClaim(user, LegacyRestaurantIdClaim);
+        var legacyRestaurantId = GetIntClaim(user, AuthenticationClaimTypes.RestaurantId);
         if (legacyRestaurantId == restaurantId &&
             TryReadPositiveInt(user.FindFirst(ClaimTypes.Role)?.Value, out var legacyRoleId))
         {

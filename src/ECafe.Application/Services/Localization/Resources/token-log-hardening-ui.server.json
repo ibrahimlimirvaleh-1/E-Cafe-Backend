@@ -1,0 +1,27 @@
+{
+  "ui.passwordLink.invalid": {
+    "az": "Link etibarsızdır və ya token tapılmadı. Yeni şifrə məktubu istəyin.",
+    "en": "This link is invalid or its token is missing. Request a new password email.",
+    "ru": "Ссылка недействительна или токен отсутствует. Запросите новое письмо для пароля."
+  },
+  "ui.passwordLink.resetComplete": {
+    "az": "Şifrəniz yeniləndi. İndi yeni şifrə ilə daxil ola bilərsiniz.",
+    "en": "Your password has been reset. You can now sign in with the new password.",
+    "ru": "Пароль обновлён. Теперь вы можете войти с новым паролем."
+  },
+  "ui.passwordLink.setComplete": {
+    "az": "Şifrəniz təyin edildi. İndi hesabınıza daxil ola bilərsiniz.",
+    "en": "Your password has been set. You can now sign in to your account.",
+    "ru": "Пароль установлен. Теперь вы можете войти в аккаунт."
+  },
+  "ui.passwordLink.resetFailed": {
+    "az": "Şifrə yenilənmədi.",
+    "en": "Your password could not be reset.",
+    "ru": "Не удалось обновить пароль."
+  },
+  "ui.passwordLink.setFailed": {
+    "az": "Şifrə təyin edilmədi.",
+    "en": "Your password could not be set.",
+    "ru": "Не удалось установить пароль."
+  }
+}

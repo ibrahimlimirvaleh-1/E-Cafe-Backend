@@ -66,7 +66,7 @@ public sealed partial class ProviderPaymentManager(IHttpContextAccessor accessor
         }
         if (!CanAuthorize(reservation, now)) throw new BusinessRuleException(ErrorCode.PaymentTransitionNotAllowed);
         await workflow.EnsureCanExecuteAsync(WorkflowFlowCode.FromStatusType(StatusType.Reservation), reservation.StatusId,
-            WorkflowActionCode.Reservation.SendPaymentInstruction, restaurantId, reservation.Id);
+            ReservationActionCode.SendPaymentInstruction, restaurantId, reservation.Id);
         if (await tables.GetReservationTableAvailabilityAsync(restaurantId, reservation.TableId,
                 new DateTimeOffset(DateTime.SpecifyKind(reservation.ReservedAt, DateTimeKind.Utc)), reservation.Id) == null)
             throw new BusinessRuleException(ErrorCode.TableAlreadyReserved);

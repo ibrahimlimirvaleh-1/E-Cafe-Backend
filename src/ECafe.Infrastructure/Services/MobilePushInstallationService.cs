@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using ECafe.Shared.Security;
 using System.Security.Cryptography;
 using System.Text;
 using ECafe.Application.Common.Exceptions;
@@ -129,11 +130,12 @@ public sealed class MobilePushInstallationService(
                 .ToArray().All(c => char.IsAsciiLetterOrDigit(c) || c is '-' or '_');
     }
 
+    /// <summary>Push quraşdırmasını cari hesab və cihaz sessiyası ilə bağlamaq üçün əvvəlki principal yoxlamalarını aparır.</summary>
     private (int UserId, string SessionId) GetCurrentSession()
     {
         var user = httpContextAccessor.HttpContext?.User;
-        if (!int.TryParse(user?.FindFirstValue("userId"), out var userId) || userId <= 0 ||
-            user?.FindFirstValue("sessionId") is not { Length: 32 } sessionId)
+        if (!int.TryParse(user?.FindFirstValue(AuthenticationClaimTypes.UserId), out var userId) || userId <= 0 ||
+            user?.FindFirstValue(AuthenticationClaimTypes.SessionId) is not { Length: 32 } sessionId)
             throw new UnauthorizedException(ErrorCode.SessionInvalid);
 
         return (userId, sessionId);

@@ -466,7 +466,7 @@ public sealed partial class ReservationManager : BaseManager, IReservationServic
         await _workflowActionService.EnsureCanExecuteAsync(
             ReservationFlowCode,
             reservation.StatusId,
-            WorkflowActionCode.Reservation.CheckIn,
+            ReservationActionCode.CheckIn,
             restaurantId,
             reservation.Id);
 
@@ -559,7 +559,7 @@ public sealed partial class ReservationManager : BaseManager, IReservationServic
 
         await _workflowActionService.EnsureCanExecuteAsync(
             ReservationFlowCode, reservation.StatusId,
-            WorkflowActionCode.Reservation.MarkArrived, restaurantId, reservation.Id);
+            ReservationActionCode.MarkArrived, restaurantId, reservation.Id);
 
         var nowUtc = DateTime.UtcNow;
         if (!ReservationArrivalPolicy.CanRecordPhysicalArrival(reservation, nowUtc))
@@ -775,7 +775,7 @@ public sealed partial class ReservationManager : BaseManager, IReservationServic
         await _workflowActionService.EnsureCanExecuteAsync(
             ReservationFlowCode,
             reservation.StatusId,
-            "sendPaymentInstruction",
+            ReservationActionCode.SendPaymentInstruction,
             restaurantId,
             reservation.Id);
 
@@ -1027,6 +1027,7 @@ public sealed partial class ReservationManager : BaseManager, IReservationServic
         }
     }
 
+    /// <summary>Köhnə çek təqdimatında gözləmə müddəti, təlimat və rezervasiya workflow şərtlərini dəyişmədən yoxlayır.</summary>
     private async Task EnsurePaymentProofSubmissionAllowedAsync(
         Domain.Entities.Reservation reservation,
         CancellationToken cancellationToken)
@@ -1047,7 +1048,7 @@ public sealed partial class ReservationManager : BaseManager, IReservationServic
         await _workflowActionService.EnsureCanExecuteAsync(
             ReservationFlowCode,
             reservation.StatusId,
-            WorkflowActionCode.Reservation.SubmitPaymentProof,
+            ReservationActionCode.SubmitPaymentProof,
             reservation.RestaurantId,
             reservation.Id);
     }
@@ -1352,6 +1353,7 @@ public sealed partial class ReservationManager : BaseManager, IReservationServic
         return normalizedDetails;
     }
 
+    /// <summary>Ödəniş təlimatının cavabını qurur; deşifrə xətasında məxfi təfərrüat əvəzinə təhlükəsiz status və diaqnostika saxlayır.</summary>
     private PaymentInstructionResponse MapPaymentInstructionResponse(
         ReservationPaymentInstruction instruction,
         string status)
@@ -1372,7 +1374,7 @@ public sealed partial class ReservationManager : BaseManager, IReservationServic
             }
             catch (CryptographicException exception)
             {
-                _logger.LogError(exception,
+                _logger.LogError(ECafe.Shared.Diagnostics.SafeDiagnosticException.ForLogging(exception),
                     "Reservation payment instruction {InstructionId} cannot be decrypted.", instruction.Id);
                 detailsAvailable = false;
                 details = maskedDetails ?? "Ödəniş məlumatı əlçatan deyil";
@@ -1519,7 +1521,7 @@ public sealed partial class ReservationManager : BaseManager, IReservationServic
         await _workflowActionService.EnsureCanExecuteAsync(
             ReservationFlowCode,
             reservation.StatusId,
-            WorkflowActionCode.Reservation.WaiveDeposit,
+            ReservationActionCode.WaiveDeposit,
             restaurantId,
             reservation.Id);
 
@@ -1611,7 +1613,7 @@ public sealed partial class ReservationManager : BaseManager, IReservationServic
         await _workflowActionService.EnsureCanExecuteAsync(
             ReservationFlowCode,
             reservation.StatusId,
-            "approvePaymentProof",
+            ReservationActionCode.ApprovePaymentProof,
             restaurantId,
             reservation.Id);
 
@@ -1881,7 +1883,7 @@ public sealed partial class ReservationManager : BaseManager, IReservationServic
         await _workflowActionService.EnsureCanExecuteAsync(
             ReservationFlowCode,
             reservation.StatusId,
-            WorkflowActionCode.Reservation.Cancel,
+            ReservationActionCode.Cancel,
             restaurantId,
             reservation.Id);
 

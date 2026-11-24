@@ -38,6 +38,7 @@ public sealed class PaymentInstructionEncryptionBackfillWorker : BackgroundServi
         }
     }
 
+    /// <summary>Əvvəlki ödəniş təlimatlarını şifrələyir; uğursuzluqda təlimat və açar məlumatları loga ötürülmür.</summary>
     private async Task EncryptLegacyInstructionsAsync(CancellationToken cancellationToken)
     {
         try
@@ -85,7 +86,7 @@ public sealed class PaymentInstructionEncryptionBackfillWorker : BackgroundServi
         catch (Exception exception)
         {
             _logger.LogError(
-                exception,
+                ECafe.Shared.Diagnostics.SafeDiagnosticException.ForLogging(exception),
                 "Failed to encrypt legacy reservation payment instructions.");
         }
     }

@@ -55,23 +55,9 @@ public sealed class SubmitReservationRefundTransferCommandHandler
         }
         catch
         {
-            await TryDeleteUnattachedFileAsync(uploadedFile.Id);
+            await UnattachedFileCompensation.TryDeleteAsync(_sender, _logger, uploadedFile.Id, "refund transfer proof");
             throw;
         }
     }
 
-    private async Task TryDeleteUnattachedFileAsync(int fileId)
-    {
-        try
-        {
-            await _sender.Send(new DeleteFileCommand { FileId = fileId });
-        }
-        catch (Exception exception)
-        {
-            _logger.LogWarning(
-                exception,
-                "Could not compensate refund transfer proof upload for file {FileId}. The unattached-file cleanup worker will retry it.",
-                fileId);
-        }
-    }
 }

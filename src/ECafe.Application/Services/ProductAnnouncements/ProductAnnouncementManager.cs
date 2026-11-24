@@ -1,4 +1,6 @@
 using System.Globalization;
+using ECafe.Shared.Security;
+using ECafe.Shared.Http;
 using System.Security.Claims;
 using ECafe.Application.Common.Audit;
 using ECafe.Application.Common.Exceptions;
@@ -139,7 +141,7 @@ public sealed class ProductAnnouncementManager(IProductAnnouncementRepository re
     /// <summary>JWT-dən yalnız hesab ID-sini götürür; sorğu body-si başqa istifadəçi seçə bilmir.</summary>
     private int UserId()
         => http.HttpContext?.User.Identity?.IsAuthenticated == true &&
-           int.TryParse(http.HttpContext.User.FindFirstValue("userId"), out var id) && id > 0
+           int.TryParse(http.HttpContext.User.FindFirstValue(AuthenticationClaimTypes.UserId), out var id) && id > 0
             ? id : throw new UnauthorizedException(ErrorCode.SessionInvalid);
 
     /// <summary>Həqiqi hesabı, versiyanı və cihazı bazadan yoxlayır; selected profil rolunu JWT-nin qlobal rolu ilə qarışdırmır.</summary>
@@ -152,8 +154,8 @@ public sealed class ProductAnnouncementManager(IProductAnnouncementRepository re
             value.IsActive, value.RoleId, value.SessionVersion,
             HasStaff = value.UserRestaurants.Any(role => role.IsActive && UserProfileAccessPolicy.RestaurantRoleIds.Contains(role.RoleId))
         }).SingleOrDefaultAsync(cancellationToken);
-        var device = principal.FindFirstValue("sessionId");
-        if (actor is null || !actor.IsActive || !int.TryParse(principal.FindFirstValue("sessionVersion"), out var version) ||
+        var device = principal.FindFirstValue(AuthenticationClaimTypes.SessionId);
+        if (actor is null || !actor.IsActive || !int.TryParse(principal.FindFirstValue(AuthenticationClaimTypes.SessionVersion), out var version) ||
             actor.SessionVersion != version || string.IsNullOrEmpty(device) ||
             !await sessions.HasActiveUserSessionAsync(id, device, Now()) ||
             !int.TryParse(principal.FindFirstValue(ClaimTypes.Role), out var globalRole) || globalRole != actor.RoleId)
@@ -161,8 +163,8 @@ public sealed class ProductAnnouncementManager(IProductAnnouncementRepository re
         if (UserProfileAccessPolicy.IsRestaurantRole(actor.RoleId) && !actor.HasStaff)
             throw new UnauthorizedException(ErrorCode.StaffProfileInactive);
         var headers = http.HttpContext.Request.Headers;
-        var roleText = headers["X-Active-Role-Id"].ToString();
-        var restaurantText = headers["X-Active-Restaurant-Id"].ToString();
+        var roleText = headers[RequestHeaderNames.ActiveRoleId].ToString();
+        var restaurantText = headers[RequestHeaderNames.ActiveRestaurantId].ToString();
         var roleId = globalRole;
         int? restaurantId = null;
         if (roleText.Length > 0 && !int.TryParse(roleText, out roleId)) throw new ForbiddenException(ErrorCode.AccessDenied);

@@ -34,7 +34,7 @@ namespace ECafe.Application.Features.Commands.Restaurant
 
             RuleFor(x => x.TimeZone)
                 .MaximumLength(64)
-                .Must(BeValidTimeZone)
+                .Must(RestaurantValidation.IsKnownTimeZone)
                 .When(x => !string.IsNullOrWhiteSpace(x.TimeZone))
                 .WithMessage("Time zone is invalid.");
 
@@ -45,7 +45,7 @@ namespace ECafe.Application.Features.Commands.Restaurant
                 .WithMessage("Masa hazırlıq buferi rezervasiya qoruma müddətindən qısa olmalıdır.");
 
             RuleFor(x => x.WorkingHours)
-                .Must(HaveUniqueDays)
+                .Must(RestaurantValidation.HaveUniqueWorkingDays)
                 .WithMessage("Working hours must contain unique days.");
 
             RuleForEach(x => x.WorkingHours).ChildRules(hour =>
@@ -125,33 +125,5 @@ namespace ECafe.Application.Features.Commands.Restaurant
                 .WithMessage("Restaurant response period must be between 1 and 120 minutes.");
         }
 
-        private static bool HaveUniqueDays(IEnumerable<ECafe.Application.DTOs.Restaurant.RestaurantWorkingHourDto>? workingHours)
-        {
-            if (workingHours is null)
-                return true;
-
-            var days = workingHours.Select(hour => hour.DayOfWeek).ToList();
-            return days.Count == days.Distinct().Count();
-        }
-
-        private static bool BeValidTimeZone(string? timeZone)
-        {
-            var trimmedTimeZone = timeZone!.Trim();
-
-            try
-            {
-                _ = TimeZoneInfo.FindSystemTimeZoneById(trimmedTimeZone);
-                return true;
-            }
-            catch (TimeZoneNotFoundException)
-            {
-            }
-            catch (InvalidTimeZoneException)
-            {
-            }
-
-            return TimeZoneInfo.TryConvertIanaIdToWindowsId(trimmedTimeZone, out _)
-                || TimeZoneInfo.TryConvertWindowsIdToIanaId(trimmedTimeZone, out _);
-        }
     }
 }
