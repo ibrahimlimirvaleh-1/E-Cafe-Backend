@@ -287,6 +287,12 @@
     "HttpMethod": "GET",
     "Template": "api/v1/notifications"
   },
+    {
+      "Controller": "NotificationController",
+      "Action": "GetMinePaged",
+      "HttpMethod": "GET",
+      "Template": "api/v1/notifications/paged"
+    },
   {
     "Controller": "NotificationController",
     "Action": "GetUnreadCount",

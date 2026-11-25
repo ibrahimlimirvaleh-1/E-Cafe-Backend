@@ -7,6 +7,7 @@ using ECafe.Application.Mappings;
 using ECafe.Application.Repositories.UserRestaurant;
 using ECafe.Application.Services.Notification.Abstract;
 using ECafe.Application.Services.Notification.Concrete;
+using ECafe.Application.Services.Localization.Abstract;
 using ECafe.Application.Services.Realtime.Abstract;
 using ECafe.Domain.Entities;
 using ECafe.Domain.Enums;
@@ -21,6 +22,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;
+using ECafe.Shared.DTOs;
 
 namespace ECafe.Tests;
 
@@ -28,6 +30,7 @@ public sealed class NotificationTenantBoundaryTests
 {
     [Theory]
     [InlineData("list")]
+    [InlineData("page")]
     [InlineData("count")]
     [InlineData("read")]
     [InlineData("read-all")]
@@ -71,6 +74,9 @@ public sealed class NotificationTenantBoundaryTests
         });
 
         Assert.Empty(await f.CreateService(assignments.Object).GetMyNotificationsAsync());
+        var page = await f.CreateService(assignments.Object).GetMyNotificationsPageAsync(new());
+        Assert.Empty(page.Items);
+        Assert.Equal(0, page.TotalCount);
     }
 
     [Theory]
@@ -87,6 +93,9 @@ public sealed class NotificationTenantBoundaryTests
 
         Assert.Equal(new[] { 1, 2, 3 }, (await f.Service.GetMyNotificationsAsync()).Select(value => value.Id).Order().ToArray());
         Assert.Equal(3, (await f.Service.GetUnreadCountAsync()).Count);
+        var page = await f.Service.GetMyNotificationsPageAsync(new PaginationFilter(2, 2));
+        Assert.Single(page.Items);
+        Assert.Equal(3, page.TotalCount);
         await f.Service.MarkAllAsReadAsync();
         Assert.Equal(3, await f.Db.Notifications.CountAsync(value => value.UserId == 5 && value.IsRead));
         Assert.False((await f.Db.Notifications.SingleAsync(value => value.Id == 4)).IsRead);
@@ -106,6 +115,9 @@ public sealed class NotificationTenantBoundaryTests
         if (change == "restaurant-deleted") (await f.Db.Restaurants.SingleAsync(value => value.Id == 1)).IsDeleted = true;
         await f.Db.SaveChangesAsync();
         Assert.Empty(await f.Repository.GetByUserAsync(5, 1));
+        var page = await f.Repository.GetPageByUserAsync(5, 1, 1, 20, default);
+        Assert.Empty(page.Items);
+        Assert.Equal(0, page.TotalCount);
     }
 
     [Fact]
@@ -117,6 +129,103 @@ public sealed class NotificationTenantBoundaryTests
         await Assert.ThrowsAsync<BusinessRuleException>(() => f.Service.MarkAsReadAsync(4));
         await f.Service.MarkAllAsReadAsync();
         Assert.Equal(new[] { 1, 3 }, await f.Db.Notifications.Where(value => value.IsRead).OrderBy(value => value.Id).Select(value => value.Id).ToArrayAsync());
+    }
+
+    [Fact]
+    public async Task PaginationUsesDatabaseBoundsAndStableOrderWithoutExposingOtherOwnersOrRestaurants()
+    {
+        await using var f = await Fixture.CreateAsync();
+        await f.AddNoticesAsync(45);
+        var first = await f.Service.GetMyNotificationsPageAsync(new PaginationFilter(1, 20));
+        var second = await f.Service.GetMyNotificationsPageAsync(new PaginationFilter(2, 20));
+        var last = await f.Service.GetMyNotificationsPageAsync(new PaginationFilter(3, 20));
+
+        Assert.Equal(Enumerable.Range(35, 20).Reverse(), first.Items.Select(value => value.Id));
+        Assert.Equal(Enumerable.Range(15, 20).Reverse(), second.Items.Select(value => value.Id));
+        Assert.Equal(new[] { 14, 13, 12, 11, 10, 3, 1 }, last.Items.Select(value => value.Id));
+        Assert.Equal(47, first.TotalCount);
+        Assert.Equal(3, first.TotalPages);
+        Assert.Equal(2, second.PageIndex);
+        Assert.False(first.HasPreviousPage);
+        Assert.True(first.HasNextPage);
+        Assert.True(last.HasPreviousPage);
+        Assert.False(last.HasNextPage);
+        Assert.Empty(first.Items.Select(value => value.Id).Intersect(second.Items.Select(value => value.Id)));
+        Assert.Equal(47, (await f.Service.GetMyNotificationsAsync()).Count);
+        f.Db.ChangeTracker.Clear();
+        await f.Service.GetMyNotificationsPageAsync(new());
+        Assert.Empty(f.Db.ChangeTracker.Entries<Notification>());
+    }
+
+    [Theory]
+    [InlineData(0, 0, 1, 20)]
+    [InlineData(-1, -1, 1, 20)]
+    [InlineData(1, int.MaxValue, 1, 100)]
+    [InlineData(2, 20, 2, 20)]
+    [InlineData(3, 50, 3, 22)]
+    [InlineData(int.MaxValue, int.MaxValue, int.MaxValue, 0)]
+    public async Task PaginationNormalizesInputCapsPageSizeAndAvoidsOffsetOverflow(int number, int size, int expectedPage, int expectedItems)
+    {
+        await using var f = await Fixture.CreateAsync();
+        await f.AddNoticesAsync(120);
+        var page = await f.Service.GetMyNotificationsPageAsync(new PaginationFilter(number, size));
+        Assert.Equal(expectedPage, page.PageIndex);
+        Assert.Equal(expectedItems, page.Items.Count);
+        Assert.Equal(122, page.TotalCount);
+    }
+
+    [Fact]
+    public async Task EmptyPageKeepsItsMetadataAndAnEmptyAccountHasZeroPages()
+    {
+        await using var f = await Fixture.CreateAsync();
+        var beyond = await f.Service.GetMyNotificationsPageAsync(new PaginationFilter(99, 20));
+        Assert.Empty(beyond.Items);
+        Assert.Equal(2, beyond.TotalCount);
+        Assert.Equal(1, beyond.TotalPages);
+        foreach (var notification in await f.Db.Notifications.Where(value => value.UserId == 5).ToListAsync()) notification.IsDeleted = true;
+        await f.Db.SaveChangesAsync();
+        var empty = await f.Service.GetMyNotificationsPageAsync(new());
+        Assert.Empty(empty.Items);
+        Assert.Equal(0, empty.TotalCount);
+        Assert.Equal(0, empty.TotalPages);
+        Assert.False(empty.HasNextPage);
+    }
+
+    [Fact]
+    public async Task ReadStateAndUnreadCountApplyAcrossEveryPageButStayWithinTheCurrentScope()
+    {
+        await using var f = await Fixture.CreateAsync();
+        await f.AddNoticesAsync(45);
+        await f.Service.MarkAsReadAsync(54);
+        Assert.Equal(46, (await f.Service.GetUnreadCountAsync()).Count);
+        var first = await f.Service.GetMyNotificationsPageAsync(new());
+        Assert.True(first.Items[0].IsRead);
+        Assert.Equal(47, first.TotalCount);
+        await f.Service.MarkAllAsReadAsync();
+        var second = await f.Service.GetMyNotificationsPageAsync(new PaginationFilter(2, 20));
+        Assert.All(second.Items, value => Assert.True(value.IsRead));
+        Assert.Equal(0, (await f.Service.GetUnreadCountAsync()).Count);
+        Assert.False((await f.Db.Notifications.SingleAsync(value => value.Id == 2)).IsRead);
+        Assert.False((await f.Db.Notifications.SingleAsync(value => value.Id == 4)).IsRead);
+    }
+
+    [Fact]
+    public async Task OnlyTheSelectedPageIsLocalizedAndCancelledReadsStopImmediately()
+    {
+        await using var f = await Fixture.CreateAsync();
+        await f.AddNoticesAsync(45);
+        var texts = new Mock<INotificationTextService>();
+        texts.Setup(value => value.LocalizeForReader(It.IsAny<Notification>(), It.IsAny<NotificationResponse>()))
+            .Callback<Notification, NotificationResponse>((notification, response) => response.Title = "Localized " + notification.Id);
+        var service = f.CreateService(new UserRestaurantRepository(f.Db), texts.Object);
+        var page = await service.GetMyNotificationsPageAsync(new PaginationFilter(2, 10));
+        Assert.Equal(10, page.Items.Count);
+        Assert.All(page.Items, value => Assert.Equal("Localized " + value.Id, value.Title));
+        texts.Verify(value => value.LocalizeForReader(It.IsAny<Notification>(), It.IsAny<NotificationResponse>()), Times.Exactly(10));
+        Assert.All(await f.Db.Notifications.ToListAsync(), value => Assert.Equal("Synthetic", value.Title));
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => service.GetMyNotificationsPageAsync(new(), cancellation.Token));
     }
 
     private sealed class Fixture : IAsyncDisposable
@@ -134,16 +243,17 @@ public sealed class NotificationTenantBoundaryTests
             new("restaurantIds", "1,2"), new("restaurantRoles", "1:3,2:3")], "test"));
 
         /// <summary>Gerçək repository və mapper istifadə edir; push, e-poçt və real vaxt çatdırılması saxtadır.</summary>
-        public NotificationManager CreateService(IUserRestaurantRepository assignments)
+        public NotificationManager CreateService(IUserRestaurantRepository assignments, INotificationTextService? texts = null)
             => new(new HttpContextAccessor { HttpContext = Http }, new MapperConfiguration(config =>
                     config.AddProfile<NotificationProfile>(), NullLoggerFactory.Instance).CreateMapper(),
                 new ConfigurationBuilder().Build(), Repository, Mock.Of<IValidator<CreateNotificationRequest>>(),
-                Dispatcher.Object, Mock.Of<IMobilePushOutboxWriter>(), Mock.Of<INotificationEmailOutboxWriter>(), assignments);
+                Dispatcher.Object, Mock.Of<IMobilePushOutboxWriter>(), Mock.Of<INotificationEmailOutboxWriter>(), assignments, texts);
 
-        /// <summary>Dörd ictimai oxuma/yazma əməliyyatının eyni restoran giriş qaydasını tətbiq etdiyini yoxlayır.</summary>
+        /// <summary>Köhnə siyahı, səhifəli oxuma və oxunma əməliyyatlarının eyni restoran giriş qaydasını tətbiq etdiyini yoxlayır.</summary>
         public async Task ExecuteAsync(string operation)
         {
             if (operation == "list") await Service.GetMyNotificationsAsync();
+            else if (operation == "page") await Service.GetMyNotificationsPageAsync(new());
             else if (operation == "count") await Service.GetUnreadCountAsync();
             else if (operation == "read") await Service.MarkAsReadAsync(1);
             else await Service.MarkAllAsReadAsync();
@@ -176,6 +286,15 @@ public sealed class NotificationTenantBoundaryTests
         /// <summary>Şəxsi olmayan sintetik mətnlə müəyyən istifadəçi və restoran üçün oxunmamış bildiriş qurur.</summary>
         private static Notification Notice(int id, int userId, int? restaurantId) => new()
         { Id = id, UserId = userId, RestaurantId = restaurantId, StatusId = (int)NotificationStatus.Unread, Title = "Synthetic", Message = "Test" };
+
+        /// <summary>Eyni tarixli əlavə qeydlərlə səhifələrarası ID sırasını, limitləri və başqa tenant qeydlərinin sayılmadığını yoxlamağa imkan verir.</summary>
+        public async Task AddNoticesAsync(int count)
+        {
+            Db.Notifications.AddRange(Enumerable.Range(10, count).Select(id => Notice(id, 5, 1)));
+            await Db.SaveChangesAsync();
+            foreach (var notice in await Db.Notifications.ToListAsync()) notice.CreatedAt = new DateTime(2026, 11, 25, 8, 0, 0, DateTimeKind.Utc);
+            await Db.SaveChangesAsync();
+        }
 
         public ValueTask DisposeAsync() => Db.DisposeAsync();
     }

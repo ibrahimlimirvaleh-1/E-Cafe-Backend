@@ -2,6 +2,7 @@ using ECafe.Application.Repositories.Notification;
 using ECafe.Domain.Enums;
 using ECafe.Domain.Policies;
 using ECafe.Infrastructure.Context;
+using ECafe.Shared.DTOs;
 using Microsoft.EntityFrameworkCore;
 
 namespace ECafe.Infrastructure.Repositories.Notification
@@ -16,6 +17,18 @@ namespace ECafe.Infrastructure.Repositories.Notification
             => VisibleToUser(userId, restaurantId)
                 .OrderByDescending(x => x.CreatedAt)
                 .ToListAsync();
+
+        /// <summary>Canlı istifadəçi/restoran sərhədini həm sayda, həm səhifədə yoxlayır; yalnız seçilmiş hissəni sabit tarix/ID sırası ilə oxuyur və offset daşmasına yol vermir.</summary>
+        public async Task<PaginatedList<Domain.Entities.Notification>> GetPageByUserAsync(int userId, int? restaurantId,
+            int pageNumber, int pageSize, CancellationToken cancellationToken)
+        {
+            var query = VisibleToUser(userId, restaurantId);
+            var count = await query.CountAsync(cancellationToken);
+            var skip = (long)(pageNumber - 1) * pageSize;
+            var items = skip >= count ? [] : await query.OrderByDescending(value => value.CreatedAt)
+                .ThenByDescending(value => value.Id).Skip((int)skip).Take(pageSize).ToListAsync(cancellationToken);
+            return new PaginatedList<Domain.Entities.Notification>(items, count, pageNumber, pageSize);
+        }
 
         public Task<List<Domain.Entities.Notification>> GetUnreadByUserAsync(int userId, int? restaurantId)
             => VisibleToUser(userId, restaurantId, tracked: true)

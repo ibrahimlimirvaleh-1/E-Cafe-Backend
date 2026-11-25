@@ -29,14 +29,25 @@ public sealed class NotificationTextService(ITranslationService translations, IT
         if (message != null) notification.Message = Limit(TextLocalizer.Render(dictionary, message.Key, notification.Message, message.Arguments), 1000);
     }
 
-    /// <summary>Açarlı bildirişi oxuyanın cari dilində göstərir; əvvəlki açarsız bildirişlərin saxlanmış mətninə toxunmur.</summary>
+    /// <summary>Açarlı bildirişi cari dildə göstərir; qismən açarlı qeydin çatışmayan hissəsini yalnız tanınmış sistem bildirişi ilə tamamlayır, DB mətnini dəyişmir.</summary>
     public void LocalizeForReader(NotificationEntity notification, NotificationResponse response)
     {
-        if (notification.TranslationArgumentsJson == null) return;
+        if (notification.TranslationArgumentsJson == null || (notification.TitleKey == null && notification.MessageKey == null)) return;
         var arguments = JsonSerializer.Deserialize<Arguments>(notification.TranslationArgumentsJson);
-        if (notification.TitleKey != null) response.Title = Limit(text.Get(notification.TitleKey, notification.Title, arguments?.Title), 200);
-        if (notification.MessageKey != null) response.Message = Limit(text.Get(notification.MessageKey, notification.Message, arguments?.Message), 1000);
+        response.Title = LocalizePart(notification.TitleKey, notification.Title, arguments?.Title, 200);
+        response.Message = LocalizePart(notification.MessageKey, notification.Message, arguments?.Message, 1000);
     }
+
+    /// <summary>Mövcud açara üstünlük verir; çatışmayan açarı yalnız build-də qeydə alınmış notification şablonundan tapır, sərbəst mətni və parametrləri dəyişmir.</summary>
+    private string LocalizePart(string? key, string value, IReadOnlyDictionary<string, object?>? arguments, int length)
+    {
+        if (key != null) return Limit(text.Get(key, value, arguments), length);
+        var match = text.ResolveNotificationSource(value);
+        return match != null && match.Key.StartsWith("notification.", StringComparison.Ordinal)
+            ? Limit(text.Get(match.Key, value, match.Arguments), length)
+            : value;
+    }
+
     /// <summary>Uzun parametr və admin mətni bildirişin DB məhdudiyyətini pozaraq əsas biznes transaction-ını dayandırmasın deyə yalnız görünən mətnin sonunu qısaldır.</summary>
     private static string Limit(string value, int length) => value.Length <= length ? value : value[..(length - 3)] + "...";
     public sealed record Arguments(IReadOnlyDictionary<string, object?>? Title, IReadOnlyDictionary<string, object?>? Message);

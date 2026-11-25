@@ -1,0 +1,42 @@
+{
+  "ui.notifications.pagination": {
+    "az": "Bildirişlərin səhifələnməsi",
+    "en": "Notification pages",
+    "ru": "Страницы уведомлений"
+  },
+  "ui.notifications.loadFailed": {
+    "az": "Bildirişlər yüklənmədi. Yenidən cəhd edin.",
+    "en": "Notifications could not be loaded. Please try again.",
+    "ru": "Не удалось загрузить уведомления. Попробуйте ещё раз."
+  },
+  "ui.notifications.refresh": {
+    "az": "Bildirişləri yenilə",
+    "en": "Refresh notifications",
+    "ru": "Обновить уведомления"
+  },
+  "ui.notifications.retry": {
+    "az": "Yenidən cəhd et",
+    "en": "Try again",
+    "ru": "Повторить"
+  },
+  "ui.notifications.unread_one": {
+    "az": "{{count}} oxunmamış bildiriş",
+    "en": "{{count}} unread notification",
+    "ru": "{{count}} непрочитанное уведомление"
+  },
+  "ui.notifications.unread_few": {
+    "az": "{{count}} oxunmamış bildiriş",
+    "en": "{{count}} unread notifications",
+    "ru": "{{count}} непрочитанных уведомления"
+  },
+  "ui.notifications.unread_many": {
+    "az": "{{count}} oxunmamış bildiriş",
+    "en": "{{count}} unread notifications",
+    "ru": "{{count}} непрочитанных уведомлений"
+  },
+  "ui.notifications.unread_other": {
+    "az": "{{count}} oxunmamış bildiriş",
+    "en": "{{count}} unread notifications",
+    "ru": "{{count}} непрочитанных уведомления"
+  }
+}
