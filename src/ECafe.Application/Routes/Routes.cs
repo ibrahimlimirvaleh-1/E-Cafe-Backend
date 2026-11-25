@@ -223,6 +223,7 @@ public static class Routes
     public static class Notification
     {
         public const string GetMine = Base + "/notifications";
+        public const string GetMinePaged = Base + "/notifications/paged";
         public const string GetUnreadCount = Base + "/notifications/unread-count";
         public const string MarkAsRead = Base + "/notifications/{notificationId:int}/read";
         public const string MarkAllAsRead = Base + "/notifications/read-all";

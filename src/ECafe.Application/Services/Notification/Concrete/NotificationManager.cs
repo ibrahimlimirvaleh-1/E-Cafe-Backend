@@ -4,11 +4,13 @@ using ECafe.Application.Features.MobileApp;
 using ECafe.Application.Repositories.Notification;
 using ECafe.Application.Repositories.UserRestaurant;
 using ECafe.Application.Common.Exceptions;
+using ECafe.Application.Common.Pagination;
 using ECafe.Application.Services.Notification.Abstract;
 using ECafe.Application.Services.Realtime.Abstract;
 using ECafe.Domain.Enums;
 using ECafe.Domain.Exceptions;
 using FluentValidation;
+using ECafe.Shared.DTOs;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 
@@ -66,6 +68,24 @@ namespace ECafe.Application.Services.Notification.Concrete
         public async Task<List<NotificationResponse>> GetMyNotificationsAsync()
         {
             var notifications = await _notificationRepository.GetByUserAsync(GetCurrentUserId(), await GetNotificationRestaurantScopeAsync());
+            return MapForReader(notifications);
+        }
+
+        /// <summary>Keçərli səhifəni maksimum 100 qeydlə oxuyur; əvvəlki profil/istifadəçi yoxlaması və oxuyanın dili qorunur.</summary>
+        public async Task<PaginatedList<NotificationResponse>> GetMyNotificationsPageAsync(PaginationFilter pagination,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var filter = PaginationFilterNormalizer.Normalize(pagination);
+            var notifications = await _notificationRepository.GetPageByUserAsync(GetCurrentUserId(),
+                await GetNotificationRestaurantScopeAsync(), filter.PageNumber, filter.PageSize, cancellationToken);
+            return new PaginatedList<NotificationResponse>(MapForReader(notifications.Items), notifications.TotalCount,
+                filter.PageNumber, filter.PageSize);
+        }
+
+        /// <summary>Yalnız oxunmuş qeydləri DTO-ya çevirib oxuyanın dilinə uyğunlaşdırır; saxlanmış entity və oxunma vəziyyətini dəyişmir.</summary>
+        private List<NotificationResponse> MapForReader(List<Domain.Entities.Notification> notifications)
+        {
             var responses = Mapper.Map<List<NotificationResponse>>(notifications);
             if (_texts != null)
                 for (var index = 0; index < notifications.Count; index++) _texts.LocalizeForReader(notifications[index], responses[index]);
