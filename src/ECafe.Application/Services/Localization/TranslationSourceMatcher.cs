@@ -8,7 +8,7 @@ public sealed record TranslationMatch(string Key, IReadOnlyDictionary<string, ob
 public sealed partial class TranslationSourceMatcher
 {
     private readonly Dictionary<string, string> _exact = new(StringComparer.Ordinal);
-    private readonly List<(Regex Pattern, string Key, string[] Names)> _templates = [];
+    private readonly List<(Regex Pattern, string Key, string[] Names, string Prefix, string Suffix)> _templates = [];
 
     /// <summary>Yalnız build-də açıq qeydə alınmış köhnə sistem mətnlərini sabit açarlara uyğunlaşdırır; admin mətni regex-ə və ya koda çevrilmir.</summary>
     public TranslationSourceMatcher(IEnumerable<KeyValuePair<string, string>> sources)
@@ -29,18 +29,31 @@ public sealed partial class TranslationSourceMatcher
             }
             pattern.Append(Regex.Escape(pair.Value[cursor..])).Append("\\z");
             _templates.Add((new Regex(pattern.ToString(), RegexOptions.CultureInvariant | RegexOptions.Singleline | RegexOptions.NonBacktracking,
-                TimeSpan.FromMilliseconds(50)), pair.Key, names.ToArray()));
+                TimeSpan.FromMilliseconds(50)), pair.Key, names.ToArray(),
+                pair.Value[..matches[0].Index], pair.Value[(matches[^1].Index + matches[^1].Length)..]));
         }
     }
 
-    /// <summary>Yalnız tam uyğun sistem şablonunu tanıyır; mətn hissələrini tərcümə etmir, tutulan dəyərləri düz parametr kimi saxlayır.</summary>
+    /// <summary>Yalnız tam uyğun sistem şablonunu tanıyır; sabit kənarları əvvəlcədən yoxlayır, regex vaxtı bitərsə ilkin mətnin saxlanması üçün uyğunluq qaytarmır.</summary>
     public TranslationMatch? Match(string source)
     {
         if (source.Length > 16000) return null;
         if (_exact.TryGetValue(source, out var key)) return new(key, new Dictionary<string, object?>());
         foreach (var template in _templates)
         {
-            var match = template.Pattern.Match(source);
+            if (source.Length < template.Prefix.Length + template.Suffix.Length ||
+                !source.StartsWith(template.Prefix, StringComparison.Ordinal) ||
+                !source.EndsWith(template.Suffix, StringComparison.Ordinal)) continue;
+
+            Match match;
+            try
+            {
+                match = template.Pattern.Match(source);
+            }
+            catch (RegexMatchTimeoutException)
+            {
+                return null;
+            }
             if (!match.Success) continue;
             var arguments = new Dictionary<string, object?>(StringComparer.Ordinal);
             var compatible = true;
