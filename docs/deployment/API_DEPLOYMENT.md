@@ -8,6 +8,10 @@ for SDK requirements, compatibility checks and rollback precautions.
 For session and permission authorization changes, follow the
 [authorization rollout and manual test checklist](AuthorizationCacheRollout.md).
 
+Before deploying the SSH fingerprint change, provision the verified host pin in
+both repositories as described in [the SSH host verification rollout](SshHostVerification.md).
+An absent or invalid pin deliberately blocks deployment before any remote operation.
+
 ## Artifacts
 
 Build two images from the same `Dockerfile`:

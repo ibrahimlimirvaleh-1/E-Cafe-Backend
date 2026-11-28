@@ -33,6 +33,11 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Validate SSH host fingerprint
+        env:
+          ECAFE_DEV_SSH_FINGERPRINT: ${{ secrets.ECAFE_DEV_SSH_FINGERPRINT }}
+        run: python3 -B deploy/security/validate_ssh_fingerprint.py
+
       - name: Package backend source
         run: |
           tar \
@@ -52,6 +57,7 @@ jobs:
           host: ${{ secrets.ECAFE_DEV_HOST }}
           username: ${{ secrets.ECAFE_DEV_USER }}
           key: ${{ secrets.ECAFE_DEV_SSH_KEY }}
+          fingerprint: ${{ secrets.ECAFE_DEV_SSH_FINGERPRINT }}
           source: backend-source.tar.gz
           target: ${{ env.APP_PATH }}/deploy-packages/${{ github.sha }}
           rm: true
@@ -62,6 +68,7 @@ jobs:
           host: ${{ secrets.ECAFE_DEV_HOST }}
           username: ${{ secrets.ECAFE_DEV_USER }}
           key: ${{ secrets.ECAFE_DEV_SSH_KEY }}
+          fingerprint: ${{ secrets.ECAFE_DEV_SSH_FINGERPRINT }}
           script: |
             set -euo pipefail
             APP_PATH="${{ env.APP_PATH }}"
